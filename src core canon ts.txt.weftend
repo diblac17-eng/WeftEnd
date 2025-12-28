@@ -1,0 +1,70 @@
+/* src/core/canon.ts */
+/**
+ * WeftEnd (WebLayers v2.6) — Determinism primitives
+ *
+ * MUST match the reference implementations in docs/PROJECT_STATE.md.
+ *
+ * Layer rules:
+ * - core only (TS/stdlib)
+ * - pure functions
+ */
+
+export function canonicalJSON(obj: unknown): string {
+  const seen = new WeakSet<object>();
+
+  const normalize = (v: any): any => {
+    if (v === null || v === undefined) return null;
+
+    const t = typeof v;
+    if (t === "string" || t === "number" || t === "boolean") return v;
+
+    if (t === "function" || t === "symbol") return null;
+
+    if (Array.isArray(v)) return v.map(normalize);
+
+    if (t === "object") {
+      if (seen.has(v)) throw new Error("CYCLE_IN_CANONICAL_JSON");
+      seen.add(v);
+
+      const out: Record<string, any> = {};
+      for (const k of Object.keys(v).sort()) out[k] = normalize(v[k]);
+      return out;
+    }
+
+    return null;
+  };
+
+  return JSON.stringify(normalize(obj));
+}
+
+export const sortById = <T extends { id: string }>(arr: T[]) =>
+  [...arr].sort((a, b) => a.id.localeCompare(b.id));
+
+export const sortDependencies = (deps: { id: string; role: string }[]) =>
+  [...deps].sort((a, b) => {
+    const c = a.id.localeCompare(b.id);
+    return c !== 0 ? c : a.role.localeCompare(b.role);
+  });
+
+export const sortCapRequests = (caps: { capId: string; params?: any }[]) =>
+  [...caps].sort((a, b) => {
+    const c = a.capId.localeCompare(b.capId);
+    if (c !== 0) return c;
+    return canonicalJSON(a.params ?? null).localeCompare(canonicalJSON(b.params ?? null));
+  });
+
+export const sortCapGrants = (caps: { capId: string; params?: any }[]) =>
+  [...caps].sort((a, b) => {
+    const c = a.capId.localeCompare(b.capId);
+    if (c !== 0) return c;
+    return canonicalJSON(a.params ?? null).localeCompare(canonicalJSON(b.params ?? null));
+  });
+
+export const sortByNodeId = <T extends { nodeId: string }>(arr: T[]) =>
+  [...arr].sort((a, b) => a.nodeId.localeCompare(b.nodeId));
+
+export const sortBlockPins = (pins: { nodeId: string; contentHash: string }[]) =>
+  [...pins].sort((a, b) => {
+    const c = a.nodeId.localeCompare(b.nodeId);
+    return c !== 0 ? c : a.contentHash.localeCompare(b.contentHash);
+  });

@@ -1,0 +1,298 @@
+# WeftEnd / WebLayers v2.6 — AI Constraint Spec (Pages-as-Portal + Block Economy + Crypto Trust)
+
+Authoritative (co-equal with `docs/PROJECT_STATE.md`). If these two conflict, stop and write a Proposal. Otherwise, if code or other docs disagree, this spec wins.
+
+WeftEnd is a **full-stack block platform**:
+- UI, compute, services, data, secrets, session are all **blocks**
+- blocks compose under **trust boundaries**
+- **capabilities** are deny-by-default, explicitly granted, runtime enforced
+- execution tier is derived: `cache.global | edge.exec | origin.exec`
+- a **block economy** exists: anyone can publish blocks; sites import by content-hash pinning
+- **crypto trust is first-class**: signatures, content hashes, verification evidence, policy gates
+
+**Bridge Pillar (Pages-as-Portal):**
+- Developers publish a **page** (familiar artifact).
+- WeftEnd reveals the underlying **DAG** and **block provenance**.
+- Pages are the adoption bridge. Blocks are the power.
+
+Publishing never grants power. Policy grants power.
+
+---
+
+## 0) Meta: How to Use This Spec (AI Instruction)
+
+This spec is a deterministic constraint system for incremental generation.
+
+- **Pillars** = hard boundaries you must not cross.
+- **Laws** = rules you must follow in every module.
+- **Layers** = generation order.
+- **Anchors** = exact function signatures you must implement.
+- **Types** = schemas you must respect across all code.
+- **Tests** = proofs that generated code fits the existing pieces.
+
+Critical rule: **never generate Phase N+1 code until Phase N validates**.
+
+---
+
+## 0.5) Generation Order (AI Instruction)
+
+### Phase 1: I/O Boundaries (Pure Interfaces)
+1) `src/core/types.ts` — canonical schemas (no logic)
+2) `src/ports/*.ts` — port interfaces (no implementations)
+
+Validation: TypeScript compiles.
+
+### Phase 2: Pure Functions (Core + Engine)
+3) `src/core/canon.ts` — canonical JSON + stable sort helpers (copy exact reference)
+4) `src/core/validate.ts` — validators for canonical types (fail closed)
+5) `src/engine/graph.ts` — DAG validation + stable topo order + project graph (pure)
+6) `src/engine/build.ts` — blockifier (pure)
+7) `src/engine/trust.ts` — trust→grants→tier→allowExecute (pure logic; crypto via ports)
+
+Validation: unit tests pass; no side effects.
+
+### Phase 3: Side Effects (Runtime + Devkit + CLI)
+8) `src/runtime/*.ts` — sandbox host + capability kernel + DOM render
+9) `src/devkit/*.ts` — HTML import + overlay UI
+10) `src/cli/main.ts` — FS/process I/O, publish/build artifacts
+
+Validation: integration tests pass.
+
+### Phase 4: Tests
+11) `tests/fixtures.ts`
+12) `tests/weblayers.spec.ts`
+13) `tests/runner.ts`
+
+Validation: all tests pass; determinism verified.
+
+---
+
+## 1) Pillars (Hard Boundaries)
+
+### P1 — No ambient authority
+Sandboxed blocks do not get implicit access to network/storage/crypto/time/randomness/secrets/session/DOM/fs/process.
+
+### P2 — Capabilities are the only power
+All privileged actions occur only via host-provided capability kernel built from **grants**.
+
+### P3 — Trust gates execution and power
+Trust controls allowExecute, eligible grants, tier constraints, and denial reasons.
+
+### P4 — Determinism is mandatory
+Canonical JSON + stable ordering required; fixtures assert exact outputs.
+
+### P5 — Publish ≠ trust
+Anyone can publish blocks/pages. Importing never implies trust. Policy decides.
+
+### P6 — Fail closed
+Unclear/missing/invalid => deny execution and/or deny grants with explicit reasons.
+
+### P7 — Crypto trust is first-class
+- `contentHash` is authoritative.
+- signatures are optional but verifiable via CryptoPort.
+- verification evidence must be recorded and surfaced.
+- policy may require signature verification to grant trust or capabilities.
+
+### P8 — Pages-as-Portal (adoption bridge)
+- A **PagePackage** is a first-class publishable artifact.
+- PagePackage contains a composition graph referencing blocks (often as pinned PackageRefs).
+- Running a PagePackage must reveal:
+  - DAG
+  - per-block provenance (publisherId, hash, signature evidence)
+  - trust status, grants, tier, allow/deny decisions
+
+### P9 — Tight NodeId grammar (no prefix sprawl)
+NodeId grammar is intentionally small.
+No new prefixes like `layout:` are added.
+If you want “layout” semantics, use naming conventions under `block:` such as:
+- `block:layout/<name>` (recommended)
+but it remains a `block:` NodeId.
+
+### P10 — Identity is capability-gated (reserved family)
+If you want identity/profile to be a first-class option later, the anchors must exist now:
+- Reserved capability IDs: `id:present`, `id:sign`, `id:consent`
+Rules:
+- any `id:*` capability implies **origin.exec**
+- `id:consent` is an explicit user approval gate
+- blocks never get IdentityPort directly; runtime mediates by plan+policy
+
+---
+
+## 1.5) Cyclic runtime for gaming & streaming (Reactor split)
+
+This is the “clean split” rule for continuous systems:
+
+- **Outer DAG (WebLayers DAG):** build + trust + composition  
+  Produces versioned artifacts: blocks, overlay layouts, gameplay rulesets, mod bundles, policy decisions, grants.
+
+- **Inner cyclic loop (Reactor):** runtime stateflow / tick loop  
+  Carries continuous frames/audio/ticks/events forward and **consumes the latest approved snapshots** produced by the Outer DAG.
+
+**Hard law:** cycles are allowed only “over time,” not “in dependencies.”  
+Feedback is event/state flowing through the reactor each tick, not graph edges that require topo sorting.
+
+### 1.5.1 The single explicit boundary (no loopholes)
+
+**Outer → Inner (inputs):**
+- Approved module snapshot:
+  - pinned artifact reference(s) (content-hash committed)
+  - compiled plan/grants/constraints (deny-by-default, explicit)
+- Immutable config snapshots (per version)
+- Asset pointers (also pinned)
+
+**Inner → Outer (outputs):**
+- telemetry, clips, highlights, audit traces
+- optional derived artifacts (e.g., match summaries) as *data blocks*  
+  (but **never** new authority)
+
+### 1.5.2 Why this lowers latency without breaking trust
+
+- The reactor never “fetches authority.” It runs only with a **precomputed capability surface** from the compiled plan.
+- Updates are applied at safe boundaries (tick boundary / frame boundary), never mid-step.
+- The Outer DAG can rebuild asynchronously; the reactor continues on the last accepted snapshot.
+
+### 1.5.3 Phase 2 design choice (recorded here; implemented later)
+
+Define the boundary as either:
+1) **ReactorNode**: a plan node whose runtime executes a tick loop, or
+2) **Runtime service**: hosts a set of “tickable blocks” under one capability surface
+
+Both are valid. The difference is how much the portal overlay exposes about the reactor internals.
+Implementation is Phase 3 (runtime), but the *contract* belongs in Phase 2 (engine+types) once chosen.
+
+---
+
+## 2) Layer Import Graph (Strict)
+
+┌─────────┐
+│  core   │  (TS/stdlib only)
+└────┬────┘
+     │
+┌────▼────┐
+│  ports  │  (imports: core)
+└────┬────┘
+     │
+┌────▼────┐
+│ engine  │  (imports: core, ports)
+└─┬─────┬─┘
+  │     │
+  │     └──────────┐
+  │                │
+┌─▼──────┐  ┌──────▼─────┐  ┌─────────┐
+│runtime │  │   devkit    │  │   cli   │
+└────────┘  └─────────────┘  └─────────┘
+        │         │              │
+        └──────┬──┴───────┬──────┘
+               │          │
+            ┌──▼──────────▼──┐
+            │      tests      │
+            └─────────────────┘
+
+Import law: any import not implied by this graph is illegal.
+
+---
+
+## 3) Determinism Reference (Copy Exactly)
+
+Canonical JSON and stable sort reference implementations are defined in `docs/PROJECT_STATE.md`
+and must be copied verbatim into `src/core/canon.ts`.
+
+Rule: Determinism helpers may use structural types internally, but callers should use typed wrappers.
+
+---
+
+## 4) Execution Model (Enough to build correctly)
+
+### 4.1 Block classes
+- `ui.static`
+- `ui.compute`
+- `svc.compute`
+- `data.query`
+- `private.secret`
+- `session.auth`
+
+### 4.2 Block ABI
+Inputs: `props`, `deps`, `ctx`, `cap`  
+Outputs: `render.html | data.json | response | denied`
+
+Law: blocks observe the world only through `(props, deps, ctx, cap)`.
+
+---
+
+## 5) Capability System
+
+Request = `capId` + optional JSON params (validated).
+
+Runtime injects `cap` containing ONLY granted functions.
+Ungranted use => `{ code:"CAP_DENIED", capId, message }` + diag event.
+
+No ambient fetch/storage/crypto/time/randomness inside sandbox.
+
+No implicit inheritance across blocks.
+No passing cap handles as data.
+
+---
+
+## 6) Trust + Crypto + Grants + Tier
+
+Deterministic per node:
+1) identify source: local artifact OR PackageRef OR embedded package
+2) collect crypto evidence (hash match; signature verify if present/required)
+3) compute trust status + reasons (policy rules)
+4) compute grants (policy grant rules; constrained params)
+5) decide allowExecute
+6) derive tier
+
+Tier derivation:
+- if grants include `secrets:get` OR `session:write` OR any `id:*` => origin.exec
+- else if allowExecute and grants include `net:fetch` OR `db:query` OR `kv:write` => edge.exec
+- else if allowExecute and class is ui.static => cache.global
+- else if allowExecute and class is executable => edge.exec
+- else do not execute
+
+---
+
+## 7) Pages-as-Portal
+
+### 7.1 Publishable artifacts
+A) BlockPackage — publish blocks into economy  
+B) PagePackage — publish a page as a portal composition artifact
+
+### 7.2 Package resolution (strict)
+Runtime does not ambient-fetch packages.
+
+For a node referencing PackageRef:
+- `PackageRef.locator MUST equal the target nodeId string` (including `block:`/`svc:` prefix and optional `@publisher/` scope).
+- Resolve by exact match:
+  - `pkg.nodeId === ref.locator` AND `pkg.contentHash === ref.contentHash`
+- Missing => PKG_MISSING
+- Same nodeId with different hash(s) present => PKG_AMBIGUOUS
+
+---
+
+## 8) Anchors (Test-Before-Implement Format)
+
+Every anchor must be documented with:
+- signature (exact)
+- tests-first contract
+- constraints
+- allowed dependencies (layers)
+- checklist
+
+Frozen anchors are listed in `docs/PROJECT_STATE.md`.
+
+---
+
+## 9) Definition of Done (Repo-level)
+
+Done means:
+- schema + validators exist for all canonical types
+- anchors implemented with exact signatures
+- deterministic ordering verified by tests
+- fixtures prove:
+  - published page runs and reveals DAG (portal)
+  - published blocks import by pinned hash
+  - CAP_DENIED for forbidden operations
+  - origin.exec forced for secrets/session-write/identity
+  - crypto evidence affects trust and grants
+  - PKG_MISSING/PKG_AMBIGUOUS behave correctly

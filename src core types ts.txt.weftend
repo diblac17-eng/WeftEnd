@@ -1,0 +1,630 @@
+/* src/core/types.ts */
+/**
+ * WeftEnd (WebLayers v2.6) — Core Types (schemas only)
+ *
+ * Source of truth: docs/weblayers-v2-spec.md + docs/PROJECT_STATE.md
+ * Phase rule: schemas only. No executable logic.
+ *
+ * Import law: core must not import from any other layer.
+ */
+
+// -----------------------------
+// Result model
+// -----------------------------
+
+export type Ok<T> = { ok: true; value: T };
+export type Err<E> = { ok: false; error: E };
+export type Result<T, E> = Ok<T> | Err<E>;
+
+// -----------------------------
+// Canonical identifiers
+// -----------------------------
+
+/**
+ * Canonical NodeId grammar (v2.6)
+ *
+ * Strict forms:
+ *  - page:/path
+ *  - block:<name> or block:@publisher/name
+ *  - svc:<name> or svc:@publisher/name
+ *  - data:<name> or data:@publisher/name
+ *  - priv:<name>
+ *  - sess:<name>
+ *  - asset:<name>
+ */
+export type NodeId = string;
+
+// -----------------------------
+// Execution primitives
+// -----------------------------
+
+export type BlockClass =
+  | "ui.static"
+  | "ui.compute"
+  | "svc.compute"
+  | "data.query"
+  | "private.secret"
+  | "session.auth";
+
+export type ExecutionTier = "cache.global" | "edge.exec" | "origin.exec";
+export type ExecutionScope = "request" | "app";
+
+// -----------------------------
+// Capability model
+// -----------------------------
+
+export type JsonRecord = Record<string, unknown>;
+
+export interface CapabilityRequest {
+  capId: string;
+  params?: JsonRecord;
+}
+
+export interface CapabilityGrant {
+  capId: string;
+  params?: JsonRecord;
+  grantedBy: string;
+  notes?: string;
+}
+
+export type CapabilityErrorCode =
+  | "CAP_DENIED"
+  | "CAP_INVALID_PARAMS"
+  | "CAP_HOST_ERROR";
+
+export interface CapabilityError {
+  code: CapabilityErrorCode;
+  capId: string;
+  message: string;
+}
+
+// -----------------------------
+// Identity capability schemas (reserved family)
+// -----------------------------
+
+export type IdClaimType =
+  | "publisherId"
+  | "email"
+  | "displayName"
+  | "walletAddress";
+
+export interface IdPresentParams {
+  purpose: string;
+  audience?: string;
+  nonce?: string;
+  maxAgeSec?: number;
+  claimTypes?: IdClaimType[];
+}
+
+export interface IdPresentResponse {
+  proof: string;
+  expiresAt?: string;
+  disclosedFields: string[];
+}
+
+export interface IdSignParams {
+  purpose: string;
+  audience?: string;
+  nonce?: string;
+  challenge: string;
+  keyHint?: string;
+}
+
+export interface IdSignResponse {
+  signature: Signature;
+  publicKey?: string;
+}
+
+export interface IdConsentParams {
+  purpose: string;
+  audience?: string;
+  scopes?: string[];
+  expiresInSec?: number;
+}
+
+export interface IdConsentResponse {
+  approved: boolean;
+  expiresAt?: string;
+}
+
+// -----------------------------
+// Block ABI
+// -----------------------------
+
+export type BlockOutput =
+  | { kind: "render.html"; html: string }
+  | { kind: "data.json"; json: unknown }
+  | {
+      kind: "response";
+      status: number;
+      headers: Record<string, string>;
+      body: string;
+    }
+  | { kind: "denied"; code: string; message: string };
+
+export interface InvocationContext {
+  requestId: string;
+  pageId?: string;
+  /** Present only when session:read is granted by policy. */
+  session?: unknown;
+}
+
+export type BlockAbi = "ui" | "svc" | "data";
+
+export interface BlockRuntimeSpec {
+  abi: BlockAbi;
+  scope?: ExecutionScope;
+  engine: "js";
+  entry: string;
+}
+
+// -----------------------------
+// Crypto & economy types
+// -----------------------------
+
+export interface Signature {
+  algo: string;
+  keyId: string;
+  sig: string;
+}
+
+export interface PublisherIdentity {
+  publisherId: string;
+  keyId: string;
+  algo: string;
+  publicKey: string;
+}
+
+export type ArtifactRef =
+  | {
+      kind: "inline";
+      mime: string;
+      text?: string;
+      entry?: string;
+    }
+  | {
+      kind: "ref";
+      mime: string;
+      ref: string;
+      entry?: string;
+    };
+
+export interface PackageRef {
+  registry?: string;
+  /** MUST equal the target nodeId string. */
+  locator: string;
+  version?: string;
+  contentHash: string;
+  signature?: Signature;
+}
+
+export interface BlockPackage {
+  schema: "retni.blockpkg/1";
+  nodeId: NodeId;
+  contentHash: string;
+  publisher?: PublisherIdentity;
+  signature?: Signature;
+  declaredClass: BlockClass;
+  capabilityRequests: CapabilityRequest[];
+  runtime: BlockRuntimeSpec;
+  artifact: ArtifactRef;
+  meta?: {
+    name?: string;
+    description?: string;
+    tags?: string[];
+    license?: string;
+  };
+  publishedAt?: string;
+}
+
+export type ChainStampKind = "build" | "compile" | "review" | "audit" | "sign";
+
+export interface ChainStampBody {
+  sequenceNumber: number; // 0,1,2...
+  kind: ChainStampKind;
+
+  /** Audit garnish only (do NOT trust for ordering). */
+  at?: string; // ISO
+  by: string; // actor ID
+
+  previousHash?: string | null;
+
+  inputHash?: string;
+  outputHash?: string;
+
+  materials?: string[];
+  products?: string[];
+
+  witness?: string;
+  notes?: string;
+}
+
+export interface ChainStamp {
+  body: ChainStampBody;
+  /** Hash of canonical(body). */
+  stampHash: string;
+  /** One or more signatures over stampHash (agility/hybrid). */
+  signatures: Signature[];
+}
+
+export interface PagePackage {
+  schema: "retni.pagepkg/1";
+  /** must be page:/… */
+  pageId: NodeId;
+  contentHash: string;
+  publisher?: PublisherIdentity;
+  signature?: Signature;
+
+  manifest: GraphManifest;
+
+  /**
+   * Optional tamper-evident history for the published page root.
+   * Ordering comes from sequenceNumber + previousHash (NOT `at`).
+   */
+  releaseChain?: ChainStamp[];
+
+  requires?: { blockPins: { nodeId: NodeId; contentHash: string }[] };
+  embedded?: {
+    packages?: BlockPackage[];
+    artifacts?: Record<string, ArtifactRef>;
+  };
+  meta?: {
+    name?: string;
+    description?: string;
+    tags?: string[];
+    license?: string;
+  };
+  publishedAt?: string;
+}
+
+// -----------------------------
+// Trust policy schema
+// -----------------------------
+
+export type TrustStatus = "trusted" | "untrusted" | "unknown";
+
+export interface TrustPolicy {
+  id: string;
+  rules: TrustRule[];
+  grantRules: GrantRule[];
+}
+
+/** First match wins. */
+export interface TrustRule {
+  id: string;
+  match: {
+    nodeIdPrefix?: string;
+    publisherId?: string;
+    packageHash?: string;
+    pageHash?: string;
+  };
+  action: "trust" | "deny" | "unknown";
+  requireSignature?: boolean;
+  requireHashMatch?: boolean;
+}
+
+/** First match wins per node+capId. */
+export interface GrantRule {
+  id: string;
+  when: { status: TrustStatus; nodeIdPrefix?: string; publisherId?: string };
+  capId: string;
+  params?: JsonRecord;
+  effect: "grant" | "deny";
+}
+
+// -----------------------------
+// Graph model
+// -----------------------------
+
+export interface Dependency {
+  id: NodeId;
+  role: string;
+  required: boolean;
+}
+
+export interface Stamp {
+  /**
+   * Informational stamps are NOT a security chain.
+   * - Do not use `at` for ordering or trust decisions.
+   * - Use ChainStamp for tamper-evident construction history.
+   */
+  id: string;
+  kind: string;
+  at: string; // ISO (audit garnish)
+  by: string;
+  message?: string;
+  signature?: Signature;
+}
+
+export interface Node {
+  id: NodeId;
+  class: BlockClass;
+  title?: string;
+  dependencies: Dependency[];
+
+  /** Informational stamps only (non-security). */
+  stamps: Stamp[];
+
+  /**
+   * Optional tamper-evident construction history.
+   * Validated by previousHash + sequenceNumber + stampHash checks (engine/runtime).
+   */
+  constructionChain?: ChainStamp[];
+
+  capabilityRequests: CapabilityRequest[];
+  runtime?: BlockRuntimeSpec;
+  artifact?: ArtifactRef | PackageRef;
+}
+
+export interface GraphManifest {
+  id: string;
+  version: "2.6";
+  rootPageId: NodeId;
+  nodes: Node[];
+  createdAt: string;
+  createdBy: string;
+}
+
+// -----------------------------
+// Multi-page project graph
+// -----------------------------
+
+export interface ProjectGraph {
+  pages: { pageId: NodeId; manifestId: string }[];
+  edges: { fromPageId: NodeId; toPageId: NodeId; reason: string }[];
+}
+
+export type GraphErrorCode =
+  | "CYCLE_DETECTED"
+  | "DANGLING_DEPENDENCY"
+  | "INVALID_GRAPH"
+  | "INVALID_NODE"
+  | "INVALID_DEPENDENCY"
+  | "DUPLICATE_NODE"
+  | "MISSING_ROOT"
+  | "INVALID_NODE_ID";
+
+export interface GraphError {
+  code: GraphErrorCode;
+  message: string;
+  nodeId?: NodeId;
+  path?: string;
+}
+
+// -----------------------------
+// Build / import schemas (bridge layer)
+// -----------------------------
+
+export type ImportErrorCode =
+  | "IMPORT_PARSE_ERROR"
+  | "IMPORT_INVALID_SCHEMA"
+  | "IMPORT_INVALID_NODE_ID"
+  | "IMPORT_UNSUPPORTED"
+  | "IMPORT_EMPTY";
+
+export interface ImportError {
+  code: ImportErrorCode;
+  message: string;
+  path?: string;
+}
+
+export type BuildErrorCode =
+  | "BUILD_INVALID_DESIGN"
+  | "BUILD_INVALID_NODE_ID"
+  | "BUILD_GRAPH_ERROR"
+  | "BUILD_DUPLICATE_NODE"
+  | "BUILD_MISSING_ROOT";
+
+export interface BuildError {
+  code: BuildErrorCode;
+  message: string;
+  nodeId?: NodeId;
+  path?: string;
+}
+
+export type TrustErrorCode =
+  | "TRUST_POLICY_INVALID"
+  | "TRUST_DENIED"
+  | "TRUST_SIGNATURE_REQUIRED"
+  | "TRUST_SIGNATURE_INVALID"
+  | "TRUST_HASH_MISMATCH"
+  | "TRUST_PKG_MISSING"
+  | "TRUST_PKG_AMBIGUOUS";
+
+export interface TrustError {
+  code: TrustErrorCode;
+  message: string;
+  nodeId?: NodeId;
+  path?: string;
+}
+
+/**
+ * PageDesignTree is an intermediate representation produced by devkit importers.
+ * Engine code must validate before use.
+ */
+export interface PageDesignTree {
+  schema: "retni.design/1";
+  pageId: NodeId;
+  title?: string;
+  /** Root-level parts in document order. */
+  parts: DesignPart[];
+}
+
+export type DesignPart = DesignBlock | DesignHtml;
+
+export interface DesignBlock {
+  kind: "block";
+  nodeId: NodeId;
+  instanceId?: string;
+  declaredClass?: BlockClass;
+  title?: string;
+  props?: JsonRecord;
+  deps?: { nodeId: NodeId; role: string; required?: boolean }[];
+  capabilityRequests?: CapabilityRequest[];
+  runtime?: BlockRuntimeSpec;
+  artifact?: ArtifactRef | PackageRef;
+}
+
+export interface DesignHtml {
+  kind: "html";
+  html: string;
+  title?: string;
+}
+
+// -----------------------------
+// Trust + plan + bundle (runtime-enforceable contract)
+// -----------------------------
+
+export interface CryptoEvidence {
+  hashVerified?: boolean;
+  signatureVerified?: boolean;
+  verifiedByKeyId?: string;
+  notes?: string;
+}
+
+export interface TrustDigest {
+  producerHash: string | null;
+  inputsHash: string | null;
+  outputHash: string | null;
+  grantedCaps: CapabilityGrant[];
+}
+
+export interface TrustNodeResult {
+  nodeId: NodeId;
+  status: TrustStatus;
+  reasons: string[];
+
+  /** Legacy mirror; must equal digest.grantedCaps */
+  grants: CapabilityGrant[];
+
+  digest: TrustDigest;
+
+  publisherId?: string;
+
+  /** Legacy mirror; if present and digest.producerHash != null they must match */
+  packageHash?: string;
+
+  crypto?: CryptoEvidence;
+}
+
+export interface TrustResult {
+  manifestId: string;
+  policyId: string;
+  nodes: TrustNodeResult[];
+}
+
+export interface NetConstraint {
+  allowOrigins: string[];
+  allowMethods: ("GET" | "POST" | "PUT" | "PATCH" | "DELETE")[];
+}
+
+export interface KvConstraint {
+  allowNamespaces: string[];
+}
+
+export interface DbConstraint {
+  allowConnections: string[];
+}
+
+export interface SecretsConstraint {
+  allowNames: string[];
+}
+
+export interface SessionConstraint {
+  allowRead: boolean;
+  allowWrite: boolean;
+}
+
+export interface PlanConstraints {
+  net?: NetConstraint;
+  kv?: KvConstraint;
+  db?: DbConstraint;
+  secrets?: SecretsConstraint;
+  session?: SessionConstraint;
+}
+
+export interface PlanNode {
+  nodeId: NodeId;
+  tier: ExecutionTier;
+  allowExecute: boolean;
+  denyReason?: string;
+  grantedCaps: CapabilityGrant[];
+  constraints?: PlanConstraints;
+}
+
+export interface ExecutionPlan {
+  manifestId: string;
+  policyId: string;
+  nodes: PlanNode[];
+  planHash: string;
+}
+
+export interface CompilerStamp {
+  compilerId: string;
+  compilerVersion: string;
+  builtAt: string; // ISO
+  manifestHash: string;
+  trustHash: string;
+  planHash: string; // MUST equal plan.planHash
+}
+
+export interface RuntimeBundle {
+  manifest: GraphManifest;
+  trust: TrustResult;
+  plan: ExecutionPlan;
+
+  compiler: CompilerStamp;
+
+  packages?: BlockPackage[];
+  artifacts?: Record<string, ArtifactRef>;
+}
+
+// -----------------------------
+// Library facade schemas
+// -----------------------------
+
+export interface BuildFromHtmlInput {
+  html: string;
+  pageId: NodeId;
+  policy?: TrustPolicy;
+}
+
+export type BuildFromHtmlResult =
+  | { ok: true; bundle: RuntimeBundle; design: PageDesignTree }
+  | {
+      ok: false;
+      stage: "import" | "build" | "trust";
+      errors: (ImportError | BuildError | TrustError)[];
+    };
+
+// -----------------------------
+// Cyclic runtime reactor boundary (gaming/streaming)
+// -----------------------------
+
+export type ReactorErrorCode = "REACTOR_INVALID_SNAPSHOT" | "REACTOR_DENIED" | "REACTOR_HOST_ERROR";
+
+export interface ReactorError {
+  code: ReactorErrorCode;
+  message: string;
+}
+
+export interface ReactorSnapshot {
+  /**
+   * Approved snapshot from the outer DAG.
+   * Runtime must treat this as the sole authority input for the reactor.
+   */
+  snapshotId: string;
+  bundle: RuntimeBundle;
+}
+
+export type ReactorInput =
+  | { kind: "tick"; dtMs: number; at?: string }
+  | { kind: "event"; name: string; at?: string; data?: unknown };
+
+export type ReactorEvent =
+  | { kind: "telemetry"; at: string; channel: string; data: unknown }
+  | { kind: "derived"; at: string; nodeId: NodeId; output: BlockOutput };
+
+export interface ReactorStepResult {
+  events: ReactorEvent[];
+}

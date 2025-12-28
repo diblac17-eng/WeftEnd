@@ -1,0 +1,179 @@
+--- Doc core canon ts narrow scope.txt+++ Doc core canon ts narrow scope.txt.weftend@@ -1,4 +1,4 @@-Core Canon Laws & Pillars (WebLayers v2.6)
++Core Canon Laws & Pillars — WeftEnd (WebLayers v2.6)
+ 
+ Scope: This file governs only the Core Canon section: src/core/canon.ts and its direct responsibilities (deterministic canonicalization + stable ordering primitives).  
+ 
+
+
+--- How to Build with AI txt.txt+++ How to Build with AI txt.txt.weftend@@ -1,4 +1,4 @@-WebLayers v2.6 — How to Build with AI (Constraint Solver Method)
++WeftEnd (WebLayers v2.6) — How to Build with AI (Constraint Solver Method)
+ 
+ Goal
+ You want AI-guided incremental code generation to behave like a deterministic constraint solver:
+
+
+--- docs INTEGRATION CONTRACT md .txt+++ docs INTEGRATION CONTRACT md .txt.weftend@@ -1,4 +1,4 @@-# WebLayers v2.6 — Integration Contract (Shared I/O + Pillars + Laws)
++# WeftEnd (WebLayers v2.6) — Integration Contract (Shared I/O + Pillars + Laws)
+ 
+ This document is the **cross-section anchoring layer**.
+ Every worker chat must treat this as **read-only law**.
+
+
+--- docs PROGRAM FLOW md.txt+++ docs PROGRAM FLOW md.txt.weftend@@ -1,5 +1,5 @@ # PROGRAM_FLOW.md
+-WebLayers — Program Story + Laws (Deterministic, Fail-Closed)
++WeftEnd — Program Story + Laws (WebLayers v2.6; Deterministic, Fail-Closed)
+ 
+ This document is both:
+ 1) A readable story of how the program works end-to-end.
+
+
+--- docs PROJECT STATE md.txt+++ docs PROJECT STATE md.txt.weftend@@ -1,4 +1,4 @@-# PROJECT_STATE — RetniBew / WebLayers v2.6 (authoritative sync spine)
++# PROJECT_STATE — WeftEnd / WebLayers v2.6 (authoritative sync spine)
+ 
+ Authoritative coordination spine.
+ 
+@@ -12,7 +12,7 @@ 
+ ## 0) North Star
+ 
+-RetniBew blockifies the web by making **pages publishable portals** into a block economy:
++WeftEnd blockifies the web by making **pages publishable portals** into a block economy:
+ - publish a page => reveal DAG + provenance + trust/grants/tier decisions
+ - publish blocks => populate the economy
+ - compose pages from blocks => safe by trust + capabilities + tiers
+
+
+--- docs weblayers v2 spec md.txt+++ docs weblayers v2 spec md.txt.weftend@@ -1,8 +1,8 @@-# RetniBew / WebLayers v2.6 — AI Constraint Spec (Pages-as-Portal + Block Economy + Crypto Trust)
++# WeftEnd / WebLayers v2.6 — AI Constraint Spec (Pages-as-Portal + Block Economy + Crypto Trust)
+ 
+ Authoritative (co-equal with `docs/PROJECT_STATE.md`). If these two conflict, stop and write a Proposal. Otherwise, if code or other docs disagree, this spec wins.
+ 
+-RetniBew is a **full-stack block platform**:
++WeftEnd is a **full-stack block platform**:
+ - UI, compute, services, data, secrets, session are all **blocks**
+ - blocks compose under **trust boundaries**
+ - **capabilities** are deny-by-default, explicitly granted, runtime enforced
+@@ -12,7 +12,7 @@ 
+ **Bridge Pillar (Pages-as-Portal):**
+ - Developers publish a **page** (familiar artifact).
+-- RetniBew reveals the underlying **DAG** and **block provenance**.
++- WeftEnd reveals the underlying **DAG** and **block provenance**.
+ - Pages are the adoption bridge. Blocks are the power.
+ 
+ Publishing never grants power. Policy grants power.
+
+
+--- src core canon test ts.txt+++ src core canon test ts.txt.weftend@@ -1,6 +1,6 @@ /* src/core/canon.test.ts */
+ /**
+- * WebLayers v2.6 — Core Canon deterministic tests
++ * WeftEnd (WebLayers v2.6) — Core Canon deterministic tests
+  *
+  * Locks:
+  * - canonicalJSON normalization + key ordering + cycle/shared-ref error
+
+
+--- src core canon ts.txt+++ src core canon ts.txt.weftend@@ -1,6 +1,6 @@ /* src/core/canon.ts */
+ /**
+- * WebLayers v2.6 — Determinism primitives
++ * WeftEnd (WebLayers v2.6) — Determinism primitives
+  *
+  * MUST match the reference implementations in docs/PROJECT_STATE.md.
+  *
+
+
+--- src core types ts.txt+++ src core types ts.txt.weftend@@ -1,6 +1,6 @@ /* src/core/types.ts */
+ /**
+- * WebLayers v2.6 — Core Types (schemas only)
++ * WeftEnd (WebLayers v2.6) — Core Types (schemas only)
+  *
+  * Source of truth: docs/weblayers-v2-spec.md + docs/PROJECT_STATE.md
+  * Phase rule: schemas only. No executable logic.
+
+
+--- src core validate test ts.txt+++ src core validate test ts.txt.weftend@@ -1,6 +1,6 @@ /* src/core/validate.test.ts */
+ /**
+- * WebLayers v2.6 — Core validate deterministic tests
++ * WeftEnd (WebLayers v2.6) — Core validate deterministic tests
+  *
+  * Locks:
+  * - validateNodeId fail-closed rules
+
+
+--- src core validate ts.txt+++ src core validate ts.txt.weftend@@ -1,6 +1,6 @@ /* src/core/validate.ts */
+ /**
+- * WebLayers v2.6 — Fail-closed validators for core schemas.
++ * WeftEnd (WebLayers v2.6) — Fail-closed validators for core schemas.
+  *
+  * Core rules:
+  * - validate unknown input as untrusted (fail closed)
+
+
+--- src ports clock port ts.txt+++ src ports clock port ts.txt.weftend@@ -1,6 +1,6 @@ /* src/ports/clock-port.ts */
+ /**
+- * WebLayers v2.6 — ClockPort (interface only)
++ * WeftEnd (WebLayers v2.6) — ClockPort (interface only)
+  *
+  * Phase 1: port interface, no implementation.
+  */
+
+
+--- src ports crypto port ts.txt+++ src ports crypto port ts.txt.weftend@@ -1,6 +1,6 @@ /* src/ports/crypto-port.ts */
+ /**
+- * WebLayers v2.6 — CryptoPort (interface only)
++ * WeftEnd (WebLayers v2.6) — CryptoPort (interface only)
+  *
+  * Phase 1: port interface, no implementation.
+  *
+
+
+--- src ports diag port ts.txt+++ src ports diag port ts.txt.weftend@@ -1,6 +1,6 @@ /* src/ports/diag-port.ts */
+ /**
+- * WebLayers v2.6 — DiagPort (interface only)
++ * WeftEnd (WebLayers v2.6) — DiagPort (interface only)
+  *
+  * Phase 1: port interface, no implementation.
+  */
+
+
+--- src ports id port ts.txt+++ src ports id port ts.txt.weftend@@ -1,6 +1,6 @@ /* src/ports/id-port.ts */
+ /**
+- * WebLayers v2.6 — IdPort (interface only)
++ * WeftEnd (WebLayers v2.6) — IdPort (interface only)
+  *
+  * Phase 1: port interface, no implementation.
+  */
+
+
+--- src ports identity port ts.txt+++ src ports identity port ts.txt.weftend@@ -1,6 +1,6 @@ /* src/ports/identity-port.ts */
+ /**
+- * WebLayers v2.6 — IdentityPort (interface only)
++ * WeftEnd (WebLayers v2.6) — IdentityPort (interface only)
+  *
+  * Reserved capability family: id:present, id:sign, id:consent
+  * Implementations may use passkeys / OS keystore / wallet / platform identity.
+
+
+--- src ports logger port ts.txt+++ src ports logger port ts.txt.weftend@@ -1,6 +1,6 @@ /* src/ports/logger-port.ts */
+ /**
+- * WebLayers v2.6 — LoggerPort (interface only)
++ * WeftEnd (WebLayers v2.6) — LoggerPort (interface only)
+  *
+  * Phase 1: port interface, no implementation.
+  * Import law: ports may import from core only (not needed here).
+
+
+--- src ports ports bundle ts.txt+++ src ports ports bundle ts.txt.weftend@@ -1,6 +1,6 @@ /* src/ports/ports-bundle.ts */
+ /**
+- * WebLayers v2.6 — PortsBundle (interfaces only)
++ * WeftEnd (WebLayers v2.6) — PortsBundle (interfaces only)
+  *
+  * Phase: port interfaces, no implementation.
+  */
+
+
+--- src ports reactor port ts.txt+++ src ports reactor port ts.txt.weftend@@ -1,6 +1,6 @@ /* src/ports/reactor-port.ts */
+ /**
+- * WebLayers v2.6 — ReactorPort (interface only)
++ * WeftEnd (WebLayers v2.6) — ReactorPort (interface only)
+  *
+  * Purpose:
+  * - Represents the Inner cyclic runtime loop (gaming/streaming “reactor”).

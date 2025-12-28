@@ -1,0 +1,95 @@
+WeftEnd (WebLayers v2.6) — How to Build with AI (Constraint Solver Method)
+
+Goal
+You want AI-guided incremental code generation to behave like a deterministic constraint solver:
+- Pillars = hard boundaries
+- Laws = universal rules
+- Layers = generation order (core → ports → engine → runtime → devkit → cli → tests)
+- Anchors = frozen entrypoints (exact signatures + contracts)
+- Types = canonical boundary schemas (single source of truth)
+- Fixtures = golden proofs (exact outputs + stable error ordering)
+
+The practical effect:
+You “place” a few high-information puzzle pieces (anchors + types + determinism + fail-closed rules),
+and AI can only fill in the remaining code one correct way.
+
+------------------------------------------------------------------
+
+The Spine (Shared Files)
+These files must be treated as read-only by all worker chats unless they own them:
+- docs/weblayers-v2-spec.md
+- docs/INTEGRATION_CONTRACT.md
+- docs/PROJECT_STATE.md
+- src/core/types.ts
+- src/core/canon.ts
+- src/core/validate.ts
+- src/ports/*.ts
+
+If a worker needs to change the spine, it must emit a Proposal:
+- What changes
+- Why
+- What anchors/types/fixtures are affected
+
+------------------------------------------------------------------
+
+Parallel Work Protocol (No Drift)
+To run multiple worker chats at once:
+
+Each chat must declare:
+1) Owned files (exclusive write)
+2) Allowed exports (only these symbols may change)
+3) Read-only dependencies (everything else)
+4) Acceptance tests you run (exact commands/files)
+
+Delivery format:
+- WHOLE FILE REPLACEMENTS ONLY (for owned files)
+- PLUS the exact tests to run
+- PLUS a “no drift” checklist (only owned files touched)
+
+------------------------------------------------------------------
+
+Anchor Format (Test-Before-Implement)
+For every anchor:
+- Signature (exact)
+- Test contract (1 happy + 1 deny/error at minimum)
+- Determinism rules (stable ordering + canonical JSON where relevant)
+- Failure modes (stable error codes)
+- Allowed imports (layer law)
+
+------------------------------------------------------------------
+
+High-Information Puzzle Pieces (Place These First)
+You don’t need full implementation to lock behavior:
+- Frozen anchors registry (docs/PROJECT_STATE.md)
+- Core types (src/core/types.ts)
+- Canonical JSON + stable sorts (src/core/canon.ts)
+- Fail-closed validators (src/core/validate.ts)
+- Port boundaries (src/ports/*.ts)
+
+Then AI fills the rest reliably:
+- engine/* (pure)
+- runtime/* (enforcement)
+- devkit/* (import + portal overlay)
+- cli/* (orchestration)
+- tests/* (fixtures enforce semantics)
+
+------------------------------------------------------------------
+
+Cyclic runtime reactors (gaming/streaming) — how to keep it clean
+
+If you need a continuous tick/frame loop:
+- Treat it as runtime stateflow (a reactor), not as a dependency cycle in the WebLayers DAG.
+- Outer DAG stays acyclic and remains the provenance/trust/plan authority.
+- Reactor consumes only approved snapshots (pinned artifacts + compiled plan/grants/constraints).
+- Reactor can emit telemetry/derived data blocks, but never new authority.
+
+Practical guidance for work orders:
+- Phase 2: define the boundary contract (types/anchors) deterministically.
+- Phase 3: implement the runtime reactor host; enforce deny-by-default capability surface.
+
+------------------------------------------------------------------
+
+Golden Rule
+Never generate Phase N+1 code until Phase N compiles/tests cleanly.
+
+If you break determinism, everything downstream becomes un-auditable.
