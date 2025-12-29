@@ -431,6 +431,13 @@ export type TrustErrorCode =
   | "TRUST_PKG_MISSING"
   | "TRUST_PKG_AMBIGUOUS";
 
+export type EvidenceKind =
+  | "signature.v1"
+  | "hash.v1"
+  | "content-address.v1"
+  | "key.status.v1"
+  | (string & {});
+
 export interface TrustError {
   code: TrustErrorCode;
   message: string;
@@ -482,6 +489,18 @@ export interface CryptoEvidence {
   notes?: string;
 }
 
+export type KeyStatusState = "active" | "expired" | "revoked" | "emergency-disable";
+
+export interface KeyStatus {
+  state: KeyStatusState;
+  keySetId?: string;
+  issuer?: string;
+  validFrom?: string;
+  validTo?: string;
+  reason?: string;
+  notes?: string;
+}
+
 export interface TrustDigest {
   producerHash: string | null;
   inputsHash: string | null;
@@ -505,12 +524,60 @@ export interface TrustNodeResult {
   packageHash?: string;
 
   crypto?: CryptoEvidence;
+
+  normalizedClaims?: NormalizedClaim[];
 }
 
 export interface TrustResult {
   manifestId: string;
   policyId: string;
   nodes: TrustNodeResult[];
+  /** Optional evidence bundles grouped per node; unknown kinds fail closed at policy gates. */
+  verifierOutputs?: VerifierOutput[];
+}
+
+export interface EvidenceEnvelope {
+  /** The kind of evidence; unknown kinds fail closed at policy gates. */
+  kind: EvidenceKind;
+  /** Opaque payload; not interpreted by kernel, but canonicalized for hashing. */
+  payload: unknown;
+  /** Optional metadata for provenance/audit. */
+  meta?: {
+    issuedAt?: string;
+    expiresAt?: string;
+    issuedBy?: string;
+    scope?: string;
+  };
+}
+
+export interface NormalizedClaim {
+  /** Stable identifier for deterministic sorting. */
+  claimId: string;
+  /** Evidence envelope this claim was derived from. */
+  evidenceKind: EvidenceKind;
+  /** Canonicalizable normalized claims (kernel-visible structure). */
+  normalized: {
+    type: string;
+    version: string;
+    subjectId?: string;
+    keySetId?: string;
+    status?: KeyStatus;
+    validFrom?: string;
+    validTo?: string;
+    issuer?: string;
+    /** Additional structured fields for future use; must be deterministic. */
+    fields?: JsonRecord;
+  };
+  /** Raw verifier payload (opaque to kernel). */
+  raw?: unknown;
+}
+
+export interface VerifierOutput {
+  nodeId: NodeId;
+  evidence: EvidenceEnvelope[];
+  normalizedClaims?: NormalizedClaim[];
+  warnings?: string[];
+  errors?: string[];
 }
 
 export interface NetConstraint {
@@ -577,6 +644,41 @@ export interface RuntimeBundle {
 
   packages?: BlockPackage[];
   artifacts?: Record<string, ArtifactRef>;
+}
+
+export type PortalRenderState = "VERIFIED" | "UNVERIFIED";
+
+export interface PortalNodeEntry {
+  nodeId: NodeId;
+  renderState: PortalRenderState;
+  /** Required when renderState = UNVERIFIED. */
+  reason?: string;
+  /** Stable-sorted by evidenceKind then canonical payload. */
+  evidence: EvidenceEnvelope[];
+  /** Stable-sorted by claimId then evidenceKind then canonical normalized payload. */
+  claims: NormalizedClaim[];
+  manifestNode?: Node;
+  trust?: TrustNodeResult;
+  plan?: PlanNode;
+  warnings?: string[];
+  errors?: string[];
+}
+
+export interface PortalModel {
+  manifestId: string;
+  planHash: string;
+  pageId: NodeId;
+  nodes: PortalNodeEntry[];
+  warnings?: string[];
+  errors?: string[];
+  /**
+   * Deterministic rendering invariant:
+   * - nodes stable-sorted by nodeId.
+   * - evidence within each node stable-sorted by evidenceKind then canonical payload.
+   * - claims within each node stable-sorted by claimId then evidenceKind then canonical normalized payload.
+   * - portal renders only from manifest/trust/plan commitments + verifier outputs; no ambient state.
+   * - verification failure must produce renderState = UNVERIFIED with explicit reason.
+   */
 }
 
 // -----------------------------

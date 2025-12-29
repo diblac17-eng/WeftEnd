@@ -1,0 +1,12 @@
+{
+  "name": "weftend",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "compile": "tsc --pretty false",
+    "test": "npm run compile --silent && node dist/src/core/canon.test.js && node dist/src/core/validate.test.js && node dist/src/engine/graph.test.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
