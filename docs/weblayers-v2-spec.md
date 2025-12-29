@@ -250,6 +250,11 @@ Tier derivation:
 - else if allowExecute and class is executable => edge.exec
 - else do not execute
 
+Key lifecycle evidence (deterministic, additive):
+- Evidence kinds must be recognized explicitly; unknown kinds are fail-closed.
+- Verifiers may emit normalized claims for key status using kind `key.status.v1` (states: active, expired, revoked, emergency-disable; include keySetId, issuer, validity window, reason).
+- Normalized claims are structured and canonicalizable; raw payload remains opaque to the kernel.
+
 ---
 
 ## 7) Pages-as-Portal
@@ -296,3 +301,51 @@ Done means:
   - origin.exec forced for secrets/session-write/identity
   - crypto evidence affects trust and grants
   - PKG_MISSING/PKG_AMBIGUOUS behave correctly
+
+---
+
+## 10) Blockifier v1 (deterministic, Phase 2 lock)
+
+Outputs (pure): normalized DOM, block plan, assembly template, warnings/errors.
+
+Determinism rules:
+- Primary ordering: document order (source traversal).
+- Tie-breakers: (1) nodePath, (2) tagName, (3) stable attribute string.
+- nodePath = 1-based element indices per depth (e.g., `root/1/3/2`).
+
+Normalization:
+- Collapse whitespace for structural comparison; preserve source fidelity only when explicitly requested (does not affect plan hashing).
+- Class list comparisons sort class tokens lexicographically before comparison.
+
+Boundary selection:
+- Hard boundaries: semantic tags (section/article/nav/main/header/footer/aside) and explicit attributes (`data-block`, `data-region`, `data-weftend-boundary`).
+- Repetition detection: ≥3 siblings sharing the same tag + attribute shape → treat as repeating block candidates.
+- Chunking: oversize regions are subdivided to keep block payloads bounded.
+- Merge rule: adjacent tiny fragments are merged to avoid degenerate blocks.
+
+Naming (priority order): `data-block` → `id` → aria/role hints → first heading descendant → fallback `section-N` (document-order N).
+
+Stable block IDs:
+- `blockId = hash(pageSeed + nodePath + rootTag + firstStableAttrHint)` where `firstStableAttrHint` is the first stable attribute in document order (id, data-block, aria-label, role, class signature).
+
+Dependency extraction:
+- CSS: inline `<style>` captured; external `<link rel="stylesheet">` required to resolve or fail-closed.
+- JS: inline `<script>` associated with nearest block boundary; external `src` must resolve or fail-closed with a warning+deny.
+- Assets: all referenced assets are recorded; missing inputs emit errors (fail-closed for the block plan).
+
+Block contracts:
+- Blockifier is a pure transform over the input DOM snapshot (no network, no time, no randomness).
+- A dependency manifest is produced explicitly; assembly is a deterministic combination of normalized DOM + manifest + warnings/errors.
+
+Fail-closed points and UI checklist:
+- Unknown evidence kinds when required by policy → not satisfied (explicit failure reason).
+- Unresolvable external dependencies → sealed block with recorded error.
+- Missing required boundary markers → warning + sealed fragment; portal must surface the reason.
+
+---
+
+## 11) Portal derivation contract (Phase 2 evidence surface)
+
+- Portal renders **only** from: verified evidence envelopes, verifier outputs (normalized claims), and plan/manifest commitments (hashes, node ordering). No ambient state.
+- Verification failure → portal state = UNVERIFIED with explicit reason codes; rendering must never imply trust.
+- Portal-facing collections (nodes, evidence, claims, warnings) are stable-sorted deterministically: primary sort by `nodeId`, then by evidence kind/claimId, then canonical payload string for ties.

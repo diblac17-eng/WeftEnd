@@ -19,6 +19,9 @@ import {
   sortCapGrants,
   sortByNodeId,
   sortBlockPins,
+  sortEvidenceEnvelopes,
+  sortNormalizedClaims,
+  sortPortalCollection,
 } from "../core/canon";
 
 type TestFn = () => void;
@@ -203,6 +206,69 @@ suite("core/canon", () => {
     );
   });
 
+  register("sortEvidenceEnvelopes orders by kind then canonical payload and is stable", () => {
+    const input = [
+      { kind: "b", payload: { z: 2, a: 1 } },
+      { kind: "a", payload: null },
+      { kind: "a", payload: { a: 1, b: 2 } },
+      { kind: "a", payload: { b: 2, a: 1 } },
+    ];
+
+    const out = sortEvidenceEnvelopes(input);
+
+    assertEq(out[0].kind, "a", "kind must sort ascending");
+    assertEq(out[1].kind, "a", "kind must sort ascending");
+    assertEq(out[2].kind, "a", "kind must sort ascending");
+    assertEq(out[3].kind, "b", "kind must sort ascending");
+
+    const canon = out.map((e) => canonicalJSON(e.payload ?? null));
+    assertEq(canon[0], "null", "null payload sorts first within kind");
+    assertEq(canon[1], canon[2], "equivalent payloads preserve stability");
+  });
+
+  register("sortNormalizedClaims orders by claimId then evidenceKind then normalized", () => {
+    const input = [
+      { claimId: "c2", evidenceKind: "sig", normalized: { b: 2, a: 1 } },
+      { claimId: "c1", evidenceKind: "sig", normalized: { z: 1 } },
+      { claimId: "c1", evidenceKind: "hash", normalized: { z: 1 } },
+      { claimId: "c1", evidenceKind: "sig", normalized: { z: 1 } },
+    ];
+
+    const out = sortNormalizedClaims(input);
+    assertEq(out[0].claimId, "c1", "claimId must sort ascending");
+    assertEq(out[1].claimId, "c1", "claimId must sort ascending");
+    assertEq(out[2].claimId, "c1", "claimId must sort ascending");
+    assertEq(out[3].claimId, "c2", "claimId must sort ascending");
+
+    assertEq(out[0].evidenceKind, "hash", "evidenceKind sorts within claimId");
+    assertEq(out[1].evidenceKind, "sig", "evidenceKind sorts within claimId");
+    assertEq(out[2].evidenceKind, "sig", "evidenceKind sorts within claimId");
+    assertEq(
+      canonicalJSON(out[1].normalized ?? null),
+      canonicalJSON(out[2].normalized ?? null),
+      "equivalent normalized payloads are stable"
+    );
+  });
+
+  register("sortPortalCollection orders by nodeId, evidenceKind, claimId, payload", () => {
+    const input = [
+      { nodeId: "block:b", evidenceKind: "sig", claimId: "c2", payload: { z: 2, a: 1 } },
+      { nodeId: "block:a", evidenceKind: "sig", claimId: "c2", payload: { z: 1 } },
+      { nodeId: "block:a", evidenceKind: "hash", claimId: "c1", payload: { z: 1 } },
+      { nodeId: "block:a", evidenceKind: "sig", claimId: "c1", payload: { z: 1 } },
+    ];
+
+    const out = sortPortalCollection(input);
+    assertEq(out[0].nodeId, "block:a", "nodeId sorts ascending");
+    assertEq(out[1].nodeId, "block:a", "nodeId sorts ascending");
+    assertEq(out[2].nodeId, "block:a", "nodeId sorts ascending");
+    assertEq(out[3].nodeId, "block:b", "nodeId sorts ascending");
+
+    assertEq(out[0].evidenceKind, "hash", "evidenceKind sorts within node");
+    assertEq(out[1].claimId, "c1", "claimId sorts after evidenceKind");
+    assertEq(out[2].claimId, "c2", "claimId sorts after evidenceKind");
+  });
+
   register("sortCapGrants matches sortCapRequests ordering", () => {
     const input = [
       { capId: "cap", params: { b: 1, a: 2 } },
@@ -228,7 +294,8 @@ suite("core/canon", () => {
     ];
     const out = sortByNodeId(input);
     assertEq(out[0].nodeId, "a", "nodeId must sort ascending");
-    assertEq(out[1].n, 1, "stable on ties");
+    assertEq(out[0].n, 1, "stable on ties preserves first occurrence");
+    assertEq(out[1].n, 3, "stable on ties keeps subsequent occurrence next");
     assertEq(out[2].nodeId, "b", "nodeId must sort ascending");
   });
 
