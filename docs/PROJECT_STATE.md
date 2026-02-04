@@ -10,6 +10,37 @@ If worker output conflicts with the authorities above, stop and write a Proposal
 
 ---
 
+## Doc registry (normative + guidance)
+
+Normative (must not be contradicted):
+- `docs/LAWS_KEYS_AND_SECRETS.md`
+- `docs/DRIFT_GUARDRAILS.md`
+- `docs/STRICT_MEMBRANE.md`
+- `docs/DOM_GATEWAY.md`
+- `docs/BOUNDARY_HARDENING.md`
+- `docs/FEATURE_ADMISSION_GATE.md`
+- `docs/PRIVACY_PILLARS.md`
+- `docs/NON_GOALS.md`
+- `docs/TIER_MARKETS.md`
+- `docs/DEVKIT_STRICT_LOAD.md`
+
+Guidance (supporting contracts + workflows):
+- `docs/PROGRAM_FLOW.md`
+- `docs/PHASES_2_TO_COMPLETE_WORKPLAN.md`
+- `docs/CLI_PUBLISH.md`
+- `docs/CLI_IMPORT.md`
+- `docs/CLI_MARKETS.md`
+- `docs/DEMO_GOLDEN_PATH.md`
+- `docs/DEMO_STEAM_LANE.md`
+- `docs/TELEMETRY_STREAMS.md`
+- `docs/TELEMETRY_CONDUITS_V0.md`
+- `docs/LOCAL_TESTING.md`
+- `docs/RELEASE_CHECKLIST.md`
+- `docs/DEV_END_TO_END.md`
+- `docs/SECURITY_ECONOMICS.md`
+- `docs/RECOVERY_LANE_HARDENING.md`
+- `docs/VISION_SCOPE_NEXT_STEPS.md`
+
 ## 0) North Star
 
 WeftEnd blockifies the web by making **pages publishable portals** into a block economy:
@@ -19,6 +50,29 @@ WeftEnd blockifies the web by making **pages publishable portals** into a block 
 - crypto trust evidence => supply-chain visible and policy-gated
 
 Publishing never grants power. Policy grants power.
+
+---
+
+## 0.1) Portal projection caps (proof-only view)
+
+Portal output is a **projection**, not a source of truth. It must never reject or mutate truth artifacts.
+When the view would exceed bounds, it truncates deterministically and adds explicit truncation metadata.
+
+Rules:
+- Never reject because the portal view is large.
+- Never mutate underlying truth artifacts (plan, release, Tartarus store).
+- Truncation is explicit and stable: add `PORTAL_PROJECTION_TRUNCATED` entries with `{section, kept, dropped}`.
+- Truncation metadata is bounded (no dropped lists).
+
+Caps (v2.6):
+- MAX_PORTAL_BLOCKS = 512
+- MAX_TARTARUS_PER_BLOCK = 16
+- MAX_TARTARUS_TOTAL = 1024
+- MAX_STAMPS_PER_BLOCK = 16
+- MAX_CAPS_PER_BLOCK = 64
+- MAX_STR_BYTES = 512 (any portal-facing string fields)
+
+Projection truncation lives on `PortalModelV0.projectionTruncations[]`.
 
 ---
 
@@ -231,7 +285,7 @@ Signature:
 Contract:
 	•	pure (no ports, no IO)
 	•	deterministic ids (no IdPort)
-	•	nodes stable-sorted by id
+	•	nodes preserve document order; determinism via nodePath anchors and canonical hashing
 	•	fail closed with BuildErrorCode
 
 A3) Engine — evaluateTrustAndPlan
@@ -253,6 +307,7 @@ Contract:
 	•	refuse execution if bundle binding invariants fail
 	•	execute only nodes with allowExecute true
 	•	enforce capability surface (deny-by-default)
+	•	executionMode defaults to legacy; strict only inside a strict executor boundary
 	•	expose portal overlay data (DAG + provenance + trust/grants/tier decisions)
 
 ⸻

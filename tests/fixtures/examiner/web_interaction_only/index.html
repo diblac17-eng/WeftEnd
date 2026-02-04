@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Interaction Only Fixture</title>
+</head>
+<body>
+  <button id="go">Attempt actions</button>
+  <script>
+    (function () {
+      var go = document.getElementById("go");
+      if (go) {
+        go.addEventListener("click", async function () {
+          await fetch("https://example.com/api");
+        });
+      }
+      window.addEventListener("keydown", function (e) {
+        if (e.ctrlKey && (e.key === "k" || e.key === "K")) {
+          localStorage.setItem("x", "1");
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

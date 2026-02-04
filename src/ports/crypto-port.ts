@@ -15,4 +15,7 @@ export interface CryptoPort {
 
   /** Verify signature over canonical payload. */
   verifySignature(payloadCanonical: string, sig: Signature, publicKey: string): boolean;
+
+  /** Sign canonical payload (optional, required for minting). */
+  sign?(payloadCanonical: string, keyId: string): Signature;
 }

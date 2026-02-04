@@ -1,0 +1,27 @@
+﻿WeftEnd Quickstart (5 minutes)
+
+1) Install (Windows, per-user)
+- Run tools\windows\INSTALL_WINDOWS.cmd
+- This sets the context menu and runs shell doctor.
+
+2) First run (right-click)
+- Right-click any file or folder -> Run with WeftEnd
+- Read report_card.txt (opens immediately)
+- Native binaries are WITHHELD by design (analysis-only)
+
+3) Compare (optional)
+- Run again after any change.
+- Use: npm run weftend -- compare <oldOut> <newOut> --out <diffOut>
+- Read compare_report.txt
+
+4) Open the Library
+- Start Menu: "WeftEnd Library" shortcut
+- Or: npm run weftend -- library
+
+5) Grab the portable bundle (optional)
+- Start Menu: "WeftEnd Download" shortcut
+- Drag the .zip from the release folder to a USB drive
+
+Notes
+- No cloud. No telemetry. No automatic execution.
+- Receipts are deterministic and privacy-clean.

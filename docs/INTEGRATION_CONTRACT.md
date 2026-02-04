@@ -138,3 +138,37 @@ If the system includes a continuous tick/frame loop (reactor):
   3) updating or adding golden fixtures
 
 Prefer additive changes (optional fields) over breaking changes.
+
+---
+
+## 8) Mint Adapter v1 (Product Output)
+
+WeftEnd v1’s primary output is a deterministic mint package:
+
+Schema: `weftend.mint/1`
+
+Purpose:
+- machine adapter (JSON) + human report (txt)
+- time-free, bounded, reproducible
+
+Hard rules:
+- canonical JSON only
+- stable-sorted arrays
+- no timestamps, usernames, or machine IDs
+- strict deny-by-default probes only (no network)
+
+See `docs/MINT_PACKAGE_V1.md` for the full schema and limits.
+
+---
+
+## 9) Platform Intake Pipeline (v1)
+
+WeftEnd v1 provides a deterministic intake decision for platform pipelines:
+
+- Inputs: `weftend.mint/1` + `weftend.intake.policy/1`
+- Outputs: `intake_decision.json`, `disclosure.txt`, `appeal_bundle.json`
+- Actions: APPROVE | QUEUE | REJECT | HOLD with deterministic exit codes
+- Requirements: no timestamps, bounded outputs, fail closed on invalid policy or mint
+
+Policies map reason codes and probe denials into platform actions while preserving
+appealable disclosures. See the CLI `weftend intake` for reference output.

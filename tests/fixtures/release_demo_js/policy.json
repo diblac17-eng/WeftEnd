@@ -1,0 +1,5 @@
+{
+  "id": "policy-fixture",
+  "rules": [{ "id": "r1", "match": {}, "action": "trust" }],
+  "grantRules": []
+}

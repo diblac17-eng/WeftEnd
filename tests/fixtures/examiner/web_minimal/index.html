@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Web Minimal Fixture</title>
+  <style>
+    body { font: 14px/1.4 system-ui, sans-serif; margin: 0; padding: 16px; }
+    button { padding: 8px 12px; border: 1px solid #999; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Web Minimal</h1>
+  <button id="btn">Click</button>
+  <script>
+    (function () {
+      var btn = document.getElementById("btn");
+      if (btn) {
+        btn.addEventListener("click", function () {
+          console.log("clicked");
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -9,6 +9,41 @@ This document is subordinate to: weblayers-v2-spec.md, PROJECT_STATE.md, INTEGRA
 
 ---
 
+## Doc registry (normative + guidance)
+
+Normative (must not be contradicted):
+- `docs/LAWS_KEYS_AND_SECRETS.md`
+- `docs/DRIFT_GUARDRAILS.md`
+- `docs/STRICT_MEMBRANE.md`
+- `docs/DOM_GATEWAY.md`
+- `docs/BOUNDARY_HARDENING.md`
+- `docs/FEATURE_ADMISSION_GATE.md`
+- `docs/PRIVACY_PILLARS.md`
+- `docs/TIER_MARKETS.md`
+- `docs/DEVKIT_STRICT_LOAD.md`
+
+Guidance (supporting contracts + workflows):
+- `docs/PHASES_2_TO_COMPLETE_WORKPLAN.md`
+- `docs/CLI_PUBLISH.md`
+- `docs/CLI_IMPORT.md`
+- `docs/CLI_MARKETS.md`
+- `docs/DEMO_GOLDEN_PATH.md`
+- `docs/DEMO_STEAM_LANE.md`
+- `docs/TELEMETRY_STREAMS.md`
+- `docs/LOCAL_TESTING.md`
+- `docs/VISION_SCOPE_NEXT_STEPS.md`
+
+## Developer End-to-End (Quick View)
+Power requires proof; repairs leave scars.
+1) Build a release (publish)
+2) Verify a release (strict truth report)
+3) Run in Strict (deny-by-default, proof-only caps)
+4) Pulses (local, bounded, time-free)
+5) Telemetry conduit snapshot (aggregate-only, k-floor)
+6) Inspect with the harness (proof-only UI)
+7) Recovery (explicit, scarred, provable)
+Full walkthrough: `docs/DEV_END_TO_END.md`
+
 ## 0) The Prime Directive
 
 ### Purpose
@@ -94,7 +129,14 @@ K6 Plan run order tie-break: (topoIndex, nodeId)
 K7 Bundle artifacts: (artifactType, artifactIdOrPath, digest)
 
 ### Canonical JSON law
-All canonicalization uses the canonical JSON implementation. No substitutions, no “improvements.”
+All canonicalization uses the canonical JSON implementation. No substitutions, no "improvements."
+
+### Canon parity fixture (TS/JS lock)
+- Fixture: `tests/fixtures/canon_golden_v1.json`
+- Guarantee: TS and JS canon outputs + digests are bit-identical.
+- Run: `npm test`
+- Failure implies: do not ship; hashes will diverge.
+Canon is frozen. Any change is a versioned breaking change with an explicit migration story.
 
 ---
 
@@ -523,6 +565,26 @@ This table prevents story drift. If a row cannot be pointed to in code, the impl
 ### Hard rule
 - If `Type (TS)` cannot be pointed to in `src/core/types.ts`, it is not a real artifact type yet.
 - If an Anchor does not exist, do not implement around it. Add the anchor first (or write a Proposal).
+
+---
+
+## 11.1) Runtime Loader Contract (Artifact Integrity)
+
+This section is the runtime cross-exam. It is a hard contract for artifact load:
+
+- Pre-sandbox check: the expected digest is verified before any untrusted execution.
+- Mismatch behavior: emit Tartarus kind `artifact.mismatch` and deny execution.
+- Rollback rule: only from known-good store entries for the same digest key; no heuristics, no clock ordering.
+- No silent repair: every rollback emits Tartarus with reason codes `ARTIFACT_DIGEST_MISMATCH` and `ARTIFACT_RECOVERED`.
+- If no known-good artifact exists, deny execution (fail closed).
+
+### Artifact integrity mapping (stable)
+
+| Condition | Reason code(s) | UI state | What user should do |
+|---|---|---|---|
+| Digest mismatch, no recovery | `ARTIFACT_DIGEST_MISMATCH` | QUARANTINE | Rebuild from trusted source. |
+| Digest mismatch, recovered from known-good | `ARTIFACT_DIGEST_MISMATCH`, `ARTIFACT_RECOVERED` | ALLOW (RECOVERED) | Investigate tamper, then rebuild. |
+| Artifact missing | `ARTIFACT_MISSING` | DENY | Provide the artifact or rebuild. |
 
 ---
 

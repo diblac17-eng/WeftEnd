@@ -1,0 +1,6 @@
+Action: QUEUE
+Top reasons: CAP_DENY_NET
+Grade: WARN
+Caps attempted: 1, denied: 1
+Caps by kind: net a=1 d=1
+Notable: net.domain=example.com

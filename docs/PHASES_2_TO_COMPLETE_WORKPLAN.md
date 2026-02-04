@@ -1,4 +1,4 @@
-# PHASES_2_TO_COMPLETE_WORKPLAN.md — WeftEnd / WebLayers v2.6 (Non-authoritative build plan)
+# docs/PHASES_2_TO_COMPLETE_WORKPLAN.md — WeftEnd / WebLayers v2.6 (Non-authoritative build plan)
 
 Status: guidance only. This file must not conflict with:
 - `docs/weblayers-v2-spec.md`

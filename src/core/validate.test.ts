@@ -15,10 +15,15 @@
 
 import {
   validateNodeId,
+  validatePulseV0,
   validateRuntimeBundle,
   validateTrustNodeResultTyped,
+  validateReceiptPackageV0,
+  validateVerifyReportExportV0,
   type ValidationIssue,
 } from "../core/validate";
+import { computePulseDigestV0 } from "../core/pulse_digest";
+import type { PulseBodyV0 } from "../core/types";
 
 type TestFn = () => void;
 
@@ -262,6 +267,72 @@ suite("core/validate", () => {
 
     const i = issueByCode(issues, "CANONICAL_INVALID");
     assertEq(i?.path, "trustNode.grants", "canonical invalid should point at trustNode.grants");
+  });
+
+  register("validatePulseV0 accepts a minimal valid pulse", () => {
+    const body: PulseBodyV0 = {
+      schema: "weftend.pulse/0",
+      v: 0,
+      pulseSeq: 1,
+      kind: "LOAD",
+      subject: { kind: "release", id: "release-demo" },
+    };
+    const pulse = { ...body, pulseDigest: computePulseDigestV0(body) };
+    const issues = validatePulseV0(pulse, "pulse");
+    assertEq(issues.length, 0, "expected valid pulse");
+  });
+
+  register("validatePulseV0 rejects missing pulseDigest", () => {
+    const body: PulseBodyV0 = {
+      schema: "weftend.pulse/0",
+      v: 0,
+      pulseSeq: 1,
+      kind: "LOAD",
+      subject: { kind: "release", id: "release-demo" },
+    };
+    const issues = validatePulseV0(body, "pulse");
+    assert(issues.length > 0, "expected invalid pulse");
+    assert(hasCode(issues, "FIELD_INVALID"), "expected FIELD_INVALID");
+  });
+
+  register("validateVerifyReportExportV0 accepts a minimal verify report", () => {
+    const report = {
+      schema: "weftend.verifyReport/0",
+      ok: true,
+      status: "OK",
+      reasonCodes: [],
+    };
+    const issues = validateVerifyReportExportV0(report, "/verify_report.json");
+    assertEq(issues.length, 0, "expected valid verify report");
+  });
+
+  register("validateVerifyReportExportV0 rejects missing schema", () => {
+    const report = {
+      ok: true,
+      status: "OK",
+      reasonCodes: [],
+    };
+    const issues = validateVerifyReportExportV0(report, "/verify_report.json");
+    assert(issues.length > 0, "expected invalid verify report");
+    assert(hasCode(issues, "FIELD_INVALID"), "expected FIELD_INVALID");
+  });
+
+  register("validateReceiptPackageV0 accepts a minimal package", () => {
+    const report = {
+      schema: "weftend.verifyReport/0",
+      ok: true,
+      status: "OK",
+      reasonCodes: [],
+    };
+    const pkg = {
+      schema: "weftend.receiptPackage/0",
+      v: 0,
+      bind: { releaseId: "release-demo", pathDigest: "path-demo" },
+      contents: { verifyReport: report },
+      digests: { verifyReportDigest: "fnv1a32:11111111", packageDigest: "fnv1a32:22222222" },
+    };
+    const issues = validateReceiptPackageV0(pkg, "/receipt_package.json");
+    assertEq(issues.length, 0, "expected valid receipt package");
   });
 });
 
