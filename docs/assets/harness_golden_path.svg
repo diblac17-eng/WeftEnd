@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+  <rect width="1200" height="720" fill="#f6f1e8"/>
+  <rect x="40" y="30" width="1120" height="660" rx="18" fill="#fff7ee" stroke="#d8c7b1"/>
+  <text x="70" y="80" font-family="Rockwell, Palatino Linotype, Book Antiqua, serif" font-size="28" fill="#1f1b16">
+    WeftEnd PortalModel v0 Harness
+  </text>
+  <text x="70" y="115" font-family="Rockwell, Palatino Linotype, Book Antiqua, serif" font-size="14" fill="#6b5e53">
+    Local, deterministic checks for portal projection, strict membrane self-test, and caps denial clarity.
+  </text>
+
+  <rect x="70" y="150" width="520" height="170" rx="12" fill="#ffffff" stroke="#d8c7b1"/>
+  <text x="90" y="180" font-family="Arial, sans-serif" font-size="14" fill="#1f1b16">Status</text>
+  <text x="90" y="210" font-family="Arial, sans-serif" font-size="13" fill="#2f7d5a">STRICT PASS</text>
+  <text x="90" y="235" font-family="Arial, sans-serif" font-size="12" fill="#1f1b16">Self-test: compartment verified</text>
+
+  <rect x="70" y="350" width="520" height="130" rx="12" fill="#ffffff" stroke="#d8c7b1"/>
+  <text x="90" y="380" font-family="Arial, sans-serif" font-size="14" fill="#1f1b16">Tamper Deny</text>
+  <text x="90" y="410" font-family="Arial, sans-serif" font-size="12" fill="#b53a2f">
+    artifact.mismatch  (ARTIFACT_DIGEST_MISMATCH)
+  </text>
+
+  <rect x="70" y="510" width="520" height="130" rx="12" fill="#ffffff" stroke="#d8c7b1"/>
+  <text x="90" y="540" font-family="Arial, sans-serif" font-size="14" fill="#1f1b16">Recovery</text>
+  <text x="90" y="570" font-family="Arial, sans-serif" font-size="12" fill="#2f7d5a">
+    ARTIFACT_RECOVERED (deterministic rollback)
+  </text>
+
+  <rect x="620" y="150" width="490" height="490" rx="12" fill="#ffffff" stroke="#d8c7b1"/>
+  <text x="640" y="180" font-family="Arial, sans-serif" font-size="14" fill="#1f1b16">PortalModel Output (excerpt)</text>
+  <text x="640" y="210" font-family="Courier New, Courier, monospace" font-size="12" fill="#6b5e53">
+    block-demo  strict  UNVERIFIED
+  </text>
+  <text x="640" y="230" font-family="Courier New, Courier, monospace" font-size="12" fill="#6b5e53">
+    tartarus: artifact.mismatch
+  </text>
+  <text x="640" y="255" font-family="Courier New, Courier, monospace" font-size="12" fill="#6b5e53">
+    recovery: ARTIFACT_RECOVERED
+  </text>
+</svg>

@@ -1,0 +1,4 @@
+{
+  "mode": "demo",
+  "featureFlags": ["alpha", "beta"]
+}

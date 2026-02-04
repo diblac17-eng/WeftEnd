@@ -1,0 +1,53 @@
+﻿name: "Unexpected WITHHELD / SKIP"
+description: "Safe-Run or Run produced WITHHELD/SKIP and you want to understand why."
+labels: ["intake", "question"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened
+      description: Short description of the result you saw.
+    validations:
+      required: true
+  - type: dropdown
+    id: target_type
+    attributes:
+      label: Target type
+      options:
+        - nativeBinary (.exe/.msi/.dll)
+        - shortcut (.lnk)
+        - folder
+        - zip
+        - web bundle
+        - release folder
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: report_card
+    attributes:
+      label: report_card.txt
+      description: Paste the report_card.txt content (no paths, no secrets).
+    validations:
+      required: true
+  - type: textarea
+    id: receipt_top
+    attributes:
+      label: Receipt summary
+      description: Paste the top section of safe_run_receipt.json (schemaVersion, weftendBuild, topReasonCode).
+    validations:
+      required: true
+  - type: input
+    id: run_id
+    attributes:
+      label: runId (from report_card.txt)
+      placeholder: "run_abcdef12"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: WeftEnd version
+      placeholder: "0.0.0-alpha"
+    validations:
+      required: true

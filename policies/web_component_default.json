@@ -1,0 +1,42 @@
+{
+  "schema": "weftend.intake.policy/1",
+  "profile": "web",
+  "reasonSeverity": {
+    "CAP_DENY_NET": "WARN",
+    "CAP_DENY_STORAGE": "WARN",
+    "EVIDENCE_DIGEST_MISMATCH": "QUARANTINE",
+    "HISTORY_LINK_MISMATCH": "QUARANTINE",
+    "RELEASE_SIGNATURE_BAD": "QUARANTINE",
+    "STRICT_COMPARTMENT_UNAVAILABLE": "WARN",
+    "ZIP_CD_CORRUPT": "DENY",
+    "ZIP_EOCD_MISSING": "DENY"
+  },
+  "severityAction": {
+    "INFO": "APPROVE",
+    "WARN": "QUEUE",
+    "DENY": "REJECT",
+    "QUARANTINE": "HOLD"
+  },
+  "capsPolicy": {
+    "net": {
+      "allowedDomains": []
+    },
+    "storage": {
+      "allow": true
+    },
+    "childProcess": {
+      "allow": false
+    }
+  },
+  "disclosure": {
+    "requireOnWARN": true,
+    "requireOnDENY": true,
+    "maxLines": 20
+  },
+  "bounds": {
+    "maxReasonCodes": 10,
+    "maxCapsItems": 10,
+    "maxDisclosureChars": 1024,
+    "maxAppealBytes": 2048
+  }
+}

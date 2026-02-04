@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Interaction Only Caps</title>
+    <style>
+      body { margin:0; font:14px/1.4 system-ui, Segoe UI, Roboto, sans-serif; }
+      .wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
+      .row { display: flex; gap: 8px; flex-wrap: wrap; }
+      button { padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.2); }
+      .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <h2>Interaction-only denies</h2>
+      <div class="row">
+        <button id="incBtn">inc</button>
+        <button id="toggleBtn">toggle</button>
+        <button id="resetBtn">reset</button>
+      </div>
+      <div class="mono" id="out">idle</div>
+    </main>
+    <script>
+      (function () {
+        const out = document.getElementById("out");
+        document.getElementById("incBtn").addEventListener("click", async () => {
+          out.textContent = "fetch";
+          try { await fetch("https://example.com/"); } catch (e) {}
+        });
+        document.getElementById("toggleBtn").addEventListener("click", () => {
+          out.textContent = "storage";
+          try { localStorage.setItem("x","1"); } catch (e) {}
+        });
+        document.getElementById("resetBtn").addEventListener("click", () => {
+          out.textContent = "reset";
+        });
+        window.addEventListener("keydown", (e) => {
+          if (e.ctrlKey && (e.key === "k" || e.key === "K")) {
+            out.textContent = "ws";
+            try { new WebSocket("wss://example.com/"); } catch (e2) {}
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

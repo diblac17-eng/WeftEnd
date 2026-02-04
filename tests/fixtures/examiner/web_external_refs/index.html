@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>External Refs Fixture</title>
+  <script src="https://cdn.example.com/app.js"></script>
+  <link rel="preconnect" href="https://api.example.com" />
+</head>
+<body>
+  <h1>External refs</h1>
+  <script>
+    (function () {
+      fetch("https://api.example.com/data");
+      new WebSocket("wss://socket.example.com");
+    })();
+  </script>
+</body>
+</html>

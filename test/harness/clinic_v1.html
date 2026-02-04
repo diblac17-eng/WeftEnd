@@ -1,0 +1,127 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WeftEnd Clinic v1</title>
+  <link rel="stylesheet" href="/aero.tokens.css" />
+  <link rel="stylesheet" href="/aero.effects.css" />
+  <link rel="stylesheet" href="/aero.panel.css" />
+  <link rel="stylesheet" href="/aero.widgets.css" />
+  <style>
+    .clinic-wrap { max-width: 1100px; margin: 0 auto; padding: 18px; }
+    .clinic-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .clinic-card { border: 1px solid rgba(210,235,255,.2); border-radius: 16px; padding: 14px; background: rgba(8,12,18,.55); }
+    .clinic-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .clinic-row label { display: inline-flex; gap: 8px; align-items: center; }
+    .clinic-input { width: 100%; min-height: 160px; resize: vertical; background: rgba(5,8,12,.6); color: inherit; border: 1px solid rgba(210,235,255,.2); border-radius: 12px; padding: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .clinic-text { width: 100%; background: rgba(5,8,12,.6); color: inherit; border: 1px solid rgba(210,235,255,.2); border-radius: 12px; padding: 10px; }
+    .clinic-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    .clinic-status { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(210,235,255,.2); }
+    .clinic-status.ok { background: rgba(0,255,128,.12); }
+    .clinic-status.warn { background: rgba(255,196,0,.12); }
+    .clinic-status.fail { background: rgba(255,80,80,.12); }
+    .clinic-list { margin: 8px 0 0; padding-left: 18px; }
+    .clinic-muted { opacity: .75; }
+    .clinic-small { font-size: 12px; }
+    .clinic-hidden { display: none; }
+    .clinic-summary { white-space: pre-line; }
+  </style>
+</head>
+<body class="weft-aero" data-weftend-summary="Clinic v1: Intake, Exam, Adapter">
+  <div class="weft-aero-bg" aria-hidden="true"></div>
+  <header class="weft-header">
+    <div class="weft-brand">Clinic v1</div>
+    <div class="weft-sub">Intake → Exam → Actions</div>
+  </header>
+
+  <main class="clinic-wrap">
+    <section class="weft-panel">
+      <div class="weft-panel__header">
+        <div class="weft-panel__title">WeftEnd Clinic</div>
+        <div class="weft-panel__subtitle">One input. One exam. One adapter.</div>
+      </div>
+      <div class="weft-panel__content">
+        <div class="clinic-grid">
+          <div class="clinic-card">
+            <h3>1) Pick Profile</h3>
+            <div class="clinic-row" id="clinic-profile">
+              <label><input type="radio" name="clinic-profile" value="web" checked /> Web Page</label>
+              <label><input type="radio" name="clinic-profile" value="release" /> Release Folder</label>
+            </div>
+
+            <div id="clinic-web">
+              <h4>Web HTML</h4>
+              <textarea id="clinic-html" class="clinic-input" placeholder="Paste HTML here..."></textarea>
+              <div class="clinic-row">
+                <input id="clinic-html-file" type="file" accept=".html,.htm" />
+              </div>
+            </div>
+
+            <div id="clinic-release" class="clinic-hidden">
+              <h4>Release Folder</h4>
+              <input id="clinic-release-dir" class="clinic-text" type="text" value="out/publish_demo_v2" />
+              <div class="clinic-small clinic-muted">Folder paths are local-only; they are not stored in outputs.</div>
+            </div>
+
+            <div class="clinic-actions">
+              <button
+                id="clinic-run"
+                class="weft-btn weft-btn--primary"
+                data-weftend-action="clinic-run"
+                data-weftend-target="#clinic-run-status"
+              >Run Exam</button>
+              <span
+                id="clinic-run-status"
+                class="clinic-muted"
+                data-weftend-before="Idle."
+                data-weftend-after="Run triggered."
+              >Idle.</span>
+            </div>
+            <div id="clinic-issues" class="clinic-small clinic-muted"></div>
+          </div>
+
+          <div class="clinic-card">
+            <h3>2) Exam Summary</h3>
+            <div id="clinic-status" class="clinic-status">UNKNOWN</div>
+            <div id="clinic-summary" class="clinic-small clinic-muted clinic-summary">No exam run.</div>
+            <ul id="clinic-reasons" class="clinic-list clinic-small"></ul>
+            <div id="clinic-digests" class="clinic-small clinic-muted"></div>
+            <div id="clinic-notes" class="clinic-small clinic-muted"></div>
+
+            <div class="clinic-actions">
+              <button id="clinic-export" class="weft-btn" disabled>Export Adapter JSON</button>
+              <button id="clinic-copy" class="weft-btn" disabled>Copy Summary</button>
+              <button id="clinic-copy-compact" class="weft-btn" disabled>Copy adapter (compact)</button>
+              <button id="clinic-copy-human" class="weft-btn" disabled>Copy adapter (human)</button>
+              <span id="clinic-copy-status" class="clinic-small clinic-muted"></span>
+            </div>
+
+            <div class="clinic-actions">
+              <a class="weft-btn weft-btn--secondary" id="clinic-open-import" href="/import_studio_v1.html">Open Import Studio</a>
+              <a class="weft-btn weft-btn--secondary" id="clinic-open-portal" href="/portal_lab.html">Open Portal Lab</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const actions = document.querySelectorAll("[data-weftend-action]");
+      actions.forEach((action) => {
+        const targetSel = action.getAttribute("data-weftend-target");
+        if (!targetSel) return;
+        action.addEventListener("click", () => {
+          const target = document.querySelector(targetSel);
+          if (!target) return;
+          const after = target.getAttribute("data-weftend-after");
+          if (after !== null) target.textContent = after;
+        });
+      });
+    })();
+  </script>
+  <script type="module" src="./clinic_v1.ts"></script>
+</body>
+</html>

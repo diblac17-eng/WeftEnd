@@ -1,0 +1,213 @@
+/* src/cli/compare_cli_smoke.test.ts */
+/**
+ * CLI smoke tests for `weftend compare`.
+ */
+
+import { runCliCapture } from "./cli_test_runner";
+import { computeSafeRunReceiptDigestV0, validateCompareReceiptV0 } from "../core/validate";
+import { runPrivacyLintV0 } from "../runtime/privacy_lint";
+
+declare const require: any;
+declare const process: any;
+
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+
+type TestFn = () => void | Promise<void>;
+
+function fail(msg: string): never {
+  throw new Error(msg);
+}
+
+function assert(cond: unknown, msg: string): void {
+  if (!cond) fail(msg);
+}
+
+function assertEq<T>(actual: T, expected: T, msg: string): void {
+  if (actual !== expected) {
+    fail(`${msg}\nExpected: ${String(expected)}\nActual: ${String(actual)}`);
+  }
+}
+
+const g: any = globalThis as any;
+const hasBDD = typeof g.describe === "function" && typeof g.it === "function";
+const localTests: Array<{ name: string; fn: TestFn }> = [];
+
+function register(name: string, fn: TestFn): void {
+  if (hasBDD) g.it(name, fn);
+  else localTests.push({ name, fn });
+}
+
+function suite(name: string, define: () => void): void {
+  if (hasBDD) g.describe(name, define);
+  else define();
+}
+
+const makeTempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), "weftend-compare-"));
+
+const readJson = (filePath: string) => JSON.parse(fs.readFileSync(filePath, "utf8").trim());
+
+const runSafeRunFixture = async (fixture: string, outDir: string): Promise<void> => {
+  const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", fixture);
+  const policyPath = path.join(process.cwd(), "policies", "web_component_default.json");
+  const result = await runCliCapture(["safe-run", inputPath, "--policy", policyPath, "--out", outDir]);
+  assertEq(result.status, 0, `expected safe-run success\n${result.stderr}`);
+  assert(fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "expected safe_run_receipt.json");
+};
+
+const runSafeRunPath = async (inputPath: string, outDir: string): Promise<void> => {
+  const policyPath = path.join(process.cwd(), "policies", "web_component_default.json");
+  const result = await runCliCapture(["safe-run", inputPath, "--policy", policyPath, "--out", outDir]);
+  assertEq(result.status, 0, `expected safe-run success\n${result.stderr}`);
+  assert(fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "expected safe_run_receipt.json");
+};
+
+suite("cli/compare", () => {
+  register("compare writes deterministic receipt/report and passes privacy lint", async () => {
+    const root = makeTempDir();
+    const leftDir = path.join(root, "left");
+    const rightDir = path.join(root, "right");
+    const outDir = path.join(root, "cmp");
+    await runSafeRunFixture("safe_no_caps", leftDir);
+    await runSafeRunFixture("net_attempt", rightDir);
+
+    const result = await runCliCapture(["compare", leftDir, rightDir, "--out", outDir]);
+    assertEq(result.status, 0, `expected compare success\n${result.stderr}`);
+    assert(result.stdout.includes("COMPARE CHANGED"), "expected CHANGED summary line");
+    assert(result.stdout.includes("privacyLint=PASS"), "expected privacyLint=PASS summary");
+
+    const compareReceiptPath = path.join(outDir, "compare_receipt.json");
+    const compareReportPath = path.join(outDir, "compare_report.txt");
+    assert(fs.existsSync(compareReceiptPath), "expected compare_receipt.json");
+    assert(fs.existsSync(compareReportPath), "expected compare_report.txt");
+    const receipt = readJson(compareReceiptPath);
+    const issues = validateCompareReceiptV0(receipt, "compareReceipt");
+    assertEq(issues.length, 0, "expected compare receipt to validate");
+    assertEq(receipt.schemaVersion, 0, "expected schemaVersion 0");
+    assert(receipt.weftendBuild && receipt.weftendBuild.algo === "fnv1a32", "expected weftendBuild");
+    assertEq(receipt.privacyLint, "PASS", "expected receipt privacy lint pass");
+
+    const report = fs.readFileSync(compareReportPath, "utf8");
+    assert(!/[A-Za-z]:\\/.test(report), "compare report must not include absolute Windows paths");
+    assert(!/\/Users\//.test(report), "compare report must not include user paths");
+    assert(!/HOME=/.test(report), "compare report must not include env markers");
+
+    const privacy = runPrivacyLintV0({ root: outDir, weftendBuild: receipt.weftendBuild });
+    assertEq(privacy.report.verdict, "PASS", "expected compare output privacy lint pass");
+  });
+
+  register("compare returns SAME for identical roots", async () => {
+    const root = makeTempDir();
+    const leftDir = path.join(root, "same");
+    const outDir = path.join(root, "cmp");
+    await runSafeRunFixture("safe_no_caps", leftDir);
+    const result = await runCliCapture(["compare", leftDir, leftDir, "--out", outDir]);
+    assertEq(result.status, 0, `expected compare success\n${result.stderr}`);
+    assert(result.stdout.includes("COMPARE SAME"), "expected SAME summary");
+    const receipt = readJson(path.join(outDir, "compare_receipt.json"));
+    assertEq(receipt.verdict, "SAME", "expected SAME verdict");
+  });
+
+  register("compare reports content buckets for divergent inputs", async () => {
+    const root = makeTempDir();
+    const leftDir = path.join(root, "left");
+    const rightDir = path.join(root, "right");
+    const outDir = path.join(root, "cmp");
+    const nativePath = path.join(process.cwd(), "tests", "fixtures", "intake", "native_app_stub", "app.exe");
+    const webPath = path.join(process.cwd(), "tests", "fixtures", "intake", "web_export_stub");
+    await runSafeRunPath(nativePath, leftDir);
+    await runSafeRunPath(webPath, rightDir);
+
+    const result = await runCliCapture(["compare", leftDir, rightDir, "--out", outDir]);
+    assertEq(result.status, 0, `expected compare success\n${result.stderr}`);
+    const receipt = readJson(path.join(outDir, "compare_receipt.json"));
+    assert(receipt.changeBuckets.includes("KIND_PROFILE_CHANGED"), "expected KIND_PROFILE_CHANGED bucket");
+    assert(receipt.changeBuckets.includes("CONTENT_CHANGED"), "expected CONTENT_CHANGED bucket");
+    assert(receipt.changeBuckets.includes("EXTERNALREFS_CHANGED"), "expected EXTERNALREFS_CHANGED bucket");
+  });
+
+  register("compare fails closed when left receipt contains absolute path key", async () => {
+    const root = makeTempDir();
+    const leftDir = path.join(root, "left");
+    const rightDir = path.join(root, "right");
+    const outDir = path.join(root, "cmp");
+    fs.mkdirSync(leftDir, { recursive: true });
+    const unsafe: any = {
+        schema: "weftend.safeRunReceipt/0",
+        v: 0,
+        schemaVersion: 0,
+        weftendBuild: { algo: "fnv1a32", digest: "fnv1a32:11111111", source: "NODE_MAIN_JS" },
+        inputKind: "raw",
+        artifactKind: "TEXT",
+        entryHint: null,
+        analysisVerdict: "WITHHELD",
+        executionVerdict: "NOT_ATTEMPTED",
+        topReasonCode: "SAFE_RUN_EXECUTION_NOT_REQUESTED",
+        policyId: "fnv1a32:22222222",
+        execution: { result: "WITHHELD", reasonCodes: ["SAFE_RUN_EXECUTION_NOT_REQUESTED"] },
+        subReceipts: [],
+        receiptDigest: "fnv1a32:00000000",
+        "C:\\\\Users\\\\leak": "BAD",
+      };
+    unsafe.receiptDigest = computeSafeRunReceiptDigestV0(unsafe);
+    fs.writeFileSync(path.join(leftDir, "safe_run_receipt.json"), JSON.stringify(unsafe), "utf8");
+    await runSafeRunFixture("safe_no_caps", rightDir);
+    const result = await runCliCapture(["compare", leftDir, rightDir, "--out", outDir]);
+    assertEq(result.status, 40, "expected fail-closed exit code");
+    assert(result.stderr.includes("COMPARE_LEFT_RECEIPT_INVALID") || result.stderr.includes("RECEIPT_OLD_CONTRACT"), "expected invalid receipt reason");
+  });
+
+  register("compare fails closed when left root is missing", async () => {
+    const root = makeTempDir();
+    const rightDir = path.join(root, "right");
+    const outDir = path.join(root, "cmp");
+    await runSafeRunFixture("safe_no_caps", rightDir);
+    const missing = path.join(root, "missing");
+    const result = await runCliCapture(["compare", missing, rightDir, "--out", outDir]);
+    assertEq(result.status, 40, "expected fail-closed exit code");
+    assert(result.stderr.includes("COMPARE_LEFT_RECEIPT_MISSING"), "expected left missing reason code");
+  });
+
+  register("compare fails closed on old-contract receipts", async () => {
+    const root = makeTempDir();
+    const oldDir = path.join(root, "old");
+    const rightDir = path.join(root, "right");
+    const outDir = path.join(root, "cmp");
+    fs.mkdirSync(oldDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(oldDir, "operator_receipt.json"),
+      JSON.stringify({
+        schema: "weftend.operatorReceipt/0",
+        v: 0,
+        command: "safe-run",
+        outRootDigest: "fnv1a32:11111111",
+        receipts: [],
+        warnings: [],
+        receiptDigest: "fnv1a32:22222222",
+      }),
+      "utf8"
+    );
+    await runSafeRunFixture("safe_no_caps", rightDir);
+    const result = await runCliCapture(["compare", oldDir, rightDir, "--out", outDir]);
+    assertEq(result.status, 40, "expected fail-closed exit code");
+    assert(result.stderr.includes("RECEIPT_OLD_CONTRACT"), "expected old-contract reason code");
+  });
+});
+
+if (!hasBDD) {
+  (async () => {
+    for (const t of localTests) {
+      try {
+        await t.fn();
+      } catch (e: any) {
+        const detail = e?.message ? `\n${e.message}` : "";
+        throw new Error(`compare_cli_smoke.test.ts: ${t.name} failed${detail}`);
+      }
+    }
+  })().catch((e) => {
+    setTimeout(() => {
+      throw e;
+    }, 0);
+  });
+}

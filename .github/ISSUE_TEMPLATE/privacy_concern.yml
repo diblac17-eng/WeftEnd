@@ -1,0 +1,25 @@
+﻿name: "Privacy concern"
+description: "You think a receipt leaked a path, username, or environment detail."
+labels: ["privacy", "bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What did you see?
+      description: Paste the minimal offending line(s). Do not include secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: receipt_location
+    attributes:
+      label: Which file contained it?
+      description: Example: safe_run_receipt.json, report_card.txt, README.txt
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: WeftEnd version
+      placeholder: "0.0.0-alpha"
+    validations:
+      required: true

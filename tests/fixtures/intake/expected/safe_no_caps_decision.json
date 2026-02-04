@@ -1,0 +1,1 @@
+﻿{"action":"APPROVE","appealDigest":"fnv1a32:4d36d52d","artifactId":"fnv1a32:ed90d751","capSummary":{"attempted":0,"byKind":{},"denied":0},"decisionDigest":"fnv1a32:b3a0d2a1","disclosureDigest":"fnv1a32:89058f7a","grade":"OK","mintId":"fnv1a32:17abfd86","policyId":"fnv1a32:ed0c534e","profile":"web","schema":"weftend.intake.decision/1","topReasonCodes":[]}

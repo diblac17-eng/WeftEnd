@@ -1,0 +1,4 @@
+Action: HOLD
+Top reasons: ZIP_EOCD_MISSING, ZIP_SCAN_PARTIAL
+Grade: QUARANTINE
+Caps attempted: 0, denied: 0
