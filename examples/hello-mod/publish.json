@@ -1,0 +1,5 @@
+{
+  "planDigest": "plan-hello-mod-v1",
+  "policyDigest": "policy-hello-mod-v1",
+  "blocks": ["hello-mod-block"]
+}

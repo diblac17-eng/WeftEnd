@@ -1,0 +1,1 @@
+{"caps":{"attempted":0,"denied":0},"digests":{"inputDigest":"fnv1a32:58c41826","reportDigest":"fnv1a32:a6aa6a3c","snapshotDigest":"fnv1a32:587b4be6"},"profile":"web","proofPointers":["digest:fnv1a32:587b4be6","digest:fnv1a32:a6aa6a3c"],"reasonCodes":[],"scars":[],"schema":"weftend.adapter/0","verdict":"OK"}

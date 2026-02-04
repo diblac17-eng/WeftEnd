@@ -1,0 +1,7 @@
+{
+  "schema": "weftend.workshop.manifest/1",
+  "modId": "mod_hello",
+  "planDigest": "plan-hello-mod-v1",
+  "blockHash": "hello-mod-block",
+  "files": ["payload/hello_mod_block.js", "payload/hello_mod.txt"]
+}

@@ -1,0 +1,16 @@
+{
+  "html": "<main><section id=\"hero\"></section></main>",
+  "pageId": "page:/home",
+  "policy": {
+    "id": "policy-demo",
+    "rules": [{ "id": "r1", "match": {}, "action": "trust" }],
+    "grantRules": []
+  },
+  "policyDigest": "policy-demo",
+  "compiler": {
+    "compilerId": "weftend",
+    "compilerVersion": "0.1.0",
+    "builtAt": "2025-01-01T00:00:00.000Z"
+  },
+  "buildInfo": { "toolId": "weftend", "toolVer": "0.1.0" }
+}

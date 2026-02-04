@@ -1,0 +1,2 @@
+Hello from WeftEnd workshop mod.
+This file stands in for real game content.

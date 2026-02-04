@@ -1,0 +1,5 @@
+{
+  "schema": "weftend.workshop.evidence/1",
+  "evidenceKinds": ["signature.v1"],
+  "notes": "demo evidence stub"
+}

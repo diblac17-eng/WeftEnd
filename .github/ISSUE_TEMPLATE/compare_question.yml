@@ -1,0 +1,39 @@
+﻿name: "Compare result question"
+description: "Compare output doesn't make sense or seems missing signal."
+labels: ["compare", "question"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What changed?
+      description: Short description of the scenario you compared.
+    validations:
+      required: true
+  - type: input
+    id: left_run_id
+    attributes:
+      label: Left runId
+      placeholder: "run_abcdef12"
+    validations:
+      required: true
+  - type: input
+    id: right_run_id
+    attributes:
+      label: Right runId
+      placeholder: "run_1234abcd"
+    validations:
+      required: true
+  - type: textarea
+    id: compare_report
+    attributes:
+      label: compare_report.txt
+      description: Paste the compare_report.txt content.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: WeftEnd version
+      placeholder: "0.0.0-alpha"
+    validations:
+      required: true
