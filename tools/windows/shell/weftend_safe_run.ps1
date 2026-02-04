@@ -671,15 +671,6 @@ try {
 
 $openFlag = -not ($Open -eq "0" -or $Open -eq "false" -or $Open -eq "False")
 if ($openFlag) {
-  $reportCardPath = Join-Path $outDir "report_card.txt"
-  $notepadPath = Join-Path $env:WINDIR "System32\notepad.exe"
-  if (Test-Path -LiteralPath $reportCardPath) {
-    if (Test-Path -LiteralPath $notepadPath) {
-      Start-Process -FilePath $notepadPath -ArgumentList $reportCardPath | Out-Null
-    } else {
-      Start-Process -FilePath "notepad.exe" -ArgumentList $reportCardPath | Out-Null
-    }
-  }
   $dialog = Show-ReportCardPopup -RunId $runId -Result $result -Reason $reason -PrivacyLint $privacy -BuildDigest $build
   $shouldOpen = $openFolderDefault -eq 1
   if ($dialog -ne $null -and "$dialog" -eq "OK") {
@@ -724,6 +715,15 @@ if ($openFlag) {
           }
         }
       }
+    }
+  }
+  $reportCardPath = Join-Path $outDir "report_card.txt"
+  $notepadPath = Join-Path $env:WINDIR "System32\notepad.exe"
+  if (Test-Path -LiteralPath $reportCardPath) {
+    if (Test-Path -LiteralPath $notepadPath) {
+      Start-Process -FilePath $notepadPath -ArgumentList $reportCardPath | Out-Null
+    } else {
+      Start-Process -FilePath "notepad.exe" -ArgumentList $reportCardPath | Out-Null
     }
   }
   if ($OpenLibrary.IsPresent) {
