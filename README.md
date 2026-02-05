@@ -117,6 +117,7 @@ Keys & trust (v0)
 Docs
 - `docs/WHAT_IS_WEFTEND.md`
 - `docs/WHY_RECEIPTS.md`
+- `docs/TRUTH_MODEL_V0_V1.md`
 - `docs/TEAM_SUITES.md`
 - `docs/REPORT_LIBRARY.md`
 - `docs/SUPPORT.md`

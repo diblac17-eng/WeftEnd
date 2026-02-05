@@ -15,15 +15,21 @@ WeftEnd is not about running software. It is about detecting changes in trust po
 ## Publisher snapshots (future, important)
 
 Snapshots are publisher-signed digest sets that let operators verify a download
-matches the developer’s intended artifact. They are not required for v1, but the
+matches the developer's intended artifact. They are not required for v1, but the
 design preserves room for them:
 
 - A snapshot would be a deterministic digest list with a publisher signature.
 - Operators could compare their local receipt against a snapshot without executing anything.
-- This enables “proof of download integrity” when publishers participate.
+- This enables "proof of download integrity" when publishers participate.
 
 WeftEnd will remain useful without snapshots, but snapshot support is a planned
 future patch that strengthens trust for modders and tool developers.
+
+## Truth model (v0 vs v1)
+
+- v0: deterministic intake + receipts + compare (proven today)
+- v1: publisher snapshots + external truth binding (planned)
+- Details: `docs/TRUTH_MODEL_V0_V1.md`
 
 ## The problem it solves
 
@@ -125,3 +131,5 @@ What you do with that receipt is up to you.
 
 If WeftEnd says "OK," it can prove why.
 If it says "DENY," it can show the exact scar.
+
+
