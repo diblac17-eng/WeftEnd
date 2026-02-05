@@ -44,3 +44,6 @@ Response expectations
 Notes
 - WeftEnd is offline-first and privacy-clean by design.
 - Support interactions should never require sharing raw artifacts.
+
+Support WeftEnd (optional)
+- If this tool saves you time, consider supporting its maintenance.
