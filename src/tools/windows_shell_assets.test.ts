@@ -40,6 +40,7 @@ const scripts = [
   "install_weftend_context_menu.ps1",
   "uninstall_weftend_context_menu.ps1",
   "weftend_safe_run.ps1",
+  "weftend_make_shortcut.ps1",
   "weftend_shell_doctor.ps1",
   "weftend_shell_doctor.cmd",
   "README_WINDOWS_SHELL.md",
@@ -150,6 +151,8 @@ suite("tools/windows shell assets", () => {
     assert(/Library/.test(text), "expected Library output subfolder");
     assert(/Start-Process -FilePath \$notepadPath/.test(text), "expected report-card notepad open");
     assert(/Start-Process -FilePath \$explorerPath/.test(text), "expected explorer open for output folder");
+    assert(/AllowLaunch/.test(text), "expected AllowLaunch gate");
+    assert(/Start-Process -FilePath \$TargetPath/.test(text), "expected launch support");
     assert(!/Invoke-Item/.test(text), "wrapper must not invoke shell open");
     assert(!/&\s*\$Target/.test(text), "wrapper must not execute target path");
     assert(/WITHHELD/.test(text), "expected WITHHELD wrapper result");

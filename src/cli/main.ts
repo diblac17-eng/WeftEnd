@@ -12,6 +12,7 @@ import { runCompareCliV0 } from "./compare";
 import { runLibraryCli } from "./library";
 import { runTicketPackCli } from "./ticket_pack";
 import { runLicenseCli } from "./license";
+import { runShortcutCli } from "./shortcut";
 import { canonicalJSON } from "../core/canon";
 import { canonicalizeWeftEndPolicyV1 } from "../core/intake_policy_v1";
 import { validateMintPackageV1, validateWeftEndPolicyV1 } from "../core/validate";
@@ -30,6 +31,7 @@ const printUsage = () => {
   console.log("  weftend safe-run <input> [--policy <policy.json>] --out <dir> [--profile web|mod|generic] [--script <file>] [--execute] [--withhold-exec|--no-exec]");
   console.log("  weftend compare <leftOutRoot> <rightOutRoot> --out <dir>");
   console.log("  weftend ticket-pack <outRoot> --out <dir> [--zip]");
+  console.log("  weftend shortcut create --target <path> [--out <shortcut.lnk>] [--allow-launch]");
   console.log("  weftend license issue --key <private.pem> --out <license.json> --customer <id> --tier community|enterprise --features a,b --issued YYYY-MM-DD --key-id <id> [--expires YYYY-MM-DD] [--license-id <id>]");
   console.log("  weftend license verify --license <license.json> --pub <public.pem>");
   console.log("  weftend library [--latest] [--target <key>]");
@@ -483,6 +485,9 @@ export const runCli = async (args: string[], _ports: CliPorts): Promise<number> 
   }
   if (args[0] === "library") {
     return runLibraryCli(args.slice(1), _ports);
+  }
+  if (args[0] === "shortcut") {
+    return runShortcutCli(args.slice(1));
   }
   if (args[0] === "run") {
     return await runRunCli(args);

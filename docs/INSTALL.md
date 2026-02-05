@@ -13,6 +13,8 @@ Windows shell (right-click)
 - Run the shell doctor (sanity):
   tools\windows\shell\weftend_shell_doctor.ps1
 - Start Menu shortcuts include **WeftEnd Library** and **WeftEnd Download**.
+- Optional: create a WeftEnd-run shortcut (analysis first, then launch if baseline OK):
+  tools\windows\shell\weftend_make_shortcut.ps1 -TargetPath "<path-to-app.exe>" -AllowLaunch
 
 First-use demo stubs (no execution)
 - Native app stub:

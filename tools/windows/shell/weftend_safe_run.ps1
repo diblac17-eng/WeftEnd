@@ -12,7 +12,8 @@ param(
   [string]$NpmCmd,
   [string]$Policy,
   [string]$Open = "1",
-  [switch]$OpenLibrary
+  [switch]$OpenLibrary,
+  [switch]$AllowLaunch
 )
 
 Set-StrictMode -Version Latest
@@ -67,6 +68,14 @@ function Is-OpaqueNativeArtifact {
   if (-not $ext) { return $false }
   $normalized = $ext.ToLowerInvariant()
   return $normalized -eq ".exe" -or $normalized -eq ".dll" -or $normalized -eq ".msi" -or $normalized -eq ".sys" -or $normalized -eq ".drv"
+}
+
+function Is-LaunchableExecutable {
+  param([string]$PathValue)
+  if (-not $PathValue) { return $false }
+  $ext = [System.IO.Path]::GetExtension($PathValue)
+  if (-not $ext) { return $false }
+  return $ext.ToLowerInvariant() -eq ".exe"
 }
 
 function Is-ShortcutArtifact {
@@ -394,6 +403,32 @@ function Read-ViewState {
   }
 }
 
+function Get-ViewStatus {
+  param([object]$ViewState)
+  $status = "UNKNOWN"
+  $buckets = @()
+  if (-not $ViewState) {
+    return @{ status = $status; buckets = $buckets }
+  }
+  if ($ViewState.blocked -and $ViewState.blocked.runId) {
+    $status = "BLOCKED"
+    return @{ status = $status; buckets = $buckets }
+  }
+  $latestId = if ($ViewState.latestRunId) { [string]$ViewState.latestRunId } else { "" }
+  $idx = -1
+  if ($ViewState.lastN) {
+    for ($i = 0; $i -lt $ViewState.lastN.Count; $i++) {
+      if ([string]$ViewState.lastN[$i] -eq $latestId) { $idx = $i; break }
+    }
+  }
+  if ($idx -ge 0 -and $ViewState.keys -and $idx -lt $ViewState.keys.Count) {
+    $status = [string]$ViewState.keys[$idx].verdictVsBaseline
+    $b = $ViewState.keys[$idx].buckets
+    if ($b -and $b.Count -gt 0) { $buckets = $b }
+  }
+  return @{ status = $status; buckets = $buckets }
+}
+
 function ReceiptsExist {
   $safeReceipt = Join-Path $outDir "safe_run_receipt.json"
   $operatorReceipt = Join-Path $outDir "operator_receipt.json"
@@ -593,6 +628,7 @@ $privacy = Extract-MetricValue -OutputText $commandOutput -Name "privacyLint"
 if (-not $privacy -or $privacy.Trim() -eq "") { $privacy = "UNKNOWN" }
 $build = Extract-MetricValue -OutputText $commandOutput -Name "buildDigest"
 if (-not $build -or $build.Trim() -eq "") { $build = "UNKNOWN" }
+ $baselineAccepted = $false
 
 if (-not $skipWeftend) {
   $result = "FAIL"
@@ -638,6 +674,8 @@ try {
     }
   }
   $viewState = Read-ViewState -ViewDir (Join-Path $targetDir "view")
+  $viewInfo = Get-ViewStatus -ViewState $viewState
+  $viewStatus = if ($viewInfo) { [string]$viewInfo.status } else { "UNKNOWN" }
   Write-ReportCard -RunId $runId -LibraryKey $targetKey -RunSeq $runSeq -Result $result -Reason $reason -PrivacyLint $privacy -BuildDigest $build -Summary $summary -ViewState $viewState
 } catch {
   $errMsg = Redact-SensitiveText -Text ([string]$_)
@@ -671,11 +709,6 @@ try {
 
 $openFlag = -not ($Open -eq "0" -or $Open -eq "false" -or $Open -eq "False")
 if ($openFlag) {
-  $dialog = Show-ReportCardPopup -RunId $runId -Result $result -Reason $reason -PrivacyLint $privacy -BuildDigest $build
-  $shouldOpen = $openFolderDefault -eq 1
-  if ($dialog -ne $null -and "$dialog" -eq "OK") {
-    $shouldOpen = $true
-  }
   if ($viewState -and -not ($viewState.blocked -and $viewState.blocked.runId)) {
     $latestId = if ($viewState.latestRunId) { [string]$viewState.latestRunId } else { "" }
     $idx = -1
@@ -704,6 +737,7 @@ if ($openFlag) {
             } catch {
               # best effort only
             }
+            $baselineAccepted = $true
           } catch {
             # best effort only
           }
@@ -716,6 +750,11 @@ if ($openFlag) {
         }
       }
     }
+  }
+  $dialog = Show-ReportCardPopup -RunId $runId -Result $result -Reason $reason -PrivacyLint $privacy -BuildDigest $build
+  $shouldOpen = $openFolderDefault -eq 1
+  if ($dialog -ne $null -and "$dialog" -eq "OK") {
+    $shouldOpen = $true
   }
   $reportCardPath = Join-Path $outDir "report_card.txt"
   $notepadPath = Join-Path $env:WINDIR "System32\notepad.exe"
@@ -738,6 +777,34 @@ if ($openFlag) {
     } else {
       Start-Process -FilePath "explorer.exe" -ArgumentList $targetToOpen | Out-Null
     }
+  }
+}
+
+if ($AllowLaunch.IsPresent) {
+  $launchResult = "SKIPPED"
+  $blockedRun = $false
+  if ($viewState -and $viewState.blocked -and $viewState.blocked.runId) { $blockedRun = $true }
+  $canLaunch = Is-LaunchableExecutable -PathValue $TargetPath
+  if ($result -ne "FAIL" -and -not $blockedRun -and $canLaunch) {
+    $statusNow = if ($viewStatus) { $viewStatus } else { "UNKNOWN" }
+    if ($statusNow -eq "SAME" -or $baselineAccepted) {
+      try {
+        $workDir = Split-Path -Parent $TargetPath
+        if ($workDir -and (Test-Path -LiteralPath $workDir)) {
+          Start-Process -FilePath $TargetPath -WorkingDirectory $workDir | Out-Null
+        } else {
+          Start-Process -FilePath $TargetPath | Out-Null
+        }
+        $launchResult = "STARTED"
+      } catch {
+        $launchResult = "FAILED"
+      }
+    }
+  }
+  try {
+    Add-Content -Path (Join-Path $outDir "wrapper_result.txt") -Value ("launch=" + $launchResult) -Encoding UTF8
+  } catch {
+    # best effort only
   }
 }
 

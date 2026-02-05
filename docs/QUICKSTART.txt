@@ -14,6 +14,10 @@
 - Use: npm run weftend -- compare <oldOut> <newOut> --out <diffOut>
 - Read compare_report.txt
 
+3.5) Optional launcher shortcut
+- Create a WeftEnd-run shortcut:
+  npm run weftend -- shortcut create --target <path-to-app.exe> --allow-launch
+
 4) Open the Library
 - Start Menu: "WeftEnd Library" shortcut
 - Or: npm run weftend -- library

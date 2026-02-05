@@ -74,6 +74,8 @@ How to use (operator flow)
 2) Read `report_card.txt` (opens immediately).
 3) Re-run after changes, then compare:
    `npm run weftend -- compare <oldOut> <newOut> --out <diffOut>`
+3.5) Optional: create a WeftEnd-run shortcut (analysis first, then launch if baseline OK):
+   `npm run weftend -- shortcut create --target <path-to-app.exe> --allow-launch`
 4) Create a ticket bundle when needed:
    `npm run weftend -- ticket-pack <outRoot> --out <ticketDir> --zip`
 5) Use the library to track baseline + history:

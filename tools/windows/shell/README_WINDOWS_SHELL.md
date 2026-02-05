@@ -24,6 +24,11 @@ Usage
 - Compare two runs with:
   `npm run weftend -- compare "<leftOutRoot>" "<rightOutRoot>" --out "<diffOutRoot>"`
 
+WeftEnd-run shortcuts (optional)
+- Create a shortcut that runs WeftEnd before launching an app:
+  `tools\windows\shell\weftend_make_shortcut.ps1 -TargetPath "<path-to-app.exe>" -AllowLaunch`
+- This runs analysis first, then launches only if baseline is SAME or accepted.
+
 Analysis-first contract
 - Right-click "Run with WeftEnd" always performs deterministic analysis first.
 - Native executables are withheld from execution unless wrapped as a verified WeftEnd release.
