@@ -35,6 +35,7 @@ Contact
 - Pricing reference: `docs/PRICING.md` (premium only).
 - Premium operations: `docs/PREMIUM_OPERATIONS.md`
 - Premium limits: `docs/PREMIUM_LIMITS.md`
+- Support intake checklist: `docs/SUPPORT_INTAKE.md`
 
 Response expectations
 - Best-effort, no guaranteed response time unless explicitly contracted.

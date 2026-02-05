@@ -110,6 +110,10 @@ export const runShortcutCli = (argv: string[]): number => {
   if (parsed.allowLaunch) args.push("-AllowLaunch");
 
   const result = spawnSync("powershell.exe", args, { stdio: ["ignore", "pipe", "pipe"] });
+  if (result.error && (result.error.code === "EPERM" || result.error.code === "EACCES")) {
+    console.error("[SHORTCUT_POWERSHELL_BLOCKED]");
+    return 40;
+  }
   if (result.status !== 0) {
     console.error("[SHORTCUT_CREATE_FAILED]");
     return 40;

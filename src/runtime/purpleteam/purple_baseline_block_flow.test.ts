@@ -107,6 +107,10 @@ suite("purpleteam/baseline-block-flow", () => {
     copyDir(inputSrc, inputDir);
 
     const first = runWrapper(inputDir, outRoot, process.cwd());
+    if (first.error && (first.error.code === "EPERM" || first.error.code === "EACCES")) {
+      console.log("purple_baseline_block_flow: SKIP (powershell spawn blocked)");
+      return;
+    }
     assertEq(first.status, 0, `expected wrapper exit 0\n${first.stderr || ""}`);
 
     fs.appendFileSync(path.join(inputDir, "index.html"), "\n<!-- purple-change -->\n", "utf8");
