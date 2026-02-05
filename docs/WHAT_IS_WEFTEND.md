@@ -12,6 +12,19 @@ WeftEnd is not about running software. It is about detecting changes in trust po
 - Re-check: capture a new receipt after download, patch, or config change.
 - Compare: deterministic diff (drift or no drift).
 
+## Publisher snapshots (future, important)
+
+Snapshots are publisher-signed digest sets that let operators verify a download
+matches the developer’s intended artifact. They are not required for v1, but the
+design preserves room for them:
+
+- A snapshot would be a deterministic digest list with a publisher signature.
+- Operators could compare their local receipt against a snapshot without executing anything.
+- This enables “proof of download integrity” when publishers participate.
+
+WeftEnd will remain useful without snapshots, but snapshot support is a planned
+future patch that strengthens trust for modders and tool developers.
+
 ## The problem it solves
 
 Developers ship mods, plugins, web stacks, and bundles into hostile territory:
