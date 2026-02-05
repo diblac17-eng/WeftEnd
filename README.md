@@ -76,6 +76,8 @@ How to use (operator flow)
    `npm run weftend -- compare <oldOut> <newOut> --out <diffOut>`
 3.5) Optional: create a WeftEnd-run shortcut (analysis first, then launch if baseline OK):
    `npm run weftend -- shortcut create --target <path-to-app.exe> --allow-launch`
+3.6) Optional: Launchpad (drop targets -> auto-generate WeftEnd-run shortcuts):
+   `npm run weftend -- launchpad sync`
 4) Create a ticket bundle when needed:
    `npm run weftend -- ticket-pack <outRoot> --out <ticketDir> --zip`
 5) Use the library to track baseline + history:

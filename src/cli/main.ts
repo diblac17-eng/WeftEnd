@@ -13,6 +13,7 @@ import { runLibraryCli } from "./library";
 import { runTicketPackCli } from "./ticket_pack";
 import { runLicenseCli } from "./license";
 import { runShortcutCli } from "./shortcut";
+import { runLaunchpadCli } from "./launchpad";
 import { canonicalJSON } from "../core/canon";
 import { canonicalizeWeftEndPolicyV1 } from "../core/intake_policy_v1";
 import { validateMintPackageV1, validateWeftEndPolicyV1 } from "../core/validate";
@@ -32,6 +33,8 @@ const printUsage = () => {
   console.log("  weftend compare <leftOutRoot> <rightOutRoot> --out <dir>");
   console.log("  weftend ticket-pack <outRoot> --out <dir> [--zip]");
   console.log("  weftend shortcut create --target <path> [--out <shortcut.lnk>] [--allow-launch]");
+  console.log("  weftend launchpad sync [--allow-launch]");
+  console.log("  weftend launchpad watch [--interval <ms>] [--allow-launch]");
   console.log("  weftend license issue --key <private.pem> --out <license.json> --customer <id> --tier community|enterprise --features a,b --issued YYYY-MM-DD --key-id <id> [--expires YYYY-MM-DD] [--license-id <id>]");
   console.log("  weftend license verify --license <license.json> --pub <public.pem>");
   console.log("  weftend library [--latest] [--target <key>]");
@@ -488,6 +491,9 @@ export const runCli = async (args: string[], _ports: CliPorts): Promise<number> 
   }
   if (args[0] === "shortcut") {
     return runShortcutCli(args.slice(1));
+  }
+  if (args[0] === "launchpad") {
+    return await runLaunchpadCli(args.slice(1));
   }
   if (args[0] === "run") {
     return await runRunCli(args);

@@ -37,6 +37,12 @@ function Resolve-LibraryRoot {
 }
 
 $libraryRoot = Resolve-LibraryRoot -Base $OutRoot
+if ($libraryRoot -and $libraryRoot.Trim() -ne "") {
+  $launchpadTargetsDir = Join-Path $libraryRoot "Launchpad\Targets"
+  $launchpadShortcutsDir = Join-Path $libraryRoot "Launchpad\Shortcuts"
+  New-Item -ItemType Directory -Force -Path $launchpadTargetsDir | Out-Null
+  New-Item -ItemType Directory -Force -Path $launchpadShortcutsDir | Out-Null
+}
 
 function Resolve-WeftEndIcon {
   param([string]$Root)
@@ -147,6 +153,21 @@ function Install-LibraryShortcut {
   $shortcut.Save()
 }
 
+$launchpadTargets = Join-Path $libraryRoot "Launchpad\Targets"
+function Install-LaunchpadShortcut {
+  param([string]$ShortcutPath)
+  if (-not $ShortcutPath) { return }
+  if (-not $launchpadTargets -or $launchpadTargets.Trim() -eq "") { return }
+  $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+  $target = if (Test-Path -LiteralPath $explorerPath) { $explorerPath } else { "explorer.exe" }
+  $shell = New-Object -ComObject WScript.Shell
+  $shortcut = $shell.CreateShortcut($ShortcutPath)
+  $shortcut.TargetPath = $target
+  $shortcut.Arguments = "`"$launchpadTargets`""
+  $shortcut.IconLocation = if ($weftendIcon) { $weftendIcon } else { $target }
+  $shortcut.Save()
+}
+
 $downloadScript = Join-Path $scriptDir "..\open_release_folder.ps1"
 
 function Install-DownloadShortcut {
@@ -166,6 +187,7 @@ function Install-DownloadShortcut {
 $startMenu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
 if ($startMenu -and (Test-Path $startMenu)) {
   Install-LibraryShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Library.lnk")
+  Install-LaunchpadShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Launchpad.lnk")
   Install-DownloadShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Download.lnk")
 }
 
@@ -173,6 +195,7 @@ if ($DesktopShortcut.IsPresent) {
   $desktop = [Environment]::GetFolderPath("Desktop")
   if ($desktop -and (Test-Path $desktop)) {
     Install-LibraryShortcut -ShortcutPath (Join-Path $desktop "WeftEnd Library.lnk")
+    Install-LaunchpadShortcut -ShortcutPath (Join-Path $desktop "WeftEnd Launchpad.lnk")
     Install-DownloadShortcut -ShortcutPath (Join-Path $desktop "WeftEnd Download.lnk")
   }
 }

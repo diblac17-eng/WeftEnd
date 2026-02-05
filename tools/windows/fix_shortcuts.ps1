@@ -15,8 +15,10 @@ $start = Join-Path $env:APPDATA "Microsoft\\Windows\\Start Menu\\Programs"
 
 $paths = @(
   (Join-Path $desktop "WeftEnd Library.lnk"),
+  (Join-Path $desktop "WeftEnd Launchpad.lnk"),
   (Join-Path $desktop "WeftEnd Download.lnk"),
   (Join-Path $start "WeftEnd Library.lnk"),
+  (Join-Path $start "WeftEnd Launchpad.lnk"),
   (Join-Path $start "WeftEnd Download.lnk")
 )
 
