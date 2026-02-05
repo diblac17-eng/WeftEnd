@@ -19,7 +19,7 @@ How to use it
 - Report cards show SAME/CHANGED vs baseline.
 - Use `weftend library accept-baseline <key>` to promote baseline.
 
-Launchpad (panel)
+Launchpad (panel) - premium only
 - Drop files/folders into `%LOCALAPPDATA%\WeftEnd\Library\Launchpad\Targets`
 - Run: `npm run weftend -- launchpad sync --allow-launch --open-library`
 - Open Start Menu: **WeftEnd Launchpad** (small panel window)

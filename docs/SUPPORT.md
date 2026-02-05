@@ -25,10 +25,10 @@ Free vs premium (positioning)
 - Premium is convenience + scale for organizations (automation, deployment, and support), not different truth.
 
 Premium convenience examples
-- Launchpad deployment across many PCs
-- Auto-scan/watch folder workflows
-- Ticket-pack automation and standardized evidence bundles
-- Priority support and onboarding
+- Launchpad deployment across many PCs (premium)
+- Auto-scan/watch folder workflows (premium)
+- Ticket-pack automation and standardized evidence bundles (premium)
+- Priority support and onboarding (premium)
 
 Contact
 - Support contact: GitHub Issues (public alpha). Paid support contact provided on request.
