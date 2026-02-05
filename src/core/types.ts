@@ -175,6 +175,34 @@ export interface PublisherIdentity {
   publicKey: string;
 }
 
+// -----------------------------
+// Entitlements (offline license)
+// -----------------------------
+
+export interface WeftendEntitlementIssuerV1 {
+  keyId: string;
+  algo: "sig.ed25519.v0";
+}
+
+export interface WeftendEntitlementPayloadV1 {
+  schema: "weftend.entitlement/1";
+  schemaVersion: 0;
+  licenseId: string;
+  customerId: string;
+  tier: "community" | "enterprise";
+  features: string[];
+  issuedAt: string; // YYYY-MM-DD
+  expiresAt?: string; // YYYY-MM-DD (optional)
+  issuer: WeftendEntitlementIssuerV1;
+}
+
+export interface WeftendEntitlementV1 extends WeftendEntitlementPayloadV1 {
+  signature: {
+    sigKind: "sig.ed25519.v0";
+    sigB64: string;
+  };
+}
+
 export type ArtifactRef =
   | {
       kind: "inline";

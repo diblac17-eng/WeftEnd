@@ -31,6 +31,7 @@ import type {
   SecretBox,
   TrustNodeResult,
   TrustResult,
+  WeftendEntitlementV1,
 } from "./types";
 import type { IntakeActionV1, IntakeSeverityV1, WeftEndPolicyV1 } from "./types";
 
@@ -118,19 +119,22 @@ const isBoundedTightString = (v: unknown, maxBytes: number): v is string =>
 const isBoundedString = (v: unknown, maxBytes: number): v is string =>
   typeof v === "string" && v.length > 0 && utf8ByteLength(v) <= maxBytes;
 
+const isDateYmd = (v: unknown): v is string =>
+  typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+
+const isSortedUniqueStrings = (values: string[]): boolean => {
+  for (let i = 1; i < values.length; i += 1) {
+    if (cmpStr(values[i - 1], values[i]) >= 0) return false;
+  }
+  return true;
+};
+
 const isNamespacedKind = (v: unknown): v is string => {
   if (!isNonEmptyString(v)) return false;
   const s = v.trim();
   if (/\s/.test(s)) return false;
   if (!s.includes(".")) return false;
   if (s.startsWith(".") || s.endsWith(".")) return false;
-  return true;
-};
-
-const isSortedUniqueStrings = (arr: string[]): boolean => {
-  for (let i = 1; i < arr.length; i += 1) {
-    if (cmpStr(arr[i - 1], arr[i]) >= 0) return false;
-  }
   return true;
 };
 
@@ -5124,3 +5128,91 @@ export function validateGateReceiptV0(v: unknown, path: string): ValidationIssue
 
   return sortIssuesDeterministically(issues);
 }
+
+export const validateWeftendEntitlementV1 = (
+  value: unknown
+): Result<WeftendEntitlementV1, ValidationIssue[]> => {
+  const issues: ValidationIssue[] = [];
+  if (!isRecord(value)) {
+    return err([issue("TYPE_INVALID", "entitlement must be an object.", "entitlement")]);
+  }
+  const allowed = [
+    "schema",
+    "schemaVersion",
+    "licenseId",
+    "customerId",
+    "tier",
+    "features",
+    "issuedAt",
+    "expiresAt",
+    "issuer",
+    "signature",
+  ];
+  if (!hasOnlyKeys(value, allowed)) {
+    issues.push(issue("FIELD_INVALID", "entitlement contains disallowed fields.", "entitlement"));
+  }
+  if (value.schema !== "weftend.entitlement/1") {
+    issues.push(issue("ENUM_INVALID", "schema must be weftend.entitlement/1.", "schema"));
+  }
+  if (value.schemaVersion !== 0) {
+    issues.push(issue("ENUM_INVALID", "schemaVersion must be 0.", "schemaVersion"));
+  }
+  if (!isBoundedTightString(value.licenseId, 128)) {
+    issues.push(issue("FIELD_INVALID", "licenseId must be a bounded non-empty string.", "licenseId"));
+  }
+  if (!isBoundedTightString(value.customerId, 128)) {
+    issues.push(issue("FIELD_INVALID", "customerId must be a bounded non-empty string.", "customerId"));
+  }
+  if (value.tier !== "community" && value.tier !== "enterprise") {
+    issues.push(issue("ENUM_INVALID", "tier must be community|enterprise.", "tier"));
+  }
+  const features = asStringArray(value.features);
+  if (!features) {
+    issues.push(issue("FIELD_INVALID", "features must be string[].", "features"));
+  } else {
+    if (features.length > 64) {
+      issues.push(issue("FIELD_INVALID", "features exceeds 64 entries.", "features"));
+    }
+    if (!features.every((f) => isBoundedTightString(f, 64))) {
+      issues.push(issue("FIELD_INVALID", "features entries must be bounded tight strings.", "features"));
+    }
+    if (!isSortedUniqueStrings(features)) {
+      issues.push(issue("FIELD_INVALID", "features must be stable-sorted and unique.", "features"));
+    }
+  }
+  if (!isDateYmd(value.issuedAt)) {
+    issues.push(issue("FIELD_INVALID", "issuedAt must be YYYY-MM-DD.", "issuedAt"));
+  }
+  if (value.expiresAt !== undefined && !isDateYmd(value.expiresAt)) {
+    issues.push(issue("FIELD_INVALID", "expiresAt must be YYYY-MM-DD when present.", "expiresAt"));
+  }
+  if (!isRecord(value.issuer)) {
+    issues.push(issue("FIELD_INVALID", "issuer must be an object.", "issuer"));
+  } else {
+    if (!hasOnlyKeys(value.issuer, ["keyId", "algo"])) {
+      issues.push(issue("FIELD_INVALID", "issuer contains disallowed fields.", "issuer"));
+    }
+    if (!isBoundedTightString(value.issuer.keyId, 128)) {
+      issues.push(issue("FIELD_INVALID", "issuer.keyId must be bounded.", "issuer.keyId"));
+    }
+    if (value.issuer.algo !== "sig.ed25519.v0") {
+      issues.push(issue("ENUM_INVALID", "issuer.algo must be sig.ed25519.v0.", "issuer.algo"));
+    }
+  }
+  if (!isRecord(value.signature)) {
+    issues.push(issue("FIELD_INVALID", "signature must be an object.", "signature"));
+  } else {
+    if (!hasOnlyKeys(value.signature, ["sigKind", "sigB64"])) {
+      issues.push(issue("FIELD_INVALID", "signature contains disallowed fields.", "signature"));
+    }
+    if (value.signature.sigKind !== "sig.ed25519.v0") {
+      issues.push(issue("ENUM_INVALID", "signature.sigKind must be sig.ed25519.v0.", "signature.sigKind"));
+    }
+    if (!isBoundedString(value.signature.sigB64, 2048)) {
+      issues.push(issue("FIELD_INVALID", "signature.sigB64 must be bounded base64.", "signature.sigB64"));
+    }
+  }
+
+  if (issues.length > 0) return err(issues);
+  return ok(value as unknown as WeftendEntitlementV1);
+};

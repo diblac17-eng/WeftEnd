@@ -113,3 +113,4 @@ Docs
  - `docs/HOST_RUN.md`
  - `docs/HOST_UPDATE_MODEL.md`
  - `docs/LAWS_KEYS_AND_SECRETS.md`
+ - `docs/ENTITLEMENTS.md`
