@@ -24,4 +24,5 @@
 
 Notes
 - No cloud. No telemetry. No automatic execution.
+- Host execution is optional and off by default.
 - Receipts are deterministic and privacy-clean.

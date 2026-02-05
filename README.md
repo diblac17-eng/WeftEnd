@@ -12,6 +12,7 @@ Key behaviors
 - Analysis-first: native binaries are always WITHHELD (never executed).
 - Deterministic receipts: stable ordering, canonical JSON, bounded outputs.
 - Baseline memory: runs compare against last accepted baseline (SAME/CHANGED/BLOCKED).
+- Host execution exists for WeftEnd releases but is off by default; v0 remains analysis-only for native binaries.
 
 What it is not
 - Not an antivirus

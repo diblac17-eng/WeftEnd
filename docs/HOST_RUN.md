@@ -1,6 +1,6 @@
 # Host Run (Node-only) — v0
 
-Host run is the Node-only verifier + executor for strict releases. It always verifies first and never runs without a successful verify gate.
+Host run is the Node-only verifier + executor for strict releases. It always verifies first and never runs without a successful verify gate. It is optional and off by default in v0; most users will remain analysis-only unless they explicitly configure host execution.
 
 Host startup status
 Host writes a startup status receipt before any command runs. Location: `<outDir>/weftend/host/host_status_000001.json` (outDir is the command `--out` root). If `verifyResult` is `UNVERIFIED`, the host refuses `run` and `install/update`. Receipts without `schemaVersion` were produced by an older WeftEnd and should not be used to assert current invariants. You may delete old `host_status_*.json` receipts; they are not part of the trust chain unless explicitly made so later. If `--out` is not provided, the host writes startup and run receipts under `WEFTEND_HOST_OUT_ROOT`. If neither is set, the command fails closed. The receipt records `outRootSource` (`ARG_OUT` or `ENV_OUT_ROOT`).
