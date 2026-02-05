@@ -116,7 +116,7 @@ const syncLaunchpad = (allowLaunch: boolean): { ok: boolean; added: number; remo
   const root = resolveLibraryRootV0().root;
   const launchpadRoot = path.join(root, "Launchpad");
   const targetsDir = path.join(launchpadRoot, "Targets");
-  const shortcutsDir = path.join(launchpadRoot, "Shortcuts");
+  const shortcutsDir = launchpadRoot;
   ensureDir(targetsDir);
   ensureDir(shortcutsDir);
 

@@ -20,7 +20,7 @@ Windows shell (right-click)
 Launchpad (drop folder)
 - Drop files/folders into: %LOCALAPPDATA%\WeftEnd\Library\Launchpad\Targets
 - Run: npm run weftend -- launchpad sync
-- Shortcuts appear in: %LOCALAPPDATA%\WeftEnd\Library\Launchpad\Shortcuts
+- Shortcuts appear in: %LOCALAPPDATA%\WeftEnd\Library\Launchpad
 
 First-use demo stubs (no execution)
 - Native app stub:

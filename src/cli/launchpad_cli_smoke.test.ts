@@ -39,7 +39,7 @@ const run = async () => {
   assert(!containsPathLeak(result.stdout), "stdout must not contain absolute paths");
   assert(!containsPathLeak(result.stderr), "stderr must not contain absolute paths");
 
-  const shortcutsDir = path.join(root, "Library", "Launchpad", "Shortcuts");
+  const shortcutsDir = path.join(root, "Library", "Launchpad");
   const shortcuts = fs.readdirSync(shortcutsDir).filter((n: string) => n.toLowerCase().endsWith(".lnk"));
   assert(shortcuts.length >= 2, "expected at least two shortcuts");
 };

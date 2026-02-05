@@ -22,6 +22,6 @@ How to use it
 Launchpad
 - Drop files/folders into `%LOCALAPPDATA%\WeftEnd\Library\Launchpad\Targets`
 - Run: `npm run weftend -- launchpad sync`
-- Shortcuts appear in `%LOCALAPPDATA%\WeftEnd\Library\Launchpad\Shortcuts`
+- Shortcuts appear in `%LOCALAPPDATA%\WeftEnd\Library\Launchpad`
 
 The library exists to make trust decisions repeatable, not to execute software.

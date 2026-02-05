@@ -153,17 +153,18 @@ function Install-LibraryShortcut {
   $shortcut.Save()
 }
 
-$launchpadTargets = Join-Path $libraryRoot "Launchpad\Targets"
+$launchpadRoot = Join-Path $libraryRoot "Launchpad"
+$launchpadTargets = Join-Path $launchpadRoot "Targets"
 function Install-LaunchpadShortcut {
   param([string]$ShortcutPath)
   if (-not $ShortcutPath) { return }
-  if (-not $launchpadTargets -or $launchpadTargets.Trim() -eq "") { return }
+  if (-not $launchpadRoot -or $launchpadRoot.Trim() -eq "") { return }
   $explorerPath = Join-Path $env:WINDIR "explorer.exe"
   $target = if (Test-Path -LiteralPath $explorerPath) { $explorerPath } else { "explorer.exe" }
   $shell = New-Object -ComObject WScript.Shell
   $shortcut = $shell.CreateShortcut($ShortcutPath)
   $shortcut.TargetPath = $target
-  $shortcut.Arguments = "`"$launchpadTargets`""
+  $shortcut.Arguments = "`"$launchpadRoot`""
   $shortcut.IconLocation = if ($weftendIcon) { $weftendIcon } else { $target }
   $shortcut.Save()
 }
