@@ -33,6 +33,8 @@ Premium convenience examples
 Contact
 - Support contact: GitHub Issues (public alpha). Paid support contact provided on request.
 - Pricing reference: `docs/PRICING.md` (premium only).
+- Premium operations: `docs/PREMIUM_OPERATIONS.md`
+- Premium limits: `docs/PREMIUM_LIMITS.md`
 
 Response expectations
 - Best-effort, no guaranteed response time unless explicitly contracted.
