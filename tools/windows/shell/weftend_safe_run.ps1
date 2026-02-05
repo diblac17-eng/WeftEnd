@@ -319,10 +319,40 @@ function Write-ReportCard {
       $next = "HOST_RUN_IF_CONFIGURED"
     }
 
+    $meaning = "See report card and receipts."
+    if ($stateLines.Count -gt 0 -and $ViewState) {
+      if ($ViewState.blocked -and $ViewState.blocked.runId) {
+        $meaning = "Blocked. Review change before proceeding."
+      } else {
+        $latestId = if ($ViewState.latestRunId) { [string]$ViewState.latestRunId } else { "" }
+        $idx = -1
+        if ($ViewState.lastN) {
+          for ($i = 0; $i -lt $ViewState.lastN.Count; $i++) {
+            if ([string]$ViewState.lastN[$i] -eq $latestId) { $idx = $i; break }
+          }
+        }
+        if ($idx -ge 0 -and $ViewState.keys -and $idx -lt $ViewState.keys.Count) {
+          if ([string]$ViewState.keys[$idx].verdictVsBaseline -eq "CHANGED") {
+            $meaning = "Changed vs baseline. Compare before proceeding."
+          } elseif ([string]$ViewState.keys[$idx].verdictVsBaseline -eq "SAME") {
+            $meaning = "Same as baseline."
+          }
+        }
+      }
+    }
+    if ($meaning -eq "See report card and receipts.") {
+      if ($analysis -eq "WITHHELD") {
+        $meaning = "Analysis-only. Execution withheld."
+      } elseif ($analysis -eq "DENY" -or $Result -eq "DENY") {
+        $meaning = "Denied by policy or trust gate."
+      }
+    }
+
     $lines = @(
       "classification=target:$targetKind artifact:$artifactKind entryHints=$entry",
       "observed=files:$files bytes:$bytes scripts:$hasScripts native:$hasNative externalRefs:$extRefs bounded=$bounded",
       "posture=analysis:$analysis exec:$execution reason:$Reason",
+      "meaning=$meaning",
       "next=$next",
       "runId=$RunId",
       "libraryKey=$LibraryKey",
@@ -445,18 +475,87 @@ function Show-ReportCardPopup {
   )
   try {
     Add-Type -AssemblyName System.Windows.Forms
-    $msg = @(
-      "WeftEnd Safe-Run Report Card",
-      "",
+    Add-Type -AssemblyName System.Drawing
+
+    $bg = [System.Drawing.Color]::FromArgb(28, 28, 32)
+    $accent = $bg
+    $text = [System.Drawing.Color]::FromArgb(235, 235, 240)
+    $muted = [System.Drawing.Color]::FromArgb(200, 200, 210)
+
+    $form = New-Object System.Windows.Forms.Form
+    $form.Text = "WeftEnd"
+    $form.StartPosition = "CenterScreen"
+    $form.BackColor = $bg
+    $form.ForeColor = $text
+    $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+    $form.MaximizeBox = $false
+    $form.MinimizeBox = $false
+    $form.ClientSize = New-Object System.Drawing.Size 420, 260
+    $form.Font = New-Object System.Drawing.Font "Segoe UI", 9
+
+    $header = New-Object System.Windows.Forms.Panel
+    $header.BackColor = $accent
+    $header.Dock = [System.Windows.Forms.DockStyle]::Top
+    $header.Height = 44
+    $form.Controls.Add($header)
+
+    $title = New-Object System.Windows.Forms.Label
+    $title.Text = "WeftEnd Safe-Run"
+    $title.ForeColor = $text
+    $title.Font = New-Object System.Drawing.Font "Segoe UI Semibold", 10
+    $title.AutoSize = $false
+    $title.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+    $title.Dock = [System.Windows.Forms.DockStyle]::Fill
+    $title.Padding = New-Object System.Windows.Forms.Padding 12, 0, 0, 0
+    $header.Controls.Add($title)
+
+    $body = New-Object System.Windows.Forms.Label
+    $body.AutoSize = $false
+    $body.ForeColor = $text
+    $body.Location = New-Object System.Drawing.Point 12, 58
+    $body.Size = New-Object System.Drawing.Size 396, 130
+    $body.Text = @(
       "runId=$RunId",
       "result=$Result",
       "reason=$Reason",
       "privacyLint=$PrivacyLint",
-      "buildDigest=$BuildDigest",
-      "",
-      "Next: Open Report Folder (OK)"
+      "buildDigest=$BuildDigest"
     ) -join [Environment]::NewLine
-    return [System.Windows.Forms.MessageBox]::Show($msg, "WeftEnd", [System.Windows.Forms.MessageBoxButtons]::OKCancel, [System.Windows.Forms.MessageBoxIcon]::Information)
+    $form.Controls.Add($body)
+
+    $hint = New-Object System.Windows.Forms.Label
+    $hint.AutoSize = $false
+    $hint.ForeColor = $muted
+    $hint.Location = New-Object System.Drawing.Point 12, 190
+    $hint.Size = New-Object System.Drawing.Size 396, 24
+    $hint.Text = "Next: Open Report Folder"
+    $form.Controls.Add($hint)
+
+    $ok = New-Object System.Windows.Forms.Button
+    $ok.Text = "Open"
+    $ok.BackColor = $bg
+    $ok.ForeColor = $text
+    $ok.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+    $ok.Width = 90
+    $ok.Height = 28
+    $ok.Location = New-Object System.Drawing.Point 228, 218
+    $ok.DialogResult = [System.Windows.Forms.DialogResult]::OK
+    $form.AcceptButton = $ok
+    $form.Controls.Add($ok)
+
+    $cancel = New-Object System.Windows.Forms.Button
+    $cancel.Text = "Close"
+    $cancel.BackColor = $bg
+    $cancel.ForeColor = $text
+    $cancel.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+    $cancel.Width = 90
+    $cancel.Height = 28
+    $cancel.Location = New-Object System.Drawing.Point 324, 218
+    $cancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+    $form.CancelButton = $cancel
+    $form.Controls.Add($cancel)
+
+    return $form.ShowDialog()
   } catch {
     return $null
   }
@@ -466,19 +565,78 @@ function Show-AcceptBaselinePrompt {
   param([string]$TargetKey)
   try {
     Add-Type -AssemblyName System.Windows.Forms
-    $msg = @(
+    Add-Type -AssemblyName System.Drawing
+
+    $bg = [System.Drawing.Color]::FromArgb(28, 28, 32)
+    $accent = $bg
+    $text = [System.Drawing.Color]::FromArgb(235, 235, 240)
+    $muted = [System.Drawing.Color]::FromArgb(200, 200, 210)
+
+    $form = New-Object System.Windows.Forms.Form
+    $form.Text = "WeftEnd"
+    $form.StartPosition = "CenterScreen"
+    $form.BackColor = $bg
+    $form.ForeColor = $text
+    $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+    $form.MaximizeBox = $false
+    $form.MinimizeBox = $false
+    $form.ClientSize = New-Object System.Drawing.Size 420, 220
+    $form.Font = New-Object System.Drawing.Font "Segoe UI", 9
+
+    $header = New-Object System.Windows.Forms.Panel
+    $header.BackColor = $accent
+    $header.Dock = [System.Windows.Forms.DockStyle]::Top
+    $header.Height = 44
+    $form.Controls.Add($header)
+
+    $title = New-Object System.Windows.Forms.Label
+    $title.Text = "Baseline Review"
+    $title.ForeColor = $text
+    $title.Font = New-Object System.Drawing.Font "Segoe UI Semibold", 10
+    $title.AutoSize = $false
+    $title.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+    $title.Dock = [System.Windows.Forms.DockStyle]::Fill
+    $title.Padding = New-Object System.Windows.Forms.Padding 12, 0, 0, 0
+    $header.Controls.Add($title)
+
+    $body = New-Object System.Windows.Forms.Label
+    $body.AutoSize = $false
+    $body.ForeColor = $text
+    $body.Location = New-Object System.Drawing.Point 12, 58
+    $body.Size = New-Object System.Drawing.Size 396, 90
+    $body.Text = @(
       "WeftEnd detected changes vs baseline.",
-      "",
       "Accept this run as the new baseline?",
       "",
       "Target: $TargetKey"
     ) -join [Environment]::NewLine
-    return [System.Windows.Forms.MessageBox]::Show(
-      $msg,
-      "WeftEnd",
-      [System.Windows.Forms.MessageBoxButtons]::YesNo,
-      [System.Windows.Forms.MessageBoxIcon]::Question
-    )
+    $form.Controls.Add($body)
+
+    $yes = New-Object System.Windows.Forms.Button
+    $yes.Text = "Accept"
+    $yes.BackColor = $bg
+    $yes.ForeColor = $text
+    $yes.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+    $yes.Width = 90
+    $yes.Height = 28
+    $yes.Location = New-Object System.Drawing.Point 228, 176
+    $yes.DialogResult = [System.Windows.Forms.DialogResult]::Yes
+    $form.AcceptButton = $yes
+    $form.Controls.Add($yes)
+
+    $no = New-Object System.Windows.Forms.Button
+    $no.Text = "Decline"
+    $no.BackColor = $bg
+    $no.ForeColor = $text
+    $no.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+    $no.Width = 90
+    $no.Height = 28
+    $no.Location = New-Object System.Drawing.Point 324, 176
+    $no.DialogResult = [System.Windows.Forms.DialogResult]::No
+    $form.CancelButton = $no
+    $form.Controls.Add($no)
+
+    return $form.ShowDialog()
   } catch {
     return $null
   }

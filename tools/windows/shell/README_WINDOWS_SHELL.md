@@ -23,25 +23,17 @@ Usage
   `%LOCALAPPDATA%\WeftEnd\Library\<target>\run_<digest>[_NNN]\`
 - Compare two runs with:
   `npm run weftend -- compare "<leftOutRoot>" "<rightOutRoot>" --out "<diffOutRoot>"`
-- Start Menu shortcut: **WeftEnd Launchpad** opens the Launchpad panel (experimental).
 
 WeftEnd-run shortcuts (optional)
 - Create a shortcut that runs WeftEnd before launching an app:
   `tools\windows\shell\weftend_make_shortcut.ps1 -TargetPath "<path-to-app.exe>" -AllowLaunch`
 - This runs analysis first, then launches only if baseline is SAME or accepted.
 
-Launchpad (panel) - experimental
-- Drop files/folders into: `%LOCALAPPDATA%\WeftEnd\Library\Launchpad\Targets`
-- Run: `npm run weftend -- launchpad sync --allow-launch --open-library`
-- Open **WeftEnd Launchpad** (Start Menu) to get a small button window.
-- Buttons run WeftEnd first, then auto-launch only when baseline is SAME.
-
 Analysis-first contract
 - Right-click "Run with WeftEnd" always performs deterministic analysis first.
 - Native executables are withheld from execution unless wrapped as a verified WeftEnd release.
 - You still get receipts, decision posture, and privacy lint status on every run.
 - Right-click `.lnk` shortcuts are treated as opaque artifacts and return `WITHHELD` with `ARTIFACT_SHORTCUT_UNSUPPORTED`.
-- Launchpad buttons resolve `.lnk` targets for analysis/launch (still analysis-first).
 
 Wrapper behavior
 - The wrapper creates an output folder under `Library\<target>\run_<digest>` (deterministic ID).

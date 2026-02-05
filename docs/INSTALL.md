@@ -13,14 +13,8 @@ Windows shell (right-click)
 - Run the shell doctor (sanity):
   tools\windows\shell\weftend_shell_doctor.ps1
 - Start Menu shortcuts include **WeftEnd Library** and **WeftEnd Download**.
-- Start Menu shortcut **WeftEnd Launchpad** opens the Launchpad panel (experimental).
 - Optional: create a WeftEnd-run shortcut (analysis first, then launch if baseline OK):
   tools\windows\shell\weftend_make_shortcut.ps1 -TargetPath "<path-to-app.exe>" -AllowLaunch
-
-Launchpad (panel) - experimental
-- Drop files/folders into: %LOCALAPPDATA%\WeftEnd\Library\Launchpad\Targets
-- Run: npm run weftend -- launchpad sync --allow-launch --open-library
-- Open **WeftEnd Launchpad** (Start Menu) to click app buttons.
 
 First-use demo stubs (no execution)
 - Native app stub:

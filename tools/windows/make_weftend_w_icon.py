@@ -1,32 +1,13 @@
-"""
-make_weftend_w_icon.py
-Generates a modern "W" ribbon icon (transparent background) and exports:
-- weftend_W_1024.png
-- weftend_W_512.png
-- weftend_W_256.png
-- weftend_W.ico (multi-size)
-
-Deps:
-  pip install pillow
-"""
-
-from __future__ import annotations
-
+﻿from __future__ import annotations
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter
 import math
 
-OUT_DIR = Path(".")
-NAME = "weftend_W"
-
+OUT_DIR = Path("assets")
+NAME = "weftend_logo"
 
 def lerp(a: float, b: float, t: float) -> float:
     return a + (b - a) * t
-
-
-def clamp(x: float, lo: float, hi: float) -> float:
-    return max(lo, min(hi, x))
-
 
 def rgb_lerp(c1, c2, t: float):
     return (
@@ -36,7 +17,6 @@ def rgb_lerp(c1, c2, t: float):
         255,
     )
 
-
 def draw_thick_polyline(
     base: Image.Image,
     points: list[tuple[float, float]],
@@ -45,10 +25,6 @@ def draw_thick_polyline(
     c_end=(255, 0, 220),
     blur: float = 0.0,
 ):
-    """
-    Draw a thick polyline with a simple along-the-path gradient by stamping circles.
-    This gives a smooth, 'ribbon' feel and works well for icons.
-    """
     w, h = base.size
     layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
@@ -90,13 +66,8 @@ def draw_thick_polyline(
 
     base.alpha_composite(layer)
 
-
 def make_icon(size: int) -> Image.Image:
-    """
-    Create a transparent icon with a modern ribbon W.
-    """
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-
     pad = int(size * 0.12)
 
     def P(nx, ny):
@@ -141,20 +112,21 @@ def make_icon(size: int) -> Image.Image:
     shadow.putalpha(sh)
     img.alpha_composite(shadow)
 
+    # Neon-violet glass palette
     draw_thick_polyline(
         img,
         left,
         width=stroke,
-        c_start=(0, 210, 255),
-        c_end=(150, 70, 255),
+        c_start=(90, 210, 255),
+        c_end=(190, 90, 255),
         blur=0,
     )
     draw_thick_polyline(
         img,
         right,
         width=stroke,
-        c_start=(80, 255, 210),
-        c_end=(255, 40, 200),
+        c_start=(120, 120, 255),
+        c_end=(255, 70, 220),
         blur=0,
     )
 
@@ -182,24 +154,27 @@ def make_icon(size: int) -> Image.Image:
     img = img.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
     return img
 
-
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     sizes_png = [1024, 512, 256]
+    imgs = {}
     for s in sizes_png:
         im = make_icon(s)
+        imgs[s] = im
         im.save(OUT_DIR / f"{NAME}_{s}.png")
 
-    ico_sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (24, 24), (16, 16)]
+    imgs[1024].save(OUT_DIR / f"{NAME}.png")
+
+    ico_sizes = [(256,256),(128,128),(64,64),(48,48),(32,32),(24,24),(16,16)]
     base = make_icon(256)
     base.save(OUT_DIR / f"{NAME}.ico", format="ICO", sizes=ico_sizes)
 
     print("W icon generated:")
     for s in sizes_png:
         print(f"  {OUT_DIR / f'{NAME}_{s}.png'}")
+    print(f"  {OUT_DIR / f'{NAME}.png'}")
     print(f"  {OUT_DIR / f'{NAME}.ico'}")
-
 
 if __name__ == "__main__":
     main()

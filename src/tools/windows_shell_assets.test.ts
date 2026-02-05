@@ -79,7 +79,7 @@ suite("tools/windows shell assets", () => {
     assert(/WeftEndSafeRunOpenLibrary/.test(text), "expected open-library context menu");
     assert(/-OpenLibrary/.test(text), "expected -OpenLibrary flag");
     assert(/WeftEnd Library\.lnk/.test(text), "expected Start Menu shortcut");
-    assert(/WeftEnd Launchpad\.lnk/.test(text), "expected launchpad shortcut");
+    assert(/WEFTEND_ENABLE_LAUNCHPAD/.test(text), "expected launchpad gate");
     assert(/WeftEnd Download\.lnk/.test(text), "expected download shortcut");
     assert(/launchpad_panel\.ps1/.test(text), "expected launchpad panel script reference");
     assert(/open_release_folder\.ps1/.test(text), "expected open_release_folder script reference");

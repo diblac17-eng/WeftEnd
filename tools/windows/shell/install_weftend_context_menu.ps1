@@ -38,10 +38,12 @@ function Resolve-LibraryRoot {
 
 $libraryRoot = Resolve-LibraryRoot -Base $OutRoot
 if ($libraryRoot -and $libraryRoot.Trim() -ne "") {
-  $launchpadTargetsDir = Join-Path $libraryRoot "Launchpad\Targets"
-  $launchpadShortcutsDir = Join-Path $libraryRoot "Launchpad\Shortcuts"
-  New-Item -ItemType Directory -Force -Path $launchpadTargetsDir | Out-Null
-  New-Item -ItemType Directory -Force -Path $launchpadShortcutsDir | Out-Null
+  if ($env:WEFTEND_ENABLE_LAUNCHPAD -eq "1") {
+    $launchpadTargetsDir = Join-Path $libraryRoot "Launchpad\Targets"
+    $launchpadShortcutsDir = Join-Path $libraryRoot "Launchpad\Shortcuts"
+    New-Item -ItemType Directory -Force -Path $launchpadTargetsDir | Out-Null
+    New-Item -ItemType Directory -Force -Path $launchpadShortcutsDir | Out-Null
+  }
 }
 
 function Resolve-WeftEndIcon {
@@ -153,12 +155,18 @@ function Install-LibraryShortcut {
   $shortcut.Save()
 }
 
-$launchpadRoot = Join-Path $libraryRoot "Launchpad"
-$launchpadTargets = Join-Path $launchpadRoot "Targets"
-$launchpadPanel = Join-Path $scriptDir "launchpad_panel.ps1"
+$launchpadRoot = $null
+$launchpadTargets = $null
+$launchpadPanel = $null
+if ($env:WEFTEND_ENABLE_LAUNCHPAD -eq "1") {
+  $launchpadRoot = Join-Path $libraryRoot "Launchpad"
+  $launchpadTargets = Join-Path $launchpadRoot "Targets"
+  $launchpadPanel = Join-Path $scriptDir "launchpad_panel.ps1"
+}
 function Install-LaunchpadShortcut {
   param([string]$ShortcutPath)
   if (-not $ShortcutPath) { return }
+  if ($env:WEFTEND_ENABLE_LAUNCHPAD -ne "1") { return }
   if (-not $launchpadRoot -or $launchpadRoot.Trim() -eq "") { return }
   $psExe = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
   if (-not (Test-Path $psExe)) { $psExe = "powershell.exe" }

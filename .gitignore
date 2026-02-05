@@ -4,6 +4,9 @@ logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Private bundle (not for public release)
+private/
 lerna-debug.log*
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
