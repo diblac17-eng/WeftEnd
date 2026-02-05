@@ -31,7 +31,7 @@ Premium convenience examples
 - Priority support and onboarding (premium)
 
 Contact
-- Support contact: GitHub Issues (public alpha). Paid support contact provided on request.
+- Support contact: WeftEnd@aol.com
 - Pricing reference: `docs/PRICING.md` (premium only).
 - Premium operations: `docs/PREMIUM_OPERATIONS.md`
 - Premium limits: `docs/PREMIUM_LIMITS.md`
