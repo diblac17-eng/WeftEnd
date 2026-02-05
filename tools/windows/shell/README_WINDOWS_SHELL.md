@@ -48,6 +48,7 @@ Troubleshooting
   `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process`
 - If the repo path cannot be resolved, re-run the install script with `-RepoRoot <path>`.
 - If `npm` is missing and `dist` is not built, run `npm run compile --silent`.
+- If the shortcut icon does not update, Windows may be caching it. Restart Explorer or sign out/in.
 
 Shell doctor (registry sanity)
 ```

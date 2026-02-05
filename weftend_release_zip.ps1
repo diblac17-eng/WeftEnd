@@ -1,5 +1,5 @@
 param(
-  [string]$OutDir = "out\\releases"
+  [string]$OutDir = "out\\release"
 )
 
 $ErrorActionPreference = "Stop"
@@ -145,6 +145,26 @@ $readmePath = Join-Path $root "README.md"
 if (Test-Path $readmePath) {
   $items += $readmePath
   Write-Ok "README.md included"
+}
+$licensePath = Join-Path $root "LICENSE"
+if (Test-Path $licensePath) {
+  $items += $licensePath
+  Write-Ok "LICENSE included"
+}
+$noticePath = Join-Path $root "NOTICE.md"
+if (Test-Path $noticePath) {
+  $items += $noticePath
+  Write-Ok "NOTICE.md included"
+}
+$securityPath = Join-Path $root "SECURITY.md"
+if (Test-Path $securityPath) {
+  $items += $securityPath
+  Write-Ok "SECURITY.md included"
+}
+$versionPath = Join-Path $root "VERSION.txt"
+if (Test-Path $versionPath) {
+  $items += $versionPath
+  Write-Ok "VERSION.txt included"
 }
 
 Write-Section "Output"

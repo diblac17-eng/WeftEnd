@@ -25,6 +25,10 @@ First-use demo stubs (no execution)
 Compare two runs
   npm run weftend -- compare "<oldOut>" "<newOut>" --out out\demo_compare
 
+First 5 minutes smoke (optional)
+- Run: tools\windows\FIRST_5_MINUTES.cmd
+- Check: out\first_5_minutes\FIRST_5_MINUTES_REPORT.txt (PASS/FAIL lines)
+
 Receipts
 - See docs/WHY_RECEIPTS.md for what receipts are and why they matter.
 - See docs/REPORT_LIBRARY.md for the local library layout.

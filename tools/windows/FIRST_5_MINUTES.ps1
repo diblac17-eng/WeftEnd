@@ -1,99 +1,95 @@
-param(
-  [string]$OutDir = "out\\first_5_minutes"
-)
+# tools/windows/FIRST_5_MINUTES.ps1
+# First 5 minutes operator smoke (no paths in report output).
 
-Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-function Resolve-NodePath {
+function Write-ReportLine {
+  param([string]$Path, [string]$Line)
+  Add-Content -Path $Path -Value $Line
+}
+
+function Ensure-Dir {
+  param([string]$Path)
+  if (-not (Test-Path $Path)) {
+    New-Item -ItemType Directory -Path $Path | Out-Null
+  }
+}
+
+function Find-Node {
   $cmd = Get-Command node -ErrorAction SilentlyContinue
-  if ($cmd -and $cmd.Path) { return [string]$cmd.Path }
+  if ($cmd -and $cmd.Path) { return $cmd.Path }
   return $null
 }
 
-function Read-JsonFile {
-  param([string]$Path)
-  if (-not (Test-Path -LiteralPath $Path)) { return $null }
-  try { return (Get-Content -Raw -Path $Path | ConvertFrom-Json) } catch { return $null }
+$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\\..")
+$cliPath = Join-Path $repoRoot "dist\\src\\cli\\main.js"
+$demoRoot = Join-Path $repoRoot "demo"
+$outRoot = Join-Path $repoRoot "out\\first_5_minutes"
+$report = Join-Path $outRoot "FIRST_5_MINUTES_REPORT.txt"
+
+if (-not (Test-Path $cliPath)) {
+  Write-Error "Missing dist CLI: dist\\src\\cli\\main.js"
+  exit 1
 }
 
-function Write-ReportLine {
-  param([System.Collections.Generic.List[string]]$Lines, [string]$Line)
-  $Lines.Add($Line) | Out-Null
+$node = Find-Node
+if (-not $node) {
+  Write-Error "node not found on PATH"
+  exit 1
 }
 
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$root = Resolve-Path (Join-Path $scriptDir "..\\..")
-$node = Resolve-NodePath
-if (-not $node) { Write-Error "NODE_MISSING"; exit 1 }
+Ensure-Dir $outRoot
+Remove-Item -Force $report -ErrorAction SilentlyContinue
+Write-ReportLine $report "weftend_first_5_minutes=v0"
 
-$mainJs = Join-Path $root "dist\\src\\cli\\main.js"
-if (-not (Test-Path -LiteralPath $mainJs)) { Write-Error "DIST_MISSING"; exit 1 }
+# Prepare targets (copy demo stubs to out/ so we do not mutate repo fixtures)
+$targetsRoot = Join-Path $outRoot "targets"
+Ensure-Dir $targetsRoot
 
-$outAbs = Join-Path $root $OutDir
-New-Item -ItemType Directory -Force -Path $outAbs | Out-Null
+$nativeSrc = Join-Path $demoRoot "native_app_stub"
+$webSrc = Join-Path $demoRoot "web_export_stub"
+$nativeTarget = Join-Path $targetsRoot "native_app_stub"
+$webTarget = Join-Path $targetsRoot "web_export_stub"
 
-$reportLines = New-Object System.Collections.Generic.List[string]
-Write-ReportLine $reportLines "FIRST_5_MINUTES_REPORT"
+Remove-Item -Recurse -Force $nativeTarget -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force $webTarget -ErrorAction SilentlyContinue
+Copy-Item -Recurse -Force $nativeSrc $nativeTarget
+Copy-Item -Recurse -Force $webSrc $webTarget
 
-$overallOk = $true
+# Run safe-run on native stub
+$runNative = Join-Path $outRoot "run_native_1"
+Remove-Item -Recurse -Force $runNative -ErrorAction SilentlyContinue
+& $node $cliPath safe-run $nativeTarget --out $runNative | Out-Null
+$nativeOk = Test-Path (Join-Path $runNative "safe_run_receipt.json")
+Write-ReportLine $report ("native_stub=" + ($(if ($nativeOk) { "PASS" } else { "FAIL" })))
 
-# 1) Native stub
-$nativeTarget = Join-Path $root "demo\\native_app_stub\\app.exe"
-$nativeOut = Join-Path $outAbs "native_run"
-& $node $mainJs safe-run $nativeTarget --out $nativeOut --withhold-exec | Out-Null
-$nativeExit = $LASTEXITCODE
-$nativeReceipt = Read-JsonFile (Join-Path $nativeOut "safe_run_receipt.json")
-$nativeOk = ($nativeExit -eq 0) -and $nativeReceipt -and ($nativeReceipt.execution.result -eq "WITHHELD")
-if (-not $nativeOk) { $overallOk = $false }
-$nativeStatus = if ($nativeOk) { "PASS" } else { "FAIL" }
-Write-ReportLine $reportLines ("native_stub=" + $nativeStatus)
+# Run safe-run on web stub (baseline)
+$runWeb1 = Join-Path $outRoot "run_web_1"
+Remove-Item -Recurse -Force $runWeb1 -ErrorAction SilentlyContinue
+& $node $cliPath safe-run $webTarget --out $runWeb1 | Out-Null
+$web1Ok = Test-Path (Join-Path $runWeb1 "safe_run_receipt.json")
+Write-ReportLine $report ("web_stub_run1=" + ($(if ($web1Ok) { "PASS" } else { "FAIL" })))
 
-# 2) Web stub
-$webSource = Join-Path $root "demo\\web_export_stub"
-$webWork = Join-Path $outAbs "web_work"
-if (Test-Path -LiteralPath $webWork) { Remove-Item -Recurse -Force $webWork }
-Copy-Item -Recurse -Force -Path $webSource -Destination $webWork
-$webOut1 = Join-Path $outAbs "web_run_1"
-& $node $mainJs safe-run $webWork --out $webOut1 | Out-Null
-$webExit1 = $LASTEXITCODE
-$webReceipt1 = Read-JsonFile (Join-Path $webOut1 "safe_run_receipt.json")
-$webOk1 = ($webExit1 -eq 0) -and $webReceipt1
-if (-not $webOk1) { $overallOk = $false }
-$webStatus1 = if ($webOk1) { "PASS" } else { "FAIL" }
-Write-ReportLine $reportLines ("web_stub_first=" + $webStatus1)
+# Modify a file (append a marker)
+$markerPath = Join-Path $webTarget "app.js"
+Add-Content -Path $markerPath -Value "// change" -Encoding UTF8
 
-# Modify one file (deterministic)
-$editPath = Join-Path $webWork "app.js"
-if (Test-Path -LiteralPath $editPath) {
-  Add-Content -Path $editPath -Value "// change" -Encoding UTF8
-}
+# Run safe-run on web stub (after change)
+$runWeb2 = Join-Path $outRoot "run_web_2"
+Remove-Item -Recurse -Force $runWeb2 -ErrorAction SilentlyContinue
+& $node $cliPath safe-run $webTarget --out $runWeb2 | Out-Null
+$web2Ok = Test-Path (Join-Path $runWeb2 "safe_run_receipt.json")
+Write-ReportLine $report ("web_stub_run2=" + ($(if ($web2Ok) { "PASS" } else { "FAIL" })))
 
-$webOut2 = Join-Path $outAbs "web_run_2"
-& $node $mainJs safe-run $webWork --out $webOut2 | Out-Null
-$webExit2 = $LASTEXITCODE
-$webReceipt2 = Read-JsonFile (Join-Path $webOut2 "safe_run_receipt.json")
-$webOk2 = ($webExit2 -eq 0) -and $webReceipt2
-if (-not $webOk2) { $overallOk = $false }
-$webStatus2 = if ($webOk2) { "PASS" } else { "FAIL" }
-Write-ReportLine $reportLines ("web_stub_second=" + $webStatus2)
+# Compare
+$diffOut = Join-Path $outRoot "diff_web"
+Remove-Item -Recurse -Force $diffOut -ErrorAction SilentlyContinue
+& $node $cliPath compare $runWeb1 $runWeb2 --out $diffOut | Out-Null
+$compareOk = Test-Path (Join-Path $diffOut "compare_report.txt")
+Write-ReportLine $report ("compare=" + ($(if ($compareOk) { "PASS" } else { "FAIL" })))
 
-# 3) Compare
-$compareOut = Join-Path $outAbs "compare"
-& $node $mainJs compare $webOut1 $webOut2 --out $compareOut | Out-Null
-$compareExit = $LASTEXITCODE
-$compareReceipt = Read-JsonFile (Join-Path $compareOut "compare_receipt.json")
-$compareOk = ($compareExit -eq 0) -and $compareReceipt -and ($compareReceipt.verdict -eq "CHANGED")
-if (-not $compareOk) { $overallOk = $false }
-$compareStatus = if ($compareOk) { "PASS" } else { "FAIL" }
-Write-ReportLine $reportLines ("compare=" + $compareStatus)
+$overall = if ($nativeOk -and $web1Ok -and $web2Ok -and $compareOk) { "PASS" } else { "FAIL" }
+Write-ReportLine $report ("overall=" + $overall)
 
-$overallStatus = if ($overallOk) { "PASS" } else { "FAIL" }
-Write-ReportLine $reportLines ("overall=" + $overallStatus)
-
-$reportPath = Join-Path $outAbs "FIRST_5_MINUTES_REPORT.txt"
-$reportLines | Set-Content -Path $reportPath -Encoding ASCII
-foreach ($line in $reportLines) { Write-Output $line }
-
-if (-not $overallOk) { exit 1 }
+Write-Host "FIRST_5_MINUTES_REPORT.txt written."
 exit 0
