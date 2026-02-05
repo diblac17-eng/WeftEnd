@@ -1,4 +1,4 @@
-# docs/CLI_PUBLISH.md - WeftEnd CLI Publish Contract (v0)
+﻿# docs/CLI_PUBLISH.md - WeftEnd CLI Publish Contract (v0)
 
 Status: guidance. This document must not conflict with:
 - `docs/PROJECT_STATE.md`
@@ -78,7 +78,7 @@ Required:
 - `WEFTEND_SIGNER_KEY_ID` (string, non-empty)
 - `WEFTEND_SIGNING_KEY` (string, non-empty)
 - If `WEFTEND_SIGNING_KEY` is a PEM private key (Ed25519 or P-256), CLI uses real crypto.
-- If `WEFTEND_SIGNING_KEY` is not PEM, demo signing requires `WEFTEND_ALLOW_DEMO_CRYPTO=1`.
+- If `WEFTEND_SIGNING_KEY` is not PEM, demo signing requires `WEFTEND_DEMO_CRYPTO_OK=1`.
 
 Rules:
 - Keys must never be committed to the repo (see `docs/LAWS_KEYS_AND_SECRETS.md`).
@@ -147,3 +147,4 @@ The CLI:
 - Fails closed on missing/unclear inputs.
 
 This ensures identical inputs produce identical release artifacts.
+

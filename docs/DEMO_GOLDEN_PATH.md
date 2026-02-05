@@ -1,14 +1,14 @@
-# DEMO_GOLDEN_PATH.md - WeftEnd Harness Golden Path (v0)
+﻿# DEMO_GOLDEN_PATH.md - WeftEnd Harness Golden Path (v0)
 
 This is the exact demo sequence used to verify the local harness end-to-end.
 
 ## Golden Path (verbatim)
 
-1) In `C:\Users\dibla\Documents\GitHub\WeftEnd`:
+1) In your repo root (e.g. `C:\path\to\WeftEnd`):
 `npm test`
 
 2) Enable demo crypto for CLI/devkit publish flows:
-`$env:WEFTEND_ALLOW_DEMO_CRYPTO="1"`
+`$env:WEFTEND_DEMO_CRYPTO_OK="1"`
 
 3) Start the harness server:
 `npm run serve`
@@ -95,3 +95,4 @@ Use `<blockHash>` from `out/demo_import/weftend/import_report.json` and record t
 ```
 node -e 'const fs=require("fs"); const path=require("path"); const { devkitLoadStrict }=require("./dist/src/devkit/strict_loader"); const { ArtifactStoreV0, computeArtifactDigestV0 }=require("./dist/src/runtime/store/artifact_store"); const { makeReleaseManifest, makeReleaseCryptoPort, releaseKeyAllowlist }=require("./dist/src/runtime/test_support/release_manifest"); const report=JSON.parse(fs.readFileSync("out/demo_import/weftend/import_report.json","utf8")); const entry=report.entryPath || "main.js"; const sourceText=fs.readFileSync(path.join("out/demo_import/payload", entry),"utf8"); const planDigest=report.planDigest; const policyDigest=report.policyDigest; const blockHash=report.blockHash; const expectedSourceDigest=computeArtifactDigestV0(sourceText); const store=new ArtifactStoreV0({ planDigest, blockHash }); store.put(expectedSourceDigest, sourceText); const releaseManifest=makeReleaseManifest(planDigest, [blockHash], policyDigest); const workerScript=path.resolve("dist/src/runtime/strict/sandbox_bootstrap.js"); devkitLoadStrict({ workerScript, planDigest, policyDigest, callerBlockHash:blockHash, sourceText, entryExportName:"main", expectedSourceDigest, artifactStore:store, grantedCaps: report.policyDecision?.eligibleCaps || [], releaseManifest, releaseKeyAllowlist, cryptoPort: makeReleaseCryptoPort() }).then((res)=>{console.log(JSON.stringify(res,null,2)); process.exit(res.verdict==="ALLOW"?0:1);}).catch((err)=>{console.error(err); process.exit(1);});'
 ```
+

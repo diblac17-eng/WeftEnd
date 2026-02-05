@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$PublishDir,
   [string]$ReleaseOutDir = "out\\publish_demo_v2",
   [switch]$Apply,
@@ -102,10 +102,10 @@ Write-Section "Publish"
 $signerKeyId = $env:WEFTEND_SIGNER_KEY_ID
 $signingKey = $env:WEFTEND_SIGNING_KEY
 if ([string]::IsNullOrWhiteSpace($signerKeyId) -or [string]::IsNullOrWhiteSpace($signingKey)) {
-  if (-not $env:WEFTEND_ALLOW_DEMO_CRYPTO) {
+  if (-not $env:WEFTEND_DEMO_CRYPTO_OK) {
     $answer = Read-Host "No signing key set. Use demo crypto for this publish? (Y/N)"
     if ($answer -match "^[Yy]") {
-      $env:WEFTEND_ALLOW_DEMO_CRYPTO = "1"
+      $env:WEFTEND_DEMO_CRYPTO_OK = "1"
       $env:WEFTEND_SIGNER_KEY_ID = "demo-key"
       $env:WEFTEND_SIGNING_KEY = "demo-key"
       Write-Warn "Using demo crypto (dev-only). Set real keys for production."
@@ -122,7 +122,7 @@ New-Item -ItemType Directory -Path $relAbs | Out-Null
 
 & node dist\src\cli\main.js publish $publishAbs $relAbs
 if ($LASTEXITCODE -ne 0) {
-  Write-Fail "Publish failed." "Check publish.json or set demo crypto: `$env:WEFTEND_ALLOW_DEMO_CRYPTO='1'"
+  Write-Fail "Publish failed." "Check publish.json or set demo crypto: `$env:WEFTEND_DEMO_CRYPTO_OK='1'"
 }
 
 $manifestPath = Join-Path $relAbs "release_manifest.json"
@@ -207,3 +207,4 @@ if ($Apply) {
 } else {
   Write-Warn "Apply not requested. Use -Apply to write telemetry_aggregate.json."
 }
+

@@ -18,10 +18,10 @@
 - Create a WeftEnd-run shortcut:
   npm run weftend -- shortcut create --target <path-to-app.exe> --allow-launch
 
-3.6) Launchpad (drop folder)
+3.6) Launchpad (panel)
 - Drop files/folders into: %LOCALAPPDATA%\WeftEnd\Library\Launchpad\Targets
-- Run: npm run weftend -- launchpad sync
-- Shortcuts appear in: %LOCALAPPDATA%\WeftEnd\Library\Launchpad
+- Run: npm run weftend -- launchpad sync --allow-launch --open-library
+- Open Start Menu: "WeftEnd Launchpad" (small panel window)
 
 4) Open the Library
 - Start Menu: "WeftEnd Library" shortcut

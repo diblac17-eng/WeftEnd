@@ -155,16 +155,25 @@ function Install-LibraryShortcut {
 
 $launchpadRoot = Join-Path $libraryRoot "Launchpad"
 $launchpadTargets = Join-Path $launchpadRoot "Targets"
+$launchpadPanel = Join-Path $scriptDir "launchpad_panel.ps1"
 function Install-LaunchpadShortcut {
   param([string]$ShortcutPath)
   if (-not $ShortcutPath) { return }
   if (-not $launchpadRoot -or $launchpadRoot.Trim() -eq "") { return }
-  $explorerPath = Join-Path $env:WINDIR "explorer.exe"
-  $target = if (Test-Path -LiteralPath $explorerPath) { $explorerPath } else { "explorer.exe" }
+  $psExe = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
+  if (-not (Test-Path $psExe)) { $psExe = "powershell.exe" }
+  $target = $psExe
   $shell = New-Object -ComObject WScript.Shell
   $shortcut = $shell.CreateShortcut($ShortcutPath)
-  $shortcut.TargetPath = $target
-  $shortcut.Arguments = "`"$launchpadRoot`""
+  if (Test-Path -LiteralPath $launchpadPanel) {
+    $shortcut.TargetPath = $target
+    $shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$launchpadPanel`""
+  } else {
+    $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+    $explorerTarget = if (Test-Path -LiteralPath $explorerPath) { $explorerPath } else { "explorer.exe" }
+    $shortcut.TargetPath = $explorerTarget
+    $shortcut.Arguments = "`"$launchpadRoot`""
+  }
   $shortcut.IconLocation = if ($weftendIcon) { $weftendIcon } else { $target }
   $shortcut.Save()
 }

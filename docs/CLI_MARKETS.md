@@ -1,4 +1,4 @@
-# CLI_MARKETS.md - WeftEnd Market Catalog CLI (v0)
+﻿# CLI_MARKETS.md - WeftEnd Market Catalog CLI (v0)
 
 Status: guidance. This document must not conflict with:
 - `docs/PROJECT_STATE.md`
@@ -55,7 +55,7 @@ Behavior:
 - Stamps are minted per block (shopId = `marketId`).
 - `--sign` attaches signatures to stamps using `WEFTEND_SIGNER_KEY_ID` and `WEFTEND_SIGNING_KEY`.
 - If `WEFTEND_SIGNING_KEY` is a PEM private key (Ed25519 or P-256), real crypto is used.
-- If `WEFTEND_SIGNING_KEY` is not PEM, demo signing requires `WEFTEND_ALLOW_DEMO_CRYPTO=1` (else `DEMO_CRYPTO_FORBIDDEN`).
+- If `WEFTEND_SIGNING_KEY` is not PEM, demo signing requires `WEFTEND_DEMO_CRYPTO_OK=1` (else `DEMO_CRYPTO_FORBIDDEN`).
 - Snapshot is written to `snapshots/00000N.json` and copied to `latest.json`.
 
 ---
@@ -119,3 +119,4 @@ Failure codes:
 
 - Market snapshots are distribution catalogs only.
 - Runtime enforcement remains policy + evidence gated (Phase 3 deferred).
+

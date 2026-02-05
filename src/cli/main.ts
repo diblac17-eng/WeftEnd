@@ -33,8 +33,8 @@ const printUsage = () => {
   console.log("  weftend compare <leftOutRoot> <rightOutRoot> --out <dir>");
   console.log("  weftend ticket-pack <outRoot> --out <dir> [--zip]");
   console.log("  weftend shortcut create --target <path> [--out <shortcut.lnk>] [--allow-launch]");
-  console.log("  weftend launchpad sync [--allow-launch]");
-  console.log("  weftend launchpad watch [--interval <ms>] [--allow-launch]");
+  console.log("  weftend launchpad sync [--allow-launch] [--open-library|--open-run]");
+  console.log("  weftend launchpad watch [--interval <ms>] [--allow-launch] [--open-library|--open-run]");
   console.log("  weftend license issue --key <private.pem> --out <license.json> --customer <id> --tier community|enterprise --features a,b --issued YYYY-MM-DD --key-id <id> [--expires YYYY-MM-DD] [--license-id <id>]");
   console.log("  weftend license verify --license <license.json> --pub <public.pem>");
   console.log("  weftend library [--latest] [--target <key>]");

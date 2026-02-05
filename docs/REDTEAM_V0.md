@@ -21,7 +21,7 @@ What each file proves
 - src/runtime/redteam/boundary_spoof_replay.test.ts
   - Nonce/caller mismatch and replay are denied deterministically.
 - src/engine/redteam/evidence_swap.test.ts
-  - planDigest commits to evidence digests; evidence swap test is TODO if no digest binding exists.
+  - planDigest commits to evidence digests; evidence swap is covered by digest binding in this pack.
 - src/core/redteam/secret_smuggling_and_leak.test.ts
   - SecretBox mutations are rejected; portal/telemetry do not leak secrets.
 

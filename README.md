@@ -24,6 +24,16 @@ Who it's for
 - Security teams needing reproducible evidence
 - Modders/users checking what changed between versions
 
+Free vs premium (intent)
+- Core tool is fully functional for personal/manual use.
+- Premium adds convenience + scale for organizations (automation and deployment), not different truth or secret features.
+
+Premium examples (convenience only)
+- Launchpad deployment across many PCs
+- Auto-scan/watch folder workflows
+- Ticket-pack automation and standardized evidence bundles
+- Priority support and onboarding
+
 Quickstart
 
 ```powershell

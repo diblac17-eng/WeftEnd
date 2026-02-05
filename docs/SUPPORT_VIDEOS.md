@@ -8,4 +8,4 @@ Suggested videos to add later
 - Interpreting compare buckets
 
 Links
-- TBD
+- None in v0. Add later if needed.

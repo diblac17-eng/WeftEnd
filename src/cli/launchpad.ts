@@ -14,6 +14,7 @@ const { spawnSync } = require("child_process");
 type LaunchpadArgs = {
   allowLaunch: boolean;
   intervalMs: number;
+  openLibrary: boolean;
   help?: boolean;
   invalid?: boolean;
 };
@@ -22,7 +23,7 @@ const DEFAULT_INTERVAL_MS = 10000;
 
 const parseLaunchpadArgs = (argv: string[]): LaunchpadArgs => {
   const args = [...argv];
-  const out: LaunchpadArgs = { allowLaunch: false, intervalMs: DEFAULT_INTERVAL_MS };
+  const out: LaunchpadArgs = { allowLaunch: false, openLibrary: true, intervalMs: DEFAULT_INTERVAL_MS };
   while (args.length > 0) {
     const token = args.shift();
     if (!token) break;
@@ -32,6 +33,14 @@ const parseLaunchpadArgs = (argv: string[]): LaunchpadArgs => {
     }
     if (token === "--allow-launch") {
       out.allowLaunch = true;
+      continue;
+    }
+    if (token === "--open-library") {
+      out.openLibrary = true;
+      continue;
+    }
+    if (token === "--open-run") {
+      out.openLibrary = false;
       continue;
     }
     if (token === "--interval") {
@@ -55,8 +64,8 @@ const parseLaunchpadArgs = (argv: string[]): LaunchpadArgs => {
 
 const printUsage = (): void => {
   console.log("Usage:");
-  console.log("  weftend launchpad sync [--allow-launch]");
-  console.log("  weftend launchpad watch [--interval <ms>] [--allow-launch]");
+  console.log("  weftend launchpad sync [--allow-launch] [--open-library|--open-run]");
+  console.log("  weftend launchpad watch [--interval <ms>] [--allow-launch] [--open-library|--open-run]");
 };
 
 const ignoreNames = new Set<string>(["desktop.ini", "thumbs.db"]);
@@ -91,7 +100,13 @@ const ensureDir = (dir: string): void => {
   fs.mkdirSync(dir, { recursive: true });
 };
 
-const createShortcut = (scriptPath: string, targetPath: string, shortcutPath: string, allowLaunch: boolean): boolean => {
+const createShortcut = (
+  scriptPath: string,
+  targetPath: string,
+  shortcutPath: string,
+  allowLaunch: boolean,
+  openLibrary: boolean
+): boolean => {
   const args = [
     "-NoProfile",
     "-ExecutionPolicy",
@@ -102,13 +117,16 @@ const createShortcut = (scriptPath: string, targetPath: string, shortcutPath: st
     targetPath,
     "-ShortcutPath",
     shortcutPath,
+    "-UseTargetIcon",
+    "-ResolveShortcut",
   ];
   if (allowLaunch) args.push("-AllowLaunch");
+  if (openLibrary) args.push("-OpenLibrary");
   const result = spawnSync("powershell.exe", args, { stdio: "ignore" });
   return result.status === 0;
 };
 
-const syncLaunchpad = (allowLaunch: boolean): { ok: boolean; added: number; removed: number } => {
+const syncLaunchpad = (allowLaunch: boolean, openLibrary: boolean): { ok: boolean; added: number; removed: number } => {
   if (process.platform !== "win32") {
     console.error("[LAUNCHPAD_WINDOWS_ONLY]");
     return { ok: false, added: 0, removed: 0 };
@@ -150,7 +168,7 @@ const syncLaunchpad = (allowLaunch: boolean): { ok: boolean; added: number; remo
     const shortcutName = `${unique} (WeftEnd).lnk`;
     const shortcutPath = path.join(shortcutsDir, shortcutName);
     if (!fs.existsSync(shortcutPath)) added += 1;
-    if (createShortcut(scriptPath, full, shortcutPath, allowLaunch)) {
+    if (createShortcut(scriptPath, full, shortcutPath, allowLaunch, openLibrary)) {
       desiredShortcuts.add(shortcutPath);
     }
   });
@@ -193,26 +211,32 @@ export const runLaunchpadCli = async (argv: string[]): Promise<number> => {
     return 0;
   }
   if (parsed.invalid) {
-    console.error("[INPUT_INVALID] launchpad supports --allow-launch and --interval.");
+    console.error("[INPUT_INVALID] launchpad supports --allow-launch, --interval, --open-library, --open-run.");
     return 40;
   }
 
   const build = computeWeftendBuildV0({ filePath: process?.argv?.[1], source: "NODE_MAIN_JS" }).build;
 
   if (command === "sync") {
-    const result = syncLaunchpad(parsed.allowLaunch);
+    const result = syncLaunchpad(parsed.allowLaunch, parsed.openLibrary);
     if (!result.ok) return 40;
     const mode = parsed.allowLaunch ? "ALLOW_LAUNCH" : "ANALYZE_ONLY";
-    console.log(`LAUNCHPAD sync mode=${mode} added=${result.added} removed=${result.removed} ${formatBuildDigestSummaryV0(build)}`);
+    const openMode = parsed.openLibrary ? "OPEN_LIBRARY" : "OPEN_RUN";
+    console.log(
+      `LAUNCHPAD sync mode=${mode} open=${openMode} added=${result.added} removed=${result.removed} ${formatBuildDigestSummaryV0(build)}`
+    );
     return 0;
   }
 
   if (command === "watch") {
     const mode = parsed.allowLaunch ? "ALLOW_LAUNCH" : "ANALYZE_ONLY";
-    console.log(`LAUNCHPAD watch mode=${mode} intervalMs=${parsed.intervalMs} ${formatBuildDigestSummaryV0(build)}`);
+    const openMode = parsed.openLibrary ? "OPEN_LIBRARY" : "OPEN_RUN";
+    console.log(
+      `LAUNCHPAD watch mode=${mode} open=${openMode} intervalMs=${parsed.intervalMs} ${formatBuildDigestSummaryV0(build)}`
+    );
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const result = syncLaunchpad(parsed.allowLaunch);
+      const result = syncLaunchpad(parsed.allowLaunch, parsed.openLibrary);
       if (!result.ok) return 40;
       // eslint-disable-next-line no-await-in-loop
       await sleep(parsed.intervalMs);

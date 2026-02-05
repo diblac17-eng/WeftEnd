@@ -1,4 +1,4 @@
-# docs/CLI_IMPORT.md - WeftEnd CLI Import Contract (v0)
+﻿# docs/CLI_IMPORT.md - WeftEnd CLI Import Contract (v0)
 
 Status: guidance. This document must not conflict with:
 - `docs/PROJECT_STATE.md`
@@ -20,7 +20,7 @@ Notes:
 - `inputPath` is a directory or `.zip`.
 - Outputs are written under `<outDir>/payload` and `<outDir>/weftend`.
 - Order is deterministic (stable-sorted lists, canonical JSON).
-- Strict-load demo crypto requires `WEFTEND_ALLOW_DEMO_CRYPTO=1`.
+- Strict-load demo crypto requires `WEFTEND_DEMO_CRYPTO_OK=1`.
 
 ---
 
@@ -126,3 +126,4 @@ The CLI:
 - Stable-sorts all lists that affect hashing.
 - Fails closed on missing/unclear inputs.
 - Never writes secrets or raw payloads to evidence/report files.
+
