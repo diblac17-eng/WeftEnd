@@ -20,21 +20,8 @@ Support levels (simple, honest)
 
 Paid support is about interpretation and operational guidance, not software access.
 
-Free vs premium (positioning)
-- The core tool is fully functional for personal/manual use.
-- Premium is convenience + scale for organizations (automation, deployment, and support), not different truth.
-
-Premium convenience examples
-- Launchpad deployment across many PCs (premium)
-- Auto-scan/watch folder workflows (premium)
-- Ticket-pack automation and standardized evidence bundles (premium)
-- Priority support and onboarding (premium)
-
 Contact
 - Support contact: WeftEnd@aol.com
-- Pricing reference: `docs/PRICING.md` (premium only).
-- Premium operations: `docs/PREMIUM_OPERATIONS.md`
-- Premium limits: `docs/PREMIUM_LIMITS.md`
 - Support intake checklist: `docs/SUPPORT_INTAKE.md`
 
 Response expectations

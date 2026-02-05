@@ -12,10 +12,6 @@ Included in alpha
 - Windows shell integration (per-user)
 - Portable zip + SHA256 checksum
 
-Free vs premium (intent)
-- Core tool is fully functional for personal/manual use.
-- Premium adds convenience + scale for organizations (automation and deployment), not different truth.
-
 Explicitly not in alpha
 - Marketplace / block market
 - Publishing DAG suite

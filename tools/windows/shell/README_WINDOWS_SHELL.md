@@ -23,14 +23,14 @@ Usage
   `%LOCALAPPDATA%\WeftEnd\Library\<target>\run_<digest>[_NNN]\`
 - Compare two runs with:
   `npm run weftend -- compare "<leftOutRoot>" "<rightOutRoot>" --out "<diffOutRoot>"`
-- Start Menu shortcut: **WeftEnd Launchpad** opens the Launchpad panel (premium only).
+- Start Menu shortcut: **WeftEnd Launchpad** opens the Launchpad panel (experimental).
 
 WeftEnd-run shortcuts (optional)
 - Create a shortcut that runs WeftEnd before launching an app:
   `tools\windows\shell\weftend_make_shortcut.ps1 -TargetPath "<path-to-app.exe>" -AllowLaunch`
 - This runs analysis first, then launches only if baseline is SAME or accepted.
 
-Launchpad (panel) - premium only
+Launchpad (panel) - experimental
 - Drop files/folders into: `%LOCALAPPDATA%\WeftEnd\Library\Launchpad\Targets`
 - Run: `npm run weftend -- launchpad sync --allow-launch --open-library`
 - Open **WeftEnd Launchpad** (Start Menu) to get a small button window.

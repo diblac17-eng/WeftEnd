@@ -29,15 +29,9 @@ Who it's for
 - Security teams needing reproducible evidence
 - Modders/users checking what changed between versions
 
-Free vs premium (intent)
-- Core tool is fully functional for personal/manual use.
-- Premium adds convenience + scale for organizations (automation and deployment), not different truth or secret features.
-
-Premium examples (convenience only)
-- Launchpad deployment across many PCs (premium)
-- Auto-scan/watch folder workflows (premium)
-- Ticket-pack automation and standardized evidence bundles (premium)
-- Priority support and onboarding (premium)
+Deployment note
+- Core tool is fully functional for manual use.
+- Automation and enterprise workflows are available as separate operator configurations.
 
 Quickstart
 
@@ -91,7 +85,7 @@ How to use (operator flow)
    `npm run weftend -- compare <oldOut> <newOut> --out <diffOut>`
 3.5) Optional: create a WeftEnd-run shortcut (analysis first, then launch if baseline OK):
    `npm run weftend -- shortcut create --target <path-to-app.exe> --allow-launch`
-3.6) Launchpad (premium only): drop targets -> auto-generate WeftEnd-run shortcuts:
+3.6) Launchpad (experimental): drop targets -> auto-generate WeftEnd-run shortcuts:
    `npm run weftend -- launchpad sync`
 4) Create a ticket bundle when needed:
    `npm run weftend -- ticket-pack <outRoot> --out <ticketDir> --zip`
