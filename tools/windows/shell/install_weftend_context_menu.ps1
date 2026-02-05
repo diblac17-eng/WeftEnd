@@ -107,7 +107,7 @@ function Set-ContextMenu {
   $menuKey = "$baseClean\shell\$KeyName"
   $commandKey = "$menuKey\command"
   $suffix = if ($ExtraArgs -and $ExtraArgs.Trim() -ne "") { " $ExtraArgs" } else { "" }
-  $command = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$runnerPath`" -Target `"$TargetToken`"$suffix"
+  $command = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$runnerPath`" -Target `"$TargetToken`"$suffix"
   $root = [Microsoft.Win32.Registry]::CurrentUser
   $menuKeyObj = $root.CreateSubKey($menuKey)
   if ($menuKeyObj) {

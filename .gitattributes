@@ -1,0 +1,14 @@
+# Ensure deterministic line endings for text fixtures (hash-sensitive).
+tests/fixtures/**/*.html text eol=lf
+tests/fixtures/**/*.json text eol=lf
+tests/fixtures/**/*.txt text eol=lf
+tests/fixtures/**/*.js text eol=lf
+tests/fixtures/**/*.css text eol=lf
+tests/fixtures/**/*.ini text eol=lf
+tests/fixtures/**/*.md text eol=lf
+
+# Treat binary fixture artifacts as binary (no EOL conversion).
+tests/fixtures/**/*.png -text
+tests/fixtures/**/*.dll -text
+tests/fixtures/**/*.wasm -text
+tests/fixtures/**/*.zip -text

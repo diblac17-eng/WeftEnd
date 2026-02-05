@@ -36,6 +36,7 @@ Outputs
 - `out/run/operator_receipt.json` (run summary)
 - `out/run/README.txt` (receipt info)
 - Windows shell wrapper also writes `report_card.txt` in the library run folder.
+- Ticket attachments: `npm run weftend -- ticket-pack <outRoot> --out <dir> --zip`
 
 Success & abnormal outcomes (operator view)
 - Safe-Run success: report card + receipts exist. WITHHELD is normal for native binaries.
@@ -72,7 +73,9 @@ How to use (operator flow)
 2) Read `report_card.txt` (opens immediately).
 3) Re-run after changes, then compare:
    `npm run weftend -- compare <oldOut> <newOut> --out <diffOut>`
-4) Use the library to track baseline + history:
+4) Create a ticket bundle when needed:
+   `npm run weftend -- ticket-pack <outRoot> --out <ticketDir> --zip`
+5) Use the library to track baseline + history:
    `npm run weftend -- library`
 
 Glossary (short)

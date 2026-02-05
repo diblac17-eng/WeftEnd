@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>WeftEnd Harness Landing</title>
+    <link rel="stylesheet" href="/aero.tokens.css" />
+    <link rel="stylesheet" href="/aero.effects.css" />
+    <link rel="stylesheet" href="/aero.panel.css" />
+    <link rel="stylesheet" href="/aero.widgets.css" />
+  </head>
+  <body class="weft-aero" data-weftend-summary="Landing: Clinic | Import Studio | Portal Lab">
+    <div class="weft-aero-bg" aria-hidden="true"></div>
+    <header class="weft-header">
+      <div class="weft-brand">
+        <div class="weft-brand__tag">WeftEnd / Harness</div>
+        <h1 class="weft-title">Start Here</h1>
+        <p class="weft-subtitle">Guided demos first. Lab bench second.</p>
+      </div>
+    </header>
+    <main class="weft-main">
+      <section class="weft-panel">
+        <div class="weft-panel__header">
+          <div>
+            <h2 class="weft-panel__title">Clinic</h2>
+            <div class="weft-panel__subtitle">Guided exam from artifact to adapter output.</div>
+          </div>
+        </div>
+        <div class="weft-panel__content">
+          <div class="weft-header__actions">
+            <a
+              class="weft-btn weft-btn--primary"
+              href="/test/harness/clinic_v1.html"
+              data-weftend-action="open-clinic"
+              data-weftend-target="#gatepack-clinic"
+            >Open Clinic</a>
+          </div>
+          <div
+            id="gatepack-clinic"
+            class="status-detail"
+            data-weftend-before="idle"
+            data-weftend-after="clicked"
+            style="display:none"
+          >idle</div>
+        </div>
+      </section>
+      <section class="weft-panel">
+        <div class="weft-panel__header">
+          <div>
+            <h2 class="weft-panel__title">Import Studio</h2>
+            <div class="weft-panel__subtitle">Blockify HTML and preview locally.</div>
+          </div>
+        </div>
+        <div class="weft-panel__content">
+          <div class="weft-header__actions">
+            <a
+              class="weft-btn weft-btn--secondary"
+              href="/import_studio_v1.html"
+              data-weftend-action="open-import-studio"
+              data-weftend-target="#gatepack-import"
+            >Open Import Studio</a>
+          </div>
+          <div
+            id="gatepack-import"
+            class="status-detail"
+            data-weftend-before="idle"
+            data-weftend-after="clicked"
+            style="display:none"
+          >idle</div>
+        </div>
+      </section>
+      <section class="weft-panel">
+        <div class="weft-panel__header">
+          <div>
+            <h2 class="weft-panel__title">Portal Lab Bench</h2>
+            <div class="weft-panel__subtitle">Advanced harness panels and raw loaders.</div>
+          </div>
+        </div>
+        <div class="weft-panel__content">
+          <div class="weft-header__actions">
+            <a
+              class="weft-btn"
+              href="/portal_lab.html"
+              data-weftend-action="open-portal-lab"
+              data-weftend-target="#gatepack-lab"
+            >Open Portal Lab</a>
+          </div>
+          <div
+            id="gatepack-lab"
+            class="status-detail"
+            data-weftend-before="idle"
+            data-weftend-after="clicked"
+            style="display:none"
+          >idle</div>
+        </div>
+      </section>
+    </main>
+    <script>
+      (function () {
+        const actions = document.querySelectorAll("[data-weftend-action]");
+        actions.forEach((action) => {
+          const targetSel = action.getAttribute("data-weftend-target");
+          if (!targetSel) return;
+          action.addEventListener("click", () => {
+            const target = document.querySelector(targetSel);
+            if (!target) return;
+            const after = target.getAttribute("data-weftend-after");
+            if (after !== null) target.textContent = after;
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

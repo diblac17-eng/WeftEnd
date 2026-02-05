@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>WeftEnd PortalModel v0 Harness</title>
+    <link rel="stylesheet" href="/aero.tokens.css" />
+    <link rel="stylesheet" href="/aero.effects.css" />
+    <link rel="stylesheet" href="/aero.panel.css" />
+    <link rel="stylesheet" href="/aero.widgets.css" />
+  </head>
+  <body class="weft-aero" data-weftend-summary="Portal Lab: Advanced Harness Bench">
+    <div class="weft-aero-bg" aria-hidden="true"></div>
+    <header class="weft-header">
+      <div class="weft-brand">
+        <div class="weft-brand__tag">WeftEnd / Portal Harness</div>
+        <h1 class="weft-title">Integrity Scan Console</h1>
+        <p class="weft-subtitle">Local, deterministic checks for portal projection, strict membrane self-test, and caps denial clarity.</p>
+        <section class="weft-panel weft-panel--compact">
+          <div class="weft-panel__title">Start here: Clinic</div>
+          <div class="weft-panel__subtitle">Guided exam from artifact → deterministic adapter output.</div>
+          <div class="weft-header__actions">
+            <a class="weft-btn weft-btn--primary" href="/test/harness/clinic_v1.html">Open Clinic</a>
+          </div>
+        </section>
+        <div class="weft-header__actions">
+          <span class="weft-chip">Advanced / Lab bench</span>
+          <a class="weft-btn weft-btn--secondary" href="/import_studio_v1.html">Open Import Studio (blockify HTML)</a>
+        </div>
+      </div>
+      <section class="weft-header__summary weft-panel weft-panel--compact" data-status="ok">
+        <div class="verify-summary__header">
+          <div>
+            <div class="weft-panel__title">Harness Session</div>
+            <div class="weft-panel__subtitle">One run, one bundle</div>
+          </div>
+          <span id="session-status" class="badge warn">IDLE</span>
+        </div>
+        <div class="weft-header__actions">
+          <button
+            id="session-run-btn"
+            class="weft-btn"
+            type="button"
+            data-weftend-action="session-run"
+            data-weftend-target="#session-status-line"
+          >Run Session</button>
+          <button id="session-export-btn" class="weft-btn weft-btn--secondary" type="button">Export Session</button>
+          <label class="weft-btn weft-btn--secondary" for="session-file">
+            Load Session
+            <input id="session-file" type="file" accept="application/json,.json" hidden />
+          </label>
+        </div>
+        <div id="session-digest" class="verify-summary__meta mono">session: -</div>
+        <div
+          id="session-status-line"
+          class="status-detail"
+          data-weftend-before="No session run."
+          data-weftend-after="Session run triggered."
+        >No session run.</div>
+      </section>
+      <section class="weft-header__summary weft-panel weft-panel--compact" data-status="ok">
+        <div class="verify-summary__header">
+          <div>
+            <div class="weft-panel__title">Verify Report</div>
+            <div class="weft-panel__subtitle">Strict header summary</div>
+            <div class="status-detail">Power requires proof; repairs leave scars.</div>
+          </div>
+          <span id="verify-status" class="badge warn">UNKNOWN</span>
+        </div>
+        <div id="verify-release-id" class="verify-summary__meta mono">releaseId: -</div>
+        <div id="verify-policy" class="verify-summary__meta mono">policy: -</div>
+        <ul id="verify-reasons" class="verify-summary__reasons"></ul>
+        <div id="verify-truncation" class="status-detail" hidden></div>
+        <div class="verify-loader form-grid form-grid--compact">
+          <div>
+            <label for="verify-file">verify_report.json</label>
+            <input id="verify-file" type="file" accept="application/json,.json" />
+          </div>
+          <div>
+            <label for="verify-url">URL</label>
+            <input id="verify-url" type="text" placeholder="http://localhost:5173/path/to/verify_report.json" />
+            <button id="verify-load-url" class="weft-btn weft-btn--secondary" type="button">Load URL</button>
+          </div>
+          <div>
+            <label for="verify-raw">Paste JSON</label>
+            <textarea id="verify-raw" rows="3" placeholder="{ &quot;status&quot;: &quot;UNVERIFIED&quot;, ... }"></textarea>
+            <button id="verify-load-raw" class="weft-btn weft-btn--secondary" type="button">Load JSON</button>
+          </div>
+          <div id="verify-status-line" class="result-line">No verify report loaded.</div>
+        </div>
+      </section>
+      <div class="weft-chip-row" aria-hidden="true">
+        <span class="weft-chip">Evidence</span>
+        <span class="weft-chip">Policy</span>
+        <span class="weft-chip">Digest</span>
+      </div>
+    </header>
+    <main class="weft-main">
+      <section class="weft-panel" data-status="ok">
+        <div class="weft-panel__header">
+          <div>
+            <h2 class="weft-panel__title">Status</h2>
+          </div>
+          <div class="weft-chip-row" aria-hidden="true">
+            <span class="weft-chip">Evidence</span>
+            <span class="weft-chip">Policy</span>
+            <span class="weft-chip">Digest</span>
+          </div>
+        </div>
+        <div class="weft-panel__content">
+          <div id="mode-banner" class="mode-banner">
+            <strong>Mode Truth</strong>
+            <span id="mode-banner-text">Checking...</span>
+          </div>
+          <div id="error-banner" class="error-banner" style="display: none;"></div>
+          <ul id="status-list" class="status-list"></ul>
+        </div>
+      </section>
+      <section class="weft-panel" data-status="ok">
+        <div class="weft-panel__header">
+          <div>
+            <h2 class="weft-panel__title">Feature Truth</h2>
+            <div class="weft-panel__subtitle">Runtime proof checks (no theater)</div>
+          </div>
+          <div class="weft-chip-row" aria-hidden="true">
+            <span class="weft-chip">Verify</span>
+            <span class="weft-chip">Prove</span>
+          </div>
+        </div>
+        <div class="weft-panel__content">
+          <div class="status-detail">Each row is backed by live execution in this harness.</div>
+          <ul id="feature-list" class="status-list"></ul>
+        </div>
+      </section>
+      <section class="weft-panel" data-status="ok">
+        <div class="weft-panel__header">
+          <div>
+            <h2 class="weft-panel__title">Shadow Audit</h2>
+            <div class="weft-panel__subtitle">Proof-only result (no logs)</div>
+          </div>
+          <div class="weft-chip-row" aria-hidden="true">
+            <span class="weft-chip">Audit</span>
+            <span class="weft-chip">Receipt</span>
+          </div>
+        </div>
+        <div class="weft-panel__content">
+          <div class="verify-summary__header">
+            <div class="weft-panel__subtitle">ShadowAuditResultV0</div>
+            <span id="shadow-status" class="badge warn">UNKNOWN</span>
+          </div>
+          <div id="shadow-counts" class="status-detail mono">events: 0 | warnings: 0 | denies: 0 | quarantines: 0</div>
+          <div id="shadow-seq-counts" class="status-detail mono">missing: 0 | extra: 0 | reordered: 0 | duplicate: 0</div>
+          <div id="shadow-cap-counts" class="status-detail mono">attempted w/out request: 0 | allowed w/out evidence: 0 | inconsistent: 0</div>
+          <div id="shadow-digest" class="status-detail mono">digest: -</div>
+          <ul id="shadow-reasons" class="verify-summary__reasons"></ul>
+          <div id="shadow-truncation" class="status-detail" hidden></div>
+          <ul id="shadow-issues" class="status-list"></ul>
+          <div class="verify-loader form-grid form-grid--compact">
+            <div>
+              <label for="shadow-file">shadow_audit_result.json</label>
+              <input id="shadow-file" type="file" accept="application/json,.json" />
+            </div>
+            <div>
+              <label for="shadow-url">URL</label>
+              <input id="shadow-url" type="text" placeholder="http://localhost:5173/path/to/shadow_audit_result.json" />
+              <button id="shadow-load-url" class="weft-btn weft-btn--secondary" type="button">Load URL</button>
+            </div>
+            <div>
+              <label for="shadow-raw">Paste JSON</label>
+              <textarea id="shadow-raw" rows="3" placeholder="{ &quot;status&quot;: &quot;OK&quot;, ... }"></textarea>
+              <button id="shadow-load-raw" class="weft-btn weft-btn--secondary" type="button">Load JSON</button>
+            </div>
+            <div>
+              <div class="status-detail">Demo</div>
+              <button id="shadow-demo-btn" class="weft-btn" type="button">Run demo</button>
+            </div>
+            <div id="shadow-status-line" class="result-line">No shadow audit result loaded.</div>
+          </div>
+        </div>
+      </section>
+      <section class="weft-panel" data-status="ok">
+        <div class="weft-panel__header">
+          <div>
+            <h2 class="weft-panel__title">Telemetry Conduit</h2>
+            <div class="weft-panel__subtitle">Aggregate snapshot (pull-only)</div>
+          </div>
+          <div class="weft-chip-row" aria-hidden="true">
+            <span class="weft-chip">Telemetry</span>
+            <span class="weft-chip">Conduit</span>
+          </div>
+        </div>
+        <div class="weft-panel__content">
+          <div class="verify-summary__header">
+            <div class="weft-panel__subtitle">TelemetryConduitSnapshotV0</div>
+            <span id="telemetry-status" class="badge warn">UNKNOWN</span>
+          </div>
+          <div id="telemetry-stream" class="status-detail mono">stream: -</div>
+          <div id="telemetry-head" class="status-detail mono">head: -</div>
+          <div id="telemetry-counts" class="status-detail mono">chunks: 0</div>
+          <div id="telemetry-dropped" class="status-detail mono">dropped: ttl=0 cap=0 kFloor=0 dup=0</div>
+          <div id="telemetry-digest" class="status-detail mono">digest: -</div>
+          <ul id="telemetry-reasons" class="verify-summary__reasons"></ul>
+          <div id="telemetry-truncation" class="status-detail" hidden></div>
+          <ul id="telemetry-issues" class="status-list"></ul>
+          <div class="verify-loader form-grid form-grid--compact">
+            <div>
+              <label for="telemetry-file">telemetry_conduit_snapshot.json</label>
+              <input id="telemetry-file" type="file" accept="application/json,.json" />
+            </div>
+            <div>
+              <label for="telemetry-url">URL</label>
+              <input id="telemetry-url" type="text" placeholder="http://localhost:5173/path/to/telemetry_conduit_snapshot.json" />
+              <button id="telemetry-load-url" class="weft-btn weft-btn--secondary" type="button">Load URL</button>
+            </div>
+            <div>
+              <label for="telemetry-raw">Paste JSON</label>
+              <textarea id="telemetry-raw" rows="3" placeholder="{ &quot;schema&quot;: &quot;weftend.telemetry.conduitSnapshot/0&quot;, ... }"></textarea>
+              <button id="telemetry-load-raw" class="weft-btn weft-btn--secondary" type="button">Load JSON</button>
+            </div>
+            <div id="telemetry-status-line" class="result-line">No telemetry conduit snapshot loaded.</div>
+          </div>
+        </div>
+      </section>
+      <section class="weft-panel" data-status="ok">
+        <div class="weft-panel__header">
+          <div>
+            <h2 class="weft-panel__title">Release Folder</h2>
+            <div class="weft-panel__subtitle">Proof artifacts emitted by publish flow</div>
+          </div>
+          <div class="weft-chip-row" aria-hidden="true">
+            <span class="weft-chip">Bundle</span>
+            <span class="weft-chip">Manifest</span>
+            <span class="weft-chip">Evidence</span>
+          </div>
+        </div>
+        <div class="weft-panel__content">
+          <div class="status-detail">These checks mirror the release folder contract.</div>
+          <div id="release-dir" class="status-detail status-detail--inline">
+            <span id="release-dir-text"></span>
+            <span id="release-dir-tag" class="weft-chip weft-chip--warn" hidden>tamper</span>
+          </div>
+          <div class="weft-panel__actions">
+            <button id="release-refresh-btn" class="weft-btn weft-btn--secondary" type="button">Refresh Release Checks</button>
+            <button id="release-tamper-plan-btn" class="weft-btn weft-btn--secondary" type="button">Tamper Plan Digest</button>
+            <button id="release-tamper-policy-btn" class="weft-btn weft-btn--secondary" type="button">Tamper Policy Digest</button>
+          </div>
+          <ul id="folder-list" class="status-list"></ul>
+        </div>
+      </section>
+      <section class="weft-panel" data-status="ok">
+        <div class="weft-panel__header">
+          <div>
+            <h2 class="weft-panel__title">DevKit Publish</h2>
+            <div class="weft-panel__subtitle">Release + Publish</div>
+          </div>
+          <div class="weft-chip-row" aria-hidden="true">
+            <span class="weft-chip">Release</span>
+            <span class="weft-chip">Publish</span>
+          </div>
+        </div>
+        <div class="weft-panel__content">
+          <div class="form-grid">
+            <div>
+              <label for="publish-plan">Plan Digest</label>
+              <input id="publish-plan" type="text" value="plan-demo-1" />
+            </div>
+            <div>
+              <label for="publish-policy">Policy Digest</label>
+              <input id="publish-policy" type="text" value="policy-demo" />
+            </div>
+            <div>
+              <label for="publish-blocks">Blocks (comma or newline)</label>
+              <textarea id="publish-blocks" rows="3">block-demo</textarea>
+            </div>
+            <button id="publish-btn" class="weft-btn weft-btn--primary" type="button">Publish</button>
+            <div id="publish-result" class="result-line">Waiting for publish...</div>
+            <div id="publish-evidence-head" class="result-line">evidenceHead: -</div>
+          </div>
+        </div>
+      </section>
+      <section class="weft-panel" data-status="warn">
+        <div class="weft-panel__header">
+          <div>
+            <h2 class="weft-panel__title">DevKit Strict Load</h2>
+            <div class="weft-panel__subtitle">Node-only</div>
+          </div>
+          <div class="weft-chip-row" aria-hidden="true">
+            <span class="weft-chip">Strict</span>
+            <span class="weft-chip">Node</span>
+          </div>
+        </div>
+        <div class="weft-panel__content">
+          <div class="status-detail">Runs outside the browser by design.</div>
+          <div class="form-grid">
+            <div>
+              <label for="strict-load-command">Command</label>
+              <input
+                id="strict-load-command"
+                class="mono"
+                type="text"
+                readonly
+                value="node examples/hello-mod/run_strict_load.js --scenario=ok"
+              />
+            </div>
+            <button
+              id="strict-load-copy-btn"
+              class="weft-btn weft-btn--secondary"
+              type="button"
+              data-copy-target="#strict-load-command"
+              data-copy-status="#strict-load-result"
+            >
+              Copy Node Command
+            </button>
+            <div id="strict-load-result" class="result-line">Node-only - run in terminal.</div>
+          </div>
+        </div>
+      </section>
+      <section class="weft-panel" data-status="warn" id="import-panel">
+        <div class="weft-panel__header">
+          <div>
+            <h2 class="weft-panel__title">Import Wizard</h2>
+          <div class="weft-panel__subtitle">Node-only</div>
+        </div>
+        <div class="weft-tabs" role="tablist" aria-label="Import wizard tabs">
+          <button
+            id="import-tab-evidence"
+            class="weft-tab"
+            type="button"
+            role="tab"
+            data-tab="evidence"
+            aria-selected="true"
+            aria-controls="import-panel-evidence"
+          >Evidence</button>
+          <button
+            id="import-tab-policy"
+            class="weft-tab"
+            type="button"
+            role="tab"
+            data-tab="policy"
+            aria-selected="false"
+            aria-controls="import-panel-policy"
+          >Policy</button>
+          <button
+            id="import-tab-digest"
+            class="weft-tab"
+            type="button"
+            role="tab"
+            data-tab="digest"
+            aria-selected="false"
+            aria-controls="import-panel-digest"
+          >Digest</button>
+        </div>
+      </div>
+      <div class="weft-panel__content">
+        <div class="status-detail">Runs outside the browser by design.</div>
+        <div
+          id="import-panel-evidence"
+          class="weft-tab-panel"
+          role="tabpanel"
+          data-tab-panel="evidence"
+          aria-labelledby="import-tab-evidence"
+        >
+            <div class="form-grid">
+              <div>
+                <label for="import-command">Command</label>
+                <input
+                  id="import-command"
+                  class="mono"
+                  type="text"
+                  readonly
+                  value="node dist/src/cli/main.js import examples/import_fixture out/import_demo"
+                />
+              </div>
+              <button
+                id="import-copy-btn"
+                class="weft-btn weft-btn--secondary"
+                type="button"
+                data-copy-target="#import-command"
+                data-copy-status="#import-copy-result"
+              >
+                Copy Node Command
+              </button>
+              <div id="import-copy-result" class="result-line">Copy status: ready.</div>
+            </div>
+          </div>
+        <div
+          id="import-panel-policy"
+          class="weft-tab-panel"
+          role="tabpanel"
+          data-tab-panel="policy"
+          aria-labelledby="import-tab-policy"
+          hidden
+        >
+            <div class="form-grid">
+              <div>
+                <label for="import-report-path">Import Report Path</label>
+                <input id="import-report-path" type="text" value="/out/import_demo/weftend/import_report.json" />
+              </div>
+              <button id="import-load-btn" class="weft-btn weft-btn--primary" type="button">Load Import Report</button>
+              <div id="import-result" class="result-line">Node-only - run command, then load report.</div>
+            </div>
+          </div>
+        <div
+          id="import-panel-digest"
+          class="weft-tab-panel"
+          role="tabpanel"
+          data-tab-panel="digest"
+          aria-labelledby="import-tab-digest"
+          hidden
+        >
+            <div class="form-grid">
+              <div id="import-caps" class="result-line"></div>
+              <div id="import-tartarus" class="result-line"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="weft-panel" data-status="ok">
+        <div class="weft-panel__header">
+          <div>
+            <h2 class="weft-panel__title">Steam Workshop Lane</h2>
+          </div>
+          <div class="weft-chip-row" aria-hidden="true">
+            <span class="weft-chip">Workshop</span>
+            <span class="weft-chip">Steam</span>
+          </div>
+        </div>
+        <div class="weft-panel__content">
+          <div class="form-grid">
+            <div class="mono" id="steam-pointer">Pointer: loading...</div>
+            <button id="steam-browse-btn" class="weft-btn weft-btn--secondary" type="button">Simulate Workshop Browse</button>
+            <div id="steam-browse-result" class="result-line">Waiting for browse...</div>
+            <button id="steam-verify-btn" class="weft-btn weft-btn--secondary" type="button">Simulate Install + Verify</button>
+            <div id="steam-verify-result" class="result-line">Waiting for verify...</div>
+          </div>
+        </div>
+      </section>
+      <div class="weft-section-head">Scenario Results</div>
+      <div id="story" class="grid"></div>
+      <div class="weft-section-head">PortalModel Output</div>
+      <div id="models" class="grid"></div>
+    </main>
+    <footer class="weft-header">
+      <div class="weft-brand">
+      </div>
+    </footer>
+    <script>
+      (function () {
+        const actions = document.querySelectorAll("[data-weftend-action]");
+        actions.forEach((action) => {
+          const targetSel = action.getAttribute("data-weftend-target");
+          if (!targetSel) return;
+          action.addEventListener("click", () => {
+            const target = document.querySelector(targetSel);
+            if (!target) return;
+            const after = target.getAttribute("data-weftend-after");
+            if (after !== null) target.textContent = after;
+          });
+        });
+      })();
+    </script>
+    <script type="module" src="./portal.ts?v=shadow-cap-v2"></script>
+  </body>
+</html>

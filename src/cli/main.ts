@@ -10,6 +10,7 @@ import { runWeftendRun } from "./run";
 import { runSafeRun } from "./safe_run";
 import { runCompareCliV0 } from "./compare";
 import { runLibraryCli } from "./library";
+import { runTicketPackCli } from "./ticket_pack";
 import { canonicalJSON } from "../core/canon";
 import { canonicalizeWeftEndPolicyV1 } from "../core/intake_policy_v1";
 import { validateMintPackageV1, validateWeftEndPolicyV1 } from "../core/validate";
@@ -27,6 +28,7 @@ const printUsage = () => {
   console.log("  weftend run <input> --policy <policy.json> --out <dir> [--profile web|mod|generic] [--mode strict|compatible|legacy] [--script <file>]");
   console.log("  weftend safe-run <input> [--policy <policy.json>] --out <dir> [--profile web|mod|generic] [--script <file>] [--execute] [--withhold-exec|--no-exec]");
   console.log("  weftend compare <leftOutRoot> <rightOutRoot> --out <dir>");
+  console.log("  weftend ticket-pack <outRoot> --out <dir> [--zip]");
   console.log("  weftend library [--latest] [--target <key>]");
   console.log("  weftend library open <key> [--latest]");
   console.log("  weftend library accept-baseline <key>");
@@ -51,7 +53,7 @@ const parseArgs = (argv: string[]) => {
     }
     if (token.startsWith("--")) {
       const key = token.slice(2);
-      if (key === "emit-capture" || key === "execute" || key === "withhold-exec" || key === "no-exec") {
+      if (key === "emit-capture" || key === "execute" || key === "withhold-exec" || key === "no-exec" || key === "zip") {
         out[key] = true;
         continue;
       }
@@ -377,6 +379,25 @@ const runCompareCli = (args: string[]): number => {
   return runCompareCliV0({ leftRoot, rightRoot, outRoot });
 };
 
+const runTicketPack = (args: string[]): number => {
+  const { command, flags, rest } = parseArgs(args);
+  if (flags["help"] || command !== "ticket-pack") {
+    printUsage();
+    return 1;
+  }
+  const outRoot = rest[0];
+  const outDir = (flags["out"] as string) || "";
+  if (!outRoot) {
+    printUsage();
+    return 1;
+  }
+  if (!outDir) {
+    console.error("[OUT_REQUIRED] ticket-pack requires --out <dir>.");
+    return 40;
+  }
+  return runTicketPackCli({ outRoot, outDir, zipRequested: Boolean(flags["zip"]) });
+};
+
 const runInspectPortal = (releaseDir: string): number => {
   const releasePortal = require("../runtime/release/release_portal");
   const buildPortalModelFromReleaseFolder = releasePortal?.buildPortalModelFromReleaseFolder;
@@ -450,6 +471,9 @@ export const runCli = async (args: string[], _ports: CliPorts): Promise<number> 
   }
   if (args[0] === "compare") {
     return runCompareCli(args);
+  }
+  if (args[0] === "ticket-pack") {
+    return runTicketPack(args);
   }
   if (args[0] === "library") {
     return runLibraryCli(args.slice(1), _ports);

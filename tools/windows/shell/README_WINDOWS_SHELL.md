@@ -33,6 +33,7 @@ Analysis-first contract
 Wrapper behavior
 - The wrapper creates an output folder under `Library\<target>\run_<digest>` (deterministic ID).
 - If the same runId already exists, it appends `_NNN` to keep the library append-only.
+- Context menu runs PowerShell hidden (no console window flash).
 - Registry invokes wrapper with `-Target`.
 - It runs:
   - `node dist\src\cli\main.js safe-run ...` if `dist` exists, otherwise

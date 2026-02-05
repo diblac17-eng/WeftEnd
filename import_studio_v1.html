@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>WeftEnd Import Studio v1</title>
+    <style>
+      :root {
+        --bg: #0b0f14;
+        --panel: #121821;
+        --panel-border: #1f2a36;
+        --text: #d7e3ee;
+        --muted: #8aa0b3;
+        --accent: #7fd1ff;
+        --warn: #f2b567;
+        --bad: #ef7a7a;
+        --ok: #8cf0c2;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        background: radial-gradient(circle at top, #0c1420, #080b10 60%, #06080c);
+        color: var(--text);
+      }
+      header {
+        padding: 18px 22px 10px;
+        border-bottom: 1px solid var(--panel-border);
+      }
+      h1 { margin: 0 0 6px; font-size: 18px; }
+      .checksum {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .step {
+        padding: 6px 8px;
+        border-radius: 8px;
+        background: #0f141c;
+        border: 1px solid var(--panel-border);
+        color: var(--muted);
+        text-align: center;
+        font-size: 12px;
+      }
+      .step.active {
+        color: var(--text);
+        border-color: var(--accent);
+        box-shadow: 0 0 0 1px rgba(127, 209, 255, 0.2);
+      }
+      main {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        gap: 16px;
+        padding: 16px 22px 24px;
+      }
+      .pane {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 12px;
+        padding: 14px;
+        min-height: 180px;
+      }
+      .pane h2 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      textarea {
+        width: 100%;
+        min-height: 160px;
+        background: #0b1118;
+        border: 1px solid var(--panel-border);
+        border-radius: 8px;
+        color: var(--text);
+        padding: 10px;
+        resize: vertical;
+      }
+      .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+      button {
+        background: #0f1720;
+        border: 1px solid var(--panel-border);
+        color: var(--text);
+        padding: 8px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .status-line {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .status-line.ok { color: var(--ok); }
+      .banner {
+        margin-top: 8px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        font-size: 12px;
+        background: rgba(242, 181, 103, 0.12);
+        border: 1px solid rgba(242, 181, 103, 0.4);
+        color: var(--warn);
+      }
+      .banner.ok {
+        background: rgba(140, 240, 194, 0.08);
+        border-color: rgba(140, 240, 194, 0.4);
+        color: var(--ok);
+      }
+      .error-list {
+        margin: 8px 0 0;
+        padding-left: 18px;
+        font-size: 12px;
+        color: var(--bad);
+      }
+      .preview-frame {
+        width: 100%;
+        min-height: 320px;
+        border: 1px solid var(--panel-border);
+        border-radius: 8px;
+        background: #0b1118;
+      }
+      .block-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .block-table th,
+      .block-table td {
+        border-bottom: 1px solid var(--panel-border);
+        padding: 6px 4px;
+        text-align: left;
+      }
+      .inspector {
+        display: grid;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .inspector strong { color: var(--text); }
+      .tag {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 999px;
+        border: 1px solid var(--panel-border);
+        font-size: 11px;
+      }
+      .tag.warn { color: var(--warn); border-color: rgba(242, 181, 103, 0.4); }
+      .tag.ok { color: var(--ok); border-color: rgba(140, 240, 194, 0.4); }
+      .tag.bad { color: var(--bad); border-color: rgba(239, 122, 122, 0.4); }
+      .split {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .block-list {
+        max-height: 220px;
+        overflow: auto;
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .mono-block {
+        width: 100%;
+        min-height: 140px;
+        background: #0b1118;
+        border: 1px solid var(--panel-border);
+        border-radius: 8px;
+        color: var(--text);
+        padding: 8px;
+        resize: vertical;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+      }
+      .pill-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .report {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid var(--panel-border);
+        background: #0b1118;
+        font-size: 12px;
+      }
+      .report-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .code-list {
+        margin: 6px 0 0;
+        padding-left: 18px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .code-list.warn { color: var(--warn); }
+      .code-list.bad { color: var(--bad); }
+    </style>
+  </head>
+  <body data-weftend-summary="Import Studio v1: Blockify HTML">
+    <header>
+      <h1>Import Studio v1</h1>
+      <div class="checksum">If it runs, it's proven. If it changes, it leaves a receipt.</div>
+      <div class="steps">
+        <div class="step" data-step="load">Load</div>
+        <div class="step" data-step="blockify">Blockify</div>
+        <div class="step" data-step="preview">Preview</div>
+        <div class="step" data-step="inspect">Inspect</div>
+        <div class="step" data-step="export">Export</div>
+      </div>
+    </header>
+    <main>
+      <section class="pane">
+        <h2>Source</h2>
+        <textarea id="source-html" placeholder="Paste HTML here"></textarea>
+        <div class="row">
+          <input id="source-file" type="file" accept=".html,text/html" />
+          <button
+            id="blockify-btn"
+            data-weftend-action="blockify"
+            data-weftend-target="#source-status"
+            disabled
+          >Blockify</button>
+          <button id="export-btn" disabled>Export Snapshot</button>
+          <input id="snapshot-file" type="file" accept="application/json" />
+          <button id="load-snapshot-btn" disabled>Load Snapshot</button>
+        </div>
+        <div
+          class="status-line"
+          id="source-status"
+          data-weftend-before="No HTML loaded."
+          data-weftend-after="Blockify triggered."
+        >No HTML loaded.</div>
+        <ul class="error-list" id="source-errors"></ul>
+        <div class="status-line">Selected block HTML (local edit)</div>
+        <textarea id="block-html" class="mono-block" placeholder="Select a block to view its HTML."></textarea>
+        <div class="row">
+          <button id="apply-block-btn" disabled>Apply to source</button>
+          <button id="copy-block-btn" disabled>Copy block HTML</button>
+          <span class="pill-chip" id="change-status">Unchanged: 0 | Changed: 0</span>
+        </div>
+      </section>
+      <section class="pane">
+        <h2>Preview</h2>
+        <div class="row">
+          <label class="toggle"><input type="checkbox" id="scripts-toggle" /> Enable scripts (unsafe)</label>
+          <label class="toggle"><input type="checkbox" id="overlay-toggle" checked /> Show block overlay</label>
+        </div>
+        <div class="row">
+          <button id="scan-btn" disabled>Integrity Scan (strict)</button>
+          <button id="run-demo-btn" disabled>Run demo interactions</button>
+          <button id="copy-scan-btn" disabled>Copy report summary</button>
+          <span class="pill-chip" id="scan-scope">scope: -</span>
+        </div>
+        <div class="status-line" id="scan-copy-status"></div>
+        <div class="row">
+          <label class="toggle"><input type="radio" name="scan-mode" id="scan-mode-load" checked /> Load-only</label>
+          <label class="toggle"><input type="radio" name="scan-mode" id="scan-mode-script" /> Load + scripted interactions</label>
+        </div>
+        <textarea id="interaction-script" class="mono-block" placeholder="click #incBtn&#10;click #toggleBtn&#10;key ctrl+k&#10;wait 0&#10;repeat 5 {&#10;  click #incBtn&#10;}"></textarea>
+        <div class="status-line" id="interaction-status">script: empty (load-only)</div>
+        <iframe class="preview-frame" id="preview-frame" sandbox="allow-same-origin"></iframe>
+        <div class="status-line" id="preview-status">Preview not ready.</div>
+        <div class="banner" id="preview-banner" style="display:none"></div>
+        <div class="report" id="scan-report">
+          <div class="status-line" id="scan-scope-line">Scope: -</div>
+          <div class="status-line" id="scan-mode-line">Mode: -</div>
+          <div class="status-line" id="scan-denied-line">Denied caps: -</div>
+          <div class="report-row">
+            <span class="tag" id="scan-status">-</span>
+            <span class="pill-chip" id="scan-digest">digest: -</span>
+            <span class="pill-chip" id="scan-script-digest">script: -</span>
+          </div>
+          <div class="status-line" id="scan-counts">capCounts: -</div>
+          <ul class="code-list warn" id="scan-reasons"></ul>
+          <ul class="code-list bad" id="scan-issues"></ul>
+        </div>
+      </section>
+      <section class="pane split">
+        <div>
+          <h2>Blocks</h2>
+          <div class="block-list">
+            <table class="block-table">
+              <thead>
+                <tr>
+                  <th>blockId</th>
+                  <th>digest</th>
+                </tr>
+              </thead>
+              <tbody id="block-table"></tbody>
+            </table>
+          </div>
+          <div class="status-line" id="block-status">No blocks yet.</div>
+        </div>
+        <div>
+          <h2>Inspector</h2>
+          <div class="inspector" id="block-inspector">
+            <div><strong>blockId:</strong> <span id="inspector-id">-</span></div>
+            <div><strong>blockDigest:</strong> <span id="inspector-digest">-</span></div>
+            <div><strong>origin (info):</strong> <span class="tag warn">unsigned / unknown</span></div>
+            <div><strong>caps:</strong> <span id="inspector-caps">none declared</span></div>
+          </div>
+        </div>
+      </section>
+      <section class="pane">
+        <h2>Snapshot</h2>
+        <div class="hint">ImportSnapshotV0 is informational only. It does not grant trust.</div>
+        <div class="status-line" id="snapshot-status">No snapshot.</div>
+        <ul class="error-list" id="snapshot-errors"></ul>
+      </section>
+    </main>
+  <script>
+    (function () {
+      const actions = document.querySelectorAll("[data-weftend-action]");
+      actions.forEach((action) => {
+        const targetSel = action.getAttribute("data-weftend-target");
+        if (!targetSel) return;
+        action.addEventListener("click", () => {
+          const target = document.querySelector(targetSel);
+          if (!target) return;
+          const after = target.getAttribute("data-weftend-after");
+          if (after !== null) target.textContent = after;
+        });
+      });
+    })();
+  </script>
+  <script type="module" src="./import_studio_v1.ts"></script>
+</body>
+</html>

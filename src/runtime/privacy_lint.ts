@@ -39,6 +39,9 @@ const allowedFile = (relPath: string): boolean => {
   if (base === "compare_report.txt") return true;
   if (base === "readme.txt") return true;
   if (base === "weftend_mint_v1.txt") return true;
+  if (base === "ticket_summary.txt") return true;
+  if (base === "ticket_pack_manifest.json") return true;
+  if (base === "checksums.txt") return true;
   return false;
 };
 
