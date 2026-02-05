@@ -8,6 +8,11 @@ Deterministic intake means the same artifact always produces the same receipts, 
 This makes the output suitable as evidence: you can re-run it later, compare against a baseline,
 and prove what changed without trusting memory, logs, or external services.
 
+Why this matters (operator value)
+- Evidence you can compare later without re-running or trusting memory.
+- Change control you can defend (baseline + compare).
+- Privacy-clean outputs you can share in tickets without leaking host details.
+
 Key behaviors
 - Analysis-first: native binaries are always WITHHELD (never executed).
 - Deterministic receipts: stable ordering, canonical JSON, bounded outputs.

@@ -1,5 +1,11 @@
 ﻿WeftEnd Quickstart (5 minutes)
 
+What WeftEnd is (short)
+- Deterministic intake + evidence receipts.
+- Compare against a baseline to see what changed.
+- Privacy-clean outputs you can attach to tickets.
+See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for the full explanation.
+
 1) Install (Windows, per-user)
 - Run tools\windows\INSTALL_WINDOWS.cmd
 - This sets the context menu and runs shell doctor.
@@ -36,3 +42,4 @@ Notes
 - No cloud. No telemetry. No automatic execution.
 - Host execution is optional and off by default.
 - Receipts are deterministic and privacy-clean.
+
