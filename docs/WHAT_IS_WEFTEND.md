@@ -103,6 +103,7 @@ If it leaves a trace, WeftEnd records it.
 - Platform owners who want deterministic intake checks
 - Security-conscious devs who want proof, not promises
 - Toolchains that need a clean "is this acceptable?" adapter
+- Archivists/records keepers who need deterministic, non-executing evidence of software artifacts
 
 ## The mental model
 
