@@ -15,3 +15,5 @@ jobs:
       - run: npm ci
       - run: npm run compile
       - run: npm run proofcheck
+        env:
+          WEFTEND_RELEASE_DIR: tests/fixtures/release_demo
