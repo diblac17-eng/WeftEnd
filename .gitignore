@@ -85,7 +85,6 @@ secrets/
 **/*credentials*.json
 **/*token*
 **/*secret*
-!docs/SECRET_ZONE.md
 
 # Allow runtime secretzone scaffolding (non-sensitive)
 !src/runtime/secretzone/
