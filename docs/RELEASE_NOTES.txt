@@ -24,3 +24,4 @@ Known limitations (by design)
 Verification
 - The release zip ships with a .sha256 file.
 - Run the release checklist before tagging/publishing.
+- Use the release zip, not the GitHub auto-generated Source code archives.
