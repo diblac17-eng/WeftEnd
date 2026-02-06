@@ -16,9 +16,9 @@ Non-scope (what support does NOT provide)
 
 Support levels (simple, honest)
 - Community: issues and questions via your public tracker.
-- Paid support: prioritized responses and operational guidance.
+- Business support (by inquiry): possible on a case-by-case basis; not promised and not a feature.
 
-Paid support is about interpretation and operational guidance, not software access.
+Business support is about interpretation and operational guidance, not software access.
 
 Contact
 - Support contact: WeftEnd@aol.com
@@ -33,4 +33,4 @@ Notes
 - Support interactions should never require sharing raw artifacts.
 
 Support WeftEnd (optional)
-- If this tool saves you time, consider supporting its maintenance.
+- Donations are welcome if this tool saves you time.

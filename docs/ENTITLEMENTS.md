@@ -1,28 +1,28 @@
-# Entitlements (Offline License) — v1
+﻿# Entitlements (Offline License) - v1
 
 Purpose
-WeftEnd supports an **offline entitlement file** to enable paid/enterprise automation features (watchlist, background scans, integrations). This file is **signed** by the vendor and **verified locally**. No network required.
+WeftEnd supports an **offline entitlement file** to enable optional automation features (watchlist, background scans, integrations). This file is **signed** by the issuer and **verified locally**. No network required.
 
 What this is
 - A small JSON file (schema: `weftend.entitlement/1`).
-- Signed with a vendor private key (Ed25519).
-- Verified locally using the vendor public key.
+- Signed with a issuer private key (Ed25519).
+- Verified locally using the issuer public key.
 
 What this is not
 - Not a cloud activation.
 - Not a telemetry channel.
 - Not a secret stored inside receipts.
 
-How to issue (vendor)
+How to issue (issuer)
 ```
 npm run weftend -- license issue \
   --key <private.pem> \
   --out <license.json> \
   --customer <id> \
-  --tier enterprise \
+  --tier optional \
   --features watchlist,auto_scan,ticket_pack_auto \
   --issued 2026-02-05 \
-  --key-id weftend-vendor-1
+  --key-id weftend-issuer-1
 ```
 
 How to verify (operator)
@@ -39,5 +39,7 @@ Privacy
 - Only a **license digest** should be recorded (future enhancement).
 
 Key separation
-- **Release signing keys** (publishers) are separate from **entitlement keys** (vendor).
+- **Release signing keys** (publishers) are separate from **entitlement keys** (issuer).
 - Do not reuse the same key pair.
+
+
