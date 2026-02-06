@@ -89,6 +89,7 @@ secrets/
 # Allow runtime secretzone scaffolding (non-sensitive)
 !src/runtime/secretzone/
 !src/runtime/secretzone/**
+!src/core/redteam/secret_smuggling_and_leak.test.ts
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
