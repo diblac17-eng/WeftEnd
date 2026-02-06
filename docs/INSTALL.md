@@ -6,6 +6,9 @@ Quick start (portable zip)
 2) Open PowerShell in the repo root.
 3) Build the CLI:
    npm run compile --silent
+4) Cross-platform note:
+   - CLI works on Windows/macOS/Linux (Node.js required).
+   - Windows shell integration is Windows-only; macOS/Linux integration is planned.
 
 Windows shell (right-click)
 - Install the context menu:

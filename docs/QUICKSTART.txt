@@ -9,6 +9,8 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for the full explanation.
 1) Install (Windows, per-user)
 - Run tools\windows\INSTALL_WINDOWS.cmd
 - This sets the context menu and runs shell doctor.
+- Cross-platform note: CLI works on Windows/macOS/Linux (Node.js required).
+- Windows shell integration is Windows-only; macOS/Linux integration is planned.
 
 2) First run (right-click)
 - Right-click any file or folder -> Run with WeftEnd

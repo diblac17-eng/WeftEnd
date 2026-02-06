@@ -31,6 +31,8 @@ Who it's for
 
 Deployment note
 - Core tool is fully functional for manual use.
+- Windows-first UX (shell integration + shortcuts).
+- macOS/Linux CLI supported; native shell integration planned.
 
 Quickstart
 
