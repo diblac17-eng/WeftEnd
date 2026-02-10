@@ -119,6 +119,8 @@ const tests = [
   "dist/src/cli/auto_scan_scheduled.test.js",
   "dist/src/cli/license_cli_smoke.test.js",
   "dist/src/cli/ticket_pack.test.js",
+  "dist/src/cli/email_cli_smoke.test.js",
+  "dist/src/cli/summarize_export_cli_smoke.test.js",
   "harness_session_v0.test.js",
   "test/harness/clinic_v1_golden.test.js",
   "test/harness/clinic_v1_release_smoke.test.js",

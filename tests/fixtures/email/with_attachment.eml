@@ -1,0 +1,23 @@
+From: sender@example.com
+To: ops@example.org
+Subject: Attachment sample
+Message-ID: <msg-2@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="b1"
+
+--b1
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Please review attached notes.
+Ref: https://docs.example.org/note
+
+--b1
+Content-Type: text/plain; name="notes.txt"
+Content-Disposition: attachment; filename="notes.txt"
+Content-Transfer-Encoding: base64
+
+SGVsbG8gZnJvbSBhdHRhY2htZW50Lgo=
+
+--b1--
+

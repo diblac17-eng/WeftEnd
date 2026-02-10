@@ -54,6 +54,10 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for the full explanation.
 - Start Menu: "WeftEnd Library" shortcut
 - Or: npm run weftend -- library
 
+4.5) Optional email lane (local files)
+- Unpack: npm run weftend -- email unpack <mail.eml|mail.mbox> --out out/email
+- Analyze: npm run weftend -- email safe-run <mail.eml|mail.mbox> --out out/email_run
+
 5) Grab the portable bundle (optional)
 - Start Menu: "WeftEnd Download" shortcut
 - Drag the .zip from the release folder to a USB drive

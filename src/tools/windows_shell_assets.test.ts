@@ -75,6 +75,8 @@ suite("tools/windows shell assets", () => {
     assert(/HKCU:\\Software\\WeftEnd\\Shell/.test(text), "expected config registry usage");
     assert(/LOCALAPPDATA/.test(text), "expected LOCALAPPDATA usage");
     assert(/Directory\\Background/.test(text), "expected Directory\\\\Background context menu");
+    assert(/SystemFileAssociations\\\.eml/.test(text), "expected .eml context menu");
+    assert(/SystemFileAssociations\\\.mbox/.test(text), "expected .mbox context menu");
     assert(/%V/.test(text), "expected %V target token for folder background");
     assert(/-Target/.test(text), "expected Target command parameter");
     assert(/WeftEndSafeRunOpenLibrary/.test(text), "expected open-library context menu");
@@ -128,8 +130,24 @@ suite("tools/windows shell assets", () => {
       "expected zip command key"
     );
     assert(
+      /HKCU:\\Software\\Classes\\SystemFileAssociations\\\.eml\\shell\\WeftEndSafeRun\\command/.test(text),
+      "expected eml command key"
+    );
+    assert(
+      /HKCU:\\Software\\Classes\\SystemFileAssociations\\\.mbox\\shell\\WeftEndSafeRun\\command/.test(text),
+      "expected mbox command key"
+    );
+    assert(
       /HKCU:\\Software\\Classes\\SystemFileAssociations\\\.zip\\shell\\WeftEndSafeRunOpenLibrary\\command/.test(text),
       "expected zip open-library command key"
+    );
+    assert(
+      /HKCU:\\Software\\Classes\\SystemFileAssociations\\\.eml\\shell\\WeftEndSafeRunOpenLibrary\\command/.test(text),
+      "expected eml open-library command key"
+    );
+    assert(
+      /HKCU:\\Software\\Classes\\SystemFileAssociations\\\.mbox\\shell\\WeftEndSafeRunOpenLibrary\\command/.test(text),
+      "expected mbox open-library command key"
     );
     assert(/RepoRoot/.test(text), "expected RepoRoot check");
     assert(/OutRoot/.test(text), "expected OutRoot check");
@@ -147,6 +165,7 @@ suite("tools/windows shell assets", () => {
     assert(/analysisVerdict/.test(text), "expected analysisVerdict extraction");
     assert(/Extract-ReasonCodeFromOutput/.test(text), "expected output reason extraction helper");
     assert(/Is-OpaqueNativeArtifact/.test(text), "expected native-artifact hard guard helper");
+    assert(/Is-EmailArtifact/.test(text), "expected email-artifact routing helper");
     assert(/\.sys/.test(text) && /\.drv/.test(text), "expected sys/drv native guard coverage");
     assert(/ARTIFACT_SHORTCUT_UNSUPPORTED/.test(text), "expected shortcut unsupported reason");
     assert(/Alias\("Target"\)/.test(text), "expected legacy -Target alias compatibility");

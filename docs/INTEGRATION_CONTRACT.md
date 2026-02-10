@@ -172,3 +172,22 @@ WeftEnd v1 provides a deterministic intake decision for platform pipelines:
 
 Policies map reason codes and probe denials into platform actions while preserving
 appealable disclosures. See the CLI `weftend intake` for reference output.
+
+---
+
+## 10) Adapter Contract (v0)
+
+Adapters are allowed to transform external artifacts into deterministic local folders
+that WeftEnd can analyze. Adapters do not change core receipt schemas.
+
+Hard rules:
+- Adapter input/output is local only (no network side effects).
+- Adapter outputs must be bounded and deterministic.
+- Adapter outputs must not include host absolute paths or environment values.
+- Core safe-run semantics remain unchanged after adapter transformation.
+
+Current adapter commands:
+- `weftend email unpack ...`
+- `weftend email safe-run ...`
+- `weftend summarize <outRoot>`
+- `weftend export-json <outRoot> --format normalized_v0`

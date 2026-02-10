@@ -86,11 +86,21 @@ function Is-ShortcutArtifact {
   return $ext.ToLowerInvariant() -eq ".lnk"
 }
 
+function Is-EmailArtifact {
+  param([string]$PathValue)
+  if (-not $PathValue) { return $false }
+  $ext = [System.IO.Path]::GetExtension($PathValue)
+  if (-not $ext) { return $false }
+  $normalized = $ext.ToLowerInvariant()
+  return $normalized -eq ".eml" -or $normalized -eq ".mbox"
+}
+
 function Detect-TargetKind {
   param([string]$PathValue)
   if (-not $PathValue -or $PathValue.Trim() -eq "") { return "missing" }
   if (-not (Test-Path -LiteralPath $PathValue)) { return "missing" }
   if (Test-Path -LiteralPath $PathValue -PathType Container) { return "directory" }
+  if (Is-EmailArtifact -PathValue $PathValue) { return "emailArtifact" }
   if (Is-OpaqueNativeArtifact -PathValue $PathValue) { return "nativeBinary" }
   if (Is-ShortcutArtifact -PathValue $PathValue) { return "shortcut" }
   return "otherFile"
@@ -777,6 +787,7 @@ if ($Policy -and $Policy.Trim() -ne "") {
   $policyArgs = @("--policy", $Policy)
 }
 $forceWithhold = $targetKind -eq "nativeBinary" -or $targetKind -eq "shortcut"
+$isEmailInput = $targetKind -eq "emailArtifact"
 $withholdArgs = @()
 if ($forceWithhold) {
   $withholdArgs = @("--withhold-exec")
@@ -789,14 +800,20 @@ if (-not $skipWeftend) {
   try {
     Push-Location $RepoRoot
     $pushedRepoRoot = $true
+    $cliArgs = @()
+    if ($isEmailInput) {
+      $cliArgs = @("email", "safe-run", $TargetPath, "--out", $outDir) + $policyArgs
+    } else {
+      $cliArgs = @("safe-run", $TargetPath, "--out", $outDir) + $policyArgs + $withholdArgs
+    }
     if ($hasDist -and $nodePathResolved) {
-      $outputLines = @(& $nodePathResolved $mainJs "safe-run" $TargetPath "--out" $outDir @policyArgs @withholdArgs 2>&1)
+      $outputLines = @(& $nodePathResolved $mainJs @cliArgs 2>&1)
       if ($outputLines.Count -gt 0) {
         $commandOutput = ($outputLines | ForEach-Object { [string]$_ }) -join "`n"
       }
       $exitCode = $LASTEXITCODE
     } elseif ($npmPathResolved) {
-      $outputLines = @(& $npmPathResolved run weftend -- "safe-run" $TargetPath "--out" $outDir @policyArgs @withholdArgs 2>&1)
+      $outputLines = @(& $npmPathResolved run weftend -- @cliArgs 2>&1)
       if ($outputLines.Count -gt 0) {
         $commandOutput = ($outputLines | ForEach-Object { [string]$_ }) -join "`n"
       }

@@ -1,0 +1,17 @@
+From: sender@example.com
+To: ops@example.org
+Subject: Weekly status
+Message-ID: <msg-1@example.com>
+MIME-Version: 1.0
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+<!doctype html>
+<html>
+  <body>
+    <h1>Status</h1>
+    <p>See update at https://status.example.com/report</p>
+    <script>alert("ignore");</script>
+  </body>
+</html>
+

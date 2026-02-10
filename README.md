@@ -19,6 +19,7 @@ Key behaviors
 - Baseline memory: runs compare against last accepted baseline (SAME/CHANGED/BLOCKED).
 - Host execution exists for WeftEnd releases but is off by default; v0 remains analysis-only for native binaries.
 - Optional watch daemon for automatic re-checks; operators still accept baselines.
+- Optional adapters can convert external formats (example: local email artifacts) into deterministic WeftEnd inputs.
 
 What it is not
 - Not an antivirus
@@ -141,6 +142,7 @@ Docs
 - `docs/INSTALL.md`
 - `docs/MINT_PACKAGE_V1.md`
 - `docs/INTEGRATION_CONTRACT.md`
+- `docs/EMAIL_ADAPTER_V0.md`
 - `docs/LOCAL_TESTING.md`
  - `docs/HOST_RUN.md`
  - `docs/HOST_UPDATE_MODEL.md`
