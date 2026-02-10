@@ -136,14 +136,22 @@ function Invoke-LaunchpadSync {
   }
   try {
     $args = @($mainJs, "launchpad", "sync", "--allow-launch", "--open-library")
-    $proc = Start-Process -FilePath $nodePath -ArgumentList $args -WindowStyle Hidden -Wait -PassThru
-    $exitCode = 1
-    if ($proc -and $proc.ExitCode -ne $null) {
-      $exitCode = [int]$proc.ExitCode
-    }
+    $syncOutput = & $nodePath @args 2>&1 | Out-String
+    $exitCode = [int]$LASTEXITCODE
+    $diagPath = Join-Path $launchpadRoot "sync_last.txt"
+    $diagLines = @(
+      "exitCode=$exitCode",
+      "output=" + (($syncOutput -replace "`r","" -replace "`n"," | ").Trim())
+    )
+    $diagLines -join "`n" | Set-Content -Path $diagPath -Encoding UTF8
     if ($exitCode -ne 0) {
+      $reason = "UNKNOWN"
+      $bracket = [System.Text.RegularExpressions.Regex]::Match($syncOutput, "\[([A-Z0-9_]+)\]")
+      if ($bracket.Success -and $bracket.Groups.Count -gt 1) {
+        $reason = [string]$bracket.Groups[1].Value
+      }
       [System.Windows.Forms.MessageBox]::Show(
-        "Launchpad sync returned a non-zero exit code. Check Open Targets entries and ensure WeftEnd CLI is compiled.",
+        ("Launchpad sync failed (" + $reason + ").`nOpen Targets and remove broken entries, then Sync again."),
         "WeftEnd",
         [System.Windows.Forms.MessageBoxButtons]::OK,
         [System.Windows.Forms.MessageBoxIcon]::Warning

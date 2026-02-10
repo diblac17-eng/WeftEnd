@@ -107,7 +107,7 @@ const createShortcut = (
   shortcutPath: string,
   allowLaunch: boolean,
   openLibrary: boolean
-): boolean => {
+): { ok: boolean; code?: string } => {
   const args = [
     "-NoProfile",
     "-ExecutionPolicy",
@@ -123,8 +123,18 @@ const createShortcut = (
   ];
   if (allowLaunch) args.push("-AllowLaunch");
   if (openLibrary) args.push("-OpenLibrary");
-  const result = spawnSync("powershell.exe", args, { stdio: "ignore" });
-  return result.status === 0;
+  const result = spawnSync("powershell.exe", args, { stdio: ["ignore", "pipe", "pipe"], encoding: "utf8" });
+  if (result.status === 0) {
+    return { ok: true };
+  }
+  const combined = `${result.stdout || ""}\n${result.stderr || ""}`;
+  const bracket = combined.match(/\[([A-Z0-9_]+)\]/);
+  if (bracket && bracket[1]) {
+    return { ok: false, code: bracket[1] };
+  }
+  const line = (combined.split(/\r?\n/).find((v) => v && v.trim().length > 0) || "").trim();
+  const code = line.match(/^([A-Z0-9_]{3,})/)?.[1];
+  return { ok: false, code: code || "SHORTCUT_CREATE_FAILED" };
 };
 
 const syncLaunchpad = (
@@ -162,6 +172,7 @@ const syncLaunchpad = (
   let removed = 0;
   let failed = 0;
   let scanned = 0;
+  const failedCodes = new Map<string, number>();
 
   entries.forEach((entry) => {
     if (!entry || !entry.name) return;
@@ -175,11 +186,14 @@ const syncLaunchpad = (
     const shortcutName = `${unique} (WeftEnd).lnk`;
     const shortcutPath = path.join(shortcutsDir, shortcutName);
     const existed = fs.existsSync(shortcutPath);
-    if (createShortcut(scriptPath, full, shortcutPath, allowLaunch, openLibrary)) {
+    const created = createShortcut(scriptPath, full, shortcutPath, allowLaunch, openLibrary);
+    if (created.ok) {
       if (!existed) added += 1;
       desiredShortcuts.add(shortcutPath);
     } else {
       failed += 1;
+      const code = created.code || "SHORTCUT_CREATE_FAILED";
+      failedCodes.set(code, (failedCodes.get(code) || 0) + 1);
     }
   });
 
@@ -209,8 +223,20 @@ const syncLaunchpad = (
   }
 
   if (scanned > 0 && desiredShortcuts.size === 0) {
-    console.error("[LAUNCHPAD_SYNC_NO_SHORTCUTS]");
+    const reasonSummary = Array.from(failedCodes.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([code, count]) => `${code}:${count}`)
+      .join(",");
+    console.error(`[LAUNCHPAD_SYNC_NO_SHORTCUTS] reasons=${reasonSummary || "UNKNOWN"}`);
     return { ok: false, added, removed, failed, scanned };
+  }
+
+  if (failed > 0) {
+    const reasonSummary = Array.from(failedCodes.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([code, count]) => `${code}:${count}`)
+      .join(",");
+    console.error(`[LAUNCHPAD_TARGET_SHORTCUT_FAILURES] failed=${failed} reasons=${reasonSummary || "UNKNOWN"}`);
   }
 
   return { ok: true, added, removed, failed, scanned };
