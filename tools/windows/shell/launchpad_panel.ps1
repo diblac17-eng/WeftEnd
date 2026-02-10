@@ -136,12 +136,16 @@ function Invoke-LaunchpadSync {
   }
   try {
     $args = @($mainJs, "launchpad", "sync", "--allow-launch", "--open-library")
-    $syncOutput = & $nodePath @args 2>&1 | Out-String
+    $syncOutputRaw = & $nodePath @args 2>&1
+    $syncOutput = [string]($syncOutputRaw | Out-String)
+    if (-not $syncOutput) { $syncOutput = "" }
     $exitCode = [int]$LASTEXITCODE
     $diagPath = Join-Path $launchpadRoot "sync_last.txt"
+    $flatOutput = ($syncOutput -replace "`r","" -replace "`n"," | ")
+    if (-not $flatOutput) { $flatOutput = "" }
     $diagLines = @(
       "exitCode=$exitCode",
-      "output=" + (($syncOutput -replace "`r","" -replace "`n"," | ").Trim())
+      "output=" + $flatOutput.Trim()
     )
     $diagLines -join "`n" | Set-Content -Path $diagPath -Encoding UTF8
     if ($exitCode -ne 0) {
@@ -159,8 +163,20 @@ function Invoke-LaunchpadSync {
       return
     }
   } catch {
+    try {
+      $diagPath = Join-Path $launchpadRoot "sync_last.txt"
+      $exMsg = [string]$_.Exception.Message
+      $diag = @(
+        "exitCode=1",
+        "exception=LAUNCHPAD_SYNC_EXCEPTION",
+        "message=" + $exMsg
+      )
+      $diag -join "`n" | Set-Content -Path $diagPath -Encoding UTF8
+    } catch {
+      # ignore diagnostic-write failures
+    }
     [System.Windows.Forms.MessageBox]::Show(
-      "Launchpad sync failed. Check that WeftEnd is installed and compiled.",
+      "Launchpad sync failed (LAUNCHPAD_SYNC_EXCEPTION). Check Launchpad/sync_last.txt for details.",
       "WeftEnd",
       [System.Windows.Forms.MessageBoxButtons]::OK,
       [System.Windows.Forms.MessageBoxIcon]::Warning
