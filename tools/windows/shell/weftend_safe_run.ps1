@@ -885,7 +885,7 @@ if (-not $skipWeftend) {
 
 Write-WrapperResult -Result $result -ExitCode $finalExitCode -Reason $reason -Detail ("targetKind=" + $targetKind)
 try {
-  $runSeq = ""
+  $runSeq = "001"
   if ($outDir -and $baseDir -and $outDir.StartsWith($baseDir, [System.StringComparison]::OrdinalIgnoreCase)) {
     $suffix = $outDir.Substring($baseDir.Length)
     if ($suffix.StartsWith("_")) {
