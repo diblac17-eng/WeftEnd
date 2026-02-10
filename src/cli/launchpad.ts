@@ -91,7 +91,8 @@ const uniqueName = (base: string, used: Set<string>): string => {
       return candidate;
     }
   }
-  const fallback = `${base}_${Date.now().toString().slice(-4)}`;
+  // Keep fallback deterministic (no timestamps) if the normal numeric range is exhausted.
+  const fallback = `${base}_overflow_${used.size}`;
   used.add(fallback);
   return fallback;
 };
@@ -126,10 +127,13 @@ const createShortcut = (
   return result.status === 0;
 };
 
-const syncLaunchpad = (allowLaunch: boolean, openLibrary: boolean): { ok: boolean; added: number; removed: number } => {
+const syncLaunchpad = (
+  allowLaunch: boolean,
+  openLibrary: boolean
+): { ok: boolean; added: number; removed: number; failed: number; scanned: number } => {
   if (process.platform !== "win32") {
     console.error("[LAUNCHPAD_WINDOWS_ONLY]");
-    return { ok: false, added: 0, removed: 0 };
+    return { ok: false, added: 0, removed: 0, failed: 0, scanned: 0 };
   }
   const root = resolveLibraryRootV0().root;
   const launchpadRoot = path.join(root, "Launchpad");
@@ -141,7 +145,7 @@ const syncLaunchpad = (allowLaunch: boolean, openLibrary: boolean): { ok: boolea
   const scriptPath = path.join(process.cwd(), "tools", "windows", "shell", "weftend_make_shortcut.ps1");
   if (!fs.existsSync(scriptPath)) {
     console.error("[LAUNCHPAD_TOOL_MISSING]");
-    return { ok: false, added: 0, removed: 0 };
+    return { ok: false, added: 0, removed: 0, failed: 0, scanned: 0 };
   }
 
   let entries: Array<{ name: string; isDirectory: () => boolean; isFile: () => boolean }>;
@@ -149,13 +153,15 @@ const syncLaunchpad = (allowLaunch: boolean, openLibrary: boolean): { ok: boolea
     entries = fs.readdirSync(targetsDir, { withFileTypes: true }) as any;
   } catch {
     console.error("[LAUNCHPAD_TARGETS_MISSING]");
-    return { ok: false, added: 0, removed: 0 };
+    return { ok: false, added: 0, removed: 0, failed: 0, scanned: 0 };
   }
 
   const usedNames = new Set<string>();
   const desiredShortcuts = new Set<string>();
   let added = 0;
   let removed = 0;
+  let failed = 0;
+  let scanned = 0;
 
   entries.forEach((entry) => {
     if (!entry || !entry.name) return;
@@ -163,13 +169,17 @@ const syncLaunchpad = (allowLaunch: boolean, openLibrary: boolean): { ok: boolea
     if (ignoreNames.has(name.toLowerCase())) return;
     const full = path.join(targetsDir, name);
     if (!(entry.isDirectory && entry.isDirectory()) && !(entry.isFile && entry.isFile())) return;
+    scanned += 1;
     const base = sanitizeName(name);
     const unique = uniqueName(base, usedNames);
     const shortcutName = `${unique} (WeftEnd).lnk`;
     const shortcutPath = path.join(shortcutsDir, shortcutName);
-    if (!fs.existsSync(shortcutPath)) added += 1;
+    const existed = fs.existsSync(shortcutPath);
     if (createShortcut(scriptPath, full, shortcutPath, allowLaunch, openLibrary)) {
+      if (!existed) added += 1;
       desiredShortcuts.add(shortcutPath);
+    } else {
+      failed += 1;
     }
   });
 
@@ -183,18 +193,27 @@ const syncLaunchpad = (allowLaunch: boolean, openLibrary: boolean): { ok: boolea
     existing = [];
   }
 
-  existing.forEach((full) => {
-    if (!desiredShortcuts.has(full) && full.toLowerCase().includes("(weftend).lnk")) {
-      try {
-        fs.unlinkSync(full);
-        removed += 1;
-      } catch {
-        // ignore
+  // Only prune stale generated shortcuts if sync produced at least one desired shortcut.
+  // This prevents silent wipe when shortcut generation fails due local environment issues.
+  if (desiredShortcuts.size > 0) {
+    existing.forEach((full) => {
+      if (!desiredShortcuts.has(full) && full.toLowerCase().includes("(weftend).lnk")) {
+        try {
+          fs.unlinkSync(full);
+          removed += 1;
+        } catch {
+          // ignore
+        }
       }
-    }
-  });
+    });
+  }
 
-  return { ok: true, added, removed };
+  if (scanned > 0 && desiredShortcuts.size === 0) {
+    console.error("[LAUNCHPAD_SYNC_NO_SHORTCUTS]");
+    return { ok: false, added, removed, failed, scanned };
+  }
+
+  return { ok: true, added, removed, failed, scanned };
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -223,7 +242,7 @@ export const runLaunchpadCli = async (argv: string[]): Promise<number> => {
     const mode = parsed.allowLaunch ? "ALLOW_LAUNCH" : "ANALYZE_ONLY";
     const openMode = parsed.openLibrary ? "OPEN_LIBRARY" : "OPEN_RUN";
     console.log(
-      `LAUNCHPAD sync mode=${mode} open=${openMode} added=${result.added} removed=${result.removed} ${formatBuildDigestSummaryV0(build)}`
+      `LAUNCHPAD sync mode=${mode} open=${openMode} scanned=${result.scanned} added=${result.added} removed=${result.removed} failed=${result.failed} ${formatBuildDigestSummaryV0(build)}`
     );
     return 0;
   }

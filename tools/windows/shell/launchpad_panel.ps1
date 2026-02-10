@@ -136,7 +136,20 @@ function Invoke-LaunchpadSync {
   }
   try {
     $args = @($mainJs, "launchpad", "sync", "--allow-launch", "--open-library")
-    Start-Process -FilePath $nodePath -ArgumentList $args -WindowStyle Hidden -Wait | Out-Null
+    $proc = Start-Process -FilePath $nodePath -ArgumentList $args -WindowStyle Hidden -Wait -PassThru
+    $exitCode = 1
+    if ($proc -and $proc.ExitCode -ne $null) {
+      $exitCode = [int]$proc.ExitCode
+    }
+    if ($exitCode -ne 0) {
+      [System.Windows.Forms.MessageBox]::Show(
+        "Launchpad sync returned a non-zero exit code. Check Open Targets entries and ensure WeftEnd CLI is compiled.",
+        "WeftEnd",
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Warning
+      ) | Out-Null
+      return
+    }
   } catch {
     [System.Windows.Forms.MessageBox]::Show(
       "Launchpad sync failed. Check that WeftEnd is installed and compiled.",
