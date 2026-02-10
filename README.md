@@ -18,6 +18,7 @@ Key behaviors
 - Deterministic receipts: stable ordering, canonical JSON, bounded outputs.
 - Baseline memory: runs compare against last accepted baseline (SAME/CHANGED/BLOCKED).
 - Host execution exists for WeftEnd releases but is off by default; v0 remains analysis-only for native binaries.
+- Optional watch daemon for automatic re-checks; operators still accept baselines.
 
 What it is not
 - Not an antivirus
@@ -112,6 +113,8 @@ Docs
 - `docs/WHY_RECEIPTS.md`
 - `docs/TRUTH_MODEL_V0_V1.md`
 - `docs/TEAM_SUITES.md`
+- `docs/AUTO_SCAN.md`
+- `docs/CONFIG.md`
 - `docs/REPORT_LIBRARY.md`
 - `docs/SUPPORT.md`
 - `docs/SUPPORT_RECEIPTS.md`

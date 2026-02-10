@@ -59,7 +59,16 @@ BLOCKED vs DENY
   - Wrapper did not find receipts; check out root / registry / shell doctor.
 
 - OPEN_EXTERNAL_FAILED
-  - OS open failed; use the Start Menu “WeftEnd Library” shortcut.
+  - OS open failed; use the Start Menu "WeftEnd Library" shortcut.
+
+- SCAN_TRIGGERED
+  - Auto-scan (watch) fired; receipts still require operator review.
+
+- GATE_MODE_DENIED
+  - Gate mode blocked execution until baseline is accepted.
+
+- GATE_MODE_CHANGED_BLOCKED
+  - Gate mode blocked execution because current digest differs from baseline.
 
 - HOST_STARTUP_UNVERIFIED
   - Host failed self-verification; resolve before executing.
@@ -74,6 +83,6 @@ BLOCKED vs DENY
 
 - If WITHHELD: expected for native binaries; use compare for changes.
 - If WEFTEND_NO_RECEIPT: run shell doctor; verify OutRoot + RepoRoot.
-- If OPEN_EXTERNAL_FAILED: open the Start Menu “WeftEnd Library” shortcut.
+- If OPEN_EXTERNAL_FAILED: open the Start Menu "WeftEnd Library" shortcut.
 - If ZIP_EOCD_MISSING: re-download or re-create the zip.
 - If HOST_STARTUP_UNVERIFIED: do not execute; verify host status first.

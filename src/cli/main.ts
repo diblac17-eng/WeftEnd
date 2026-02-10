@@ -14,6 +14,7 @@ import { runTicketPackCli } from "./ticket_pack";
 import { runLicenseCli } from "./license";
 import { runShortcutCli } from "./shortcut";
 import { runLaunchpadCli } from "./launchpad";
+import { runWatchCli } from "./watch";
 import { canonicalJSON } from "../core/canon";
 import { canonicalizeWeftEndPolicyV1 } from "../core/intake_policy_v1";
 import { validateMintPackageV1, validateWeftEndPolicyV1 } from "../core/validate";
@@ -35,6 +36,7 @@ const printUsage = () => {
   console.log("  weftend shortcut create --target <path> [--out <shortcut.lnk>] [--allow-launch]");
   console.log("  weftend launchpad sync [--allow-launch] [--open-library|--open-run]");
   console.log("  weftend launchpad watch [--interval <ms>] [--allow-launch] [--open-library|--open-run]");
+  console.log("  weftend watch <target> [--policy <path>] [--out-root <dir>] [--debounce-ms <n>] [--mode safe-run]");
   console.log("  weftend license issue --key <private.pem> --out <license.json> --customer <id> --tier community|enterprise --features a,b --issued YYYY-MM-DD --key-id <id> [--expires YYYY-MM-DD] [--license-id <id>]");
   console.log("  weftend license verify --license <license.json> --pub <public.pem>");
   console.log("  weftend library [--latest] [--target <key>]");
@@ -42,7 +44,7 @@ const printUsage = () => {
   console.log("  weftend library accept-baseline <key>");
   console.log("  weftend library reject-baseline <key>");
   console.log("  weftend inspect <releaseDir> --portal");
-  console.log("  weftend host run <releaseDir> --out <dir> [--entry <block>]");
+  console.log("  weftend host run <releaseDir> --out <dir> [--entry <block>] [--gate-mode enforced]");
   console.log("Note: host commands require --out or WEFTEND_HOST_OUT_ROOT.");
   console.log("Note: browser builds cannot execute. Use weftend host run for strict execution.");
 };
@@ -494,6 +496,9 @@ export const runCli = async (args: string[], _ports: CliPorts): Promise<number> 
   }
   if (args[0] === "launchpad") {
     return await runLaunchpadCli(args.slice(1));
+  }
+  if (args[0] === "watch") {
+    return await runWatchCli(args.slice(1));
   }
   if (args[0] === "run") {
     return await runRunCli(args);

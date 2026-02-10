@@ -4189,6 +4189,9 @@ export function validateHostRunReceiptV0(v: unknown, path: string = "hostRunRece
     "version",
     "schemaVersion",
     "weftendBuild",
+    "gateModeRequested",
+    "gateVerdict",
+    "gateReasonCodes",
     "releaseDirDigest",
     "contentSummary",
     "releaseId",
@@ -4217,6 +4220,23 @@ export function validateHostRunReceiptV0(v: unknown, path: string = "hostRunRece
     issues.push(issue("RECEIPT_SCHEMA_VERSION_BAD", "schemaVersion must equal 0.", `${path}.schemaVersion`));
   }
   issues.push(...validateWeftendBuildV0(o.weftendBuild, `${path}.weftendBuild`));
+  if (o.gateModeRequested !== undefined && o.gateModeRequested !== "enforced") {
+    issues.push(issue("ENUM_INVALID", "gateModeRequested must be enforced when present.", `${path}.gateModeRequested`));
+  }
+  if ((o.gateVerdict !== undefined || o.gateReasonCodes !== undefined) && o.gateModeRequested === undefined) {
+    issues.push(issue("FIELD_INVALID", "gateModeRequested is required when gate fields are present.", `${path}.gateModeRequested`));
+  }
+  if (o.gateVerdict !== undefined && o.gateVerdict !== "ALLOW" && o.gateVerdict !== "BLOCK") {
+    issues.push(issue("ENUM_INVALID", "gateVerdict must be ALLOW|BLOCK when present.", `${path}.gateVerdict`));
+  }
+  if (o.gateReasonCodes !== undefined) {
+    const gateReasons = asStringArray(o.gateReasonCodes);
+    if (!gateReasons) {
+      issues.push(issue("FIELD_INVALID", "gateReasonCodes must be string[].", `${path}.gateReasonCodes`));
+    } else if (!isSortedUniqueStrings(gateReasons)) {
+      issues.push(issue("FIELD_INVALID", "gateReasonCodes must be stable-sorted and unique.", `${path}.gateReasonCodes`));
+    }
+  }
   issues.push(...validateContentSummaryV0(o.contentSummary, `${path}.contentSummary`));
   if (!isTightString(o.releaseDirDigest)) {
     issues.push(issue("FIELD_INVALID", "releaseDirDigest must be a non-empty string.", `${path}.releaseDirDigest`));

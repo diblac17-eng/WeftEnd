@@ -32,6 +32,8 @@ import { captureTreeV0 } from "../examiner/capture_tree_v0";
 import { detectLayersV0 } from "../examiner/detect_layers_v0";
 import { buildContentSummaryV0 } from "../examiner/content_summary_v0";
 import { classifyArtifactKindV0 } from "../classify/artifact_kind_v0";
+import { resolveLibraryRootV0 } from "../library_root";
+import { sanitizeLibraryTargetKeyV0 } from "../library_keys";
 
 declare const require: any;
 declare const __dirname: string;
@@ -62,6 +64,7 @@ export interface HostRunOptionsV0 {
   entry?: string;
   hostRoot?: string;
   trustRootPath?: string;
+  gateMode?: "enforced" | "off";
   testForceCompartmentUnavailable?: boolean;
 }
 
@@ -144,6 +147,39 @@ const pickEntryBlock = (
     return { block: null, reason: "HOST_ENTRY_MISSING" };
   }
   return { block: blocks[0] ?? null };
+};
+
+const readBaselineDigest = (libraryRoot: string, targetKey: string): { ok: boolean; digest?: string } => {
+  const viewDir = path.join(libraryRoot, targetKey, "view");
+  const baselinePath = path.join(viewDir, "baseline.txt");
+  if (!fs.existsSync(baselinePath)) return { ok: false };
+  let baselineRun = "";
+  try {
+    baselineRun = fs.readFileSync(baselinePath, "utf8").split(/\r?\n/)[0]?.trim() || "";
+  } catch {
+    return { ok: false };
+  }
+  if (!baselineRun) return { ok: false };
+  const runDir = path.join(libraryRoot, targetKey, baselineRun);
+  const safePath = path.join(runDir, "safe_run_receipt.json");
+  const runPath = path.join(runDir, "run_receipt.json");
+  const hostPath = path.join(runDir, "host_run_receipt.json");
+  const readDigest = (filePath: string): string | undefined => {
+    if (!fs.existsSync(filePath)) return undefined;
+    try {
+      const parsed = JSON.parse(fs.readFileSync(filePath, "utf8"));
+      const digest =
+        parsed?.releaseDirDigest ||
+        parsed?.inputDigest ||
+        parsed?.artifactDigest;
+      return isNonEmptyString(digest) ? String(digest) : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  const digest = readDigest(safePath) || readDigest(runPath) || readDigest(hostPath);
+  if (!digest) return { ok: false };
+  return { ok: true, digest };
 };
 
 const findEntrySource = (bundle: RuntimeBundle | null, entryBlock: string | null, releaseDir: string) => {
@@ -230,6 +266,16 @@ export const runHostStrictV0 = async (options: HostRunOptionsV0): Promise<{ rece
     }
   }
 
+  const releaseDirDigest = computeArtifactDigestV0(
+    canonicalJSON({
+      releaseId: manifestParsed?.releaseId ?? "",
+      manifestDigest,
+      bundleDigest,
+      evidenceDigest,
+      publicKeyDigest,
+    })
+  );
+
   const planDigest = isNonEmptyString((bundle as any)?.plan?.planHash) ? (bundle as any).plan.planHash : "";
   const policyDigest = isNonEmptyString((bundle as any)?.trust?.policyId) ? (bundle as any).trust.policyId : "";
   const expectedBlocks = Array.isArray((bundle as any)?.plan?.nodes)
@@ -293,6 +339,29 @@ export const runHostStrictV0 = async (options: HostRunOptionsV0): Promise<{ rece
   ]);
   const verifyVerdict = verifyReasons.length > 0 ? "DENY" : "ALLOW";
 
+  const gateModeRequested = options.gateMode === "enforced" ? "enforced" : undefined;
+  let gateVerdict: "ALLOW" | "BLOCK" | undefined;
+  let gateReasonCodes: string[] = [];
+  if (gateModeRequested === "enforced") {
+    const targetName = isNonEmptyString(manifestParsed?.releaseId)
+      ? String(manifestParsed?.releaseId)
+      : path.basename(releaseDir);
+    const targetKey = sanitizeLibraryTargetKeyV0(targetName);
+    const libraryRoot = resolveLibraryRootV0().root;
+    const baseline = readBaselineDigest(libraryRoot, targetKey);
+    if (!baseline.ok || !baseline.digest) {
+      gateVerdict = "BLOCK";
+      gateReasonCodes = ["GATE_MODE_DENIED", "BASELINE_REQUIRED"];
+    } else if (baseline.digest !== releaseDirDigest) {
+      gateVerdict = "BLOCK";
+      gateReasonCodes = ["GATE_MODE_DENIED", "GATE_MODE_CHANGED_BLOCKED"];
+    } else {
+      gateVerdict = "ALLOW";
+      gateReasonCodes = [];
+    }
+  }
+  const gateAllowsExecution = gateVerdict !== "BLOCK";
+
   let execute: { attempted: boolean; result: "ALLOW" | "DENY" | "SKIP"; reasonCodes: string[] } = {
     attempted: false,
     result: "SKIP",
@@ -305,7 +374,7 @@ export const runHostStrictV0 = async (options: HostRunOptionsV0): Promise<{ rece
 
   const entryPick = pickEntryBlock(manifestParsed, options.entry);
   const entryBlock = entryPick.block;
-  if (verifyVerdict === "ALLOW" && entryBlock && !options.testForceCompartmentUnavailable) {
+  if (gateAllowsExecution && verifyVerdict === "ALLOW" && entryBlock && !options.testForceCompartmentUnavailable) {
     const entry = findEntrySource(bundle, entryBlock, releaseDir);
     if (!entry.ok) {
       execute = {
@@ -355,17 +424,23 @@ export const runHostStrictV0 = async (options: HostRunOptionsV0): Promise<{ rece
         };
       }
     }
-  } else if (verifyVerdict === "ALLOW" && options.testForceCompartmentUnavailable) {
+  } else if (gateAllowsExecution && verifyVerdict === "ALLOW" && options.testForceCompartmentUnavailable) {
     execute = {
       attempted: true,
       result: "SKIP",
       reasonCodes: ["STRICT_COMPARTMENT_UNAVAILABLE"],
     };
-  } else if (verifyVerdict === "ALLOW" && entryPick.reason) {
+  } else if (gateAllowsExecution && verifyVerdict === "ALLOW" && entryPick.reason) {
     execute = {
       attempted: false,
       result: "SKIP",
       reasonCodes: stableSortUniqueReasonsV0([entryPick.reason]),
+    };
+  } else if (!gateAllowsExecution && gateVerdict === "BLOCK") {
+    execute = {
+      attempted: false,
+      result: "DENY",
+      reasonCodes: stableSortUniqueReasonsV0(gateReasonCodes),
     };
   }
 
@@ -376,16 +451,6 @@ export const runHostStrictV0 = async (options: HostRunOptionsV0): Promise<{ rece
     evidenceBundle: evidenceDigest,
     publicKey: publicKeyDigest,
   };
-  const releaseDirDigest = computeArtifactDigestV0(
-    canonicalJSON({
-      releaseId: manifestParsed?.releaseId ?? "",
-      manifestDigest,
-      bundleDigest,
-      evidenceDigest,
-      publicKeyDigest,
-    })
-  );
-
   const capture = captureTreeV0(releaseDir, DEFAULT_CAPTURE_LIMITS);
   const detect = detectLayersV0(capture, DEFAULT_DETECT_LIMITS);
   const classified = classifyArtifactKindV0(releaseDir, capture);
@@ -407,6 +472,9 @@ export const runHostStrictV0 = async (options: HostRunOptionsV0): Promise<{ rece
       filePath: process?.env?.WEFTEND_HOST_BINARY_PATH || process.execPath || "",
       source: "HOST_BINARY_PATH",
     }).build,
+    ...(gateModeRequested ? { gateModeRequested } : {}),
+    ...(gateVerdict ? { gateVerdict } : {}),
+    ...(gateReasonCodes.length > 0 ? { gateReasonCodes: stableSortUniqueReasonsV0(gateReasonCodes) } : {}),
     releaseDirDigest,
     contentSummary,
     releaseId: manifestParsed?.releaseId,

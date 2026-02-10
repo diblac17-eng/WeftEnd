@@ -42,6 +42,7 @@ const allowedFile = (relPath: string): boolean => {
   if (base === "ticket_summary.txt") return true;
   if (base === "ticket_pack_manifest.json") return true;
   if (base === "checksums.txt") return true;
+  if (base === "watch_trigger.txt") return true;
   return false;
 };
 

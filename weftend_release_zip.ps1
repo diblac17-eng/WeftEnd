@@ -179,7 +179,79 @@ if (Test-Path $zipPath) {
 }
 
 Write-Section "Create Zip"
-Compress-Archive -Path $items -DestinationPath $zipPath -Force
+$gitCmd = Get-Command git -ErrorAction SilentlyContinue
+if (-not $gitCmd) {
+  Write-Fail "git is required to build a clean release bundle." "Install git and retry."
+}
+
+$trackedRaw = & git -C $root ls-files
+if ($LASTEXITCODE -ne 0) {
+  Write-Fail "git ls-files failed." "Ensure this repo has a valid git index."
+}
+
+$stagePath = Join-Path $outAbs "__stage_release"
+if (Test-Path $stagePath) {
+  Remove-Item -Recurse -Force $stagePath
+}
+New-Item -ItemType Directory -Path $stagePath | Out-Null
+
+Copy-Item -Path $distPath -Destination (Join-Path $stagePath "dist") -Recurse -Force
+Write-Ok "dist/ staged"
+
+$includePrefixes = @(
+  "scripts/",
+  "docs/",
+  "assets/",
+  "policies/",
+  "tools/windows/",
+  "demo/",
+  "src/",
+  "examples/",
+  "test/harness/"
+)
+$includeSingles = @(
+  "package.json",
+  "package-lock.json",
+  "README.md",
+  "LICENSE",
+  "NOTICE.md",
+  "SECURITY.md",
+  "VERSION.txt",
+  "tsconfig.json"
+)
+
+function Should-IncludeTracked($relPath) {
+  foreach ($single in $includeSingles) {
+    if ($relPath -ieq $single) { return $true }
+  }
+  foreach ($prefix in $includePrefixes) {
+    if ($relPath.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) { return $true }
+  }
+  return $false
+}
+
+function Copy-TrackedToStage($relativePath) {
+  $src = Join-Path $root ($relativePath -replace "/", "\\")
+  if (-not (Test-Path $src)) { return }
+  $dst = Join-Path $stagePath ($relativePath -replace "/", "\\")
+  $dstDir = Split-Path -Parent $dst
+  if ($dstDir -and -not (Test-Path $dstDir)) {
+    New-Item -ItemType Directory -Path $dstDir -Force | Out-Null
+  }
+  Copy-Item -Path $src -Destination $dst -Force
+}
+
+foreach ($line in $trackedRaw) {
+  $rel = "$line".Trim()
+  if (-not $rel) { continue }
+  if (Should-IncludeTracked $rel) {
+    Copy-TrackedToStage $rel
+  }
+}
+
+Compress-Archive -Path (Join-Path $stagePath "*") -DestinationPath $zipPath -Force
+Remove-Item -Recurse -Force $stagePath
+
 if (-not (Test-Path $zipPath)) {
   Write-Fail "Zip not created." "Check write permissions under $outAbs"
 }

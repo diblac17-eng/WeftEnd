@@ -1284,6 +1284,9 @@ export interface HostRunReceiptV0 {
   version: "host_run_receipt_v0";
   schemaVersion: 0;
   weftendBuild: WeftendBuildV0;
+  gateModeRequested?: "enforced";
+  gateVerdict?: "ALLOW" | "BLOCK";
+  gateReasonCodes?: string[];
   releaseDirDigest: string;
   contentSummary: ContentSummaryV0;
   releaseId?: string;

@@ -21,8 +21,12 @@ Short, strict release checklist (alpha).
 - Confirm FIRST_5_MINUTES_REPORT.txt shows PASS.
 
 5) Team suites (required)
-☐ Purple/Blue/Orange/Green suites PASS (see TEAM_SUITES.md)
-☐ proofcheck includes team suites (no skips)
+[ ] Purple/Blue/Orange/Green suites PASS (see TEAM_SUITES.md)
+[ ] proofcheck includes team suites (no skips)
 
-6) Tag + publish
+6) Auto-scan + gate config (if used)
+[ ] `.weftend/config.json` (optional) is valid and bounded.
+[ ] Gate mode tested only via explicit `--gate-mode enforced`.
+
+7) Tag + publish
 - Only after steps 1-4 are PASS.

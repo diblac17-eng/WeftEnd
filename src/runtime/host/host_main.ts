@@ -18,7 +18,7 @@ declare const process: any;
 
 const printUsage = () => {
   console.log("Usage:");
-  console.log("  weftend host run <releaseDir> --out <dir> [--entry <block>]");
+  console.log("  weftend host run <releaseDir> --out <dir> [--entry <block>] [--gate-mode enforced]");
   console.log("  weftend host status --root <dir> --trust-root <file>");
   console.log("  weftend host install <releaseDir> --root <dir> --trust-root <file> [--out <dir>] [--signing-secret <secret>]");
   console.log("Note: --out or WEFTEND_HOST_OUT_ROOT is required for all host commands.");
@@ -205,11 +205,23 @@ export const runHostMain = async (argv: string[]): Promise<number> => {
     return 1;
   }
   const entry = (flags["entry"] as string) || undefined;
+  const gateModeFlag = (flags["gate-mode"] as string) || "";
+  if (gateModeFlag && gateModeFlag !== "enforced") {
+    console.error("[INPUT_INVALID] --gate-mode only supports 'enforced'.");
+    return 40;
+  }
   const hostRoot = (flags["root"] as string) || process?.env?.WEFTEND_HOST_ROOT || undefined;
   const trustRoot = (flags["trust-root"] as string) || process?.env?.WEFTEND_HOST_TRUST_ROOT || undefined;
 
   try {
-    const result = await runHostStrictV0({ releaseDir, outDir, entry, hostRoot, trustRootPath: trustRoot });
+    const result = await runHostStrictV0({
+      releaseDir,
+      outDir,
+      entry,
+      hostRoot,
+      trustRootPath: trustRoot,
+      gateMode: gateModeFlag ? "enforced" : "off",
+    });
     writeOperator(
       "host run",
       [
