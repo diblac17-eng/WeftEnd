@@ -71,12 +71,14 @@ $dirBgKey = "HKCU:\Software\Classes\Directory\Background\shell\WeftEndSafeRun\co
 $zipKey = "HKCU:\Software\Classes\SystemFileAssociations\.zip\shell\WeftEndSafeRun\command"
 $emlKey = "HKCU:\Software\Classes\SystemFileAssociations\.eml\shell\WeftEndSafeRun\command"
 $mboxKey = "HKCU:\Software\Classes\SystemFileAssociations\.mbox\shell\WeftEndSafeRun\command"
+$msgKey = "HKCU:\Software\Classes\SystemFileAssociations\.msg\shell\WeftEndSafeRun\command"
 $starOpenKey = "HKCU:\Software\Classes\*\shell\WeftEndSafeRunOpenLibrary\command"
 $dirOpenKey = "HKCU:\Software\Classes\Directory\shell\WeftEndSafeRunOpenLibrary\command"
 $dirBgOpenKey = "HKCU:\Software\Classes\Directory\Background\shell\WeftEndSafeRunOpenLibrary\command"
 $zipOpenKey = "HKCU:\Software\Classes\SystemFileAssociations\.zip\shell\WeftEndSafeRunOpenLibrary\command"
 $emlOpenKey = "HKCU:\Software\Classes\SystemFileAssociations\.eml\shell\WeftEndSafeRunOpenLibrary\command"
 $mboxOpenKey = "HKCU:\Software\Classes\SystemFileAssociations\.mbox\shell\WeftEndSafeRunOpenLibrary\command"
+$msgOpenKey = "HKCU:\Software\Classes\SystemFileAssociations\.msg\shell\WeftEndSafeRunOpenLibrary\command"
 
 if (-not (Check-CommandKey -Label "STAR_FILE_CMD" -KeyPath $starKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "DIR_CMD" -KeyPath $dirKey -Token "%1")) { $allOk = $false }
@@ -84,12 +86,14 @@ if (-not (Check-CommandKey -Label "DIR_BG_CMD" -KeyPath $dirBgKey -Token "%V")) 
 if (-not (Check-CommandKey -Label "ZIP_CMD" -KeyPath $zipKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "EML_CMD" -KeyPath $emlKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "MBOX_CMD" -KeyPath $mboxKey -Token "%1")) { $allOk = $false }
+if (-not (Check-CommandKey -Label "MSG_CMD" -KeyPath $msgKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "STAR_FILE_OPEN_LIB" -KeyPath $starOpenKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "DIR_OPEN_LIB" -KeyPath $dirOpenKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "DIR_BG_OPEN_LIB" -KeyPath $dirBgOpenKey -Token "%V")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "ZIP_OPEN_LIB" -KeyPath $zipOpenKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "EML_OPEN_LIB" -KeyPath $emlOpenKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "MBOX_OPEN_LIB" -KeyPath $mboxOpenKey -Token "%1")) { $allOk = $false }
+if (-not (Check-CommandKey -Label "MSG_OPEN_LIB" -KeyPath $msgOpenKey -Token "%1")) { $allOk = $false }
 
 if ($allOk) { exit 0 }
 exit 40

@@ -26,26 +26,38 @@ const assertEq = (actual: unknown, expected: unknown, message: string): void => 
 };
 
 const readText = (filePath: string): string => fs.readFileSync(filePath, "utf8");
-
+const readJson = (filePath: string): any => JSON.parse(readText(filePath));
 const makeTempDir = (): string => fs.mkdtempSync(path.join(os.tmpdir(), "weftend-email-"));
 
 suite("cli/email", () => {
-  register("email unpack writes deterministic export folder", async () => {
+  register("email unpack writes deterministic normalized folder", async () => {
     const temp = makeTempDir();
-    const outDir = path.join(temp, "run");
+    const outA = path.join(temp, "runA");
+    const outB = path.join(temp, "runB");
     const input = path.join(process.cwd(), "tests", "fixtures", "email", "simple_html.eml");
-    const result = await runCliCapture(["email", "unpack", input, "--out", outDir]);
-    assertEq(result.status, 0, `expected email unpack success\n${result.stderr}`);
+    const resultA = await runCliCapture(["email", "unpack", input, "--out", outA]);
+    const resultB = await runCliCapture(["email", "unpack", input, "--out", outB]);
+    assertEq(resultA.status, 0, `expected email unpack success\n${resultA.stderr}`);
+    assertEq(resultB.status, 0, `expected email unpack success\n${resultB.stderr}`);
 
-    const exportDir = path.join(outDir, "email_export");
-    assert(fs.existsSync(path.join(exportDir, "email_headers.txt")), "email_headers.txt missing");
-    assert(fs.existsSync(path.join(exportDir, "email_body.txt")), "email_body.txt missing");
-    assert(fs.existsSync(path.join(exportDir, "email_body.html")), "email_body.html missing");
-    assert(fs.existsSync(path.join(exportDir, "links.txt")), "links.txt missing");
-    assert(fs.existsSync(path.join(exportDir, "attachments", "manifest.json")), "attachments manifest missing");
-    const html = readText(path.join(exportDir, "email_body.html"));
+    const exportA = path.join(outA, "email_export");
+    const exportB = path.join(outB, "email_export");
+    const files = [
+      "adapter_manifest.json",
+      "headers.json",
+      "body.txt",
+      "body.html.txt",
+      "links.txt",
+      path.join("attachments", "manifest.json"),
+    ];
+    files.forEach((file) => {
+      assert(fs.existsSync(path.join(exportA, file)), `missing ${file} in runA`);
+      assert(fs.existsSync(path.join(exportB, file)), `missing ${file} in runB`);
+      assertEq(readText(path.join(exportA, file)), readText(path.join(exportB, file)), `${file} must be deterministic`);
+    });
+    const html = readText(path.join(exportA, "body.html.txt"));
     assert(!/<script/i.test(html), "sanitized html should not contain script tags");
-    const links = readText(path.join(exportDir, "links.txt"));
+    const links = readText(path.join(exportA, "links.txt"));
     assert(links.includes("https://status.example.com/report"), "expected extracted link");
   });
 
@@ -55,8 +67,37 @@ suite("cli/email", () => {
     const input = path.join(process.cwd(), "tests", "fixtures", "email", "sample.mbox");
     const result = await runCliCapture(["email", "unpack", input, "--index", "1", "--out", outDir]);
     assertEq(result.status, 0, `expected mbox unpack success\n${result.stderr}`);
-    const headers = readText(path.join(outDir, "email_export", "email_headers.txt"));
-    assert(headers.includes("message-id: <mbox-2@example.com>"), "expected second message selection");
+    const headers = readJson(path.join(outDir, "email_export", "headers.json"));
+    const flat = JSON.stringify(headers);
+    assert(flat.includes("mbox-2@example.com"), "expected second message selection");
+  });
+
+  register("email unpack accepts .msg input and emits marker", async () => {
+    const temp = makeTempDir();
+    const msgPath = path.join(temp, "mail.msg");
+    fs.writeFileSync(
+      msgPath,
+      "Subject: MSG sample\nFrom: sender@example.com\nVisit https://example.com/msg\n<html><body>ok</body></html>",
+      "utf8"
+    );
+    const outDir = path.join(temp, "out");
+    const result = await runCliCapture(["email", "unpack", msgPath, "--out", outDir]);
+    assertEq(result.status, 0, `expected msg unpack success\n${result.stderr}`);
+    const manifest = readJson(path.join(outDir, "email_export", "adapter_manifest.json"));
+    assertEq(manifest.sourceFormat, "msg", "expected msg source format");
+    assert(manifest.markers.includes("EMAIL_MSG_EXPERIMENTAL_PARSE"), "expected msg marker");
+  });
+
+  register("email unpack marks oversized body truncation", async () => {
+    const temp = makeTempDir();
+    const body = "A".repeat(1024 * 1024 + 2048);
+    const emlPath = path.join(temp, "oversized.eml");
+    fs.writeFileSync(emlPath, `Subject: Oversized\nContent-Type: text/plain; charset=utf-8\n\n${body}`, "utf8");
+    const outDir = path.join(temp, "out");
+    const result = await runCliCapture(["email", "unpack", emlPath, "--out", outDir]);
+    assertEq(result.status, 0, `expected oversized unpack success\n${result.stderr}`);
+    const manifest = readJson(path.join(outDir, "email_export", "adapter_manifest.json"));
+    assert(manifest.markers.includes("EMAIL_BODY_TEXT_TRUNCATED"), "expected text truncation marker");
   });
 
   register("email safe-run pipeline writes receipts and passes privacy lint", async () => {
@@ -67,11 +108,35 @@ suite("cli/email", () => {
     assertEq(result.status, 0, `expected email safe-run success\n${result.stderr}`);
     assert(fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "safe_run_receipt.json missing");
     assert(fs.existsSync(path.join(outDir, "operator_receipt.json")), "operator_receipt.json missing");
-    assert(fs.existsSync(path.join(outDir, "email_export", "links.txt")), "email_export links missing");
-    const receipt = JSON.parse(readText(path.join(outDir, "safe_run_receipt.json")));
-    assert(typeof receipt?.contentSummary?.totalFiles === "number", "expected contentSummary totals");
+    const receipt = readJson(path.join(outDir, "safe_run_receipt.json"));
+    assertEq(receipt.contentSummary.artifactKind, "webBundle", "expected web bundle summary");
     const lint = runPrivacyLintV0({ root: outDir, writeReport: false });
     assertEq(lint.report.verdict, "PASS", "email safe-run output must pass privacy lint");
+  });
+
+  register("email unpack handles attachment-only mail deterministically", async () => {
+    const temp = makeTempDir();
+    const input = path.join(process.cwd(), "tests", "fixtures", "email", "attachment_only.eml");
+    const outDir = path.join(temp, "run");
+    const result = await runCliCapture(["email", "unpack", input, "--out", outDir]);
+    assertEq(result.status, 0, `expected attachment-only unpack success\n${result.stderr}`);
+    const manifest = readJson(path.join(outDir, "email_export", "attachments", "manifest.json"));
+    assert(Array.isArray(manifest.entries), "expected attachment entries");
+    assertEq(manifest.entries.length, 1, "expected one attachment");
+    assertEq(manifest.entries[0].name, "sample.bin", "expected attachment name");
+    const body = readText(path.join(outDir, "email_export", "body.txt")).trim();
+    assertEq(body, "", "expected empty body text for attachment-only mail");
+  });
+
+  register("email safe-run rejects malformed normalized artifacts", async () => {
+    const temp = makeTempDir();
+    const malformed = path.join(temp, "email_export");
+    fs.mkdirSync(malformed, { recursive: true });
+    fs.writeFileSync(path.join(malformed, "body.txt"), "x", "utf8");
+    const outDir = path.join(temp, "run");
+    const result = await runCliCapture(["email", "safe-run", malformed, "--out", outDir]);
+    assertEq(result.status, 40, "expected fail-closed for malformed normalized artifact");
+    assert(result.stderr.includes("ADAPTER_NORMALIZATION_INVALID"), "expected normalization error");
   });
 });
 

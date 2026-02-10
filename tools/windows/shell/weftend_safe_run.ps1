@@ -92,7 +92,7 @@ function Is-EmailArtifact {
   $ext = [System.IO.Path]::GetExtension($PathValue)
   if (-not $ext) { return $false }
   $normalized = $ext.ToLowerInvariant()
-  return $normalized -eq ".eml" -or $normalized -eq ".mbox"
+  return $normalized -eq ".eml" -or $normalized -eq ".mbox" -or $normalized -eq ".msg"
 }
 
 function Detect-TargetKind {
@@ -356,6 +356,12 @@ function Write-ReportCard {
     }
 
     $meaning = "See report card and receipts."
+    $inputType = $targetKind
+    $adapter = "filesystem_v0"
+    if ($targetKind -eq "emailArtifact") { $inputType = "email"; $adapter = "email_v0" }
+    elseif ($targetKind -eq "directory") { $inputType = "directory" }
+    elseif ($targetKind -eq "nativeBinary") { $inputType = "nativeBinary" }
+    elseif ($Summary.rawArtifactKind -eq "ZIP") { $inputType = "archive"; $adapter = "zip_v0" }
     if ($stateLines.Count -gt 0 -and $ViewState) {
       if ($ViewState.blocked -and $ViewState.blocked.runId) {
         $meaning = "Blocked. Review change before proceeding."
@@ -385,6 +391,7 @@ function Write-ReportCard {
     }
 
     $lines = @(
+      "input=inputType:$inputType adapter:$adapter",
       "classification=target:$targetKind artifact:$artifactKind entryHints=$entry",
       "webLane=$webLane webEntry=$webEntry",
       "observed=files:$files bytes:$bytes scripts:$hasScripts native:$hasNative externalRefs:$extRefs bounded=$bounded",

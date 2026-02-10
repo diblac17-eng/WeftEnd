@@ -63,6 +63,13 @@ const runSafeRunPath = async (inputPath: string, outDir: string): Promise<void> 
   assert(fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "expected safe_run_receipt.json");
 };
 
+const runEmailSafeRunFixture = async (fixture: string, outDir: string): Promise<void> => {
+  const inputPath = path.join(process.cwd(), "tests", "fixtures", "email", fixture);
+  const result = await runCliCapture(["email", "safe-run", inputPath, "--out", outDir]);
+  assertEq(result.status, 0, `expected email safe-run success\n${result.stderr}`);
+  assert(fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "expected safe_run_receipt.json");
+};
+
 suite("cli/compare", () => {
   register("compare writes deterministic receipt/report and passes privacy lint", async () => {
     const root = makeTempDir();
@@ -192,6 +199,20 @@ suite("cli/compare", () => {
     const result = await runCliCapture(["compare", oldDir, rightDir, "--out", outDir]);
     assertEq(result.status, 40, "expected fail-closed exit code");
     assert(result.stderr.includes("RECEIPT_OLD_CONTRACT"), "expected old-contract reason code");
+  });
+
+  register("compare captures adapter-driven deltas for email inputs", async () => {
+    const root = makeTempDir();
+    const leftDir = path.join(root, "left");
+    const rightDir = path.join(root, "right");
+    const outDir = path.join(root, "cmp");
+    await runEmailSafeRunFixture("simple_html.eml", leftDir);
+    await runEmailSafeRunFixture("with_attachment.eml", rightDir);
+    const result = await runCliCapture(["compare", leftDir, rightDir, "--out", outDir]);
+    assertEq(result.status, 0, `expected compare success\n${result.stderr}`);
+    const receipt = readJson(path.join(outDir, "compare_receipt.json"));
+    assert(receipt.changeBuckets.includes("CONTENT_CHANGED"), "expected CONTENT_CHANGED for adapter outputs");
+    assert(receipt.changeBuckets.includes("DIGEST_CHANGED"), "expected DIGEST_CHANGED for adapter outputs");
   });
 });
 

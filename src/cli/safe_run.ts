@@ -43,6 +43,7 @@ import { writeReceiptReadmeV0 } from "../runtime/receipt_readme";
 import { buildOperatorReceiptV0, writeOperatorReceiptV0 } from "../runtime/operator_receipt";
 import { classifyArtifactKindV0 } from "../runtime/classify/artifact_kind_v0";
 import { updateLibraryViewFromRunV0 } from "./library_state";
+import { validateNormalizedArtifactV0 } from "../runtime/adapters/intake_adapter_v0";
 
 const fs = require("fs");
 const path = require("path");
@@ -481,6 +482,32 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
   const resolvedInput = path.resolve(process.cwd(), options.inputPath || "");
   if (!options.inputPath || !fs.existsSync(resolvedInput)) {
     console.error("[INPUT_INVALID] input path missing.");
+    return 40;
+  }
+  try {
+    const stat = fs.lstatSync(resolvedInput);
+    if (stat.isDirectory() && path.basename(resolvedInput).toLowerCase() === "email_export") {
+      const manifestPath = path.join(resolvedInput, "adapter_manifest.json");
+      if (!fs.existsSync(manifestPath)) {
+        console.error("[ADAPTER_NORMALIZATION_INVALID] missing adapter manifest.");
+        return 40;
+      }
+      const parsed = JSON.parse(readTextFile(manifestPath));
+      const issues = validateNormalizedArtifactV0(parsed, "adapterManifest");
+      if (issues.length > 0) {
+        console.error("[ADAPTER_NORMALIZATION_INVALID] invalid adapter normalization markers.");
+        return 40;
+      }
+      const required = Array.isArray(parsed.requiredFiles) ? parsed.requiredFiles : [];
+      for (const rel of required) {
+        if (typeof rel !== "string" || rel.length === 0 || !fs.existsSync(path.join(resolvedInput, rel))) {
+          console.error("[ADAPTER_NORMALIZATION_INVALID] missing required normalized artifact file.");
+          return 40;
+        }
+      }
+    }
+  } catch {
+    console.error("[ADAPTER_NORMALIZATION_INVALID] failed to validate normalized artifact.");
     return 40;
   }
   const selected = selectPolicyPath(options.inputPath, options.policyPath);

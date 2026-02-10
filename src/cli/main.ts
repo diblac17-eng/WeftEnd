@@ -33,8 +33,8 @@ const printUsage = () => {
   console.log("  weftend intake <input> --policy <policy.json> --out <dir> [--profile web|mod|generic] [--script <file>]");
   console.log("  weftend run <input> --policy <policy.json> --out <dir> [--profile web|mod|generic] [--mode strict|compatible|legacy] [--script <file>]");
   console.log("  weftend safe-run <input> [--policy <policy.json>] --out <dir> [--profile web|mod|generic] [--script <file>] [--execute] [--withhold-exec|--no-exec]");
-  console.log("  weftend email unpack <input.eml|input.mbox> --out <dir> [--index <n>] [--message-id <id>]");
-  console.log("  weftend email safe-run <input.eml|input.mbox> --out <dir> [--policy <policy.json>] [--index <n>] [--message-id <id>]");
+  console.log("  weftend email unpack <input.eml|input.mbox|input.msg> --out <dir> [--index <n>] [--message-id <id>]");
+  console.log("  weftend email safe-run <input.eml|input.mbox|input.msg|email_export_dir> --out <dir> [--policy <policy.json>] [--index <n>] [--message-id <id>]");
   console.log("  weftend compare <leftOutRoot> <rightOutRoot> --out <dir>");
   console.log("  weftend summarize <outRoot>");
   console.log("  weftend export-json <outRoot> --format normalized_v0 [--out <file>]");

@@ -1,6 +1,6 @@
 # Windows Shell Integration (v0)
 
-This adds a per-user "Run with WeftEnd" right-click entry for files, folders, folder backgrounds, `.zip`, `.eml`, and `.mbox` artifacts.
+This adds a per-user "Run with WeftEnd" right-click entry for files, folders, folder backgrounds, `.zip`, `.eml`, `.mbox`, and `.msg` artifacts.
 No admin rights required. No system-wide changes.
 
 Install
@@ -19,7 +19,7 @@ Usage
 - Right-click a file/folder/.zip -> "Run with WeftEnd"
 - Right-click a file/folder/.zip -> "Run with WeftEnd (Open Library)"
 - Right-click inside a folder background -> "Run with WeftEnd"
-- Right-click `.eml` or `.mbox` -> "Run with WeftEnd" (routes through `weftend email safe-run`)
+- Right-click `.eml`, `.mbox`, or `.msg` -> "Run with WeftEnd" (routes through `weftend email safe-run`)
 - Output is stored in the local Report Library:
   `%LOCALAPPDATA%\WeftEnd\Library\<target>\run_<digest>[_NNN]\`
 - Compare two runs with:

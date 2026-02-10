@@ -140,6 +140,8 @@ Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.eml" -KeyN
 Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.eml" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.mbox" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.mbox" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.msg" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.msg" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
 
 function Install-LibraryShortcut {
   param([string]$ShortcutPath)

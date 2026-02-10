@@ -1,9 +1,8 @@
 /* src/cli/email.ts */
-// Email adapter v0: local MIME artifacts -> deterministic folder -> safe-run.
+// Email adapter v0: local email artifacts -> deterministic folder -> safe-run.
 
 import { canonicalJSON } from "../core/canon";
 import { stableSortUniqueStringsV0 } from "../core/trust_algebra_v0";
-import { computeArtifactDigestV0 } from "../runtime/store/artifact_store";
 import { runSafeRun } from "./safe_run";
 
 declare const require: any;
@@ -19,6 +18,32 @@ const MAX_HEADER_LINES = 256;
 const MAX_LINKS = 512;
 const MAX_ATTACHMENTS = 128;
 const MAX_TEXT_BYTES = 1024 * 1024;
+const MAX_MSG_BUFFER_BYTES = 8 * 1024 * 1024;
+const MAX_MSG_LINE_COUNT = 4096;
+
+type EmailFormatV0 = "eml" | "mbox" | "msg";
+
+type HeaderEntry = { name: string; nameLower: string; value: string };
+
+type AttachmentV0 = {
+  filename: string;
+  contentType: string;
+  transferEncoding: string;
+  bytes: any;
+};
+
+type ParsedEmailV0 = {
+  headers: HeaderEntry[];
+  textBody: string;
+  htmlBody: string;
+  links: string[];
+  attachments: AttachmentV0[];
+  markers: string[];
+};
+
+type LoadedEmailV0 =
+  | { ok: true; parsed: ParsedEmailV0; format: EmailFormatV0 }
+  | { ok: false; code: string };
 
 const parseArgs = (argv: string[]): { rest: string[]; flags: EmailFlags } => {
   const args = [...argv];
@@ -28,7 +53,7 @@ const parseArgs = (argv: string[]): { rest: string[]; flags: EmailFlags } => {
     const token = args.shift();
     if (!token) break;
     if (token === "--help" || token === "-h") {
-      flags["help"] = true;
+      flags.help = true;
       continue;
     }
     if (token.startsWith("--")) {
@@ -51,13 +76,8 @@ const splitHeadBody = (raw: string): { headersRaw: string; bodyRaw: string } => 
   const normalized = normalizeNewlines(raw);
   const idx = normalized.indexOf("\n\n");
   if (idx < 0) return { headersRaw: normalized, bodyRaw: "" };
-  return {
-    headersRaw: normalized.slice(0, idx),
-    bodyRaw: normalized.slice(idx + 2),
-  };
+  return { headersRaw: normalized.slice(0, idx), bodyRaw: normalized.slice(idx + 2) };
 };
-
-type HeaderEntry = { name: string; nameLower: string; value: string };
 
 const parseHeaders = (raw: string): HeaderEntry[] => {
   const lines = normalizeNewlines(raw).split("\n");
@@ -150,9 +170,7 @@ const splitMultipart = (bodyRaw: string, boundary: string): string[] => {
   let active = false;
   for (const line of lines) {
     if (line === marker) {
-      if (active && current.length > 0) {
-        parts.push(current.join("\n"));
-      }
+      if (active && current.length > 0) parts.push(current.join("\n"));
       current = [];
       active = true;
       continue;
@@ -164,22 +182,6 @@ const splitMultipart = (bodyRaw: string, boundary: string): string[] => {
     if (active) current.push(line);
   }
   return parts;
-};
-
-type AttachmentV0 = {
-  filename: string;
-  contentType: string;
-  transferEncoding: string;
-  bytes: any;
-};
-
-type ParsedEmailV0 = {
-  headers: HeaderEntry[];
-  textBody: string;
-  htmlBody: string;
-  links: string[];
-  attachments: AttachmentV0[];
-  markers: string[];
 };
 
 const sanitizeFileLeaf = (value: string): string =>
@@ -209,7 +211,7 @@ const parsePart = (rawPart: string, out: ParsedEmailV0): void => {
   const disposition = parseParams(dispositionRaw);
 
   if (contentType.type.startsWith("multipart/")) {
-    const boundary = contentType.params["boundary"];
+    const boundary = contentType.params.boundary;
     if (!isNonEmptyString(boundary)) {
       out.markers.push("EMAIL_MULTIPART_BOUNDARY_MISSING");
       return;
@@ -220,9 +222,7 @@ const parsePart = (rawPart: string, out: ParsedEmailV0): void => {
   }
 
   const payload = decodeBody(bodyRaw, transferEncoding);
-  const filename = sanitizeFileLeaf(
-    disposition.params["filename"] || contentType.params["name"] || ""
-  );
+  const filename = sanitizeFileLeaf(disposition.params.filename || contentType.params.name || "");
   const isAttachment = disposition.type === "attachment" || filename.length > 0;
   if (isAttachment) {
     if (out.attachments.length < MAX_ATTACHMENTS) {
@@ -239,16 +239,13 @@ const parsePart = (rawPart: string, out: ParsedEmailV0): void => {
   }
 
   if (contentType.type === "text/html") {
-    const html = payload.toString("utf8");
-    out.htmlBody += html;
+    out.htmlBody += payload.toString("utf8");
     return;
   }
   if (contentType.type === "text/plain") {
     out.textBody += payload.toString("utf8");
     return;
   }
-
-  // Keep unknown text-ish as plain body for deterministic analysis lane.
   if (contentType.type.startsWith("text/")) {
     out.textBody += payload.toString("utf8");
   }
@@ -256,9 +253,8 @@ const parsePart = (rawPart: string, out: ParsedEmailV0): void => {
 
 const parseEml = (raw: string): ParsedEmailV0 => {
   const { headersRaw, bodyRaw } = splitHeadBody(raw);
-  const headers = parseHeaders(headersRaw);
   const parsed: ParsedEmailV0 = {
-    headers,
+    headers: parseHeaders(headersRaw),
     textBody: "",
     htmlBody: "",
     links: [],
@@ -315,46 +311,103 @@ const selectMboxMessage = (
   return { ok: true, raw: messages[index] };
 };
 
-const toCanonicalHeaders = (headers: HeaderEntry[]): string => {
+const toCanonicalHeadersObject = (headers: HeaderEntry[]) => {
   const grouped = new Map<string, string[]>();
   headers.forEach((entry) => {
-    const key = entry.nameLower;
-    if (!grouped.has(key)) grouped.set(key, []);
-    grouped.get(key)!.push(entry.value);
+    if (!grouped.has(entry.nameLower)) grouped.set(entry.nameLower, []);
+    grouped.get(entry.nameLower)!.push(entry.value);
   });
-  const lines = Array.from(grouped.keys())
+  return Array.from(grouped.keys())
     .sort((a, b) => a.localeCompare(b))
-    .map((key) => {
-      const value = grouped.get(key)!.map((item) => item.trim()).filter((item) => item.length > 0).join(" | ");
-      return `${key}: ${value}`;
-    });
-  return `${lines.join("\n")}\n`;
+    .map((key) => ({
+      name: key,
+      values: grouped
+        .get(key)!
+        .map((v) => v.trim())
+        .filter((v) => v.length > 0),
+    }));
 };
 
-const ensureDir = (dir: string): void => {
-  fs.mkdirSync(dir, { recursive: true });
+const extractPrintableLinesFromMsg = (input: any): string[] => {
+  const bytes = input.slice(0, Math.min(MAX_MSG_BUFFER_BYTES, Number(input.length || 0)));
+  const lines: string[] = [];
+  let current = "";
+  for (let i = 0; i < bytes.length; i += 1) {
+    const b = bytes[i];
+    if (b >= 32 && b <= 126) {
+      if (current.length < 1024) current += String.fromCharCode(b);
+      continue;
+    }
+    if (current.length >= 4) lines.push(current);
+    current = "";
+    if (lines.length >= MAX_MSG_LINE_COUNT) break;
+  }
+  if (current.length >= 4 && lines.length < MAX_MSG_LINE_COUNT) lines.push(current);
+  return lines;
+};
+
+const parseMsg = (input: any): ParsedEmailV0 => {
+  const lines = extractPrintableLinesFromMsg(input);
+  const headerCandidates = lines
+    .filter((line) => /^[A-Za-z0-9\-]{2,64}:/.test(line))
+    .slice(0, MAX_HEADER_LINES)
+    .join("\n");
+  const headers = parseHeaders(headerCandidates);
+  const textBody = lines.slice(0, MAX_MSG_LINE_COUNT).join("\n");
+  const htmlBody = /<html|<!doctype html/i.test(textBody) ? stripScriptTags(textBody) : "";
+  const links = stableSortUniqueStringsV0([...extractLinks(textBody), ...extractLinks(htmlBody)]).slice(0, MAX_LINKS);
+  return {
+    headers,
+    textBody,
+    htmlBody,
+    links,
+    attachments: [],
+    markers: ["EMAIL_MSG_EXPERIMENTAL_PARSE", "EMAIL_ATTACHMENTS_UNAVAILABLE_IN_MSG_V0"],
+  };
 };
 
 const writeText = (filePath: string, text: string): void => {
-  ensureDir(path.dirname(filePath));
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, text, "utf8");
 };
 
-const writeEmailExport = (parsed: ParsedEmailV0, outDir: string): void => {
+const validateMarkers = (parsed: ParsedEmailV0, bodyText: string, htmlText: string): string[] => {
+  const markers = [...parsed.markers];
+  if (bodyText.length >= MAX_TEXT_BYTES) markers.push("EMAIL_BODY_TEXT_TRUNCATED");
+  if (htmlText.length >= MAX_TEXT_BYTES) markers.push("EMAIL_BODY_HTML_TRUNCATED");
+  if (parsed.links.length >= MAX_LINKS) markers.push("EMAIL_LINKS_TRUNCATED");
+  if (parsed.headers.length >= MAX_HEADER_LINES) markers.push("EMAIL_HEADERS_TRUNCATED");
+  if (parsed.attachments.length >= MAX_ATTACHMENTS) markers.push("EMAIL_ATTACHMENTS_TRUNCATED");
+  return stableSortUniqueStringsV0(markers);
+};
+
+const writeEmailExport = (parsed: ParsedEmailV0, outDir: string, format: EmailFormatV0): void => {
   const exportDir = path.join(outDir, "email_export");
   const attachDir = path.join(exportDir, "attachments", "files");
   fs.rmSync(exportDir, { recursive: true, force: true });
-  ensureDir(attachDir);
+  fs.mkdirSync(attachDir, { recursive: true });
 
-  const headersText = toCanonicalHeaders(parsed.headers);
   const bodyText = normalizeNewlines(parsed.textBody).slice(0, MAX_TEXT_BYTES);
   const htmlText = normalizeNewlines(parsed.htmlBody).slice(0, MAX_TEXT_BYTES);
   const links = stableSortUniqueStringsV0(parsed.links).slice(0, MAX_LINKS);
+  const markers = validateMarkers(parsed, bodyText, htmlText);
 
-  writeText(path.join(exportDir, "email_headers.txt"), headersText);
+  const headersJson = {
+    schema: "weftend.emailHeaders/0",
+    schemaVersion: 0,
+    sourceFormat: format,
+    headers: toCanonicalHeadersObject(parsed.headers),
+    markers,
+  };
+  writeText(path.join(exportDir, "headers.json"), `${canonicalJSON(headersJson)}\n`);
+  writeText(path.join(exportDir, "body.txt"), `${bodyText}\n`);
+  writeText(path.join(exportDir, "body.html.txt"), `${htmlText}\n`);
+  writeText(path.join(exportDir, "links.txt"), `${links.join("\n")}\n`);
+
+  // Compatibility files for existing tooling.
+  writeText(path.join(exportDir, "email_headers.txt"), `${headersJson.headers.map((h) => `${h.name}: ${h.values.join(" | ")}`).join("\n")}\n`);
   writeText(path.join(exportDir, "email_body.txt"), `${bodyText}\n`);
   writeText(path.join(exportDir, "email_body.html"), `${htmlText}\n`);
-  writeText(path.join(exportDir, "links.txt"), `${links.join("\n")}\n`);
 
   const seenNames = new Set<string>();
   const manifestEntries = parsed.attachments.slice(0, MAX_ATTACHMENTS).map((attachment, index) => {
@@ -367,125 +420,172 @@ const writeEmailExport = (parsed: ParsedEmailV0, outDir: string): void => {
       counter += 1;
     }
     seenNames.add(unique.toLowerCase());
-    const abs = path.join(attachDir, unique);
-    fs.writeFileSync(abs, attachment.bytes);
+    fs.writeFileSync(path.join(attachDir, unique), attachment.bytes);
     return {
       name: unique,
-      digest: computeArtifactDigestV0(attachment.bytes.toString("binary")),
-      bytes: attachment.bytes.length,
-      contentType: attachment.contentType,
-      transferEncoding: attachment.transferEncoding,
+      bytes: Number(attachment.bytes.length || 0),
     };
   });
   manifestEntries.sort((a, b) => a.name.localeCompare(b.name));
+
   writeText(
     path.join(exportDir, "attachments", "manifest.json"),
     `${canonicalJSON({
       schema: "weftend.emailAttachmentManifest/0",
       schemaVersion: 0,
-      markers: stableSortUniqueStringsV0(parsed.markers),
+      sourceFormat: format,
+      markers,
       entries: manifestEntries,
     })}\n`
   );
+
+  writeText(
+    path.join(exportDir, "adapter_manifest.json"),
+    `${canonicalJSON({
+      schema: "weftend.normalizedArtifact/0",
+      schemaVersion: 0,
+      adapterId: "email_v0",
+      kind: "email",
+      rootDir: "email_export",
+      sourceFormat: format,
+      requiredFiles: [
+        "adapter_manifest.json",
+        "headers.json",
+        "body.txt",
+        "body.html.txt",
+        "links.txt",
+        "attachments/manifest.json",
+      ],
+      markers,
+    })}\n`
+  );
+};
+
+const validateNormalizedEmailExport = (inputDir: string): { ok: true; exportDir: string } | { ok: false; code: string } => {
+  const exportDir = path.resolve(process.cwd(), inputDir || "");
+  if (!inputDir || !fs.existsSync(exportDir) || !fs.statSync(exportDir).isDirectory()) {
+    return { ok: false, code: "INPUT_MISSING" };
+  }
+  const manifestPath = path.join(exportDir, "adapter_manifest.json");
+  if (!fs.existsSync(manifestPath)) return { ok: false, code: "ADAPTER_NORMALIZATION_INVALID" };
+  let manifest: any;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  } catch {
+    return { ok: false, code: "ADAPTER_NORMALIZATION_INVALID" };
+  }
+  if (!manifest || manifest.schema !== "weftend.normalizedArtifact/0" || manifest.adapterId !== "email_v0") {
+    return { ok: false, code: "ADAPTER_NORMALIZATION_INVALID" };
+  }
+  const required = Array.isArray(manifest.requiredFiles) ? manifest.requiredFiles : [];
+  for (const file of required) {
+    if (typeof file !== "string" || file.length === 0) return { ok: false, code: "ADAPTER_NORMALIZATION_INVALID" };
+    const abs = path.join(exportDir, file);
+    if (!fs.existsSync(abs)) return { ok: false, code: "ADAPTER_NORMALIZATION_INVALID" };
+  }
+  return { ok: true, exportDir };
 };
 
 const readSourceEmail = (
   inputPath: string,
   indexRaw?: string,
   messageIdRaw?: string
-): { ok: true; rawEml: string } | { ok: false; code: string } => {
+): LoadedEmailV0 => {
   const resolved = path.resolve(process.cwd(), inputPath || "");
   if (!inputPath || !fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
     return { ok: false, code: "INPUT_MISSING" };
   }
   const ext = path.extname(resolved).toLowerCase();
-  const raw = fs.readFileSync(resolved, "utf8");
-  if (ext === ".eml") return { ok: true, rawEml: raw };
+  if (ext === ".eml") {
+    const raw = fs.readFileSync(resolved, "utf8");
+    return { ok: true, parsed: parseEml(raw), format: "eml" };
+  }
   if (ext === ".mbox") {
+    const raw = fs.readFileSync(resolved, "utf8");
     const messages = parseMboxMessages(raw);
     const selected = selectMboxMessage(messages, indexRaw, messageIdRaw);
     if (!selected.ok) return selected;
-    return { ok: true, rawEml: selected.raw };
+    return { ok: true, parsed: parseEml(selected.raw), format: "mbox" };
+  }
+  if (ext === ".msg") {
+    const raw = fs.readFileSync(resolved);
+    return { ok: true, parsed: parseMsg(raw), format: "msg" };
   }
   return { ok: false, code: "EMAIL_INPUT_UNSUPPORTED" };
 };
 
-const parseUnpackOptions = (argv: string[]): {
-  ok: boolean;
-  inputPath?: string;
-  outDir?: string;
-  indexRaw?: string;
-  messageIdRaw?: string;
-  help?: boolean;
-} => {
-  const { rest, flags } = parseArgs(argv);
-  if (flags["help"]) return { ok: false, help: true };
-  const inputPath = rest[0];
-  const outDir = String(flags["out"] || "");
-  if (!inputPath || !outDir) return { ok: false };
-  return {
-    ok: true,
-    inputPath,
-    outDir,
-    indexRaw: isNonEmptyString(flags["index"]) ? String(flags["index"]) : undefined,
-    messageIdRaw: isNonEmptyString(flags["message-id"]) ? String(flags["message-id"]) : undefined,
-  };
-};
-
 const printEmailUsage = (): void => {
   console.log("Usage:");
-  console.log("  weftend email unpack <input.eml|input.mbox> --out <dir> [--index <n>] [--message-id <id>]");
-  console.log("  weftend email safe-run <input.eml|input.mbox> --out <dir> [--policy <path>] [--index <n>] [--message-id <id>]");
+  console.log("  weftend email unpack <input.eml|input.mbox|input.msg> --out <dir> [--index <n>] [--message-id <id>]");
+  console.log("  weftend email safe-run <input.eml|input.mbox|input.msg|email_export_dir> --out <dir> [--policy <path>] [--index <n>] [--message-id <id>]");
 };
 
 export const runEmailUnpackCli = (argv: string[]): number => {
-  const parsed = parseUnpackOptions(argv);
-  if (parsed.help || !parsed.ok || !parsed.inputPath || !parsed.outDir) {
+  const { rest, flags } = parseArgs(argv);
+  if (flags.help) {
     printEmailUsage();
-    return parsed.help ? 1 : 40;
+    return 1;
   }
-  const input = readSourceEmail(parsed.inputPath, parsed.indexRaw, parsed.messageIdRaw);
-  if (!input.ok) {
-    console.error(`[${input.code}] unable to load email input.`);
+  const inputPath = rest[0];
+  const outDir = String(flags.out || "");
+  if (!inputPath || !outDir) {
+    printEmailUsage();
     return 40;
   }
-  const parsedEmail = parseEml(input.rawEml);
-  writeEmailExport(parsedEmail, path.resolve(process.cwd(), parsed.outDir));
+  const indexRaw = isNonEmptyString(flags.index) ? String(flags.index) : undefined;
+  const messageIdRaw = isNonEmptyString(flags["message-id"]) ? String(flags["message-id"]) : undefined;
+  const loaded = readSourceEmail(inputPath, indexRaw, messageIdRaw);
+  if (!loaded.ok) {
+    console.error(`[${loaded.code}] unable to load email input.`);
+    return 40;
+  }
+  const outRoot = path.resolve(process.cwd(), outDir);
+  writeEmailExport(loaded.parsed, outRoot, loaded.format);
   console.log(
-    `EMAIL_UNPACK OK headers=${Math.min(parsedEmail.headers.length, MAX_HEADER_LINES)} links=${Math.min(
-      parsedEmail.links.length,
+    `EMAIL_UNPACK OK format=${loaded.format} headers=${Math.min(loaded.parsed.headers.length, MAX_HEADER_LINES)} links=${Math.min(
+      loaded.parsed.links.length,
       MAX_LINKS
-    )} attachments=${Math.min(parsedEmail.attachments.length, MAX_ATTACHMENTS)}`
+    )} attachments=${Math.min(loaded.parsed.attachments.length, MAX_ATTACHMENTS)}`
   );
   return 0;
 };
 
 export const runEmailSafeRunCli = async (argv: string[]): Promise<number> => {
   const { rest, flags } = parseArgs(argv);
-  if (flags["help"]) {
+  if (flags.help) {
     printEmailUsage();
     return 1;
   }
   const inputPath = rest[0];
-  const outDir = String(flags["out"] || "");
+  const outDir = String(flags.out || "");
   if (!inputPath || !outDir) {
     printEmailUsage();
     return 40;
   }
-  const indexRaw = isNonEmptyString(flags["index"]) ? String(flags["index"]) : undefined;
-  const messageIdRaw = isNonEmptyString(flags["message-id"]) ? String(flags["message-id"]) : undefined;
-  const policyPath = isNonEmptyString(flags["policy"]) ? String(flags["policy"]) : undefined;
-
-  const input = readSourceEmail(inputPath, indexRaw, messageIdRaw);
-  if (!input.ok) {
-    console.error(`[${input.code}] unable to load email input.`);
-    return 40;
-  }
   const outRoot = path.resolve(process.cwd(), outDir);
-  const parsedEmail = parseEml(input.rawEml);
-  writeEmailExport(parsedEmail, outRoot);
+  const policyPath = isNonEmptyString(flags.policy) ? String(flags.policy) : undefined;
+  const resolvedInput = path.resolve(process.cwd(), inputPath);
+  let exportDir = path.join(outRoot, "email_export");
+  if (fs.existsSync(resolvedInput) && fs.statSync(resolvedInput).isDirectory()) {
+    const normalized = validateNormalizedEmailExport(resolvedInput);
+    if (!normalized.ok) {
+      console.error(`[${normalized.code}] invalid normalized email artifact.`);
+      return 40;
+    }
+    exportDir = normalized.exportDir;
+  } else {
+    const indexRaw = isNonEmptyString(flags.index) ? String(flags.index) : undefined;
+    const messageIdRaw = isNonEmptyString(flags["message-id"]) ? String(flags["message-id"]) : undefined;
+    const loaded = readSourceEmail(inputPath, indexRaw, messageIdRaw);
+    if (!loaded.ok) {
+      console.error(`[${loaded.code}] unable to load email input.`);
+      return 40;
+    }
+    writeEmailExport(loaded.parsed, outRoot, loaded.format);
+  }
+
   return runSafeRun({
-    inputPath: path.join(outRoot, "email_export"),
+    inputPath: exportDir,
     outDir: outRoot,
     policyPath,
     profile: "web",

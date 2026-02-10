@@ -19,7 +19,7 @@ Library
 
 ## B) Common abnormal outcomes
 
-WITHHELD (expected for native binaries)
+WITHHELD (expected for native binaries and email artifacts)
 - This means: analyzed, not executed.
 
 NO_ENTRY_FOUND / EXECUTION_NOT_REQUESTED
@@ -57,6 +57,9 @@ delta=... on CHANGED
 
 - SAFE_RUN_EXECUTION_NOT_REQUESTED
   - Analysis-only run; execution was not requested.
+
+- ADAPTER_NORMALIZATION_INVALID
+  - Adapter output is missing required deterministic normalization markers.
 
 - INTAKE_NOT_APPROVED
   - Policy decision rejected the artifact.

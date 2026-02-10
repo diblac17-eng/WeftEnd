@@ -19,7 +19,7 @@ Key behaviors
 - Baseline memory: runs compare against last accepted baseline (SAME/CHANGED/BLOCKED).
 - Host execution exists for WeftEnd releases but is off by default; v0 remains analysis-only for native binaries.
 - Optional watch daemon for automatic re-checks; operators still accept baselines.
-- Optional adapters can convert external formats (example: local email artifacts) into deterministic WeftEnd inputs.
+- Optional adapters can convert external formats (example: local `.eml`/`.mbox`/`.msg`) into deterministic WeftEnd inputs.
 
 What it is not
 - Not an antivirus
@@ -59,6 +59,7 @@ Outputs
 
 Report card lines (quick read)
 - `classification=...`: target/artifact classification and entry hints.
+- `input=...`: adapter lane and input type (`email_v0`, `zip_v0`, `filesystem_v0`).
 - `webLane=ACTIVE|NOT_APPLICABLE`: whether web probe lane applies.
 - `observed=...`: file/byte/script/native/reference counts.
 - `posture=...`: analysis/execution result + top reason.
@@ -143,6 +144,7 @@ Docs
 - `docs/MINT_PACKAGE_V1.md`
 - `docs/INTEGRATION_CONTRACT.md`
 - `docs/EMAIL_ADAPTER_V0.md`
+- `docs/POWERED_BY_WEFTEND.md`
 - `docs/LOCAL_TESTING.md`
  - `docs/HOST_RUN.md`
  - `docs/HOST_UPDATE_MODEL.md`

@@ -43,6 +43,11 @@ const allowedFile = (relPath: string): boolean => {
   if (base === "ticket_pack_manifest.json") return true;
   if (base === "checksums.txt") return true;
   if (base === "watch_trigger.txt") return true;
+  if (base === "adapter_manifest.json") return true;
+  if (base === "headers.json") return true;
+  if (base === "body.txt") return true;
+  if (base === "body.html.txt") return true;
+  if (relPath.endsWith("/attachments/manifest.json")) return true;
   return false;
 };
 

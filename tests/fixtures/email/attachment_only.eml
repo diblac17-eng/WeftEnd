@@ -1,0 +1,16 @@
+Subject: Attachment Only
+From: sender@example.com
+To: receiver@example.com
+Date: Thu, 06 Feb 2026 12:00:00 +0000
+Message-ID: <attach-only@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="attach_only_boundary"
+
+--attach_only_boundary
+Content-Type: application/octet-stream; name="sample.bin"
+Content-Disposition: attachment; filename="sample.bin"
+Content-Transfer-Encoding: base64
+
+QUJDRA==
+--attach_only_boundary--
+

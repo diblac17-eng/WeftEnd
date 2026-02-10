@@ -191,3 +191,8 @@ Current adapter commands:
 - `weftend email safe-run ...`
 - `weftend summarize <outRoot>`
 - `weftend export-json <outRoot> --format normalized_v0`
+
+Adapter normalization notes:
+- Email adapter outputs include `adapter_manifest.json` and required deterministic files.
+- Missing or malformed adapter normalization markers must fail closed.
+- Adapter outputs must remain path-clean and environment-clean under privacy lint.

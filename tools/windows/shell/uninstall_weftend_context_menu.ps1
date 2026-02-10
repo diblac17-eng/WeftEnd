@@ -28,6 +28,8 @@ Remove-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.eml" -K
 Remove-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.eml" -KeyName "WeftEndSafeRunOpenLibrary"
 Remove-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.mbox" -KeyName "WeftEndSafeRun"
 Remove-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.mbox" -KeyName "WeftEndSafeRunOpenLibrary"
+Remove-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.msg" -KeyName "WeftEndSafeRun"
+Remove-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.msg" -KeyName "WeftEndSafeRunOpenLibrary"
 
 $configKey = "HKCU:\Software\WeftEnd\Shell"
 if (Test-Path $configKey) {
