@@ -94,11 +94,20 @@ if ($isShortcut) {
     if ($sc -and $sc.IconLocation) {
       $shortcutIcon = [string]$sc.IconLocation
     }
-    if ($ResolveShortcut.IsPresent -and $sc -and $sc.TargetPath -and (Test-Path -LiteralPath $sc.TargetPath)) {
-      $effectiveTarget = [string]$sc.TargetPath
+    if ($ResolveShortcut.IsPresent) {
+      $resolvedTarget = if ($sc -and $sc.TargetPath) { [string]$sc.TargetPath } else { "" }
+      if ($resolvedTarget -and (Test-Path -LiteralPath $resolvedTarget)) {
+        $effectiveTarget = $resolvedTarget
+      } else {
+        Write-Output "[SHORTCUT_TARGET_MISSING]"
+        exit 40
+      }
     }
   } catch {
-    # best effort only
+    if ($ResolveShortcut.IsPresent) {
+      Write-Output "[SHORTCUT_UNRESOLVED]"
+      exit 40
+    }
   }
 }
 
