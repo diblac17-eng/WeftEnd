@@ -21,6 +21,8 @@ const MAX_TOP_EXT = 12;
 const MAX_TOP_DOMAINS = 10;
 const MAX_SCAN_TOTAL_BYTES = 512 * 1024;
 const MAX_SCAN_FILE_BYTES = 128 * 1024;
+const MAX_HTML_LIKE_SCAN_BYTES = 4096;
+const MAX_HTML_LIKE_FILES = 32;
 const MAX_INDICATOR_COUNT = 1000;
 const MAX_HASH_BYTES = 32 * 1024 * 1024;
 
@@ -120,6 +122,38 @@ const readBufferBounded = (filePath: string, maxBytes: number): Uint8Array | nul
   } catch {
     return null;
   }
+};
+
+const hasHtmlLikePrefix = (buf: Uint8Array): boolean => {
+  try {
+    const sample = lower(Buffer.from(buf).toString("utf8"));
+    return sample.includes("<!doctype html") || sample.includes("<html");
+  } catch {
+    return false;
+  }
+};
+
+const detectHtmlLikeContent = (inputPath: string, capture: CaptureTreeV0): boolean => {
+  if (capture.kind === "file") {
+    const ext = lower(path.extname(inputPath));
+    if (htmlExts.has(ext)) return true;
+    const buf = readBufferBounded(inputPath, MAX_HTML_LIKE_SCAN_BYTES);
+    return buf ? hasHtmlLikePrefix(buf) : false;
+  }
+  if (capture.kind !== "dir") return false;
+  const entries = capture.entries.slice().sort((a, b) => a.path.localeCompare(b.path));
+  let scanned = 0;
+  for (const entry of entries) {
+    if (scanned >= MAX_HTML_LIKE_FILES) break;
+    const ext = lower(path.extname(entry.path));
+    if (htmlExts.has(ext)) return true;
+    if (ext.length > 0) continue;
+    const absPath = path.join(capture.basePath, entry.path);
+    const buf = readBufferBounded(absPath, MAX_HTML_LIKE_SCAN_BYTES);
+    scanned += 1;
+    if (buf && hasHtmlLikePrefix(buf)) return true;
+  }
+  return false;
 };
 
 const computeSha256 = (filePath: string): string | undefined => {
@@ -315,9 +349,15 @@ const deriveArtifactKind = (artifactKind?: ArtifactKindV0, hasHtml?: boolean): C
   return "dataOnly";
 };
 
-const buildEntryHints = (capture: CaptureTreeV0, hasHtml: boolean, manifestCount: number): string[] => {
+const buildEntryHints = (
+  capture: CaptureTreeV0,
+  hasHtml: boolean,
+  hasHtmlLike: boolean,
+  manifestCount: number
+): string[] => {
   const hints: string[] = [];
   if (hasHtml) hints.push("ENTRY_HTML");
+  if (!hasHtml && hasHtmlLike) hints.push("ENTRY_HTML_LIKE");
   if (manifestCount > 0) hints.push("ENTRY_MANIFEST");
   if (hints.length === 0) hints.push("ENTRY_NONE");
   return stableSortUniqueStringsV0(hints);
@@ -386,10 +426,14 @@ export const buildContentSummaryV0 = (options: {
   const hasScripts = options.capture.entries.some((entry) => scriptExts.has(lower(path.extname(entry.path))));
   const hasHtmlByEntries = options.capture.entries.some((entry) => htmlExts.has(lower(path.extname(entry.path))));
   const hasHtmlByCounts = typeof fileCounts.html === "number" && fileCounts.html > 0;
-  const hasHtmlAny =
+  const hasHtmlDirect =
     hasHtmlByEntries ||
     hasHtmlByCounts ||
     options.artifactKind === "WEB_DIR";
+  const hasHtmlLike = detectHtmlLikeContent(options.inputPath, options.capture);
+  const hasHtmlAny =
+    hasHtmlDirect ||
+    hasHtmlLike;
   const hasIndexHtml = options.capture.entries.some((entry) => {
     const ext = lower(path.extname(entry.path));
     if (!htmlExts.has(ext)) return false;
@@ -403,7 +447,7 @@ export const buildContentSummaryV0 = (options: {
   const externalRefs = extractTopDomains(options.observations?.externalRefs);
   const targetKind = deriveTargetKind(options.capture, options.artifactKind);
   const artifactKind = deriveArtifactKind(options.artifactKind, hasHtmlAny);
-  const entryHints = buildEntryHints(options.capture, hasIndexHtml || hasHtmlAny, manifestCount);
+  const entryHints = buildEntryHints(options.capture, hasIndexHtml || hasHtmlDirect, hasHtmlLike, manifestCount);
   const boundednessMarkers = buildBoundednessMarkers(options.capture);
 
   let signingSummary: ContentSummaryV0["signingSummary"] | undefined;

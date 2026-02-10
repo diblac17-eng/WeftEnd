@@ -1,6 +1,6 @@
-# SUPPORT_INTAKE.md
+# SUPPORT_INTAKE
 
-This page defines the **minimum, privacy‑clean** information needed for support.
+This page defines the minimum, privacy-clean information needed for support.
 It keeps tickets small, reproducible, and safe to share.
 
 ## Required (always)
@@ -25,9 +25,10 @@ It keeps tickets small, reproducible, and safe to share.
 
 ## What to include in the message
 
-- The **runId** (from report card)
-- The **targetKey** (from report card)
-- The **question** you need answered (one sentence)
+- The `runId` (from report card)
+- The `targetKey` (from report card)
+- The question you need answered (one sentence)
+- If CHANGED: include the `delta=` line from `report_card.txt`
 
 ## What NOT to include
 

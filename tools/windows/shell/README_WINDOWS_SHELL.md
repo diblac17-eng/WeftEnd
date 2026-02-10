@@ -45,8 +45,30 @@ Wrapper behavior
   - `npm run weftend -- safe-run ...`
 - It writes `wrapper_result.txt` in the output folder (PASS/FAIL + exit code + reason).
 - It writes `report_card.txt` in the output folder and opens it in Notepad by default.
-- The installer also creates Start Menu shortcuts: **WeftEnd Library** and **WeftEnd Download**.
+- Report card highlights:
+  - `webLane=ACTIVE|NOT_APPLICABLE`
+  - `delta=...` on CHANGED runs
+- The installer creates Start Menu shortcuts: **WeftEnd**, **WeftEnd Library**, **WeftEnd Launchpad**, and **WeftEnd Download**.
 - Wrapper never executes or shell-opens the target artifact.
+
+Launchpad flow (Windows convenience UI)
+- Open Start Menu: **WeftEnd Launchpad**.
+- Drop apps/shortcuts/folders into `%LOCALAPPDATA%\WeftEnd\Library\Launchpad\Targets`.
+- Click **Sync**. Launchpad creates WeftEnd-run shortcuts.
+- Click a launchpad tile:
+  - SAME vs baseline: launch proceeds for executable targets.
+  - CHANGED vs baseline: launch is blocked until baseline is explicitly accepted.
+
+Operator menu (Windows convenience UI)
+- Open Start Menu: **WeftEnd**.
+- Buttons include:
+  - Safe-Run (pick file/folder)
+  - Open Library
+  - Compare two runs
+  - Create ticket pack
+  - Run shell doctor
+  - Install/Uninstall context menu
+  - Open Launchpad
 
 Troubleshooting
 - If execution policy blocks scripts, run PowerShell as current user and allow script execution for this session:

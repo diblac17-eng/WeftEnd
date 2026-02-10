@@ -38,12 +38,8 @@ function Resolve-LibraryRoot {
 
 $libraryRoot = Resolve-LibraryRoot -Base $OutRoot
 if ($libraryRoot -and $libraryRoot.Trim() -ne "") {
-  if ($env:WEFTEND_ENABLE_LAUNCHPAD -eq "1") {
-    $launchpadTargetsDir = Join-Path $libraryRoot "Launchpad\Targets"
-    $launchpadShortcutsDir = Join-Path $libraryRoot "Launchpad\Shortcuts"
-    New-Item -ItemType Directory -Force -Path $launchpadTargetsDir | Out-Null
-    New-Item -ItemType Directory -Force -Path $launchpadShortcutsDir | Out-Null
-  }
+  $launchpadTargetsDir = Join-Path $libraryRoot "Launchpad\Targets"
+  New-Item -ItemType Directory -Force -Path $launchpadTargetsDir | Out-Null
 }
 
 function Resolve-WeftEndIcon {
@@ -155,18 +151,21 @@ function Install-LibraryShortcut {
   $shortcut.Save()
 }
 
-$launchpadRoot = $null
-$launchpadTargets = $null
-$launchpadPanel = $null
-if ($env:WEFTEND_ENABLE_LAUNCHPAD -eq "1") {
-  $launchpadRoot = Join-Path $libraryRoot "Launchpad"
-  $launchpadTargets = Join-Path $launchpadRoot "Targets"
-  $launchpadPanel = Join-Path $scriptDir "launchpad_panel.ps1"
+function Remove-LegacyShortcut {
+  param([string]$ShortcutPath)
+  if ($ShortcutPath -and (Test-Path -LiteralPath $ShortcutPath)) {
+    Remove-Item -LiteralPath $ShortcutPath -Force -ErrorAction SilentlyContinue
+  }
 }
+
+$launchpadRoot = $null
+$launchpadPanel = $null
+$launchpadRoot = Join-Path $libraryRoot "Launchpad"
+$launchpadPanel = Join-Path $scriptDir "launchpad_panel.ps1"
+$menuScript = Join-Path $scriptDir "weftend_menu.ps1"
 function Install-LaunchpadShortcut {
   param([string]$ShortcutPath)
   if (-not $ShortcutPath) { return }
-  if ($env:WEFTEND_ENABLE_LAUNCHPAD -ne "1") { return }
   if (-not $launchpadRoot -or $launchpadRoot.Trim() -eq "") { return }
   $psExe = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
   if (-not (Test-Path $psExe)) { $psExe = "powershell.exe" }
@@ -183,6 +182,22 @@ function Install-LaunchpadShortcut {
     $shortcut.Arguments = "`"$launchpadRoot`""
   }
   $shortcut.IconLocation = if ($weftendIcon) { $weftendIcon } else { $target }
+  $shortcut.Save()
+}
+
+function Install-MenuShortcut {
+  param(
+    [string]$ShortcutPath
+  )
+  if (-not $ShortcutPath) { return }
+  if (-not (Test-Path -LiteralPath $menuScript)) { return }
+  $psExe = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
+  if (-not (Test-Path $psExe)) { $psExe = "powershell.exe" }
+  $shell = New-Object -ComObject WScript.Shell
+  $shortcut = $shell.CreateShortcut($ShortcutPath)
+  $shortcut.TargetPath = $psExe
+  $shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$menuScript`""
+  $shortcut.IconLocation = if ($weftendIcon) { $weftendIcon } else { $psExe }
   $shortcut.Save()
 }
 
@@ -204,6 +219,10 @@ function Install-DownloadShortcut {
 
 $startMenu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
 if ($startMenu -and (Test-Path $startMenu)) {
+  Remove-LegacyShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Watch Targets.lnk")
+  Remove-LegacyShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Watcher Start.lnk")
+  Remove-LegacyShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Watcher Stop.lnk")
+  Install-MenuShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd.lnk")
   Install-LibraryShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Library.lnk")
   Install-LaunchpadShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Launchpad.lnk")
   Install-DownloadShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Download.lnk")
@@ -212,6 +231,10 @@ if ($startMenu -and (Test-Path $startMenu)) {
 if ($DesktopShortcut.IsPresent) {
   $desktop = [Environment]::GetFolderPath("Desktop")
   if ($desktop -and (Test-Path $desktop)) {
+    Remove-LegacyShortcut -ShortcutPath (Join-Path $desktop "WeftEnd Watch Targets.lnk")
+    Remove-LegacyShortcut -ShortcutPath (Join-Path $desktop "WeftEnd Watcher Start.lnk")
+    Remove-LegacyShortcut -ShortcutPath (Join-Path $desktop "WeftEnd Watcher Stop.lnk")
+    Install-MenuShortcut -ShortcutPath (Join-Path $desktop "WeftEnd.lnk")
     Install-LibraryShortcut -ShortcutPath (Join-Path $desktop "WeftEnd Library.lnk")
     Install-LaunchpadShortcut -ShortcutPath (Join-Path $desktop "WeftEnd Launchpad.lnk")
     Install-DownloadShortcut -ShortcutPath (Join-Path $desktop "WeftEnd Download.lnk")

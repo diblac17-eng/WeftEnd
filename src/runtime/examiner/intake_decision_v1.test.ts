@@ -137,6 +137,7 @@ suite("runtime/intake decision flags", () => {
     const out = buildIntakeDecisionV1(mint, policy);
     assert(out.decision.topReasonCodes.includes("DISCLOSURE_REQUIRED"), "expected DISCLOSURE_REQUIRED reason");
     assertEq(out.decision.action, "REJECT", "expected fail-closed action");
+    assertEq(out.disclosure, "DISCLOSURE_REQUIRED", "expected deterministic disclosure sentinel");
   });
 });
 

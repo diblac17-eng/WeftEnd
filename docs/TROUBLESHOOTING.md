@@ -29,16 +29,31 @@ BLOCKED vs DENY
 - BLOCKED: baseline view is frozen until operator accepts or rejects.
 - DENY: policy/trust gate explicitly refused the run.
 
+webLane=NOT_APPLICABLE
+- This is normal for non-web artifacts; it does not mean scan failure.
+
+delta=... on CHANGED
+- This line is a numeric summary of what moved vs baseline (files/bytes/refs/domains/scripts).
+
 ## C) Common codes and what to do (examples)
 
 - EXECUTION_WITHHELD_UNSUPPORTED_ARTIFACT
-  - Expected for native binaries and unsupported formats.
+  - Expected for native binaries and shortcuts only.
+
+- ANALYSIS_ONLY_UNKNOWN_ARTIFACT
+  - Directory/file was analyzed, but no execution lane applies to this artifact kind.
+
+- ANALYSIS_ONLY_NO_EXECUTION_LANE
+  - Artifact is valid for intake evidence, but execution is intentionally not attempted.
 
 - ARTIFACT_SHORTCUT_UNSUPPORTED
   - Shortcut (.lnk) is treated as data, not resolved or executed.
 
 - SAFE_RUN_ENTRY_MISSING
   - No entrypoint found. Use compare or inspect file kinds.
+
+- SAFE_RUN_NO_ENTRYPOINT_FOUND
+  - No runnable entrypoint was detected for this artifact.
 
 - SAFE_RUN_EXECUTION_NOT_REQUESTED
   - Analysis-only run; execution was not requested.

@@ -313,6 +313,14 @@ export const buildIntakeDecisionV1 = (
       capSummary,
       policy
     );
+  } else if (disclosureRequired) {
+    disclosure = truncateTextWithMarker(
+      "DISCLOSURE_REQUIRED_UNAVAILABLE",
+      Math.max(0, policy.bounds.maxDisclosureChars)
+    ).value;
+    if (!disclosure || disclosure.trim().length === 0) {
+      disclosure = "DISCLOSURE_REQUIRED";
+    }
   } else if (!disclosureRequired && canProduceDisclosure(policy)) {
     disclosure = truncateTextWithMarker("DISCLOSURE_NOT_REQUIRED", policy.bounds.maxDisclosureChars).value;
   }

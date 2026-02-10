@@ -241,14 +241,16 @@ function Write-ReportCard {
     [string]$PrivacyLint,
     [string]$BuildDigest,
     [object]$Summary,
-    [object]$ViewState
+    [object]$ViewState,
+    [object]$BaselineSummary
   )
   try {
     $stateLines = @()
+    $status = "UNKNOWN"
+    $bucketText = "-"
     if ($ViewState) {
       $baselineId = if ($ViewState.baselineRunId) { [string]$ViewState.baselineRunId } else { "-" }
       $latestId = if ($ViewState.latestRunId) { [string]$ViewState.latestRunId } else { "-" }
-      $status = "UNKNOWN"
       if ($ViewState.blocked -and $ViewState.blocked.runId) {
         $status = "BLOCKED"
       } else {
@@ -262,7 +264,6 @@ function Write-ReportCard {
           $status = [string]$ViewState.keys[$idx].verdictVsBaseline
         }
       }
-      $bucketText = "-"
       if ($ViewState.keys -and $ViewState.lastN) {
         $idx = -1
         for ($i = 0; $i -lt $ViewState.lastN.Count; $i++) {
@@ -309,6 +310,31 @@ function Write-ReportCard {
     $execution = if ($Summary.executionVerdict) { $Summary.executionVerdict } else { "UNKNOWN" }
     $entry = if ($Summary.entryHints -and $Summary.entryHints.Count -gt 0) { ($Summary.entryHints -join ",") } else { "none" }
     $bounded = if ($Summary.boundednessMarkers -and $Summary.boundednessMarkers.Count -gt 0) { ($Summary.boundednessMarkers -join ",") } else { "-" }
+    $webLane = "NOT_APPLICABLE"
+    $webEntry = "NONE"
+    if ($artifactKind -eq "webBundle" -or ($Summary.hasHtml -eq $true)) {
+      $webLane = "ACTIVE"
+      $webEntry = if ($entry -and $entry -ne "none") { $entry } else { "ENTRY_HTML" }
+    }
+    $deltaLine = ""
+    if ($status -eq "CHANGED" -and $BaselineSummary) {
+      $currFiles = if ($null -ne $Summary.totalFiles) { [int64]$Summary.totalFiles } else { 0 }
+      $baseFiles = if ($null -ne $BaselineSummary.totalFiles) { [int64]$BaselineSummary.totalFiles } else { 0 }
+      $currBytes = if ($null -ne $Summary.totalBytesBounded) { [int64]$Summary.totalBytesBounded } else { 0 }
+      $baseBytes = if ($null -ne $BaselineSummary.totalBytesBounded) { [int64]$BaselineSummary.totalBytesBounded } else { 0 }
+      $currRefs = if ($null -ne $Summary.externalRefCount) { [int64]$Summary.externalRefCount } else { 0 }
+      $baseRefs = if ($null -ne $BaselineSummary.externalRefCount) { [int64]$BaselineSummary.externalRefCount } else { 0 }
+      $currDomains = if ($null -ne $Summary.externalDomainCount) { [int64]$Summary.externalDomainCount } else { 0 }
+      $baseDomains = if ($null -ne $BaselineSummary.externalDomainCount) { [int64]$BaselineSummary.externalDomainCount } else { 0 }
+      $currScripts = if ($Summary.hasScripts -eq $true) { 1 } else { 0 }
+      $baseScripts = if ($BaselineSummary.hasScripts -eq $true) { 1 } else { 0 }
+      $dFiles = $currFiles - $baseFiles
+      $dBytes = $currBytes - $baseBytes
+      $dRefs = $currRefs - $baseRefs
+      $dDomains = $currDomains - $baseDomains
+      $dScripts = $currScripts - $baseScripts
+      $deltaLine = "delta=files:{0:+#;-#;0} bytes:{1:+#;-#;0} externalRefs:{2:+#;-#;0} domains:{3:+#;-#;0} scripts:{4:+#;-#;0}" -f $dFiles, $dBytes, $dRefs, $dDomains, $dScripts
+    }
 
     $next = "COMPARE"
     if ($targetKind -eq "nativeBinary" -or $targetKind -eq "shortcut") {
@@ -350,6 +376,7 @@ function Write-ReportCard {
 
     $lines = @(
       "classification=target:$targetKind artifact:$artifactKind entryHints=$entry",
+      "webLane=$webLane webEntry=$webEntry",
       "observed=files:$files bytes:$bytes scripts:$hasScripts native:$hasNative externalRefs:$extRefs bounded=$bounded",
       "posture=analysis:$analysis exec:$execution reason:$Reason",
       "meaning=$meaning",
@@ -363,6 +390,9 @@ function Write-ReportCard {
       "receipt=safe_run_receipt.json",
       "operator=operator_receipt.json"
     )
+    if ($deltaLine -and $deltaLine.Trim() -ne "") {
+      $lines = $lines[0..1] + @($deltaLine) + $lines[2..($lines.Count - 1)]
+    }
     if ($stateLines.Count -gt 0) {
       $lines = $stateLines + $lines
     }
@@ -381,8 +411,8 @@ function Write-ReportCard {
   }
 }
 
-function Read-ReceiptSummary {
-  $safeReceipt = Join-Path $outDir "safe_run_receipt.json"
+function Read-ReceiptSummaryFromPath {
+  param([string]$SafeReceipt)
   if (Test-Path $safeReceipt) {
     try {
       $json = Get-Content -Path $safeReceipt -Raw | ConvertFrom-Json
@@ -408,8 +438,10 @@ function Read-ReceiptSummary {
         $summary.totalFiles = $content.totalFiles
         $summary.totalBytesBounded = $content.totalBytesBounded
         $summary.hasScripts = $content.hasScripts
+        $summary.hasHtml = $content.hasHtml
         $summary.hasNativeBinaries = $content.hasNativeBinaries
         $summary.externalRefCount = $content.externalRefs.count
+        $summary.externalDomainCount = if ($content.externalRefs.topDomains) { $content.externalRefs.topDomains.Count } else { 0 }
         $summary.entryHints = $content.entryHints
         $summary.boundednessMarkers = $content.boundednessMarkers
       }
@@ -419,6 +451,11 @@ function Read-ReceiptSummary {
     }
   }
   return @{ topReason = $null; analysisVerdict = $null }
+}
+
+function Read-ReceiptSummary {
+  $safeReceipt = Join-Path $outDir "safe_run_receipt.json"
+  return Read-ReceiptSummaryFromPath -SafeReceipt $safeReceipt
 }
 
 function Read-ViewState {
@@ -832,9 +869,14 @@ try {
     }
   }
   $viewState = Read-ViewState -ViewDir (Join-Path $targetDir "view")
+  $baselineSummary = $null
+  if ($viewState -and $viewState.baselineRunId) {
+    $baselineReceiptPath = Join-Path (Join-Path $targetDir ([string]$viewState.baselineRunId)) "safe_run_receipt.json"
+    $baselineSummary = Read-ReceiptSummaryFromPath -SafeReceipt $baselineReceiptPath
+  }
   $viewInfo = Get-ViewStatus -ViewState $viewState
   $viewStatus = if ($viewInfo) { [string]$viewInfo.status } else { "UNKNOWN" }
-  Write-ReportCard -RunId $runId -LibraryKey $targetKey -RunSeq $runSeq -Result $result -Reason $reason -PrivacyLint $privacy -BuildDigest $build -Summary $summary -ViewState $viewState
+  Write-ReportCard -RunId $runId -LibraryKey $targetKey -RunSeq $runSeq -Result $result -Reason $reason -PrivacyLint $privacy -BuildDigest $build -Summary $summary -ViewState $viewState -BaselineSummary $baselineSummary
 } catch {
   $errMsg = Redact-SensitiveText -Text ([string]$_)
   $errPath = Join-Path $outDir "wrapper_report_card_error.txt"

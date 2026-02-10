@@ -1,5 +1,6 @@
 ﻿WeftEnd Alpha 0.1 (Public Alpha)
-Scope: Deterministic intake, receipts, compare, and local library.
+Scope: Deterministic evidence, change tracking, change control, receipts, compare, and local library.
+Liability scope: WeftEnd is an evidence lens, not a safety/compliance guarantee engine.
 
 Included
 - Deterministic intake of files, folders, zips, and web exports.
@@ -20,8 +21,10 @@ Known limitations (by design)
 - Native executables are analysis-only unless explicitly installed into a host.
 - Receipts are deterministic snapshots, not live monitoring.
 - No automatic trust roots or keys are generated.
+- Operators and organizations remain responsible for decisions based on outputs.
 
 Verification
 - The release zip ships with a .sha256 file.
 - Run the release checklist before tagging/publishing.
 - Use the release zip, not the GitHub auto-generated Source code archives.
+- See docs/DISCLAIMER.md for legal scope and non-guarantees.

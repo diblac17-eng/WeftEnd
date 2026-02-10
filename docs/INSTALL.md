@@ -39,3 +39,4 @@ Receipts
 - See docs/REPORT_LIBRARY.md for the local library layout.
 - If you see unexpected results, see docs/TROUBLESHOOTING.md.
 - WITHHELD is expected for native binaries (analysis-only).
+- Liability/scope: see docs/DISCLAIMER.md.

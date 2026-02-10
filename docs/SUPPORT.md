@@ -14,6 +14,11 @@ Non-scope (what support does NOT provide)
 - No remote access to your systems.
 - No data collection or telemetry.
 
+Liability and decision ownership
+- WeftEnd is evidence support, not a legal or safety authority.
+- Operators and organizations remain responsible for all decisions taken from WeftEnd outputs.
+- See `docs/DISCLAIMER.md`.
+
 Support levels (simple, honest)
 - Community: issues and questions via your public tracker.
 - Business support (by inquiry): possible on a case-by-case basis; not promised and not a feature.

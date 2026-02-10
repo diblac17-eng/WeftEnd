@@ -2,9 +2,10 @@
 
 Release scope (alpha)
 
-WeftEnd v0 is a deterministic intake + receipts + compare tool.
+WeftEnd v0 is a deterministic evidence + change-tracking + change-control tool.
 It analyzes artifacts, produces privacy-clean receipts, and lets operators compare changes over time.
 It does not execute native binaries by default.
+It is evidence support, not a safety/compliance guarantee system.
 
 Included in alpha
 - CLI: examine, intake, safe-run, compare
@@ -30,3 +31,7 @@ Audience
 - IT operators validating vendor drops and tools
 - Security teams needing reproducible evidence
 - Modders/users who want clarity without execution
+
+Legal scope
+- Operators and organizations remain responsible for decisions.
+- See docs/DISCLAIMER.md.

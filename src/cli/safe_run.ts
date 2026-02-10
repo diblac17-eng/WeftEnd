@@ -747,8 +747,8 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
       } else {
         executionReasonCodes = stableSortUniqueReasonsV0(
           classifiedRaw.artifactKind === "UNKNOWN" && result.capture.kind === "dir"
-            ? ["SAFE_RUN_NO_ENTRYPOINT_FOUND", "EXECUTION_WITHHELD_UNSUPPORTED_ARTIFACT"]
-            : ["EXECUTION_WITHHELD_UNSUPPORTED_ARTIFACT", "ARTIFACT_NATIVE_BINARY"]
+            ? ["SAFE_RUN_NO_ENTRYPOINT_FOUND", "ANALYSIS_ONLY_UNKNOWN_ARTIFACT"]
+            : ["ANALYSIS_ONLY_NO_EXECUTION_LANE"]
         );
       }
       if (!executeRequested) {

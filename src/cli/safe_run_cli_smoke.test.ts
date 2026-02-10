@@ -275,6 +275,25 @@ suite("cli/safe-run", () => {
     const receipt = readJson(path.join(outDir, "run"), "safe_run_receipt.json");
     assertEq(receipt.analysisVerdict, "WITHHELD", "expected WITHHELD");
     assert(receipt.execution.reasonCodes.includes("SAFE_RUN_NO_ENTRYPOINT_FOUND"), "expected no entrypoint reason");
+    assert(receipt.execution.reasonCodes.includes("ANALYSIS_ONLY_UNKNOWN_ARTIFACT"), "expected unknown-artifact reason");
+    assert(
+      !receipt.execution.reasonCodes.includes("EXECUTION_WITHHELD_UNSUPPORTED_ARTIFACT"),
+      "expected unsupported-artifact code reserved for native/shortcut"
+    );
+  });
+
+  register("safe-run html-like extensionless file is classified as webBundle summary", async () => {
+    const outDir = makeTempDir();
+    const folder = path.join(outDir, "input");
+    fs.mkdirSync(folder, { recursive: true });
+    fs.writeFileSync(path.join(folder, "landing"), "<!doctype html><html><body>hello</body></html>", "utf8");
+    const policyPath = path.join(process.cwd(), "policies", "generic_default.json");
+    const result = await runCliCapture(["safe-run", folder, "--policy", policyPath, "--out", path.join(outDir, "run")]);
+    assertEq(result.status, 0, `expected analyze-only exit code\n${result.stderr}`);
+    const receipt = readJson(path.join(outDir, "run"), "safe_run_receipt.json");
+    assertEq(receipt.contentSummary.artifactKind, "webBundle", "expected webBundle from html-like content");
+    assertEq(receipt.contentSummary.hasHtml, true, "expected hasHtml true");
+    assert(receipt.contentSummary.entryHints.includes("ENTRY_HTML_LIKE"), "expected ENTRY_HTML_LIKE hint");
   });
 
   register("safe-run malformed input exits 40", async () => {

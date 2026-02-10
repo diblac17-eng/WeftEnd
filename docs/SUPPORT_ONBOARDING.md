@@ -1,16 +1,17 @@
 # SUPPORT_ONBOARDING
 
-Operator onboarding checklist (5–10 minutes).
+Operator onboarding checklist (5-10 minutes).
 
 1) Install (Windows)
 - Install the context menu tools.
-- Confirm the “WeftEnd Library” shortcut exists.
+- Confirm the "WeftEnd Library" shortcut exists.
 - Run shell doctor (must show OK for all bindings).
 
 2) First run
-- Right-click a folder or zip and choose “Run with WeftEnd.”
-- Confirm report_card.txt opens.
+- Right-click a folder or zip and choose "Run with WeftEnd."
+- Confirm `report_card.txt` opens.
 - Confirm receipts exist in the library run folder.
+- For non-web artifacts, `webLane=NOT_APPLICABLE` is normal.
 
 3) Baseline flow
 - Run the same target twice.
@@ -19,7 +20,7 @@ Operator onboarding checklist (5–10 minutes).
 
 4) Compare flow
 - Run compare between two runs to see buckets.
-- Keep compare_report.txt as the audit artifact.
+- Keep `compare_report.txt` as the audit artifact.
 
 5) Verify determinism (optional)
 - Re-run the same input and confirm identical receipts and digests.

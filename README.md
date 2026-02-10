@@ -1,10 +1,10 @@
 # WeftEnd
 
-WeftEnd is a deterministic intake and evidence tool for operators.
+WeftEnd is a deterministic evidence, change-tracking, and change-control tool for operators.
 It analyzes artifacts, produces privacy-clean receipts, and lets you compare what changed
 without executing unknown code.
 
-Deterministic intake means the same artifact always produces the same receipts, regardless of machine or time.
+Deterministic evidence means the same artifact always produces the same receipts, regardless of machine or time.
 This makes the output suitable as evidence: you can re-run it later, compare against a baseline,
 and prove what changed without trusting memory, logs, or external services.
 
@@ -24,6 +24,12 @@ What it is not
 - Not an antivirus
 - Not a sandbox by default
 - Not a cloud service
+
+Liability and scope
+- WeftEnd is a lens for evidence and change tracking, not an oracle for truth.
+- It does not guarantee safety, prevention, or legal/compliance outcomes.
+- Operators and organizations remain responsible for decisions made using WeftEnd outputs.
+- See `docs/DISCLAIMER.md`.
 
 Who it's for
 - IT admins validating tools, installers, and scripts
@@ -49,6 +55,13 @@ Outputs
 - `out/run/README.txt` (receipt info)
 - Windows shell wrapper also writes `report_card.txt` in the library run folder.
 - Ticket attachments: `npm run weftend -- ticket-pack <outRoot> --out <dir> --zip`
+
+Report card lines (quick read)
+- `classification=...`: target/artifact classification and entry hints.
+- `webLane=ACTIVE|NOT_APPLICABLE`: whether web probe lane applies.
+- `observed=...`: file/byte/script/native/reference counts.
+- `posture=...`: analysis/execution result + top reason.
+- `delta=...`: shown on CHANGED runs; summarizes what moved vs baseline.
 
 Success & abnormal outcomes (operator view)
 - Safe-Run success: report card + receipts exist. WITHHELD is normal for native binaries.
@@ -87,6 +100,8 @@ How to use (operator flow)
    `npm run weftend -- compare <oldOut> <newOut> --out <diffOut>`
 3.5) Optional: create a WeftEnd-run shortcut (analysis first, then launch if baseline OK):
    `npm run weftend -- shortcut create --target <path-to-app.exe> --allow-launch`
+3.6) Optional: use Start Menu **WeftEnd Launchpad** for a click-to-run gated launcher.
+3.7) Optional: use Start Menu **WeftEnd** for a click-first operator menu (safe-run, compare, ticket pack, shell doctor, and context tools).
 4) Create a ticket bundle when needed:
    `npm run weftend -- ticket-pack <outRoot> --out <ticketDir> --zip`
 5) Use the library to track baseline + history:
@@ -111,6 +126,7 @@ Keys & trust (v0)
 Docs
 - `docs/WHAT_IS_WEFTEND.md`
 - `docs/WHY_RECEIPTS.md`
+- `docs/DISCLAIMER.md`
 - `docs/TRUTH_MODEL_V0_V1.md`
 - `docs/TEAM_SUITES.md`
 - `docs/AUTO_SCAN.md`

@@ -27,7 +27,7 @@ future patch that strengthens trust for modders and tool developers.
 
 ## Truth model (v0 vs v1)
 
-- v0: deterministic intake + receipts + compare (proven today)
+- v0: deterministic evidence + change-tracking + change-control (proven today)
 - v1: publisher snapshots + external truth binding (planned)
 - Details: `docs/TRUTH_MODEL_V0_V1.md`
 
@@ -106,7 +106,7 @@ If it leaves a trace, WeftEnd records it.
 ## Who this is for (v1)
 
 - Mod developers who want players to trust downloads
-- Platform owners who want deterministic intake checks
+- Platform owners who want deterministic evidence checks
 - Security-conscious devs who want proof, not promises
 - Toolchains that need a clean "is this acceptable?" adapter
 - Archivists/records keepers who need deterministic, non-executing evidence of software artifacts
