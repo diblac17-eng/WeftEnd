@@ -101,6 +101,19 @@ const ensureDir = (dir: string): void => {
   fs.mkdirSync(dir, { recursive: true });
 };
 
+const resolveShortcutToolPath = (): string => {
+  const cwdCandidate = path.join(process.cwd(), "tools", "windows", "shell", "weftend_make_shortcut.ps1");
+  if (fs.existsSync(cwdCandidate)) return cwdCandidate;
+
+  const argvMain = String(process?.argv?.[1] || "");
+  if (argvMain) {
+    const distCliDir = path.dirname(argvMain);
+    const repoCandidate = path.resolve(distCliDir, "..", "..", "..", "tools", "windows", "shell", "weftend_make_shortcut.ps1");
+    if (fs.existsSync(repoCandidate)) return repoCandidate;
+  }
+  return cwdCandidate;
+};
+
 const createShortcut = (
   scriptPath: string,
   targetPath: string,
@@ -152,7 +165,7 @@ const syncLaunchpad = (
   ensureDir(targetsDir);
   ensureDir(shortcutsDir);
 
-  const scriptPath = path.join(process.cwd(), "tools", "windows", "shell", "weftend_make_shortcut.ps1");
+  const scriptPath = resolveShortcutToolPath();
   if (!fs.existsSync(scriptPath)) {
     console.error("[LAUNCHPAD_TOOL_MISSING]");
     return { ok: false, added: 0, removed: 0, failed: 0, scanned: 0 };
