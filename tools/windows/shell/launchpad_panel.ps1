@@ -449,10 +449,76 @@ function Set-StatusLine {
   }
 }
 
+function Read-ViewStateSummary {
+  param([string]$TargetDir)
+  $viewPath = Join-Path $TargetDir "view\view_state.json"
+  if (-not (Test-Path -LiteralPath $viewPath)) {
+    return @{
+      status = "UNKNOWN"
+      baseline = "-"
+      latest = "-"
+      buckets = "-"
+    }
+  }
+  try {
+    $obj = Get-Content -LiteralPath $viewPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $status = "UNKNOWN"
+    if ($obj.blocked) {
+      $status = "BLOCKED"
+    } elseif ($obj.lastCompare -and $obj.lastCompare.verdict) {
+      $status = [string]$obj.lastCompare.verdict
+    }
+    $baseline = if ($obj.baselineRunId) { [string]$obj.baselineRunId } else { "-" }
+    $latest = if ($obj.latestRunId) { [string]$obj.latestRunId } else { "-" }
+    $buckets = "-"
+    if ($obj.lastCompare -and $obj.lastCompare.buckets -is [System.Array] -and $obj.lastCompare.buckets.Count -gt 0) {
+      $buckets = (($obj.lastCompare.buckets | ForEach-Object { [string]$_ }) -join ",")
+    }
+    return @{
+      status = $status
+      baseline = $baseline
+      latest = $latest
+      buckets = $buckets
+    }
+  } catch {
+    return @{
+      status = "UNKNOWN"
+      baseline = "-"
+      latest = "-"
+      buckets = "-"
+    }
+  }
+}
+
+function Load-HistoryRows {
+  param([System.Windows.Forms.ListView]$ListView)
+  if (-not $ListView) { return 0 }
+  $ListView.BeginUpdate()
+  $ListView.Items.Clear()
+
+  $dirs = @(
+    Get-ChildItem -LiteralPath $libraryRoot -Directory -ErrorAction SilentlyContinue |
+      Where-Object { $_.Name -ne "Launchpad" } |
+      Sort-Object Name
+  )
+  foreach ($dir in $dirs) {
+    $s = Read-ViewStateSummary -TargetDir $dir.FullName
+    $item = New-Object System.Windows.Forms.ListViewItem($dir.Name)
+    [void]$item.SubItems.Add($s.status)
+    [void]$item.SubItems.Add($s.baseline)
+    [void]$item.SubItems.Add($s.latest)
+    [void]$item.SubItems.Add($s.buckets)
+    [void]$ListView.Items.Add($item)
+  }
+
+  $ListView.EndUpdate()
+  return $dirs.Count
+}
+
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "WeftEnd Launchpad"
-$form.Width = 440
-$form.Height = 650
+$form.Width = 456
+$form.Height = 680
 $form.StartPosition = "CenterScreen"
 $form.BackColor = $colorBg
 $form.ForeColor = $colorText
@@ -460,38 +526,71 @@ $form.Font = $fontMain
 $form.MaximizeBox = $false
 $form.MinimizeBox = $true
 $form.FormBorderStyle = "FixedDialog"
+$form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
+$form.MinimumSize = New-Object System.Drawing.Size(456, 680)
+$form.MaximumSize = New-Object System.Drawing.Size(456, 680)
 if ($TopMost.IsPresent) { $form.TopMost = $true }
 
-$header = New-Object System.Windows.Forms.FlowLayoutPanel
-$header.FlowDirection = "LeftToRight"
+$header = New-Object System.Windows.Forms.TableLayoutPanel
 $header.Dock = "Top"
-$header.Height = 106
-$header.Padding = New-Object System.Windows.Forms.Padding 6
+$header.Height = 78
 $header.BackColor = $colorHeader
+$header.ColumnCount = 1
+$header.RowCount = 2
+$header.Padding = New-Object System.Windows.Forms.Padding(12, 8, 12, 8)
+$header.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 30)))
+$header.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 24)))
 
 $title = New-Object System.Windows.Forms.Label
 $title.Text = "WeftEnd Launchpad"
-$title.AutoSize = $false
-$title.Width = 406
-$title.Height = 24
-$title.Margin = New-Object System.Windows.Forms.Padding 6,4,6,2
+$title.Dock = "Fill"
 $title.Font = $fontTitle
 $title.ForeColor = $colorText
 $title.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
 $subtitle = New-Object System.Windows.Forms.Label
-$subtitle.Text = "Click a tile to run gated scan + launch workflow"
-$subtitle.AutoSize = $false
-$subtitle.Width = 406
-$subtitle.Height = 18
-$subtitle.Margin = New-Object System.Windows.Forms.Padding 6,0,6,4
+$subtitle.Text = "Compact operator launcher: gated scan then launch."
+$subtitle.Dock = "Fill"
 $subtitle.Font = $fontSmall
 $subtitle.ForeColor = $colorMuted
 $subtitle.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
+$header.Controls.Add($title, 0, 0)
+$header.Controls.Add($subtitle, 0, 1)
+
+$tabs = New-Object System.Windows.Forms.TabControl
+$tabs.Dock = "Fill"
+$tabs.Padding = New-Object System.Drawing.Point(14, 6)
+
+$tabLaunch = New-Object System.Windows.Forms.TabPage("Launch")
+$tabLibrary = New-Object System.Windows.Forms.TabPage("Library")
+$tabHistory = New-Object System.Windows.Forms.TabPage("History")
+$tabDoctor = New-Object System.Windows.Forms.TabPage("Doctor")
+$tabSettings = New-Object System.Windows.Forms.TabPage("Settings")
+foreach ($tp in @($tabLaunch, $tabLibrary, $tabHistory, $tabDoctor, $tabSettings)) {
+  $tp.BackColor = $colorBg
+  $tp.ForeColor = $colorText
+  [void]$tabs.TabPages.Add($tp)
+}
+
+$launchLayout = New-Object System.Windows.Forms.TableLayoutPanel
+$launchLayout.Dock = "Fill"
+$launchLayout.ColumnCount = 1
+$launchLayout.RowCount = 2
+$launchLayout.Padding = New-Object System.Windows.Forms.Padding(6, 8, 6, 8)
+$launchLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 42)))
+$launchLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+$tabLaunch.Controls.Add($launchLayout)
+
+$launchActions = New-Object System.Windows.Forms.FlowLayoutPanel
+$launchActions.Dock = "Fill"
+$launchActions.FlowDirection = "LeftToRight"
+$launchActions.WrapContents = $false
+$launchActions.BackColor = $colorBg
+
 $btnTargets = New-Object System.Windows.Forms.Button
 $btnTargets.Text = "Open Targets"
-$btnTargets.Width = 110
+$btnTargets.Width = 116
 $btnTargets.Height = 30
 Style-Button -Button $btnTargets -Primary:$false
 $btnTargets.Add_Click({
@@ -502,64 +601,19 @@ $btnTargets.Add_Click({
 
 $btnSync = New-Object System.Windows.Forms.Button
 $btnSync.Text = "Sync"
-$btnSync.Width = 60
+$btnSync.Width = 74
 $btnSync.Height = 30
 Style-Button -Button $btnSync -Primary:$true
-$btnSync.Add_Click({
-  $sync = Invoke-LaunchpadSync
-  $count = Load-Shortcuts -Panel $listPanel
-  if ($sync.ok) {
-    $msg = "Synced. targets=" + $sync.scanned + " added=" + $sync.added + " removed=" + $sync.removed + " failed=" + $sync.failed + " visible=" + $count
-    Set-StatusLine -StatusLabel $statusLabel -Message $msg -IsError $false
-  } else {
-    Set-StatusLine -StatusLabel $statusLabel -Message ("Sync error: " + $sync.code) -IsError $true
-  }
-})
 
 $btnRefresh = New-Object System.Windows.Forms.Button
 $btnRefresh.Text = "Refresh"
-$btnRefresh.Width = 70
+$btnRefresh.Width = 80
 $btnRefresh.Height = 30
 Style-Button -Button $btnRefresh -Primary:$false
-$btnRefresh.Add_Click({
-  $sync = Invoke-LaunchpadSync -Silent
-  $count = Load-Shortcuts -Panel $listPanel
-  if ($sync.ok) {
-    Set-StatusLine -StatusLabel $statusLabel -Message ("Refreshed. visible=" + $count) -IsError $false
-  } else {
-    Set-StatusLine -StatusLabel $statusLabel -Message ("Refresh warning: " + $sync.code) -IsError $true
-  }
-})
 
-$chkAuto = New-Object System.Windows.Forms.CheckBox
-$chkAuto.Text = "Auto refresh"
-$chkAuto.Checked = $true
-$chkAuto.AutoSize = $true
-$chkAuto.Margin = New-Object System.Windows.Forms.Padding 6,10,0,0
-$chkAuto.ForeColor = $colorText
-
-$chkTop = New-Object System.Windows.Forms.CheckBox
-$chkTop.Text = "Topmost"
-$chkTop.Checked = $TopMost.IsPresent
-$chkTop.AutoSize = $true
-$chkTop.Margin = New-Object System.Windows.Forms.Padding 6,10,0,0
-$chkTop.ForeColor = $colorText
-$chkTop.Add_CheckedChanged({
-  $form.TopMost = $chkTop.Checked
-})
-
-$header.Controls.Add($title) | Out-Null
-$header.Controls.Add($subtitle) | Out-Null
-$header.Controls.Add($btnTargets) | Out-Null
-$header.Controls.Add($btnSync) | Out-Null
-$header.Controls.Add($btnRefresh) | Out-Null
-$header.Controls.Add($chkAuto) | Out-Null
-$header.Controls.Add($chkTop) | Out-Null
-
-$headerDivider = New-Object System.Windows.Forms.Panel
-$headerDivider.Dock = "Top"
-$headerDivider.Height = 1
-$headerDivider.BackColor = $colorBorder
+$launchActions.Controls.Add($btnTargets) | Out-Null
+$launchActions.Controls.Add($btnSync) | Out-Null
+$launchActions.Controls.Add($btnRefresh) | Out-Null
 
 $listPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $listPanel.Dock = "Fill"
@@ -567,6 +621,183 @@ $listPanel.FlowDirection = "TopDown"
 $listPanel.WrapContents = $false
 $listPanel.AutoScroll = $true
 $listPanel.BackColor = $colorBg
+$listPanel.Padding = New-Object System.Windows.Forms.Padding(0, 2, 0, 0)
+
+$launchLayout.Controls.Add($launchActions, 0, 0)
+$launchLayout.Controls.Add($listPanel, 0, 1)
+
+$libLayout = New-Object System.Windows.Forms.TableLayoutPanel
+$libLayout.Dock = "Fill"
+$libLayout.ColumnCount = 1
+$libLayout.RowCount = 5
+$libLayout.Padding = New-Object System.Windows.Forms.Padding(10)
+$libLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 36)))
+$libLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 36)))
+$libLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 36)))
+$libLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 36)))
+$libLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+$tabLibrary.Controls.Add($libLayout)
+
+$btnOpenLibrary = New-Object System.Windows.Forms.Button
+$btnOpenLibrary.Text = "Open Library Root"
+$btnOpenLibrary.Height = 30
+$btnOpenLibrary.Dock = "Fill"
+Style-Button -Button $btnOpenLibrary -Primary:$false
+$btnOpenLibrary.Add_Click({
+  $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+  if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
+  Start-Process -FilePath $explorerPath -ArgumentList $libraryRoot | Out-Null
+})
+
+$btnOpenLaunchpad = New-Object System.Windows.Forms.Button
+$btnOpenLaunchpad.Text = "Open Launchpad Folder"
+$btnOpenLaunchpad.Height = 30
+$btnOpenLaunchpad.Dock = "Fill"
+Style-Button -Button $btnOpenLaunchpad -Primary:$false
+$btnOpenLaunchpad.Add_Click({
+  $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+  if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
+  Start-Process -FilePath $explorerPath -ArgumentList $launchpadRoot | Out-Null
+})
+
+$btnOpenTargets2 = New-Object System.Windows.Forms.Button
+$btnOpenTargets2.Text = "Open Targets Folder"
+$btnOpenTargets2.Height = 30
+$btnOpenTargets2.Dock = "Fill"
+Style-Button -Button $btnOpenTargets2 -Primary:$false
+$btnOpenTargets2.Add_Click({
+  $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+  if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
+  Start-Process -FilePath $explorerPath -ArgumentList $targetsDir | Out-Null
+})
+
+$btnSync2 = New-Object System.Windows.Forms.Button
+$btnSync2.Text = "Sync Targets Now"
+$btnSync2.Height = 30
+$btnSync2.Dock = "Fill"
+Style-Button -Button $btnSync2 -Primary:$true
+
+$libHint = New-Object System.Windows.Forms.Label
+$libHint.Text = "Use Launch for day-to-day starts. Library tab is for navigation."
+$libHint.Dock = "Fill"
+$libHint.ForeColor = $colorMuted
+$libHint.Font = $fontSmall
+$libHint.TextAlign = [System.Drawing.ContentAlignment]::TopLeft
+
+$libLayout.Controls.Add($btnOpenLibrary, 0, 0)
+$libLayout.Controls.Add($btnOpenLaunchpad, 0, 1)
+$libLayout.Controls.Add($btnOpenTargets2, 0, 2)
+$libLayout.Controls.Add($btnSync2, 0, 3)
+$libLayout.Controls.Add($libHint, 0, 4)
+
+$historyLayout = New-Object System.Windows.Forms.TableLayoutPanel
+$historyLayout.Dock = "Fill"
+$historyLayout.ColumnCount = 1
+$historyLayout.RowCount = 2
+$historyLayout.Padding = New-Object System.Windows.Forms.Padding(6, 8, 6, 8)
+$historyLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 42)))
+$historyLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+$tabHistory.Controls.Add($historyLayout)
+
+$historyActions = New-Object System.Windows.Forms.FlowLayoutPanel
+$historyActions.Dock = "Fill"
+$historyActions.FlowDirection = "LeftToRight"
+$historyActions.WrapContents = $false
+$historyActions.BackColor = $colorBg
+
+$btnHistoryRefresh = New-Object System.Windows.Forms.Button
+$btnHistoryRefresh.Text = "Refresh History"
+$btnHistoryRefresh.Width = 112
+$btnHistoryRefresh.Height = 30
+Style-Button -Button $btnHistoryRefresh -Primary:$false
+$historyActions.Controls.Add($btnHistoryRefresh) | Out-Null
+
+$historyList = New-Object System.Windows.Forms.ListView
+$historyList.Dock = "Fill"
+$historyList.View = [System.Windows.Forms.View]::Details
+$historyList.FullRowSelect = $true
+$historyList.GridLines = $true
+$historyList.HideSelection = $false
+$historyList.BackColor = $colorPanel
+$historyList.ForeColor = $colorText
+[void]$historyList.Columns.Add("Target", 116)
+[void]$historyList.Columns.Add("Status", 80)
+[void]$historyList.Columns.Add("Baseline", 78)
+[void]$historyList.Columns.Add("Latest", 78)
+[void]$historyList.Columns.Add("Buckets", 88)
+
+$historyLayout.Controls.Add($historyActions, 0, 0)
+$historyLayout.Controls.Add($historyList, 0, 1)
+
+$doctorLayout = New-Object System.Windows.Forms.TableLayoutPanel
+$doctorLayout.Dock = "Fill"
+$doctorLayout.ColumnCount = 1
+$doctorLayout.RowCount = 2
+$doctorLayout.Padding = New-Object System.Windows.Forms.Padding(6, 8, 6, 8)
+$doctorLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 42)))
+$doctorLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+$tabDoctor.Controls.Add($doctorLayout)
+
+$doctorActions = New-Object System.Windows.Forms.FlowLayoutPanel
+$doctorActions.Dock = "Fill"
+$doctorActions.FlowDirection = "LeftToRight"
+$doctorActions.WrapContents = $false
+$doctorActions.BackColor = $colorBg
+
+$btnDoctorRun = New-Object System.Windows.Forms.Button
+$btnDoctorRun.Text = "Run Shell Doctor"
+$btnDoctorRun.Width = 118
+$btnDoctorRun.Height = 30
+Style-Button -Button $btnDoctorRun -Primary:$false
+$doctorActions.Controls.Add($btnDoctorRun) | Out-Null
+
+$doctorText = New-Object System.Windows.Forms.TextBox
+$doctorText.Dock = "Fill"
+$doctorText.Multiline = $true
+$doctorText.ScrollBars = "Vertical"
+$doctorText.ReadOnly = $true
+$doctorText.BackColor = $colorPanel
+$doctorText.ForeColor = $colorText
+$doctorText.Font = $fontSmall
+$doctorText.Text = "Shell doctor output appears here."
+
+$doctorLayout.Controls.Add($doctorActions, 0, 0)
+$doctorLayout.Controls.Add($doctorText, 0, 1)
+
+$settingsLayout = New-Object System.Windows.Forms.TableLayoutPanel
+$settingsLayout.Dock = "Fill"
+$settingsLayout.ColumnCount = 1
+$settingsLayout.RowCount = 4
+$settingsLayout.Padding = New-Object System.Windows.Forms.Padding(10)
+$settingsLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 28)))
+$settingsLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 28)))
+$settingsLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 28)))
+$settingsLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+$tabSettings.Controls.Add($settingsLayout)
+
+$chkAuto = New-Object System.Windows.Forms.CheckBox
+$chkAuto.Text = "Auto refresh every 5 seconds"
+$chkAuto.Checked = $true
+$chkAuto.AutoSize = $true
+$chkAuto.ForeColor = $colorText
+
+$chkTop = New-Object System.Windows.Forms.CheckBox
+$chkTop.Text = "Topmost window"
+$chkTop.Checked = $TopMost.IsPresent
+$chkTop.AutoSize = $true
+$chkTop.ForeColor = $colorText
+$chkTop.Add_CheckedChanged({ $form.TopMost = $chkTop.Checked })
+
+$settingsHint = New-Object System.Windows.Forms.Label
+$settingsHint.Text = "SAME launches target. CHANGED blocks launch until accepted."
+$settingsHint.ForeColor = $colorMuted
+$settingsHint.Font = $fontSmall
+$settingsHint.Dock = "Fill"
+$settingsHint.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+
+$settingsLayout.Controls.Add($chkAuto, 0, 0)
+$settingsLayout.Controls.Add($chkTop, 0, 1)
+$settingsLayout.Controls.Add($settingsHint, 0, 2)
 
 $statusBar = New-Object System.Windows.Forms.Panel
 $statusBar.Dock = "Bottom"
@@ -575,36 +806,64 @@ $statusBar.BackColor = $colorHeader
 
 $statusLabel = New-Object System.Windows.Forms.Label
 $statusLabel.AutoSize = $false
-$statusLabel.Width = 420
-$statusLabel.Height = 24
-$statusLabel.Location = New-Object System.Drawing.Point 8,2
+$statusLabel.Dock = "Fill"
 $statusLabel.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+$statusLabel.Padding = New-Object System.Windows.Forms.Padding(8, 0, 0, 0)
 $statusLabel.ForeColor = $colorMuted
 $statusLabel.Font = $fontSmall
 $statusLabel.Text = "Ready."
 $statusBar.Controls.Add($statusLabel) | Out-Null
 
+$syncNow = {
+  param([switch]$Silent)
+  $sync = if ($Silent.IsPresent) { Invoke-LaunchpadSync -Silent } else { Invoke-LaunchpadSync }
+  $count = Load-Shortcuts -Panel $listPanel
+  $tracked = Load-HistoryRows -ListView $historyList
+  if ($sync.ok) {
+    $msg = "Synced. targets=" + $sync.scanned + " added=" + $sync.added + " removed=" + $sync.removed + " failed=" + $sync.failed + " visible=" + $count + " tracked=" + $tracked
+    Set-StatusLine -StatusLabel $statusLabel -Message $msg -IsError $false
+  } else {
+    $label = if ($Silent.IsPresent) { "Refresh warning: " } else { "Sync error: " }
+    Set-StatusLine -StatusLabel $statusLabel -Message ($label + $sync.code) -IsError $true
+  }
+}
+
+$btnSync.Add_Click({ & $syncNow })
+$btnSync2.Add_Click({ & $syncNow })
+$btnRefresh.Add_Click({ & $syncNow -Silent })
+$btnHistoryRefresh.Add_Click({
+  $tracked = Load-HistoryRows -ListView $historyList
+  Set-StatusLine -StatusLabel $statusLabel -Message ("History refreshed. tracked=" + $tracked) -IsError $false
+})
+$btnDoctorRun.Add_Click({
+  if (-not $shellDoctorScript -or -not (Test-Path -LiteralPath $shellDoctorScript)) {
+    $doctorText.Text = "Shell doctor script missing."
+    return
+  }
+  try {
+    $output = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $shellDoctorScript 2>&1)
+    $doctorText.Text = (($output | ForEach-Object { [string]$_ }) -join [Environment]::NewLine)
+    Set-StatusLine -StatusLabel $statusLabel -Message "Shell doctor completed." -IsError $false
+  } catch {
+    $doctorText.Text = "Shell doctor failed."
+    Set-StatusLine -StatusLabel $statusLabel -Message "Shell doctor failed." -IsError $true
+  }
+})
+
 $initialCount = Load-Shortcuts -Panel $listPanel
-Set-StatusLine -StatusLabel $statusLabel -Message ("Ready. visible=" + $initialCount) -IsError $false
+$initialTracked = Load-HistoryRows -ListView $historyList
+Set-StatusLine -StatusLabel $statusLabel -Message ("Ready. visible=" + $initialCount + " tracked=" + $initialTracked) -IsError $false
 
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 5000
 $timer.Add_Tick({
   if ($chkAuto.Checked) {
-    $sync = Invoke-LaunchpadSync -Silent
-    $count = Load-Shortcuts -Panel $listPanel
-    if ($sync.ok) {
-      Set-StatusLine -StatusLabel $statusLabel -Message ("Auto refresh. visible=" + $count) -IsError $false
-    } else {
-      Set-StatusLine -StatusLabel $statusLabel -Message ("Auto refresh warning: " + $sync.code) -IsError $true
-    }
+    & $syncNow -Silent
   }
 })
 $timer.Start()
 
-$form.Controls.Add($listPanel)
+$form.Controls.Add($tabs)
 $form.Controls.Add($statusBar)
-$form.Controls.Add($headerDivider)
 $form.Controls.Add($header)
-
 [void]$form.ShowDialog()

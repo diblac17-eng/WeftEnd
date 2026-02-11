@@ -54,6 +54,7 @@ Wrapper behavior
 
 Launchpad flow (Windows convenience UI)
 - Open Start Menu: **WeftEnd Launchpad**.
+- The panel is compact and tabbed (`Launch`, `Library`, `History`, `Doctor`, `Settings`) for operator-friendly navigation.
 - Drop apps/shortcuts/folders into `%LOCALAPPDATA%\WeftEnd\Library\Launchpad\Targets`.
 - Click **Sync**. Launchpad creates WeftEnd-run shortcuts.
 - Click a launchpad tile:
