@@ -371,6 +371,25 @@ const writeText = (filePath: string, text: string): void => {
   fs.writeFileSync(filePath, text, "utf8");
 };
 
+const isSafeRequiredRelPath = (value: string): boolean => {
+  const rel = String(value || "").replace(/\\/g, "/").trim();
+  if (!rel) return false;
+  if (rel.startsWith("/") || /^[A-Za-z]:\//.test(rel)) return false;
+  if (rel.includes("..")) return false;
+  if (/%[A-Za-z_][A-Za-z0-9_]*%/.test(rel)) return false;
+  if (/\$env:[A-Za-z_][A-Za-z0-9_]*/.test(rel)) return false;
+  return true;
+};
+
+const resolveWithinDir = (root: string, relPath: string): string | null => {
+  const rootAbs = path.resolve(root);
+  const candidate = path.resolve(rootAbs, relPath);
+  const rel = path.relative(rootAbs, candidate);
+  if (!rel || rel === ".") return candidate;
+  if (rel.startsWith("..") || path.isAbsolute(rel)) return null;
+  return candidate;
+};
+
 const validateMarkers = (parsed: ParsedEmailV0, bodyText: string, htmlText: string): string[] => {
   const markers = [...parsed.markers];
   if (bodyText.length >= MAX_TEXT_BYTES) markers.push("EMAIL_BODY_TEXT_TRUNCATED");
@@ -478,9 +497,14 @@ const validateNormalizedEmailExport = (inputDir: string): { ok: true; exportDir:
     return { ok: false, code: "ADAPTER_NORMALIZATION_INVALID" };
   }
   const required = Array.isArray(manifest.requiredFiles) ? manifest.requiredFiles : [];
+  if (required.length === 0 || required.length > 64) {
+    return { ok: false, code: "ADAPTER_NORMALIZATION_INVALID" };
+  }
   for (const file of required) {
     if (typeof file !== "string" || file.length === 0) return { ok: false, code: "ADAPTER_NORMALIZATION_INVALID" };
-    const abs = path.join(exportDir, file);
+    if (!isSafeRequiredRelPath(file)) return { ok: false, code: "ADAPTER_NORMALIZATION_INVALID" };
+    const abs = resolveWithinDir(exportDir, file);
+    if (!abs) return { ok: false, code: "ADAPTER_NORMALIZATION_INVALID" };
     if (!fs.existsSync(abs)) return { ok: false, code: "ADAPTER_NORMALIZATION_INVALID" };
   }
   return { ok: true, exportDir };

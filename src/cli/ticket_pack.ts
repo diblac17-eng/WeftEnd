@@ -21,6 +21,25 @@ type TicketPackEntry = {
 const normalizeRel = (root: string, filePath: string): string =>
   path.relative(path.resolve(root), path.resolve(filePath)).split(path.sep).join("/");
 
+const isSafeRelativePath = (value: string): boolean => {
+  const rel = String(value || "").replace(/\\/g, "/").trim();
+  if (!rel) return false;
+  if (rel.startsWith("/") || /^[A-Za-z]:\//.test(rel)) return false;
+  if (rel.includes("..")) return false;
+  if (/%[A-Za-z_][A-Za-z0-9_]*%/.test(rel)) return false;
+  if (/\$env:[A-Za-z_][A-Za-z0-9_]*/.test(rel)) return false;
+  return true;
+};
+
+const resolveWithinRoot = (root: string, relPath: string): string | null => {
+  const rootAbs = path.resolve(root);
+  const candidate = path.resolve(rootAbs, relPath);
+  const rel = path.relative(rootAbs, candidate);
+  if (!rel || rel === ".") return candidate;
+  if (rel.startsWith("..") || path.isAbsolute(rel)) return null;
+  return candidate;
+};
+
 const sha256File = (filePath: string): string => {
   const hash = crypto.createHash("sha256");
   hash.update(fs.readFileSync(filePath));
@@ -70,9 +89,11 @@ const buildManifest = (entries: TicketPackEntry[]): { schemaVersion: 0; entries:
 };
 
 const createZipWindows = (srcDir: string, zipPath: string): { ok: boolean; code?: string } => {
-  const cmd = `Compress-Archive -Path \"${srcDir}\\*\" -DestinationPath \"${zipPath}\" -Force`;
+  const cmd =
+    "$src=[string]$args[0];$dst=[string]$args[1];" +
+    "Compress-Archive -Path (Join-Path $src '*') -DestinationPath $dst -Force";
   const spawn = require("child_process").spawnSync;
-  const res = spawn("powershell", ["-NoProfile", "-Command", cmd], { stdio: "pipe" });
+  const res = spawn("powershell", ["-NoProfile", "-Command", cmd, srcDir, zipPath], { stdio: "pipe" });
   if (res.status !== 0) {
     return { ok: false, code: "TICKET_PACK_ZIP_FAILED" };
   }
@@ -122,7 +143,15 @@ export const runTicketPackCli = (options: {
   const missing: string[] = [];
   const copied: Array<{ relPath: string; absPath: string }> = [];
   relPaths.forEach((rel) => {
-    const abs = path.join(outRoot, rel);
+    if (!isSafeRelativePath(rel)) {
+      missing.push(`invalid:${rel}`);
+      return;
+    }
+    const abs = resolveWithinRoot(outRoot, rel);
+    if (!abs) {
+      missing.push(`outside:${rel}`);
+      return;
+    }
     if (!fs.existsSync(abs)) return;
     if (!fs.statSync(abs).isFile()) return;
     copied.push({ relPath: rel, absPath: abs });
@@ -135,6 +164,10 @@ export const runTicketPackCli = (options: {
     ...collected.entries.filter((rel) => !fs.existsSync(path.join(outRoot, rel))).map((rel) => `missing:${rel}`)
   );
   if (missing.length > 0) {
+    if (missing.some((v) => v.startsWith("invalid:") || v.startsWith("outside:"))) {
+      console.error("[TICKET_PACK_RECEIPT_PATH_INVALID] operator receipt contains unsafe relPath.");
+      return 40;
+    }
     console.error("[TICKET_PACK_MISSING_FILE] some receipt files are missing.");
     return 40;
   }

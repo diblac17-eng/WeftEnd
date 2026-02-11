@@ -52,6 +52,32 @@ const testTicketPack = async () => {
     assert(zipRun.status === 0, `ticket-pack zip failed: ${zipRun.stderr}`);
     assert(fs.existsSync(path.join(packDir, "ticket_pack.zip")), "ticket_pack.zip missing");
   }
+
+  const maliciousRoot = path.join(root, "malicious_out");
+  const maliciousPack = path.join(root, "malicious_pack");
+  const outsideFile = path.join(root, "outside.txt");
+  fs.mkdirSync(maliciousRoot, { recursive: true });
+  fs.writeFileSync(outsideFile, "outside", "utf8");
+  fs.writeFileSync(
+    path.join(maliciousRoot, "operator_receipt.json"),
+    JSON.stringify({
+      schema: "weftend.operatorReceipt/0",
+      schemaVersion: 0,
+      command: "safe-run",
+      result: "WITHHELD",
+      receiptDigest: "fnv1a32:00000000",
+      weftendBuild: { algo: "fnv1a32", digest: "fnv1a32:00000000", source: "UNKNOWN" },
+      receipts: [{ kind: "safe_run_receipt", relPath: "../outside.txt", digest: "fnv1a32:deadbeef" }],
+      warnings: [],
+    }),
+    "utf8"
+  );
+  const blocked = await runCliCapture(["ticket-pack", maliciousRoot, "--out", maliciousPack]);
+  assert(blocked.status === 40, `expected path-invalid fail-closed\n${blocked.stderr}`);
+  assert(
+    blocked.stderr.includes("TICKET_PACK_RECEIPT_PATH_INVALID"),
+    "expected unsafe relPath rejection code"
+  );
 };
 
 testTicketPack()

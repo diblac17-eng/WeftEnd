@@ -138,6 +138,37 @@ suite("cli/email", () => {
     assertEq(result.status, 40, "expected fail-closed for malformed normalized artifact");
     assert(result.stderr.includes("ADAPTER_NORMALIZATION_INVALID"), "expected normalization error");
   });
+
+  register("email safe-run rejects normalized requiredFiles traversal", async () => {
+    const temp = makeTempDir();
+    const malformed = path.join(temp, "email_export");
+    fs.mkdirSync(path.join(malformed, "attachments"), { recursive: true });
+    const outside = path.join(temp, "outside.txt");
+    fs.writeFileSync(outside, "outside", "utf8");
+    fs.writeFileSync(path.join(malformed, "headers.json"), "{}", "utf8");
+    fs.writeFileSync(path.join(malformed, "body.txt"), "", "utf8");
+    fs.writeFileSync(path.join(malformed, "body.html.txt"), "", "utf8");
+    fs.writeFileSync(path.join(malformed, "links.txt"), "", "utf8");
+    fs.writeFileSync(path.join(malformed, "attachments", "manifest.json"), "{}", "utf8");
+    fs.writeFileSync(
+      path.join(malformed, "adapter_manifest.json"),
+      JSON.stringify({
+        schema: "weftend.normalizedArtifact/0",
+        schemaVersion: 0,
+        adapterId: "email_v0",
+        kind: "email",
+        sourceFormat: "eml",
+        rootDir: "email_export",
+        requiredFiles: ["../outside.txt"],
+        markers: [],
+      }),
+      "utf8"
+    );
+    const outDir = path.join(temp, "run");
+    const result = await runCliCapture(["email", "safe-run", malformed, "--out", outDir]);
+    assertEq(result.status, 40, "expected fail-closed for traversal in normalized requiredFiles");
+    assert(result.stderr.includes("ADAPTER_NORMALIZATION_INVALID"), "expected normalization invalid code");
+  });
 });
 
 const run = async (): Promise<void> => {
