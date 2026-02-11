@@ -46,6 +46,7 @@ function Remove-Shortcut {
 $startMenu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
 if ($startMenu -and (Test-Path $startMenu)) {
   Remove-Shortcut -ShortcutPath (Join-Path $startMenu "WeftEnd.lnk")
+  Remove-Shortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Tools.lnk")
   Remove-Shortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Library.lnk")
   Remove-Shortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Launchpad.lnk")
   Remove-Shortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Download.lnk")
@@ -53,6 +54,7 @@ if ($startMenu -and (Test-Path $startMenu)) {
 $desktop = [Environment]::GetFolderPath("Desktop")
 if ($desktop -and (Test-Path $desktop)) {
   Remove-Shortcut -ShortcutPath (Join-Path $desktop "WeftEnd.lnk")
+  Remove-Shortcut -ShortcutPath (Join-Path $desktop "WeftEnd Tools.lnk")
   Remove-Shortcut -ShortcutPath (Join-Path $desktop "WeftEnd Library.lnk")
   Remove-Shortcut -ShortcutPath (Join-Path $desktop "WeftEnd Launchpad.lnk")
   Remove-Shortcut -ShortcutPath (Join-Path $desktop "WeftEnd Download.lnk")

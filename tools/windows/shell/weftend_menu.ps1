@@ -1,6 +1,10 @@
 # tools/windows/shell/weftend_menu.ps1
 # Main Windows control center for casual operators.
 
+param(
+  [switch]$Tools
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
@@ -111,6 +115,18 @@ $shellDoctorScript = Join-Path $scriptDir "weftend_shell_doctor.ps1"
 $installScript = Join-Path $scriptDir "install_weftend_context_menu.ps1"
 $uninstallScript = Join-Path $scriptDir "uninstall_weftend_context_menu.ps1"
 $launchpadScript = Join-Path $scriptDir "launchpad_panel.ps1"
+
+# Compatibility default: WeftEnd entry opens Launchpad unless explicitly forced to tools mode.
+if (-not $Tools.IsPresent -and (Test-Path -LiteralPath $launchpadScript)) {
+  Start-Process -FilePath "powershell.exe" -ArgumentList @(
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    $launchpadScript
+  ) | Out-Null
+  exit 0
+}
 
 $iconPath = Join-Path $repoRoot "assets\weftend_logo.ico"
 if (-not (Test-Path -LiteralPath $iconPath)) { $iconPath = $null }
