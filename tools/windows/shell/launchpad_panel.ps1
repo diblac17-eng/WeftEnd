@@ -121,13 +121,22 @@ if (-not $weftendIcon -or -not (Test-Path -LiteralPath $weftendIcon)) {
 }
 
 $nodeCmd = Read-RegistryValue -Path $configPath -Name "NodeExe"
-$nodePath = Resolve-ExecutablePath -Preferred $nodeCmd -CommandName "node" -Fallbacks @()
+$programFiles = [Environment]::GetFolderPath("ProgramFiles")
+$programFilesX86 = [Environment]::GetFolderPath("ProgramFilesX86")
+$localAppData = [Environment]::GetFolderPath("LocalApplicationData")
+$repoNodePath = if ($repoRoot) { Join-Path $repoRoot "runtime\node\node.exe" } else { $null }
+$nodePath = Resolve-ExecutablePath -Preferred $nodeCmd -CommandName "node" -Fallbacks @(
+  $repoNodePath,
+  (Join-Path $programFiles "nodejs\node.exe"),
+  (Join-Path $programFilesX86 "nodejs\node.exe"),
+  (Join-Path $localAppData "Programs\nodejs\node.exe")
+)
 $mainJs = if ($repoRoot) { Join-Path $repoRoot "dist\src\cli\main.js" } else { $null }
 
 function Invoke-LaunchpadSync {
   if (-not $nodePath -or -not $mainJs -or -not (Test-Path -LiteralPath $mainJs)) {
     [System.Windows.Forms.MessageBox]::Show(
-      "Launchpad sync requires the compiled CLI. Run npm run compile and try again.",
+      "Launchpad sync requires CLI runtime. Run npm run compile (source clone) or use the portable release bundle.",
       "WeftEnd",
       [System.Windows.Forms.MessageBoxButtons]::OK,
       [System.Windows.Forms.MessageBoxIcon]::Information

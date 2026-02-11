@@ -41,6 +41,7 @@ Deployment note
 - Core tool is fully functional for manual use.
 - Windows-first UX (shell integration + shortcuts).
 - macOS/Linux CLI supported; native shell integration planned.
+- Release artifacts include a portable Windows bundle with bundled runtime (`runtime/node`) and an explicit fail-closed fallback to local Node (no auto-download).
 
 Quickstart
 
@@ -60,6 +61,7 @@ Outputs
 Report card lines (quick read)
 - `classification=...`: target/artifact classification and entry hints.
 - `input=...`: adapter lane and input type (`email_v0`, `zip_v0`, `filesystem_v0`).
+- `SIGNAL: ...`: explicit changed-state markers (`CONTENT_CHANGED`, `SIZE_CHANGED`, `STRUCTURE_CHANGED`) when baseline delta exists.
 - `webLane=ACTIVE|NOT_APPLICABLE`: whether web probe lane applies.
 - `observed=...`: file/byte/script/native/reference counts.
 - `posture=...`: analysis/execution result + top reason.

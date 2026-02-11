@@ -53,6 +53,10 @@ const windowsScripts = [
   "INSTALL_WINDOWS.cmd",
   "UNINSTALL_WINDOWS.cmd",
 ];
+const rootPortableScripts = [
+  "WEFTEND_PORTABLE.cmd",
+  "WEFTEND_PORTABLE_MENU.cmd",
+];
 
 suite("tools/windows shell assets", () => {
   register("scripts exist and avoid hardcoded paths/secrets", () => {
@@ -101,6 +105,19 @@ suite("tools/windows shell assets", () => {
       assert(!/\\\\/.test(text), `${name} must not contain UNC paths`);
       assert(!/C:\\\\Users\\\\/i.test(text), `${name} must not contain user path hints`);
       assert(!/D:\\\\/.test(text), `${name} must not contain drive hints`);
+    });
+  });
+
+  register("portable launch scripts exist and avoid hardcoded paths/secrets", () => {
+    rootPortableScripts.forEach((name) => {
+      const full = path.join(repoRoot, name);
+      assert(fs.existsSync(full), `missing ${name}`);
+      const text = fs.readFileSync(full, "utf8");
+      assert(!/[A-Za-z]:\\\\/.test(text), `${name} must not contain absolute Windows paths`);
+      assert(!/\\\\/.test(text), `${name} must not contain UNC paths`);
+      assert(!/C:\\\\Users\\\\/i.test(text), `${name} must not contain user path hints`);
+      assert(!/D:\\\\/.test(text), `${name} must not contain drive hints`);
+      assert(/runtime\\node\\node\.exe/i.test(text), `${name} must prefer bundled runtime`);
     });
   });
 

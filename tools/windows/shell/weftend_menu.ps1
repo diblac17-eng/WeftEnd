@@ -118,7 +118,9 @@ New-Item -ItemType Directory -Force -Path $libraryRoot | Out-Null
 $programFiles = [Environment]::GetFolderPath("ProgramFiles")
 $programFilesX86 = [Environment]::GetFolderPath("ProgramFilesX86")
 $localAppData = [Environment]::GetFolderPath("LocalApplicationData")
+$repoNodePath = Join-Path $repoRoot "runtime\node\node.exe"
 $nodePath = Resolve-ExecutablePath -Preferred $nodeCmd -CommandName "node" -Fallbacks @(
+  $repoNodePath,
   (Join-Path $programFiles "nodejs\node.exe"),
   (Join-Path $programFilesX86 "nodejs\node.exe"),
   (Join-Path $localAppData "Programs\nodejs\node.exe")
@@ -164,7 +166,7 @@ function Invoke-SafeRunPicked {
 
 function Invoke-CompareRuns {
   if (-not (Test-Path -LiteralPath $mainJs) -or -not $nodePath) {
-    Show-Info "CLI not ready. Run npm run compile --silent first."
+    Show-Info "CLI runtime not ready. Run npm run compile --silent (source clone) or use the portable release bundle."
     return
   }
   $left = Choose-Folder
@@ -193,7 +195,7 @@ function Invoke-CompareRuns {
 
 function Invoke-TicketPack {
   if (-not (Test-Path -LiteralPath $mainJs) -or -not $nodePath) {
-    Show-Info "CLI not ready. Run npm run compile --silent first."
+    Show-Info "CLI runtime not ready. Run npm run compile --silent (source clone) or use the portable release bundle."
     return
   }
   $runRoot = Choose-Folder

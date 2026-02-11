@@ -50,6 +50,50 @@ function Resolve-UnderRoot($root, $path, $mustExist = $true) {
   return $resolved
 }
 
+function Resolve-LocalNodeRoot {
+  $cmd = Get-Command node -ErrorAction SilentlyContinue
+  if ($cmd -and $cmd.Path -and (Test-Path -LiteralPath $cmd.Path)) {
+    return Split-Path -Parent $cmd.Path
+  }
+  $programFiles = [Environment]::GetFolderPath("ProgramFiles")
+  $programFilesX86 = [Environment]::GetFolderPath("ProgramFilesX86")
+  $localAppData = [Environment]::GetFolderPath("LocalApplicationData")
+  $candidates = @(
+    (Join-Path $programFiles "nodejs"),
+    (Join-Path $programFilesX86 "nodejs"),
+    (Join-Path $localAppData "Programs\nodejs")
+  )
+  foreach ($candidate in $candidates) {
+    if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate "node.exe"))) {
+      return $candidate
+    }
+  }
+  return $null
+}
+
+function New-ZipAndHash {
+  param(
+    [string]$StagePath,
+    [string]$OutDirPath,
+    [string]$ZipName
+  )
+  $zipPath = Join-Path $OutDirPath $ZipName
+  if (Test-Path -LiteralPath $zipPath) {
+    Remove-Item -Force -LiteralPath $zipPath
+  }
+  Compress-Archive -Path (Join-Path $StagePath "*") -DestinationPath $zipPath -Force
+  if (-not (Test-Path -LiteralPath $zipPath)) {
+    Write-Fail "Zip not created: $zipName" "Check write permissions under $OutDirPath"
+  }
+  $hash = Get-FileHash -Algorithm SHA256 -Path $zipPath
+  $shaPath = "${zipPath}.sha256"
+  "$($hash.Hash.ToLower()) *$ZipName" | Set-Content -Path $shaPath -Encoding ascii
+  return @{
+    Zip = $zipPath
+    Sha = $shaPath
+  }
+}
+
 Write-Section "Repo Root"
 $root = Get-RepoRoot
 Set-Location $root
@@ -173,12 +217,9 @@ if (-not (Test-Path $outAbs)) {
   New-Item -ItemType Directory -Path $outAbs | Out-Null
 }
 $zipName = "weftend_${version}_${dateStamp}.zip"
-$zipPath = Join-Path $outAbs $zipName
-if (Test-Path $zipPath) {
-  Remove-Item -Force $zipPath
-}
+$portableZipName = "weftend_${version}_${dateStamp}_portable.zip"
 
-Write-Section "Create Zip"
+Write-Section "Create Stage"
 $gitCmd = Get-Command git -ErrorAction SilentlyContinue
 if (-not $gitCmd) {
   Write-Fail "git is required to build a clean release bundle." "Install git and retry."
@@ -217,7 +258,9 @@ $includeSingles = @(
   "NOTICE.md",
   "SECURITY.md",
   "VERSION.txt",
-  "tsconfig.json"
+  "tsconfig.json",
+  "WEFTEND_PORTABLE.cmd",
+  "WEFTEND_PORTABLE_MENU.cmd"
 )
 
 function Should-IncludeTracked($relPath) {
@@ -249,25 +292,76 @@ foreach ($line in $trackedRaw) {
   }
 }
 
-Compress-Archive -Path (Join-Path $stagePath "*") -DestinationPath $zipPath -Force
-Remove-Item -Recurse -Force $stagePath
-
-if (-not (Test-Path $zipPath)) {
-  Write-Fail "Zip not created." "Check write permissions under $outAbs"
+# Ensure allowlisted root single files are staged even when newly added and not yet tracked.
+foreach ($single in $includeSingles) {
+  $singleSrc = Join-Path $root ($single -replace "/", "\\")
+  if (-not (Test-Path -LiteralPath $singleSrc)) { continue }
+  $singleDst = Join-Path $stagePath ($single -replace "/", "\\")
+  $singleDir = Split-Path -Parent $singleDst
+  if ($singleDir -and -not (Test-Path -LiteralPath $singleDir)) {
+    New-Item -ItemType Directory -Path $singleDir -Force | Out-Null
+  }
+  Copy-Item -Force -LiteralPath $singleSrc -Destination $singleDst
 }
-Write-Ok "Release zip: $zipPath"
 
-Write-Section "Checksums"
-$hash = Get-FileHash -Algorithm SHA256 -Path $zipPath
-$shaPath = "${zipPath}.sha256"
-"$($hash.Hash.ToLower()) *$zipName" | Set-Content -Path $shaPath -Encoding ascii
-Write-Ok "SHA256: $shaPath"
+Write-Ok "Stage built"
+
+Write-Section "Create Standard Zip"
+$standardBundle = New-ZipAndHash -StagePath $stagePath -OutDirPath $outAbs -ZipName $zipName
+Write-Ok "Release zip: $($standardBundle.Zip)"
+Write-Ok "SHA256: $($standardBundle.Sha)"
+
+Write-Section "Create Portable Zip"
+$nodeRoot = Resolve-LocalNodeRoot
+if (-not $nodeRoot) {
+  Remove-Item -Recurse -Force $stagePath
+  Write-Fail "Node runtime not found for portable bundle." "Install Node.js locally and retry release packaging."
+}
+$portableStagePath = Join-Path $outAbs "__stage_release_portable"
+if (Test-Path -LiteralPath $portableStagePath) {
+  Remove-Item -Recurse -Force -LiteralPath $portableStagePath
+}
+New-Item -ItemType Directory -Path $portableStagePath | Out-Null
+Copy-Item -Recurse -Force -Path (Join-Path $stagePath "*") -Destination $portableStagePath
+$runtimeNodeDir = Join-Path $portableStagePath "runtime\node"
+New-Item -ItemType Directory -Force -Path $runtimeNodeDir | Out-Null
+$nodeFiles = @(
+  "node.exe",
+  "node.dll",
+  "npm.cmd",
+  "npx.cmd"
+)
+foreach ($nodeFile in $nodeFiles) {
+  $src = Join-Path $nodeRoot $nodeFile
+  if (Test-Path -LiteralPath $src) {
+    Copy-Item -Force -LiteralPath $src -Destination (Join-Path $runtimeNodeDir $nodeFile)
+  }
+}
+Get-ChildItem -Path $nodeRoot -Filter "*.dll" -File -ErrorAction SilentlyContinue | ForEach-Object {
+  Copy-Item -Force -LiteralPath $_.FullName -Destination (Join-Path $runtimeNodeDir $_.Name)
+}
+Get-ChildItem -Path $nodeRoot -Filter "icudt*.dat" -File -ErrorAction SilentlyContinue | ForEach-Object {
+  Copy-Item -Force -LiteralPath $_.FullName -Destination (Join-Path $runtimeNodeDir $_.Name)
+}
+if (-not (Test-Path -LiteralPath (Join-Path $runtimeNodeDir "node.exe"))) {
+  Remove-Item -Recurse -Force $stagePath
+  Remove-Item -Recurse -Force $portableStagePath
+  Write-Fail "Portable runtime missing node.exe after staging." "Verify local Node install and retry."
+}
+$portableBundle = New-ZipAndHash -StagePath $portableStagePath -OutDirPath $outAbs -ZipName $portableZipName
+Write-Ok "Portable zip: $($portableBundle.Zip)"
+Write-Ok "SHA256: $($portableBundle.Sha)"
+
+Remove-Item -Recurse -Force $stagePath
+Remove-Item -Recurse -Force $portableStagePath
 
 Write-Section "Prune Old Zips"
-Get-ChildItem -Path $outAbs -Filter "weftend_*.zip" -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne $zipName } | ForEach-Object {
+$keepZips = @($zipName, $portableZipName)
+$keepHashes = @("${zipName}.sha256", "${portableZipName}.sha256")
+Get-ChildItem -Path $outAbs -Filter "weftend_*.zip" -File -ErrorAction SilentlyContinue | Where-Object { $keepZips -notcontains $_.Name } | ForEach-Object {
   Remove-Item -Force $_.FullName
 }
-Get-ChildItem -Path $outAbs -Filter "weftend_*.zip.sha256" -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne "${zipName}.sha256" } | ForEach-Object {
+Get-ChildItem -Path $outAbs -Filter "weftend_*.zip.sha256" -File -ErrorAction SilentlyContinue | Where-Object { $keepHashes -notcontains $_.Name } | ForEach-Object {
   Remove-Item -Force $_.FullName
 }
 

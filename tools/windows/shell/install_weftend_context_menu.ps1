@@ -92,6 +92,11 @@ Set-ItemProperty -Path $configKey -Name "OpenFolderOnComplete" -Value "1"
 $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
 if ($nodeCmd -and $nodeCmd.Path) {
   Set-ItemProperty -Path $configKey -Name "NodeExe" -Value $nodeCmd.Path
+} else {
+  $repoNodeExe = Join-Path $RepoRoot "runtime\node\node.exe"
+  if (Test-Path -LiteralPath $repoNodeExe) {
+    Set-ItemProperty -Path $configKey -Name "NodeExe" -Value $repoNodeExe
+  }
 }
 $npmCmd = Get-Command npm -ErrorAction SilentlyContinue
 if ($npmCmd -and $npmCmd.Path) {

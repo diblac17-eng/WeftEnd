@@ -327,6 +327,9 @@ function Write-ReportCard {
       $webEntry = if ($entry -and $entry -ne "none") { $entry } else { "ENTRY_HTML" }
     }
     $deltaLine = ""
+    $signalContentChanged = $false
+    $signalSizeChanged = $false
+    $signalStructureChanged = $false
     if ($status -eq "CHANGED" -and $BaselineSummary) {
       $currFiles = if ($null -ne $Summary.totalFiles) { [int64]$Summary.totalFiles } else { 0 }
       $baseFiles = if ($null -ne $BaselineSummary.totalFiles) { [int64]$BaselineSummary.totalFiles } else { 0 }
@@ -344,6 +347,23 @@ function Write-ReportCard {
       $dDomains = $currDomains - $baseDomains
       $dScripts = $currScripts - $baseScripts
       $deltaLine = "delta=files:{0:+#;-#;0} bytes:{1:+#;-#;0} externalRefs:{2:+#;-#;0} domains:{3:+#;-#;0} scripts:{4:+#;-#;0}" -f $dFiles, $dBytes, $dRefs, $dDomains, $dScripts
+      if ($dBytes -ne 0 -or $dScripts -ne 0 -or $dRefs -ne 0 -or $dDomains -ne 0) {
+        $signalContentChanged = $true
+      }
+      if ($dBytes -ne 0) {
+        $signalSizeChanged = $true
+      }
+      if ($dFiles -ne 0) {
+        $signalStructureChanged = $true
+      }
+    }
+    if ($status -eq "CHANGED") {
+      if ($bucketText -match "(^| )C( |$)" -or $bucketText -match "(^| )D( |$)") {
+        $signalContentChanged = $true
+      }
+      if ($bucketText -match "(^| )B( |$)") {
+        $signalStructureChanged = $true
+      }
     }
 
     $next = "COMPARE"
@@ -407,6 +427,25 @@ function Write-ReportCard {
       "receipt=safe_run_receipt.json",
       "operator=operator_receipt.json"
     )
+    $signalLines = @()
+    if ($status -eq "CHANGED") {
+      if ($signalContentChanged) { $signalLines += "SIGNAL: CONTENT_CHANGED" }
+      if ($signalSizeChanged) { $signalLines += "SIGNAL: SIZE_CHANGED" }
+      if ($signalStructureChanged) { $signalLines += "SIGNAL: STRUCTURE_CHANGED" }
+    }
+    if ($signalLines.Count -gt 0) {
+      $insertAt = 2
+      if ($lines.Count -lt 2) { $insertAt = $lines.Count }
+      $prefix = @()
+      $suffix = @()
+      if ($insertAt -gt 0) {
+        $prefix = $lines[0..($insertAt - 1)]
+      }
+      if ($insertAt -lt $lines.Count) {
+        $suffix = $lines[$insertAt..($lines.Count - 1)]
+      }
+      $lines = $prefix + $signalLines + $suffix
+    }
     if ($deltaLine -and $deltaLine.Trim() -ne "") {
       $lines = $lines[0..1] + @($deltaLine) + $lines[2..($lines.Count - 1)]
     }
@@ -775,15 +814,19 @@ if (-not $skipWeftend -and -not (Test-Path (Join-Path $RepoRoot "package.json"))
 
 $mainJs = Join-Path $RepoRoot "dist\src\cli\main.js"
 $hasDist = Test-Path $mainJs
+$repoNodeExe = Join-Path $RepoRoot "runtime\node\node.exe"
+$repoNpmCmd = Join-Path $RepoRoot "runtime\node\npm.cmd"
 $programFiles = [Environment]::GetFolderPath("ProgramFiles")
 $programFilesX86 = [Environment]::GetFolderPath("ProgramFilesX86")
 $localAppData = [Environment]::GetFolderPath("LocalApplicationData")
 $nodePathResolved = Resolve-ExecutablePath -Preferred $NodeExe -CommandName "node" -Fallbacks @(
+  $repoNodeExe,
   (Join-Path $programFiles "nodejs\node.exe"),
   (Join-Path $programFilesX86 "nodejs\node.exe"),
   (Join-Path $localAppData "Programs\nodejs\node.exe")
 )
 $npmPathResolved = Resolve-ExecutablePath -Preferred $NpmCmd -CommandName "npm" -Fallbacks @(
+  $repoNpmCmd,
   (Join-Path $programFiles "nodejs\npm.cmd"),
   (Join-Path $programFilesX86 "nodejs\npm.cmd"),
   (Join-Path $localAppData "Programs\nodejs\npm.cmd")

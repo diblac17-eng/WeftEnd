@@ -14,7 +14,9 @@ Short, strict release checklist (alpha).
 3) Verify sha256
 - Get-Content out\release\weftend_*.sha256
 - Get-FileHash out\release\weftend_*.zip -Algorithm SHA256
-- Values must match exactly.
+- Confirm both artifacts exist and match:
+  - `weftend_<version>_<date>.zip`
+  - `weftend_<version>_<date>_portable.zip`
 
 4) First 5 minutes script
 - tools\windows\FIRST_5_MINUTES.cmd

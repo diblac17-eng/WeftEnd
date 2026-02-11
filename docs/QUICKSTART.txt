@@ -61,6 +61,8 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for the full explanation.
 5) Grab the portable bundle (optional)
 - Start Menu: "WeftEnd Download" shortcut
 - Drag the .zip from the release folder to a USB drive
+- Preferred artifact for field use: `weftend_*_portable.zip`
+- Runtime is never auto-downloaded: bundled `runtime\node\node.exe` is used first; otherwise local Node is required.
 
 Notes
 - No cloud. No telemetry. No automatic execution.
