@@ -577,9 +577,10 @@ foreach ($tp in @($tabLaunch, $tabLibrary, $tabHistory, $tabDoctor, $tabSettings
 $launchLayout = New-Object System.Windows.Forms.TableLayoutPanel
 $launchLayout.Dock = "Fill"
 $launchLayout.ColumnCount = 1
-$launchLayout.RowCount = 2
+$launchLayout.RowCount = 3
 $launchLayout.Padding = New-Object System.Windows.Forms.Padding(6, 8, 6, 8)
 $launchLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 42)))
+$launchLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 34)))
 $launchLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
 $tabLaunch.Controls.Add($launchLayout)
 
@@ -616,6 +617,13 @@ $launchActions.Controls.Add($btnTargets) | Out-Null
 $launchActions.Controls.Add($btnSync) | Out-Null
 $launchActions.Controls.Add($btnRefresh) | Out-Null
 
+$launchHint = New-Object System.Windows.Forms.Label
+$launchHint.Dock = "Fill"
+$launchHint.ForeColor = $colorMuted
+$launchHint.Font = $fontSmall
+$launchHint.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+$launchHint.Text = "Drop apps/files into Targets, click Sync, then launch here. Right-click Run with WeftEnd works immediately after install."
+
 $listPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $listPanel.Dock = "Fill"
 $listPanel.FlowDirection = "TopDown"
@@ -625,7 +633,8 @@ $listPanel.BackColor = $colorBg
 $listPanel.Padding = New-Object System.Windows.Forms.Padding(0, 2, 0, 0)
 
 $launchLayout.Controls.Add($launchActions, 0, 0)
-$launchLayout.Controls.Add($listPanel, 0, 1)
+$launchLayout.Controls.Add($launchHint, 0, 1)
+$launchLayout.Controls.Add($listPanel, 0, 2)
 
 $libLayout = New-Object System.Windows.Forms.TableLayoutPanel
 $libLayout.Dock = "Fill"
