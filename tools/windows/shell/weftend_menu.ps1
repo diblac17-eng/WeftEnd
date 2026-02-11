@@ -65,17 +65,6 @@ function Show-Info {
   ) | Out-Null
 }
 
-function Choose-File {
-  $dialog = New-Object System.Windows.Forms.OpenFileDialog
-  $dialog.CheckFileExists = $true
-  $dialog.Multiselect = $false
-  $dialog.Title = "Select file for WeftEnd Safe-Run"
-  if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-    return $dialog.FileName
-  }
-  return $null
-}
-
 function Choose-Folder {
   $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
   $dialog.Description = "Select folder"
@@ -134,84 +123,6 @@ $launchpadScript = Join-Path $scriptDir "launchpad_panel.ps1"
 
 $iconPath = Join-Path $repoRoot "assets\weftend_logo.ico"
 if (-not (Test-Path -LiteralPath $iconPath)) { $iconPath = $null }
-
-function Invoke-SafeRunPicked {
-  $choice = [System.Windows.Forms.MessageBox]::Show(
-    "Choose Yes for file, No for folder, Cancel to abort.",
-    "Safe-Run Target",
-    [System.Windows.Forms.MessageBoxButtons]::YesNoCancel,
-    [System.Windows.Forms.MessageBoxIcon]::Question
-  )
-  if ($choice -eq [System.Windows.Forms.DialogResult]::Cancel) { return }
-  $target = if ($choice -eq [System.Windows.Forms.DialogResult]::Yes) { Choose-File } else { Choose-Folder }
-  if (-not $target) { return }
-  if (-not (Test-Path -LiteralPath $safeRunScript)) {
-    Show-Info "Safe-run wrapper is missing."
-    return
-  }
-  $psExe = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
-  if (-not (Test-Path -LiteralPath $psExe)) { $psExe = "powershell.exe" }
-  Start-Process -FilePath $psExe -ArgumentList @(
-    "-NoProfile",
-    "-WindowStyle",
-    "Hidden",
-    "-ExecutionPolicy",
-    "Bypass",
-    "-File",
-    $safeRunScript,
-    "-TargetPath",
-    $target
-  ) -WindowStyle Hidden | Out-Null
-}
-
-function Invoke-CompareRuns {
-  if (-not (Test-Path -LiteralPath $mainJs) -or -not $nodePath) {
-    Show-Info "CLI runtime not ready. Run npm run compile --silent (source clone) or use the portable release bundle."
-    return
-  }
-  $left = Choose-Folder
-  if (-not $left) { return }
-  $right = Choose-Folder
-  if (-not $right) { return }
-  $compareRoot = Join-Path $libraryRoot "Compare"
-  New-Item -ItemType Directory -Force -Path $compareRoot | Out-Null
-  $outDir = Join-Path $compareRoot ("cmp_" + (Fnv1a32Hex ($left + "|" + $right)))
-  New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-  $output = @(& $nodePath $mainJs "compare" $left $right "--out" $outDir 2>&1)
-  $code = $LASTEXITCODE
-  if ($code -ne 0) {
-    Show-Info ("Compare failed with exit code " + $code.ToString())
-    return
-  }
-  $report = Join-Path $outDir "compare_report.txt"
-  if (Test-Path -LiteralPath $report) {
-    $notepad = Join-Path $env:WINDIR "System32\notepad.exe"
-    if (-not (Test-Path -LiteralPath $notepad)) { $notepad = "notepad.exe" }
-    Start-Process -FilePath $notepad -ArgumentList $report | Out-Null
-  } else {
-    Show-Info "Compare completed."
-  }
-}
-
-function Invoke-TicketPack {
-  if (-not (Test-Path -LiteralPath $mainJs) -or -not $nodePath) {
-    Show-Info "CLI runtime not ready. Run npm run compile --silent (source clone) or use the portable release bundle."
-    return
-  }
-  $runRoot = Choose-Folder
-  if (-not $runRoot) { return }
-  $ticketRoot = Join-Path $libraryRoot "Tickets"
-  New-Item -ItemType Directory -Force -Path $ticketRoot | Out-Null
-  $outDir = Join-Path $ticketRoot ("ticket_" + (Fnv1a32Hex $runRoot))
-  New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-  $null = @(& $nodePath $mainJs "ticket-pack" $runRoot "--out" $outDir "--zip" 2>&1)
-  $code = $LASTEXITCODE
-  if ($code -ne 0) {
-    Show-Info ("Ticket pack failed with exit code " + $code.ToString())
-    return
-  }
-  Open-Explorer -PathValue $outDir
-}
 
 function Invoke-ShellDoctor {
   if (-not (Test-Path -LiteralPath $shellDoctorScript)) {
@@ -325,10 +236,7 @@ function New-MenuButton {
   return $btn
 }
 
-$panel.Controls.Add((New-MenuButton -Text "Safe-Run (Pick File/Folder)" -OnClick { Invoke-SafeRunPicked })) | Out-Null
 $panel.Controls.Add((New-MenuButton -Text "Open Library" -OnClick { Open-Explorer -PathValue $libraryRoot })) | Out-Null
-$panel.Controls.Add((New-MenuButton -Text "Compare Two Runs" -OnClick { Invoke-CompareRuns })) | Out-Null
-$panel.Controls.Add((New-MenuButton -Text "Create Ticket Pack" -OnClick { Invoke-TicketPack })) | Out-Null
 $panel.Controls.Add((New-MenuButton -Text "Run Shell Doctor" -OnClick { Invoke-ShellDoctor })) | Out-Null
 $panel.Controls.Add((New-MenuButton -Text "Install Context Menu" -OnClick { Invoke-ContextInstall })) | Out-Null
 $panel.Controls.Add((New-MenuButton -Text "Uninstall Context Menu" -OnClick { Invoke-ContextUninstall })) | Out-Null

@@ -39,12 +39,14 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for the full explanation.
 3.7) Optional operator menu (no CLI)
 - Open Start Menu -> "WeftEnd"
 - Use buttons for:
-  - Safe-Run (pick file/folder)
   - Open Library
-  - Compare two runs
-  - Create ticket pack
   - Shell doctor
   - Install/Uninstall context menu
+  - Open Launchpad
+
+3.7.1) Ticket packs on change
+- On CHANGED runs, WeftEnd prompts to create a ticket pack.
+- This keeps ticket creation contextual and avoids manual run-folder selection.
 
 3.8) Optional advanced watch mode (CLI)
 - `npm run weftend -- watch <target>`

@@ -761,6 +761,147 @@ function Show-AcceptBaselinePrompt {
   }
 }
 
+function Show-TicketPackPrompt {
+  param([string]$TargetKey, [string]$RunId)
+  try {
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+
+    $bg = [System.Drawing.Color]::FromArgb(28, 28, 32)
+    $accent = $bg
+    $text = [System.Drawing.Color]::FromArgb(235, 235, 240)
+
+    $form = New-Object System.Windows.Forms.Form
+    $form.Text = "WeftEnd"
+    $form.StartPosition = "CenterScreen"
+    $form.BackColor = $bg
+    $form.ForeColor = $text
+    $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+    $form.MaximizeBox = $false
+    $form.MinimizeBox = $false
+    $form.ClientSize = New-Object System.Drawing.Size 430, 220
+    $form.Font = New-Object System.Drawing.Font "Segoe UI", 9
+
+    $header = New-Object System.Windows.Forms.Panel
+    $header.BackColor = $accent
+    $header.Dock = [System.Windows.Forms.DockStyle]::Top
+    $header.Height = 44
+    $form.Controls.Add($header)
+
+    $title = New-Object System.Windows.Forms.Label
+    $title.Text = "Change Detected"
+    $title.ForeColor = $text
+    $title.Font = New-Object System.Drawing.Font "Segoe UI Semibold", 10
+    $title.AutoSize = $false
+    $title.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+    $title.Dock = [System.Windows.Forms.DockStyle]::Fill
+    $title.Padding = New-Object System.Windows.Forms.Padding 12, 0, 0, 0
+    $header.Controls.Add($title)
+
+    $body = New-Object System.Windows.Forms.Label
+    $body.AutoSize = $false
+    $body.ForeColor = $text
+    $body.Location = New-Object System.Drawing.Point 12, 58
+    $body.Size = New-Object System.Drawing.Size 406, 98
+    $body.Text = @(
+      "WeftEnd detected changes vs baseline.",
+      "Create a deterministic ticket pack for escalation now?",
+      "",
+      "Target: $TargetKey",
+      "Run: $RunId"
+    ) -join [Environment]::NewLine
+    $form.Controls.Add($body)
+
+    $yes = New-Object System.Windows.Forms.Button
+    $yes.Text = "Create"
+    $yes.BackColor = $bg
+    $yes.ForeColor = $text
+    $yes.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+    $yes.Width = 90
+    $yes.Height = 28
+    $yes.Location = New-Object System.Drawing.Point 234, 176
+    $yes.DialogResult = [System.Windows.Forms.DialogResult]::Yes
+    $form.AcceptButton = $yes
+    $form.Controls.Add($yes)
+
+    $no = New-Object System.Windows.Forms.Button
+    $no.Text = "Skip"
+    $no.BackColor = $bg
+    $no.ForeColor = $text
+    $no.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+    $no.Width = 90
+    $no.Height = 28
+    $no.Location = New-Object System.Drawing.Point 330, 176
+    $no.DialogResult = [System.Windows.Forms.DialogResult]::No
+    $form.CancelButton = $no
+    $form.Controls.Add($no)
+
+    return $form.ShowDialog()
+  } catch {
+    return $null
+  }
+}
+
+function Create-TicketPackForRun {
+  param(
+    [string]$RunRoot,
+    [string]$TargetKeyValue,
+    [string]$RunIdValue
+  )
+  $result = @{
+    ok = $false
+    code = "TICKET_PACK_RUNTIME_MISSING"
+    outDir = $null
+  }
+  if (-not $RunRoot -or -not (Test-Path -LiteralPath $RunRoot)) {
+    $result.code = "TICKET_PACK_INPUT_MISSING"
+    return $result
+  }
+  if (-not ((Test-Path -LiteralPath $mainJs) -and $nodePathResolved) -and -not $npmPathResolved) {
+    return $result
+  }
+  try {
+    $ticketRoot = Join-Path $libraryRoot "Tickets"
+    New-Item -ItemType Directory -Force -Path $ticketRoot | Out-Null
+    $ticketBase = Join-Path $ticketRoot ("ticket_" + (Fnv1a32Hex ($TargetKeyValue + "|" + $RunIdValue)))
+    $ticketOut = Ensure-UniqueRunDir -BasePath $ticketBase
+    New-Item -ItemType Directory -Force -Path $ticketOut | Out-Null
+
+    $ticketOutput = ""
+    $ticketCode = 1
+    if ((Test-Path -LiteralPath $mainJs) -and $nodePathResolved) {
+      $lines = @(& $nodePathResolved $mainJs "ticket-pack" $RunRoot "--out" $ticketOut 2>&1)
+      if ($lines.Count -gt 0) {
+        $ticketOutput = ($lines | ForEach-Object { [string]$_ }) -join "`n"
+      }
+      $ticketCode = [int]$LASTEXITCODE
+    } elseif ($npmPathResolved) {
+      $lines = @(& $npmPathResolved run weftend -- "ticket-pack" $RunRoot "--out" $ticketOut 2>&1)
+      if ($lines.Count -gt 0) {
+        $ticketOutput = ($lines | ForEach-Object { [string]$_ }) -join "`n"
+      }
+      $ticketCode = [int]$LASTEXITCODE
+    }
+
+    if ($ticketCode -eq 0) {
+      $result.ok = $true
+      $result.code = "OK"
+      $result.outDir = $ticketOut
+      return $result
+    }
+    $reasonCode = Extract-ReasonCodeFromOutput -OutputText $ticketOutput
+    if ($reasonCode -and $reasonCode.Trim() -ne "") {
+      $result.code = $reasonCode
+    } else {
+      $result.code = "TICKET_PACK_FAILED"
+    }
+    return $result
+  } catch {
+    $result.code = "TICKET_PACK_EXCEPTION"
+    return $result
+  }
+}
+
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $configPath = "HKCU:\Software\WeftEnd\Shell"
 $normalizedTargetPath = Normalize-TargetPath -Value $TargetPath
@@ -1010,6 +1151,9 @@ if ($LaunchpadMode.IsPresent -and $isChangedOrBlocked) {
   $shouldHandleUi = $true
 }
 if ($shouldHandleUi) {
+  $ticketPromptShown = $false
+  $ticketAction = "SKIPPED"
+  $ticketPackCreatedOutDir = $null
   if ($openFlag -and -not $LaunchpadMode.IsPresent -and $viewState -and -not ($viewState.blocked -and $viewState.blocked.runId)) {
     $latestId = if ($viewState.latestRunId) { [string]$viewState.latestRunId } else { "" }
     $idx = -1
@@ -1052,6 +1196,39 @@ if ($shouldHandleUi) {
       }
     }
   }
+  if ($viewStatusNow -eq "CHANGED" -and $result -ne "FAIL") {
+    $safeReceiptPath = Join-Path $outDir "safe_run_receipt.json"
+    if (Test-Path -LiteralPath $safeReceiptPath) {
+      $ticketPromptShown = $true
+      $ticketChoice = Show-TicketPackPrompt -TargetKey $targetKey -RunId $runId
+      if ($ticketChoice -ne $null -and "$ticketChoice" -eq "Yes") {
+        $ticketResult = Create-TicketPackForRun -RunRoot $outDir -TargetKeyValue $targetKey -RunIdValue $runId
+        if ($ticketResult.ok) {
+          $ticketAction = "CREATED"
+          $ticketPackCreatedOutDir = [string]$ticketResult.outDir
+        } else {
+          $ticketAction = "FAILED_" + [string]$ticketResult.code
+        }
+      } elseif ($ticketChoice -ne $null) {
+        $ticketAction = "DECLINED"
+      } else {
+        $ticketAction = "SKIPPED"
+      }
+    }
+  }
+  if ($ticketPromptShown) {
+    try {
+      Add-Content -Path (Join-Path $outDir "report_card.txt") -Value "ticketPackPrompt=SHOWN" -Encoding UTF8
+      Add-Content -Path (Join-Path $outDir "report_card.txt") -Value ("ticketPackAction=" + $ticketAction) -Encoding UTF8
+    } catch {
+      # best effort only
+    }
+    try {
+      Add-Content -Path (Join-Path $outDir "wrapper_result.txt") -Value ("ticketPack=" + $ticketAction) -Encoding UTF8
+    } catch {
+      # best effort only
+    }
+  }
   $dialog = Show-ReportCardPopup -RunId $runId -Result $result -Reason $reason -PrivacyLint $privacy -BuildDigest $build
   $shouldOpen = if ($LaunchpadMode.IsPresent) { $isChangedOrBlocked } else { $openFolderDefault -eq 1 }
   if ($dialog -ne $null -and "$dialog" -eq "OK") {
@@ -1072,7 +1249,7 @@ if ($shouldHandleUi) {
     $null = New-Item -ItemType Directory -Force -Path $libraryRoot
   }
   if ($shouldOpen) {
-    $targetToOpen = if ($OpenLibrary.IsPresent) { $libraryRoot } else { $outDir }
+    $targetToOpen = if ($OpenLibrary.IsPresent) { $libraryRoot } elseif ($ticketPackCreatedOutDir) { $ticketPackCreatedOutDir } else { $outDir }
     $explorerPath = Join-Path $env:WINDIR "explorer.exe"
     if (Test-Path -LiteralPath $explorerPath) {
       Start-Process -FilePath $explorerPath -ArgumentList $targetToOpen | Out-Null

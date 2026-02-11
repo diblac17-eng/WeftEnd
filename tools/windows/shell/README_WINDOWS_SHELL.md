@@ -63,13 +63,14 @@ Launchpad flow (Windows convenience UI)
 Operator menu (Windows convenience UI)
 - Open Start Menu: **WeftEnd**.
 - Buttons include:
-  - Safe-Run (pick file/folder)
   - Open Library
-  - Compare two runs
-  - Create ticket pack
   - Run shell doctor
   - Install/Uninstall context menu
   - Open Launchpad
+
+Ticket pack flow
+- On CHANGED runs, the wrapper prompts to create a ticket pack immediately.
+- Ticket creation is contextual and keeps operators out of manual run-folder picking.
 
 Troubleshooting
 - If execution policy blocks scripts, run PowerShell as current user and allow script execution for this session:
