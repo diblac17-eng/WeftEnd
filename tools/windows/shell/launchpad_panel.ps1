@@ -149,6 +149,15 @@ function Get-LaunchpadShortcutMetadata {
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
+$colorBg = [System.Drawing.Color]::FromArgb(26, 27, 31)
+$colorPanel = [System.Drawing.Color]::FromArgb(34, 36, 41)
+$colorHeader = [System.Drawing.Color]::FromArgb(20, 21, 24)
+$colorText = [System.Drawing.Color]::FromArgb(235, 237, 242)
+$colorMuted = [System.Drawing.Color]::FromArgb(170, 174, 186)
+$colorBorder = [System.Drawing.Color]::FromArgb(56, 59, 68)
+$fontMain = New-Object System.Drawing.Font "Segoe UI", 9
+$fontTitle = New-Object System.Drawing.Font "Segoe UI Semibold", 10
+
 $configPath = "HKCU:\Software\WeftEnd\Shell"
 $outRoot = Read-RegistryValue -Path $configPath -Name "OutRoot"
 if (-not $outRoot -or $outRoot.Trim() -eq "") {
@@ -196,7 +205,14 @@ function Invoke-LaunchpadSync {
         [System.Windows.Forms.MessageBoxIcon]::Information
       ) | Out-Null
     }
-    return $false
+    return @{
+      ok = $false
+      code = "LAUNCHPAD_RUNTIME_MISSING"
+      scanned = 0
+      added = 0
+      removed = 0
+      failed = 0
+    }
   }
   try {
     $args = @($mainJs, "launchpad", "sync", "--allow-launch", "--open-run")
@@ -226,9 +242,35 @@ function Invoke-LaunchpadSync {
           [System.Windows.Forms.MessageBoxIcon]::Warning
         ) | Out-Null
       }
-      return $false
+      return @{
+        ok = $false
+        code = $reason
+        scanned = 0
+        added = 0
+        removed = 0
+        failed = 0
+      }
     }
-    return $true
+    $scan = 0
+    $added = 0
+    $removed = 0
+    $failed = 0
+    $mScan = [regex]::Match($syncOutput, "scanned=([0-9]+)")
+    if ($mScan.Success) { $scan = [int]$mScan.Groups[1].Value }
+    $mAdded = [regex]::Match($syncOutput, "added=([0-9]+)")
+    if ($mAdded.Success) { $added = [int]$mAdded.Groups[1].Value }
+    $mRemoved = [regex]::Match($syncOutput, "removed=([0-9]+)")
+    if ($mRemoved.Success) { $removed = [int]$mRemoved.Groups[1].Value }
+    $mFailed = [regex]::Match($syncOutput, "failed=([0-9]+)")
+    if ($mFailed.Success) { $failed = [int]$mFailed.Groups[1].Value }
+    return @{
+      ok = $true
+      code = "OK"
+      scanned = $scan
+      added = $added
+      removed = $removed
+      failed = $failed
+    }
   } catch {
     try {
       $diagPath = Join-Path $launchpadRoot "sync_last.txt"
@@ -250,7 +292,14 @@ function Invoke-LaunchpadSync {
         [System.Windows.Forms.MessageBoxIcon]::Warning
       ) | Out-Null
     }
-    return $false
+    return @{
+      ok = $false
+      code = "LAUNCHPAD_SYNC_EXCEPTION"
+      scanned = 0
+      added = 0
+      removed = 0
+      failed = 0
+    }
   }
 }
 
@@ -280,25 +329,28 @@ function Load-Shortcuts {
     $name = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
     $name = $name.Replace(" (WeftEnd)", "")
     $row = New-Object System.Windows.Forms.Panel
-    $row.Width = 360
-    $row.Height = 54
+    $row.Width = 370
+    $row.Height = 58
     $row.Margin = New-Object System.Windows.Forms.Padding 6
+    $row.BackColor = $colorPanel
     $row.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
     $row.Tag = $file.FullName
 
     $iconBox = New-Object System.Windows.Forms.PictureBox
-    $iconBox.Width = 32
-    $iconBox.Height = 32
-    $iconBox.Location = New-Object System.Drawing.Point 8,11
+    $iconBox.Width = 34
+    $iconBox.Height = 34
+    $iconBox.Location = New-Object System.Drawing.Point 10,11
     $iconBox.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::Zoom
     $iconBox.Tag = $file.FullName
 
     $label = New-Object System.Windows.Forms.Label
     $label.AutoSize = $false
-    $label.Width = 290
-    $label.Height = 54
-    $label.Location = New-Object System.Drawing.Point 64,0
+    $label.Width = 305
+    $label.Height = 58
+    $label.Location = New-Object System.Drawing.Point 58,0
     $label.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+    $label.ForeColor = $colorText
+    $label.Font = $fontMain
     $label.Text = $name
     $label.Tag = $file.FullName
 
@@ -333,13 +385,33 @@ function Load-Shortcuts {
     $row.Controls.Add($label) | Out-Null
     $Panel.Controls.Add($row) | Out-Null
   }
+
+  return $files.Count
+}
+
+function Set-StatusLine {
+  param(
+    [System.Windows.Forms.Label]$StatusLabel,
+    [string]$Message,
+    [bool]$IsError
+  )
+  if (-not $StatusLabel) { return }
+  $StatusLabel.Text = $Message
+  if ($IsError) {
+    $StatusLabel.ForeColor = [System.Drawing.Color]::FromArgb(255, 186, 186)
+  } else {
+    $StatusLabel.ForeColor = $colorMuted
+  }
 }
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "WeftEnd Launchpad"
-$form.Width = 420
-$form.Height = 600
+$form.Width = 430
+$form.Height = 640
 $form.StartPosition = "CenterScreen"
+$form.BackColor = $colorBg
+$form.ForeColor = $colorText
+$form.Font = $fontMain
 $form.MaximizeBox = $false
 $form.FormBorderStyle = "FixedDialog"
 if ($TopMost.IsPresent) { $form.TopMost = $true }
@@ -347,8 +419,19 @@ if ($TopMost.IsPresent) { $form.TopMost = $true }
 $header = New-Object System.Windows.Forms.FlowLayoutPanel
 $header.FlowDirection = "LeftToRight"
 $header.Dock = "Top"
-$header.Height = 52
+$header.Height = 84
 $header.Padding = New-Object System.Windows.Forms.Padding 6
+$header.BackColor = $colorHeader
+
+$title = New-Object System.Windows.Forms.Label
+$title.Text = "WeftEnd Launchpad"
+$title.AutoSize = $false
+$title.Width = 398
+$title.Height = 24
+$title.Margin = New-Object System.Windows.Forms.Padding 6,4,6,2
+$title.Font = $fontTitle
+$title.ForeColor = $colorText
+$title.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
 $btnTargets = New-Object System.Windows.Forms.Button
 $btnTargets.Text = "Open Targets"
@@ -365,8 +448,14 @@ $btnSync.Text = "Sync"
 $btnSync.Width = 60
 $btnSync.Height = 30
 $btnSync.Add_Click({
-  Invoke-LaunchpadSync | Out-Null
-  Load-Shortcuts -Panel $listPanel
+  $sync = Invoke-LaunchpadSync
+  $count = Load-Shortcuts -Panel $listPanel
+  if ($sync.ok) {
+    $msg = "Synced. targets=" + $sync.scanned + " added=" + $sync.added + " removed=" + $sync.removed + " failed=" + $sync.failed + " visible=" + $count
+    Set-StatusLine -StatusLabel $statusLabel -Message $msg -IsError $false
+  } else {
+    Set-StatusLine -StatusLabel $statusLabel -Message ("Sync error: " + $sync.code) -IsError $true
+  }
 })
 
 $btnRefresh = New-Object System.Windows.Forms.Button
@@ -374,8 +463,13 @@ $btnRefresh.Text = "Refresh"
 $btnRefresh.Width = 70
 $btnRefresh.Height = 30
 $btnRefresh.Add_Click({
-  Invoke-LaunchpadSync -Silent | Out-Null
-  Load-Shortcuts -Panel $listPanel
+  $sync = Invoke-LaunchpadSync -Silent
+  $count = Load-Shortcuts -Panel $listPanel
+  if ($sync.ok) {
+    Set-StatusLine -StatusLabel $statusLabel -Message ("Refreshed. visible=" + $count) -IsError $false
+  } else {
+    Set-StatusLine -StatusLabel $statusLabel -Message ("Refresh warning: " + $sync.code) -IsError $true
+  }
 })
 
 $chkAuto = New-Object System.Windows.Forms.CheckBox
@@ -393,6 +487,7 @@ $chkTop.Add_CheckedChanged({
   $form.TopMost = $chkTop.Checked
 })
 
+$header.Controls.Add($title) | Out-Null
 $header.Controls.Add($btnTargets) | Out-Null
 $header.Controls.Add($btnSync) | Out-Null
 $header.Controls.Add($btnRefresh) | Out-Null
@@ -404,20 +499,44 @@ $listPanel.Dock = "Fill"
 $listPanel.FlowDirection = "TopDown"
 $listPanel.WrapContents = $false
 $listPanel.AutoScroll = $true
+$listPanel.BackColor = $colorBg
 
-Load-Shortcuts -Panel $listPanel
+$statusBar = New-Object System.Windows.Forms.Panel
+$statusBar.Dock = "Bottom"
+$statusBar.Height = 26
+$statusBar.BackColor = $colorHeader
+
+$statusLabel = New-Object System.Windows.Forms.Label
+$statusLabel.AutoSize = $false
+$statusLabel.Width = 410
+$statusLabel.Height = 24
+$statusLabel.Location = New-Object System.Drawing.Point 8,1
+$statusLabel.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+$statusLabel.ForeColor = $colorMuted
+$statusLabel.Font = $fontMain
+$statusLabel.Text = "Ready."
+$statusBar.Controls.Add($statusLabel) | Out-Null
+
+$initialCount = Load-Shortcuts -Panel $listPanel
+Set-StatusLine -StatusLabel $statusLabel -Message ("Ready. visible=" + $initialCount) -IsError $false
 
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 5000
 $timer.Add_Tick({
   if ($chkAuto.Checked) {
-    Invoke-LaunchpadSync -Silent | Out-Null
-    Load-Shortcuts -Panel $listPanel
+    $sync = Invoke-LaunchpadSync -Silent
+    $count = Load-Shortcuts -Panel $listPanel
+    if ($sync.ok) {
+      Set-StatusLine -StatusLabel $statusLabel -Message ("Auto refresh. visible=" + $count) -IsError $false
+    } else {
+      Set-StatusLine -StatusLabel $statusLabel -Message ("Auto refresh warning: " + $sync.code) -IsError $true
+    }
   }
 })
 $timer.Start()
 
 $form.Controls.Add($listPanel)
+$form.Controls.Add($statusBar)
 $form.Controls.Add($header)
 
 [void]$form.ShowDialog()
