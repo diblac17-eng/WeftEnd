@@ -647,11 +647,11 @@ function Show-ReportCardPopup {
     $hint.ForeColor = $muted
     $hint.Location = New-Object System.Drawing.Point 12, 190
     $hint.Size = New-Object System.Drawing.Size 396, 24
-    $hint.Text = "Next: Open Report Folder"
+    $hint.Text = "Review report_card.txt first. Use Library for history."
     $form.Controls.Add($hint)
 
     $ok = New-Object System.Windows.Forms.Button
-    $ok.Text = "Open"
+    $ok.Text = "OK"
     $ok.BackColor = $bg
     $ok.ForeColor = $text
     $ok.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
@@ -1229,15 +1229,9 @@ if ($shouldHandleUi) {
       # best effort only
     }
   }
-  $dialog = Show-ReportCardPopup -RunId $runId -Result $result -Reason $reason -PrivacyLint $privacy -BuildDigest $build
-  $dialogAccepted = $false
-  if ($dialog -ne $null -and "$dialog" -eq "OK") {
-    $dialogAccepted = $true
-  }
-  $shouldOpen = $dialogAccepted
   $reportCardPath = Join-Path $outDir "report_card.txt"
   $notepadPath = Join-Path $env:WINDIR "System32\notepad.exe"
-  $shouldOpenReportCard = $dialogAccepted
+  $shouldOpenReportCard = -not $LaunchpadMode.IsPresent
   if ($shouldOpenReportCard -and (Test-Path -LiteralPath $reportCardPath)) {
     if (Test-Path -LiteralPath $notepadPath) {
       Start-Process -FilePath $notepadPath -ArgumentList $reportCardPath | Out-Null
@@ -1245,12 +1239,18 @@ if ($shouldHandleUi) {
       Start-Process -FilePath "notepad.exe" -ArgumentList $reportCardPath | Out-Null
     }
   }
+  $null = Show-ReportCardPopup -RunId $runId -Result $result -Reason $reason -PrivacyLint $privacy -BuildDigest $build
+
   if ($OpenLibrary.IsPresent) {
-    $shouldOpen = $true
     $null = New-Item -ItemType Directory -Force -Path $libraryRoot
-  }
-  if ($shouldOpen) {
-    $targetToOpen = if ($OpenLibrary.IsPresent) { $libraryRoot } elseif ($ticketPackCreatedOutDir) { $ticketPackCreatedOutDir } else { $outDir }
+    $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+    if (Test-Path -LiteralPath $explorerPath) {
+      Start-Process -FilePath $explorerPath -ArgumentList $libraryRoot | Out-Null
+    } else {
+      Start-Process -FilePath "explorer.exe" -ArgumentList $libraryRoot | Out-Null
+    }
+  } elseif ($LaunchpadMode.IsPresent -and $isChangedOrBlocked) {
+    $targetToOpen = if ($ticketPackCreatedOutDir) { $ticketPackCreatedOutDir } else { $outDir }
     $explorerPath = Join-Path $env:WINDIR "explorer.exe"
     if (Test-Path -LiteralPath $explorerPath) {
       Start-Process -FilePath $explorerPath -ArgumentList $targetToOpen | Out-Null
