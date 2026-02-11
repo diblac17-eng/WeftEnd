@@ -1292,16 +1292,12 @@ if ($AllowLaunch.IsPresent) {
     if ($allowLaunchByStatus) {
       $expectedDigest = if ($summary -and $summary.inputDigest) { [string]$summary.inputDigest } else { "" }
       $launchAllowed = $true
-      $launchDigestWarning = $false
       if ($expectedDigest -and $expectedDigest.StartsWith("fnv1a32:", [System.StringComparison]::OrdinalIgnoreCase)) {
         $currentDigest = Compute-FileFNV1a32Digest -PathValue $TargetPath
         if (-not $currentDigest -or ($currentDigest.ToLowerInvariant() -ne $expectedDigest.ToLowerInvariant())) {
-          if ($LaunchpadMode.IsPresent) {
-            $launchDigestWarning = $true
-          } else {
-            $launchAllowed = $false
-            $launchResult = "BLOCKED_DIGEST_MISMATCH"
-          }
+          # Launch must fail closed if target bytes changed between scan and execution.
+          $launchAllowed = $false
+          $launchResult = "BLOCKED_DIGEST_MISMATCH"
         }
       }
       if ($launchAllowed) {
@@ -1312,7 +1308,7 @@ if ($AllowLaunch.IsPresent) {
           } else {
             Start-Process -FilePath $TargetPath | Out-Null
           }
-          $launchResult = if ($launchDigestWarning) { "STARTED_DIGEST_WARN" } else { "STARTED" }
+          $launchResult = "STARTED"
         } catch {
           $launchResult = "FAILED"
         }
