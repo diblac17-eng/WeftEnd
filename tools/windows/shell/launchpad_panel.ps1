@@ -118,7 +118,6 @@ function Get-LaunchpadShortcutMetadata {
     if ($expandedTarget -and (Test-Path -LiteralPath $expandedTarget)) {
       $targetCanonical = [System.IO.Path]::GetFullPath($expandedTarget)
     }
-    $targetsCanonical = [System.IO.Path]::GetFullPath($targetsDir).TrimEnd('\')
     $exeName = [System.IO.Path]::GetFileName($targetExe).ToLowerInvariant()
     $isTrusted = $false
     if (
@@ -129,8 +128,7 @@ function Get-LaunchpadShortcutMetadata {
       $args -match "(^|\s)-AllowLaunch(\s|$)" -and
       $args -match "(^|\s)-Open\s+0(\s|$)" -and
       -not ($args -match "(^|\s)-OpenLibrary(\s|$)") -and
-      $targetCanonical -and
-      $targetCanonical.StartsWith(($targetsCanonical + "\"), [System.StringComparison]::OrdinalIgnoreCase)
+      $targetCanonical
     ) {
       $isTrusted = $true
     }
