@@ -311,20 +311,37 @@ function Write-ReportCard {
       }
       $historyTokens = @()
       if ($ViewState.lastN -and $ViewState.keys) {
-        for ($i = 0; $i -lt $ViewState.lastN.Count; $i++) {
-          if ($i -ge $ViewState.keys.Count) { break }
+        $tokenCount = [Math]::Min($ViewState.lastN.Count, $ViewState.keys.Count)
+        $tokenChronological = @()
+        for ($i = $tokenCount - 1; $i -ge 0; $i--) {
           $entry = $ViewState.keys[$i]
           if ($entry -and $entry.verdictVsBaseline -eq "CHANGED") {
             $letters = ""
             if ($entry.buckets -and $entry.buckets.Count -gt 0) { $letters = ($entry.buckets -join "") }
             if (-not $letters -or $letters.Trim() -eq "") { $letters = "X" }
-            $historyTokens += "[" + $letters + "]"
+            $tokenChronological += "[" + $letters + "]"
           } else {
-            $historyTokens += "[ ]"
+            $tokenChronological += "[ ]"
           }
         }
+        if ($tokenChronological.Count -gt 5) {
+          $tokenChronological = $tokenChronological[($tokenChronological.Count - 5)..($tokenChronological.Count - 1)]
+        }
+        $historyTokens = @("[ ]", "[ ]", "[ ]", "[ ]", "[ ]")
+        if ($tokenChronological.Count -gt 0) {
+          $start = if ($tokenChronological.Count -le 3) { 2 } else { 5 - $tokenChronological.Count }
+          if ($start -lt 0) { $start = 0 }
+          for ($i = 0; $i -lt $tokenChronological.Count; $i++) {
+            $slot = $start + $i
+            if ($slot -ge 0 -and $slot -lt $historyTokens.Count) {
+              $historyTokens[$slot] = [string]$tokenChronological[$i]
+            }
+          }
+        }
+      } else {
+        $historyTokens = @("[ ]", "[ ]", "[ ]", "[ ]", "[ ]")
       }
-      $historyLine = if ($historyTokens.Count -gt 0) { $historyTokens -join " " } else { "-" }
+      $historyLine = $historyTokens -join " "
       $stateLines = @(
         "STATUS: $status (vs baseline)",
         "BASELINE: $baselineId",
