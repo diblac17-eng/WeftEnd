@@ -1230,13 +1230,14 @@ if ($shouldHandleUi) {
     }
   }
   $dialog = Show-ReportCardPopup -RunId $runId -Result $result -Reason $reason -PrivacyLint $privacy -BuildDigest $build
-  $shouldOpen = if ($LaunchpadMode.IsPresent) { $isChangedOrBlocked } else { $openFolderDefault -eq 1 }
+  $dialogAccepted = $false
   if ($dialog -ne $null -and "$dialog" -eq "OK") {
-    $shouldOpen = $true
+    $dialogAccepted = $true
   }
+  $shouldOpen = $dialogAccepted
   $reportCardPath = Join-Path $outDir "report_card.txt"
   $notepadPath = Join-Path $env:WINDIR "System32\notepad.exe"
-  $shouldOpenReportCard = -not $LaunchpadMode.IsPresent -or $isChangedOrBlocked
+  $shouldOpenReportCard = $dialogAccepted
   if ($shouldOpenReportCard -and (Test-Path -LiteralPath $reportCardPath)) {
     if (Test-Path -LiteralPath $notepadPath) {
       Start-Process -FilePath $notepadPath -ArgumentList $reportCardPath | Out-Null

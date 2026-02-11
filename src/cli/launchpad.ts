@@ -221,9 +221,11 @@ const syncLaunchpad = (
     existing = [];
   }
 
-  // Only prune stale generated shortcuts if sync produced at least one desired shortcut.
-  // This prevents silent wipe when shortcut generation fails due local environment issues.
-  if (desiredShortcuts.size > 0) {
+  // Prune behavior:
+  // - If no targets are present, clear generated launchpad shortcuts.
+  // - If at least one shortcut was generated, prune stale generated shortcuts.
+  // - If targets exist but all generations failed, keep existing shortcuts to avoid silent wipe.
+  if (scanned === 0 || desiredShortcuts.size > 0) {
     existing.forEach((full) => {
       if (!desiredShortcuts.has(full) && full.toLowerCase().includes("(weftend).lnk")) {
         try {

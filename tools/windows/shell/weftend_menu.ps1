@@ -65,15 +65,6 @@ function Show-Info {
   ) | Out-Null
 }
 
-function Choose-Folder {
-  $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
-  $dialog.Description = "Select folder"
-  if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-    return $dialog.SelectedPath
-  }
-  return $null
-}
-
 function Open-Explorer {
   param([string]$PathValue)
   if (-not $PathValue -or -not (Test-Path -LiteralPath $PathValue)) { return }
@@ -174,15 +165,28 @@ function Invoke-Launchpad {
   ) | Out-Null
 }
 
+$colorBg = [System.Drawing.Color]::FromArgb(18, 20, 24)
+$colorHeader = [System.Drawing.Color]::FromArgb(24, 27, 33)
+$colorCard = [System.Drawing.Color]::FromArgb(30, 34, 41)
+$colorCardHover = [System.Drawing.Color]::FromArgb(38, 44, 54)
+$colorBorder = [System.Drawing.Color]::FromArgb(56, 62, 74)
+$colorText = [System.Drawing.Color]::FromArgb(236, 239, 245)
+$colorMuted = [System.Drawing.Color]::FromArgb(167, 174, 188)
+$fontTitle = New-Object System.Drawing.Font("Segoe UI Semibold", 16)
+$fontBody = New-Object System.Drawing.Font("Segoe UI", 9)
+$fontCardTitle = New-Object System.Drawing.Font("Segoe UI Semibold", 11)
+$fontCardBody = New-Object System.Drawing.Font("Segoe UI", 8.5)
+
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "WeftEnd Menu"
+$form.Text = "WeftEnd Operator"
 $form.StartPosition = "CenterScreen"
 $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
 $form.MaximizeBox = $false
 $form.MinimizeBox = $true
-$form.Width = 620
-$form.Height = 500
-$form.BackColor = [System.Drawing.Color]::FromArgb(245, 248, 252)
+$form.Width = 760
+$form.Height = 520
+$form.BackColor = $colorBg
+$form.ForeColor = $colorText
 
 if ($iconPath -and (Test-Path -LiteralPath $iconPath)) {
   try {
@@ -192,54 +196,107 @@ if ($iconPath -and (Test-Path -LiteralPath $iconPath)) {
   }
 }
 
+$header = New-Object System.Windows.Forms.Panel
+$header.Dock = [System.Windows.Forms.DockStyle]::Top
+$header.Height = 96
+$header.BackColor = $colorHeader
+$form.Controls.Add($header)
+
 $title = New-Object System.Windows.Forms.Label
-$title.Text = "WeftEnd Operator Menu"
-$title.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 14)
+$title.Text = "WeftEnd Operator Console"
+$title.Font = $fontTitle
+$title.ForeColor = $colorText
 $title.AutoSize = $false
-$title.Width = 580
+$title.Width = 720
 $title.Height = 34
-$title.Location = New-Object System.Drawing.Point(18, 14)
-$form.Controls.Add($title)
+$title.Location = New-Object System.Drawing.Point(18, 16)
+$header.Controls.Add($title)
 
 $subtitle = New-Object System.Windows.Forms.Label
-$subtitle.Text = "Analysis-first controls. Baseline acceptance remains manual."
-$subtitle.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$subtitle.Text = "Deterministic evidence and change control. Operators decide."
+$subtitle.Font = $fontBody
+$subtitle.ForeColor = $colorMuted
 $subtitle.AutoSize = $false
-$subtitle.Width = 580
-$subtitle.Height = 22
-$subtitle.Location = New-Object System.Drawing.Point(18, 48)
-$form.Controls.Add($subtitle)
+$subtitle.Width = 720
+$subtitle.Height = 20
+$subtitle.Location = New-Object System.Drawing.Point(18, 52)
+$header.Controls.Add($subtitle)
 
 $panel = New-Object System.Windows.Forms.FlowLayoutPanel
-$panel.Location = New-Object System.Drawing.Point(18, 82)
-$panel.Width = 580
-$panel.Height = 360
+$panel.Dock = [System.Windows.Forms.DockStyle]::Fill
 $panel.FlowDirection = [System.Windows.Forms.FlowDirection]::LeftToRight
 $panel.WrapContents = $true
 $panel.AutoScroll = $true
-$panel.Padding = New-Object System.Windows.Forms.Padding(4)
+$panel.Padding = New-Object System.Windows.Forms.Padding(14, 14, 14, 10)
+$panel.BackColor = $colorBg
 $form.Controls.Add($panel)
 
-function New-MenuButton {
+$footer = New-Object System.Windows.Forms.Label
+$footer.Dock = [System.Windows.Forms.DockStyle]::Bottom
+$footer.Height = 24
+$footer.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+$footer.Padding = New-Object System.Windows.Forms.Padding(12, 0, 0, 0)
+$footer.ForeColor = $colorMuted
+$footer.BackColor = $colorHeader
+$footer.Font = $fontCardBody
+$footer.Text = "Tip: Launchpad is the day-to-day entry point; library holds receipts and compare state."
+$form.Controls.Add($footer)
+
+function New-MenuCard {
   param(
-    [string]$Text,
+    [string]$Title,
+    [string]$Description,
     [scriptblock]$OnClick
   )
-  $btn = New-Object System.Windows.Forms.Button
-  $btn.Text = $Text
-  $btn.Width = 270
-  $btn.Height = 54
-  $btn.Margin = New-Object System.Windows.Forms.Padding(6)
-  $btn.Font = New-Object System.Drawing.Font("Segoe UI", 10)
-  $btn.FlatStyle = [System.Windows.Forms.FlatStyle]::Standard
-  $btn.Add_Click($OnClick)
-  return $btn
+  $card = New-Object System.Windows.Forms.Panel
+  $card.Width = 350
+  $card.Height = 86
+  $card.Margin = New-Object System.Windows.Forms.Padding(8)
+  $card.BackColor = $colorCard
+  $card.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+  $card.Cursor = [System.Windows.Forms.Cursors]::Hand
+
+  $titleLabel = New-Object System.Windows.Forms.Label
+  $titleLabel.Text = $Title
+  $titleLabel.Font = $fontCardTitle
+  $titleLabel.ForeColor = $colorText
+  $titleLabel.AutoSize = $false
+  $titleLabel.Width = 324
+  $titleLabel.Height = 26
+  $titleLabel.Location = New-Object System.Drawing.Point(12, 10)
+  $titleLabel.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+  $titleLabel.Cursor = [System.Windows.Forms.Cursors]::Hand
+
+  $descLabel = New-Object System.Windows.Forms.Label
+  $descLabel.Text = $Description
+  $descLabel.Font = $fontCardBody
+  $descLabel.ForeColor = $colorMuted
+  $descLabel.AutoSize = $false
+  $descLabel.Width = 324
+  $descLabel.Height = 36
+  $descLabel.Location = New-Object System.Drawing.Point(12, 38)
+  $descLabel.TextAlign = [System.Drawing.ContentAlignment]::TopLeft
+  $descLabel.Cursor = [System.Windows.Forms.Cursors]::Hand
+
+  $card.Add_Click($OnClick)
+  $titleLabel.Add_Click($OnClick)
+  $descLabel.Add_Click($OnClick)
+  $card.Add_MouseEnter({ $this.BackColor = $colorCardHover })
+  $card.Add_MouseLeave({ $this.BackColor = $colorCard })
+  $titleLabel.Add_MouseEnter({ if ($this.Parent) { $this.Parent.BackColor = $colorCardHover } })
+  $titleLabel.Add_MouseLeave({ if ($this.Parent) { $this.Parent.BackColor = $colorCard } })
+  $descLabel.Add_MouseEnter({ if ($this.Parent) { $this.Parent.BackColor = $colorCardHover } })
+  $descLabel.Add_MouseLeave({ if ($this.Parent) { $this.Parent.BackColor = $colorCard } })
+
+  $card.Controls.Add($titleLabel) | Out-Null
+  $card.Controls.Add($descLabel) | Out-Null
+  return $card
 }
 
-$panel.Controls.Add((New-MenuButton -Text "Open Library" -OnClick { Open-Explorer -PathValue $libraryRoot })) | Out-Null
-$panel.Controls.Add((New-MenuButton -Text "Run Shell Doctor" -OnClick { Invoke-ShellDoctor })) | Out-Null
-$panel.Controls.Add((New-MenuButton -Text "Install Context Menu" -OnClick { Invoke-ContextInstall })) | Out-Null
-$panel.Controls.Add((New-MenuButton -Text "Uninstall Context Menu" -OnClick { Invoke-ContextUninstall })) | Out-Null
-$panel.Controls.Add((New-MenuButton -Text "Open Launchpad" -OnClick { Invoke-Launchpad })) | Out-Null
+$panel.Controls.Add((New-MenuCard -Title "Open Launchpad" -Description "Run gated shortcuts with SAME/CHANGED control." -OnClick { Invoke-Launchpad })) | Out-Null
+$panel.Controls.Add((New-MenuCard -Title "Open Library" -Description "Browse run history, report cards, and compare outputs." -OnClick { Open-Explorer -PathValue $libraryRoot })) | Out-Null
+$panel.Controls.Add((New-MenuCard -Title "Run Shell Doctor" -Description "Verify context-menu wiring and registry health." -OnClick { Invoke-ShellDoctor })) | Out-Null
+$panel.Controls.Add((New-MenuCard -Title "Install Context Menu" -Description "Enable right-click Run with WeftEnd entries." -OnClick { Invoke-ContextInstall })) | Out-Null
+$panel.Controls.Add((New-MenuCard -Title "Uninstall Context Menu" -Description "Remove per-user right-click WeftEnd entries." -OnClick { Invoke-ContextUninstall })) | Out-Null
 
 [void]$form.ShowDialog()

@@ -42,6 +42,16 @@ const run = async () => {
   const shortcutsDir = path.join(root, "Library", "Launchpad");
   const shortcuts = fs.readdirSync(shortcutsDir).filter((n: string) => n.toLowerCase().endsWith(".lnk"));
   assert(shortcuts.length >= 2, "expected at least two shortcuts");
+
+  // Clear targets and re-sync; generated launchpad shortcuts must be pruned.
+  fs.rmSync(fileTarget, { force: true });
+  fs.rmSync(folderTarget, { recursive: true, force: true });
+  const second = await runCliCapture(["launchpad", "sync"], {
+    env: { WEFTEND_LIBRARY_ROOT: root },
+  });
+  assert(second.status === 0, "expected second launchpad sync exit 0");
+  const postShortcuts = fs.readdirSync(shortcutsDir).filter((n: string) => n.toLowerCase().endsWith(".lnk"));
+  assert(postShortcuts.length === 0, "expected no launchpad shortcuts after clearing targets");
 };
 
 run()
