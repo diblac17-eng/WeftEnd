@@ -39,10 +39,10 @@ const fnv1a32 = (input: string): string => {
 };
 
 const defaultLimits: MintLimitsV1 = {
-  maxFiles: 5000,
-  maxTotalBytes: 100 * 1024 * 1024,
-  maxFileBytes: 256 * 1024,
-  maxExternalRefs: 200,
+  maxFiles: 20000,
+  maxTotalBytes: 512 * 1024 * 1024,
+  maxFileBytes: 1024 * 1024,
+  maxExternalRefs: 1000,
   maxScriptBytes: 2048,
   maxScriptSteps: 50,
 };

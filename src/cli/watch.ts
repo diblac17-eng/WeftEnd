@@ -18,9 +18,9 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 
 const DEFAULT_CAPTURE_LIMITS = {
-  maxFiles: 2000,
-  maxTotalBytes: 50 * 1024 * 1024,
-  maxFileBytes: 256 * 1024,
+  maxFiles: 10000,
+  maxTotalBytes: 256 * 1024 * 1024,
+  maxFileBytes: 1024 * 1024,
   maxPathBytes: 256,
 };
 

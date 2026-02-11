@@ -48,14 +48,14 @@ const MAX_INPUT_BYTES = 1024 * 1024;
 const ZERO_DIGEST = "fnv1a32:00000000";
 const RECEIPT_NAME = "host_run_receipt.json";
 const DEFAULT_CAPTURE_LIMITS = {
-  maxFiles: 5000,
-  maxTotalBytes: 100 * 1024 * 1024,
-  maxFileBytes: 256 * 1024,
+  maxFiles: 20000,
+  maxTotalBytes: 512 * 1024 * 1024,
+  maxFileBytes: 1024 * 1024,
   maxPathBytes: 256,
 };
 const DEFAULT_DETECT_LIMITS = {
-  maxFileBytes: 256 * 1024,
-  maxExternalRefs: 200,
+  maxFileBytes: 1024 * 1024,
+  maxExternalRefs: 1000,
 };
 
 export interface HostRunOptionsV0 {
