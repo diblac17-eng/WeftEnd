@@ -221,6 +221,7 @@ $nodePath = Resolve-ExecutablePath -Preferred $nodeCmd -CommandName "node" -Fall
   (Join-Path $localAppData "Programs\nodejs\node.exe")
 )
 $mainJs = if ($repoRoot) { Join-Path $repoRoot "dist\src\cli\main.js" } else { $null }
+$shellDoctorScript = if ($repoRoot) { Join-Path $repoRoot "tools\windows\shell\weftend_shell_doctor.ps1" } else { $null }
 
 function Invoke-LaunchpadSync {
   param([switch]$Silent)
