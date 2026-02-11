@@ -42,7 +42,6 @@ const scripts = [
   "weftend_safe_run.ps1",
   "weftend_make_shortcut.ps1",
   "launchpad_panel.ps1",
-  "weftend_menu.ps1",
   "weftend_shell_doctor.ps1",
   "weftend_shell_doctor.cmd",
   "README_WINDOWS_SHELL.md",
@@ -89,7 +88,7 @@ suite("tools/windows shell assets", () => {
     assert(/WeftEnd Library\.lnk/.test(text), "expected Start Menu shortcut");
     assert(/WeftEnd Launchpad\.lnk/.test(text), "expected launchpad shortcut");
     assert(/WeftEnd\.lnk/.test(text), "expected main menu shortcut");
-    assert(/weftend_menu\.ps1/.test(text), "expected menu script reference");
+    assert(!/weftend_menu\.ps1/.test(text), "menu script reference must be removed");
     assert(/WeftEnd Download\.lnk/.test(text), "expected download shortcut");
     assert(/launchpad_panel\.ps1/.test(text), "expected launchpad panel script reference");
     assert(/open_release_folder\.ps1/.test(text), "expected open_release_folder script reference");

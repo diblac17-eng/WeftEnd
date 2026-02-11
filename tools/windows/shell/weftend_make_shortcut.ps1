@@ -67,8 +67,27 @@ function Resolve-WeftEndIcon {
   return $pngPath
 }
 
+function Normalize-ShortcutIconLocation {
+  param([string]$IconLocation)
+  if (-not $IconLocation) { return $null }
+  $raw = $IconLocation.Trim()
+  if (-not $raw) { return $null }
+  $pathPart = $raw
+  if ($raw -match "^(.*),-?[0-9]+$") {
+    $pathPart = $matches[1]
+  }
+  $pathPart = $pathPart.Trim()
+  if ($pathPart.StartsWith('"') -and $pathPart.EndsWith('"') -and $pathPart.Length -ge 2) {
+    $pathPart = $pathPart.Substring(1, $pathPart.Length - 2)
+  }
+  $pathPart = [Environment]::ExpandEnvironmentVariables($pathPart)
+  if (-not $pathPart -or -not (Test-Path -LiteralPath $pathPart)) { return $null }
+  return $raw
+}
+
 $effectiveTarget = $null
 $shortcutIcon = $null
+$resolvedLaunchArgs = $null
 
 $normalizedTargetPath = Normalize-TargetPath -Value $TargetPath
 if (-not $normalizedTargetPath) {
@@ -93,12 +112,15 @@ if ($isShortcut) {
   try {
     $sc = (New-Object -ComObject WScript.Shell).CreateShortcut($TargetPath)
     if ($sc -and $sc.IconLocation) {
-      $shortcutIcon = [string]$sc.IconLocation
+      $shortcutIcon = Normalize-ShortcutIconLocation -IconLocation ([string]$sc.IconLocation)
     }
     if ($ResolveShortcut.IsPresent) {
       $resolvedTarget = if ($sc -and $sc.TargetPath) { [string]$sc.TargetPath } else { "" }
       if ($resolvedTarget -and (Test-Path -LiteralPath $resolvedTarget)) {
         $effectiveTarget = $resolvedTarget
+        if ($sc -and $sc.Arguments) {
+          $resolvedLaunchArgs = [string]$sc.Arguments
+        }
       } else {
         Write-Output "[SHORTCUT_TARGET_MISSING]"
         exit 40
@@ -144,6 +166,15 @@ $args = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$runnerP
 if ($AllowLaunch.IsPresent) { $args += " -AllowLaunch" }
 if ($OpenLibrary.IsPresent) { $args += " -OpenLibrary" }
 if ($LaunchpadMode.IsPresent) { $args += " -LaunchpadMode -Open 0" }
+if ($resolvedLaunchArgs -and $resolvedLaunchArgs.Trim() -ne "") {
+  # Carry shortcut launch args through as encoded data so launchpad can launch
+  # targets like VS Code that rely on shortcut arguments.
+  $bytes = [System.Text.Encoding]::UTF8.GetBytes($resolvedLaunchArgs)
+  $launchArgsB64 = [System.Convert]::ToBase64String($bytes)
+  if ($launchArgsB64 -and $launchArgsB64.Length -gt 0 -and $launchArgsB64.Length -le 8192) {
+    $args += " -LaunchArgsB64 `"$launchArgsB64`""
+  }
+}
 
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($ShortcutPath)

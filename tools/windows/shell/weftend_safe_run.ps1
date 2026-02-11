@@ -12,6 +12,7 @@ param(
   [string]$NpmCmd,
   [string]$Policy,
   [string]$Open = "1",
+  [string]$LaunchArgsB64,
   [switch]$OpenLibrary,
   [switch]$AllowLaunch,
   [switch]$LaunchpadMode
@@ -60,6 +61,22 @@ function Normalize-TargetPath {
   }
   if ($trimmed -eq "") { return $null }
   return $trimmed
+}
+
+function Decode-LaunchArgs {
+  param([string]$Value)
+  if (-not $Value -or $Value.Trim() -eq "") { return "" }
+  try {
+    if ($Value.Length -gt 8192) { return "" }
+    $bytes = [System.Convert]::FromBase64String($Value)
+    if (-not $bytes) { return "" }
+    $decoded = [System.Text.Encoding]::UTF8.GetString($bytes)
+    if (-not $decoded) { return "" }
+    if ($decoded.Length -gt 4096) { return "" }
+    return $decoded
+  } catch {
+    return ""
+  }
 }
 
 function Is-OpaqueNativeArtifact {
@@ -111,9 +128,10 @@ function Fnv1a32Hex {
   param([string]$Input)
   $bytes = [System.Text.Encoding]::UTF8.GetBytes($Input)
   [uint32]$hash = 2166136261
+  [uint64]$prime = 16777619
   foreach ($b in $bytes) {
-    $hash = $hash -bxor [uint32]$b
-    $hash = [uint32](($hash * 16777619) -band 0xFFFFFFFF)
+    $hash = [uint32]($hash -bxor [uint32]$b)
+    $hash = [uint32](([uint64]$hash * $prime) -band 0xFFFFFFFF)
   }
   return "{0:x8}" -f $hash
 }
@@ -125,13 +143,14 @@ function Compute-FileFNV1a32Digest {
   try {
     $stream = [System.IO.File]::Open($PathValue, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
     [uint32]$hash = 2166136261
+    [uint64]$prime = 16777619
     $buffer = New-Object byte[] 65536
     while ($true) {
       $read = $stream.Read($buffer, 0, $buffer.Length)
       if ($read -le 0) { break }
       for ($i = 0; $i -lt $read; $i++) {
-        $hash = $hash -bxor [uint32]$buffer[$i]
-        $hash = [uint32](($hash * 16777619) -band 0xFFFFFFFF)
+        $hash = [uint32]($hash -bxor [uint32]$buffer[$i])
+        $hash = [uint32](([uint64]$hash * $prime) -band 0xFFFFFFFF)
       }
     }
     return "fnv1a32:{0:x8}" -f $hash
@@ -140,6 +159,35 @@ function Compute-FileFNV1a32Digest {
   } finally {
     if ($stream) { $stream.Dispose() }
   }
+}
+
+function Compute-FileSha256Digest {
+  param([string]$PathValue)
+  if (-not $PathValue -or -not (Test-Path -LiteralPath $PathValue)) { return $null }
+  try {
+    $hash = Get-FileHash -LiteralPath $PathValue -Algorithm SHA256 -ErrorAction Stop
+    if (-not $hash -or -not $hash.Hash) { return $null }
+    return "sha256:" + ([string]$hash.Hash).ToLowerInvariant()
+  } catch {
+    return $null
+  }
+}
+
+function Resolve-ExpectedLaunchDigest {
+  param($Summary)
+  if (-not $Summary) { return "" }
+  try {
+    if ($Summary.hashSha256) {
+      return [string]$Summary.hashSha256
+    }
+    if ($Summary.contentSummary -and $Summary.contentSummary.hashFamily -and $Summary.contentSummary.hashFamily.sha256) {
+      return [string]$Summary.contentSummary.hashFamily.sha256
+    }
+  } catch {
+    # best effort
+  }
+  if ($Summary.inputDigest) { return [string]$Summary.inputDigest }
+  return ""
 }
 
 function Build-RunId {
@@ -238,6 +286,24 @@ function Extract-MetricValue {
   return $null
 }
 
+function To-Int64OrZero {
+  param([object]$Value)
+  if ($null -eq $Value) { return 0 }
+  if ($Value -is [string]) {
+    $trimmed = $Value.Trim()
+    if ($trimmed -eq "") { return 0 }
+  }
+  try {
+    return [int64]$Value
+  } catch {
+    try {
+      return [int64][double]$Value
+    } catch {
+      return 0
+    }
+  }
+}
+
 function Write-WrapperResult {
   param([string]$Result, [int]$ExitCode, [string]$Reason, [string]$Detail = "")
   $lines = @(
@@ -280,6 +346,7 @@ function Write-ReportCard {
     [object]$BaselineSummary
   )
   try {
+    if (-not $Summary) { $Summary = @{} }
     $stateLines = @()
     $status = "UNKNOWN"
     $bucketText = "-"
@@ -313,7 +380,7 @@ function Write-ReportCard {
       if ($ViewState.lastN -and $ViewState.keys) {
         $tokenCount = [Math]::Min($ViewState.lastN.Count, $ViewState.keys.Count)
         $tokenChronological = @()
-        for ($i = $tokenCount - 1; $i -ge 0; $i--) {
+        for ($i = 0; $i -lt $tokenCount; $i++) {
           $entry = $ViewState.keys[$i]
           if ($entry -and $entry.verdictVsBaseline -eq "CHANGED") {
             $letters = ""
@@ -327,16 +394,14 @@ function Write-ReportCard {
         if ($tokenChronological.Count -gt 5) {
           $tokenChronological = $tokenChronological[($tokenChronological.Count - 5)..($tokenChronological.Count - 1)]
         }
-        $historyTokens = @("[ ]", "[ ]", "[ ]", "[ ]", "[ ]")
+        $historyTokens = @()
+        $padCount = 5 - $tokenChronological.Count
+        if ($padCount -lt 0) { $padCount = 0 }
+        for ($i = 0; $i -lt $padCount; $i++) {
+          $historyTokens += "[ ]"
+        }
         if ($tokenChronological.Count -gt 0) {
-          $start = if ($tokenChronological.Count -le 3) { 2 } else { 5 - $tokenChronological.Count }
-          if ($start -lt 0) { $start = 0 }
-          for ($i = 0; $i -lt $tokenChronological.Count; $i++) {
-            $slot = $start + $i
-            if ($slot -ge 0 -and $slot -lt $historyTokens.Count) {
-              $historyTokens[$slot] = [string]$tokenChronological[$i]
-            }
-          }
+          $historyTokens += $tokenChronological
         }
       } else {
         $historyTokens = @("[ ]", "[ ]", "[ ]", "[ ]", "[ ]")
@@ -373,34 +438,41 @@ function Write-ReportCard {
     $signalSizeChanged = $false
     $signalStructureChanged = $false
     if ($status -eq "CHANGED" -and $BaselineSummary) {
-      $currFiles = if ($null -ne $Summary.totalFiles) { [int64]$Summary.totalFiles } else { 0 }
-      $baseFiles = if ($null -ne $BaselineSummary.totalFiles) { [int64]$BaselineSummary.totalFiles } else { 0 }
-      $currBytes = if ($null -ne $Summary.totalBytesBounded) { [int64]$Summary.totalBytesBounded } else { 0 }
-      $baseBytes = if ($null -ne $BaselineSummary.totalBytesBounded) { [int64]$BaselineSummary.totalBytesBounded } else { 0 }
-      $currRefs = if ($null -ne $Summary.externalRefCount) { [int64]$Summary.externalRefCount } else { 0 }
-      $baseRefs = if ($null -ne $BaselineSummary.externalRefCount) { [int64]$BaselineSummary.externalRefCount } else { 0 }
-      $currDomains = if ($null -ne $Summary.externalDomainCount) { [int64]$Summary.externalDomainCount } else { 0 }
-      $baseDomains = if ($null -ne $BaselineSummary.externalDomainCount) { [int64]$BaselineSummary.externalDomainCount } else { 0 }
-      $currScripts = if ($Summary.hasScripts -eq $true) { 1 } else { 0 }
-      $baseScripts = if ($BaselineSummary.hasScripts -eq $true) { 1 } else { 0 }
-      $dFiles = $currFiles - $baseFiles
-      $dBytes = $currBytes - $baseBytes
-      $dRefs = $currRefs - $baseRefs
-      $dDomains = $currDomains - $baseDomains
-      $dScripts = $currScripts - $baseScripts
-      $deltaLine = "delta=files:{0:+#;-#;0} bytes:{1:+#;-#;0} externalRefs:{2:+#;-#;0} domains:{3:+#;-#;0} scripts:{4:+#;-#;0}" -f $dFiles, $dBytes, $dRefs, $dDomains, $dScripts
-      if ($dBytes -ne 0 -or $dScripts -ne 0 -or $dRefs -ne 0 -or $dDomains -ne 0) {
-        $signalContentChanged = $true
-      }
-      if ($dBytes -ne 0) {
-        $signalSizeChanged = $true
-      }
-      if ($dFiles -ne 0) {
-        $signalStructureChanged = $true
+      try {
+        $currFiles = To-Int64OrZero -Value $Summary.totalFiles
+        $baseFiles = To-Int64OrZero -Value $BaselineSummary.totalFiles
+        $currBytes = To-Int64OrZero -Value $Summary.totalBytesBounded
+        $baseBytes = To-Int64OrZero -Value $BaselineSummary.totalBytesBounded
+        $currRefs = To-Int64OrZero -Value $Summary.externalRefCount
+        $baseRefs = To-Int64OrZero -Value $BaselineSummary.externalRefCount
+        $currDomains = To-Int64OrZero -Value $Summary.externalDomainCount
+        $baseDomains = To-Int64OrZero -Value $BaselineSummary.externalDomainCount
+        $currScripts = if ($Summary.hasScripts -eq $true) { 1 } else { 0 }
+        $baseScripts = if ($BaselineSummary.hasScripts -eq $true) { 1 } else { 0 }
+        $dFiles = $currFiles - $baseFiles
+        $dBytes = $currBytes - $baseBytes
+        $dRefs = $currRefs - $baseRefs
+        $dDomains = $currDomains - $baseDomains
+        $dScripts = $currScripts - $baseScripts
+        $deltaLine = "delta=files:{0:+#;-#;0} bytes:{1:+#;-#;0} externalRefs:{2:+#;-#;0} domains:{3:+#;-#;0} scripts:{4:+#;-#;0}" -f $dFiles, $dBytes, $dRefs, $dDomains, $dScripts
+        if ($dBytes -ne 0 -or $dScripts -ne 0 -or $dRefs -ne 0 -or $dDomains -ne 0) {
+          $signalContentChanged = $true
+        }
+        if ($dBytes -ne 0) {
+          $signalSizeChanged = $true
+        }
+        if ($dFiles -ne 0) {
+          $signalStructureChanged = $true
+        }
+      } catch {
+        $deltaLine = ""
       }
     }
     if ($status -eq "CHANGED") {
-      if ($bucketText -match "(^| )C( |$)" -or $bucketText -match "(^| )D( |$)") {
+      if ($bucketText -match "(^| )C( |$)") {
+        $signalContentChanged = $true
+      }
+      if ($bucketText -match "(^| )D( |$)") {
         $signalContentChanged = $true
       }
       if ($bucketText -match "(^| )B( |$)") {
@@ -489,7 +561,11 @@ function Write-ReportCard {
       $lines = $prefix + $signalLines + $suffix
     }
     if ($deltaLine -and $deltaLine.Trim() -ne "") {
-      $lines = $lines[0..1] + @($deltaLine) + $lines[2..($lines.Count - 1)]
+      if ($lines.Count -ge 2) {
+        $lines = @($lines[0], $lines[1], $deltaLine) + $lines[2..($lines.Count - 1)]
+      } else {
+        $lines = $lines + @($deltaLine)
+      }
     }
     if ($stateLines.Count -gt 0) {
       $lines = $stateLines + $lines
@@ -497,7 +573,52 @@ function Write-ReportCard {
     $path = Join-Path $outDir "report_card.txt"
     $lines -join "`n" | Set-Content -Path $path -Encoding UTF8
   } catch {
+    try {
+      $errMsg = Redact-SensitiveText -Text ([string]$_)
+      $errPath = Join-Path $outDir "wrapper_report_card_error.txt"
+      $errMsg | Set-Content -Path $errPath -Encoding UTF8
+    } catch {
+      # ignore diagnostic failures
+    }
+    $statusFallback = "UNKNOWN"
+    $baselineFallback = "-"
+    $latestFallback = "-"
+    $bucketFallback = "-"
+    $historyFallback = "[ ] [ ] [ ] [ ] [ ]"
+    try {
+      if ($ViewState) {
+        if ($ViewState.baselineRunId) { $baselineFallback = [string]$ViewState.baselineRunId }
+        if ($ViewState.latestRunId) { $latestFallback = [string]$ViewState.latestRunId }
+        if ($ViewState.blocked -and $ViewState.blocked.runId) {
+          $statusFallback = "BLOCKED"
+        } else {
+          $idxFallback = -1
+          if ($ViewState.lastN) {
+            for ($i = 0; $i -lt $ViewState.lastN.Count; $i++) {
+              if ([string]$ViewState.lastN[$i] -eq $latestFallback) { $idxFallback = $i; break }
+            }
+          }
+          if ($idxFallback -ge 0 -and $ViewState.keys -and $idxFallback -lt $ViewState.keys.Count) {
+            $entryFallback = $ViewState.keys[$idxFallback]
+            if ($entryFallback -and $entryFallback.verdictVsBaseline) {
+              $statusFallback = [string]$entryFallback.verdictVsBaseline
+            }
+            if ($entryFallback -and $entryFallback.buckets -and $entryFallback.buckets.Count -gt 0) {
+              $bucketFallback = (($entryFallback.buckets | ForEach-Object { [string]$_ }) -join " ")
+            }
+          }
+        }
+      }
+    } catch {
+      # keep fallback defaults
+    }
     $fallback = @(
+      "STATUS: $statusFallback (vs baseline)",
+      "BASELINE: $baselineFallback",
+      "LATEST: $latestFallback",
+      "BUCKETS: $bucketFallback",
+      "HISTORY: $historyFallback",
+      "LEGEND: [ ]=same [X]=changed letters=C X R P H B D",
       "runId=$RunId",
       "result=$Result",
       "reason=$Reason",
@@ -543,6 +664,14 @@ function Read-ReceiptSummaryFromPath {
         $summary.externalDomainCount = if ($content.externalRefs.topDomains) { $content.externalRefs.topDomains.Count } else { 0 }
         $summary.entryHints = $content.entryHints
         $summary.boundednessMarkers = $content.boundednessMarkers
+        if ($content.hashFamily) {
+          if ($content.hashFamily.sha256) {
+            $summary.hashSha256 = [string]$content.hashFamily.sha256
+          }
+          if ($content.hashFamily.fnv1a32) {
+            $summary.hashFnv1a32 = [string]$content.hashFamily.fnv1a32
+          }
+        }
       }
       return $summary
     } catch {
@@ -1290,9 +1419,16 @@ if ($AllowLaunch.IsPresent) {
       $allowLaunchByStatus = -not $isBlockedStatus
     }
     if ($allowLaunchByStatus) {
-      $expectedDigest = if ($summary -and $summary.inputDigest) { [string]$summary.inputDigest } else { "" }
+      $expectedDigest = Resolve-ExpectedLaunchDigest -Summary $summary
       $launchAllowed = $true
-      if ($expectedDigest -and $expectedDigest.StartsWith("fnv1a32:", [System.StringComparison]::OrdinalIgnoreCase)) {
+      if ($expectedDigest -and $expectedDigest.StartsWith("sha256:", [System.StringComparison]::OrdinalIgnoreCase)) {
+        $currentDigest = Compute-FileSha256Digest -PathValue $TargetPath
+        if (-not $currentDigest -or ($currentDigest.ToLowerInvariant() -ne $expectedDigest.ToLowerInvariant())) {
+          # Launch must fail closed if target bytes changed between scan and execution.
+          $launchAllowed = $false
+          $launchResult = "BLOCKED_DIGEST_MISMATCH"
+        }
+      } elseif ($expectedDigest -and $expectedDigest.StartsWith("fnv1a32:", [System.StringComparison]::OrdinalIgnoreCase)) {
         $currentDigest = Compute-FileFNV1a32Digest -PathValue $TargetPath
         if (-not $currentDigest -or ($currentDigest.ToLowerInvariant() -ne $expectedDigest.ToLowerInvariant())) {
           # Launch must fail closed if target bytes changed between scan and execution.
@@ -1303,10 +1439,19 @@ if ($AllowLaunch.IsPresent) {
       if ($launchAllowed) {
         try {
           $workDir = Split-Path -Parent $TargetPath
+          $launchArgs = Decode-LaunchArgs -Value $LaunchArgsB64
           if ($workDir -and (Test-Path -LiteralPath $workDir)) {
-            Start-Process -FilePath $TargetPath -WorkingDirectory $workDir | Out-Null
+            if ($launchArgs -and $launchArgs.Trim() -ne "") {
+              Start-Process -FilePath $TargetPath -ArgumentList $launchArgs -WorkingDirectory $workDir | Out-Null
+            } else {
+              Start-Process -FilePath $TargetPath -WorkingDirectory $workDir | Out-Null
+            }
           } else {
-            Start-Process -FilePath $TargetPath | Out-Null
+            if ($launchArgs -and $launchArgs.Trim() -ne "") {
+              Start-Process -FilePath $TargetPath -ArgumentList $launchArgs | Out-Null
+            } else {
+              Start-Process -FilePath $TargetPath | Out-Null
+            }
           }
           $launchResult = "STARTED"
         } catch {

@@ -306,6 +306,17 @@ foreach ($single in $includeSingles) {
 
 Write-Ok "Stage built"
 
+# Ensure docs assets are staged even if untracked (docs/ assets are public).
+$docsAssetsSrc = Join-Path $root "docs\\assets"
+if (Test-Path -LiteralPath $docsAssetsSrc) {
+  $docsAssetsDst = Join-Path $stagePath "docs\\assets"
+  if (-not (Test-Path -LiteralPath $docsAssetsDst)) {
+    New-Item -ItemType Directory -Path $docsAssetsDst -Force | Out-Null
+  }
+  Copy-Item -Path (Join-Path $docsAssetsSrc "*") -Destination $docsAssetsDst -Recurse -Force
+  Write-Ok "docs/assets staged"
+}
+
 Write-Section "Create Standard Zip"
 $standardBundle = New-ZipAndHash -StagePath $stagePath -OutDirPath $outAbs -ZipName $zipName
 Write-Ok "Release zip: $($standardBundle.Zip)"
