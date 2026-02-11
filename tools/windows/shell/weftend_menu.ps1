@@ -120,6 +120,8 @@ $launchpadScript = Join-Path $scriptDir "launchpad_panel.ps1"
 if (-not $Tools.IsPresent -and (Test-Path -LiteralPath $launchpadScript)) {
   Start-Process -FilePath "powershell.exe" -ArgumentList @(
     "-NoProfile",
+    "-WindowStyle",
+    "Hidden",
     "-ExecutionPolicy",
     "Bypass",
     "-File",
@@ -174,6 +176,8 @@ function Invoke-Launchpad {
   }
   Start-Process -FilePath "powershell.exe" -ArgumentList @(
     "-NoProfile",
+    "-WindowStyle",
+    "Hidden",
     "-ExecutionPolicy",
     "Bypass",
     "-File",

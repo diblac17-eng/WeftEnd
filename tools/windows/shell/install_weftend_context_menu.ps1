@@ -185,7 +185,7 @@ function Install-LaunchpadShortcut {
   $shortcut = $shell.CreateShortcut($ShortcutPath)
   if (Test-Path -LiteralPath $launchpadPanel) {
     $shortcut.TargetPath = $target
-    $shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$launchpadPanel`""
+    $shortcut.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$launchpadPanel`""
   } else {
     $explorerPath = Join-Path $env:WINDIR "explorer.exe"
     $explorerTarget = if (Test-Path -LiteralPath $explorerPath) { $explorerPath } else { "explorer.exe" }
@@ -214,7 +214,7 @@ function Install-MenuShortcut {
   $shell = New-Object -ComObject WScript.Shell
   $shortcut = $shell.CreateShortcut($ShortcutPath)
   $shortcut.TargetPath = $psExe
-  $shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$targetScript`""
+  $shortcut.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$targetScript`""
   $shortcut.IconLocation = if ($weftendIcon) { $weftendIcon } else { $psExe }
   $shortcut.Save()
 }
@@ -230,7 +230,7 @@ function Install-ToolsShortcut {
   $shell = New-Object -ComObject WScript.Shell
   $shortcut = $shell.CreateShortcut($ShortcutPath)
   $shortcut.TargetPath = $psExe
-  $shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$menuScript`" -Tools"
+  $shortcut.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$menuScript`" -Tools"
   $shortcut.IconLocation = if ($weftendIcon) { $weftendIcon } else { $psExe }
   $shortcut.Save()
 }
@@ -246,7 +246,7 @@ function Install-DownloadShortcut {
   $shell = New-Object -ComObject WScript.Shell
   $shortcut = $shell.CreateShortcut($ShortcutPath)
   $shortcut.TargetPath = $psExe
-  $shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$downloadScript`" -BuildIfMissing"
+  $shortcut.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$downloadScript`" -BuildIfMissing"
   $shortcut.IconLocation = if ($weftendIcon) { $weftendIcon } else { $psExe }
   $shortcut.Save()
 }

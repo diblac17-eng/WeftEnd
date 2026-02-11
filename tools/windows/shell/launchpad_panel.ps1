@@ -517,7 +517,7 @@ function Load-HistoryRows {
 }
 
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "WeftEnd Launchpad"
+$form.Text = "WeftEnd Launchpad v2"
 $form.Width = 456
 $form.Height = 680
 $form.StartPosition = "CenterScreen"
@@ -543,14 +543,14 @@ $header.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.
 $header.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 24)))
 
 $title = New-Object System.Windows.Forms.Label
-$title.Text = "WeftEnd Launchpad"
+$title.Text = "WeftEnd Launchpad v2"
 $title.Dock = "Fill"
 $title.Font = $fontTitle
 $title.ForeColor = $colorText
 $title.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
 $subtitle = New-Object System.Windows.Forms.Label
-$subtitle.Text = "Compact operator launcher: gated scan then launch."
+$subtitle.Text = "Tabbed operator launcher: gated scan then launch."
 $subtitle.Dock = "Fill"
 $subtitle.Font = $fontSmall
 $subtitle.ForeColor = $colorMuted
