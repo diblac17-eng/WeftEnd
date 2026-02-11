@@ -13,7 +13,8 @@ param(
   [string]$Policy,
   [string]$Open = "1",
   [switch]$OpenLibrary,
-  [switch]$AllowLaunch
+  [switch]$AllowLaunch,
+  [switch]$LaunchpadMode
 )
 
 Set-StrictMode -Version Latest
@@ -952,6 +953,8 @@ if (-not $skipWeftend) {
 }
 
 Write-WrapperResult -Result $result -ExitCode $finalExitCode -Reason $reason -Detail ("targetKind=" + $targetKind)
+$viewState = $null
+$viewStatus = "UNKNOWN"
 try {
   $runSeq = "001"
   if ($outDir -and $baseDir -and $outDir.StartsWith($baseDir, [System.StringComparison]::OrdinalIgnoreCase)) {
@@ -1000,8 +1003,14 @@ try {
 }
 
 $openFlag = -not ($Open -eq "0" -or $Open -eq "false" -or $Open -eq "False")
-if ($openFlag) {
-  if ($viewState -and -not ($viewState.blocked -and $viewState.blocked.runId)) {
+$viewStatusNow = if ($viewStatus) { [string]$viewStatus } else { "UNKNOWN" }
+$isChangedOrBlocked = $viewStatusNow -eq "CHANGED" -or $viewStatusNow -eq "BLOCKED" -or $result -eq "FAIL" -or $result -eq "DENY"
+$shouldHandleUi = $openFlag
+if ($LaunchpadMode.IsPresent -and $isChangedOrBlocked) {
+  $shouldHandleUi = $true
+}
+if ($shouldHandleUi) {
+  if ($openFlag -and -not $LaunchpadMode.IsPresent -and $viewState -and -not ($viewState.blocked -and $viewState.blocked.runId)) {
     $latestId = if ($viewState.latestRunId) { [string]$viewState.latestRunId } else { "" }
     $idx = -1
     if ($viewState.lastN) {
@@ -1044,13 +1053,14 @@ if ($openFlag) {
     }
   }
   $dialog = Show-ReportCardPopup -RunId $runId -Result $result -Reason $reason -PrivacyLint $privacy -BuildDigest $build
-  $shouldOpen = $openFolderDefault -eq 1
+  $shouldOpen = if ($LaunchpadMode.IsPresent) { $isChangedOrBlocked } else { $openFolderDefault -eq 1 }
   if ($dialog -ne $null -and "$dialog" -eq "OK") {
     $shouldOpen = $true
   }
   $reportCardPath = Join-Path $outDir "report_card.txt"
   $notepadPath = Join-Path $env:WINDIR "System32\notepad.exe"
-  if (Test-Path -LiteralPath $reportCardPath) {
+  $shouldOpenReportCard = -not $LaunchpadMode.IsPresent -or $isChangedOrBlocked
+  if ($shouldOpenReportCard -and (Test-Path -LiteralPath $reportCardPath)) {
     if (Test-Path -LiteralPath $notepadPath) {
       Start-Process -FilePath $notepadPath -ArgumentList $reportCardPath | Out-Null
     } else {

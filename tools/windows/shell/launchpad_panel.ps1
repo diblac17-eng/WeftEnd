@@ -144,7 +144,7 @@ function Invoke-LaunchpadSync {
     return
   }
   try {
-    $args = @($mainJs, "launchpad", "sync", "--allow-launch", "--open-library")
+    $args = @($mainJs, "launchpad", "sync", "--allow-launch", "--open-run")
     $syncOutputRaw = & $nodePath @args 2>&1
     $syncOutput = [string]($syncOutputRaw | Out-String)
     if (-not $syncOutput) { $syncOutput = "" }

@@ -8,6 +8,7 @@ param(
   [string]$TargetCompat,
   [string]$ShortcutPath,
   [switch]$AllowLaunch,
+  [switch]$LaunchpadMode,
   [switch]$ResolveShortcut,
   [switch]$UseTargetIcon,
   [switch]$OpenLibrary
@@ -142,6 +143,7 @@ if (-not (Test-Path $psExe)) { $psExe = "powershell.exe" }
 $args = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$runnerPath`" -Target `"$effectiveTarget`""
 if ($AllowLaunch.IsPresent) { $args += " -AllowLaunch" }
 if ($OpenLibrary.IsPresent) { $args += " -OpenLibrary" }
+if ($LaunchpadMode.IsPresent) { $args += " -LaunchpadMode -Open 0" }
 
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($ShortcutPath)

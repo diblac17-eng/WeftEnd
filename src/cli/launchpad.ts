@@ -23,7 +23,7 @@ const DEFAULT_INTERVAL_MS = 10000;
 
 const parseLaunchpadArgs = (argv: string[]): LaunchpadArgs => {
   const args = [...argv];
-  const out: LaunchpadArgs = { allowLaunch: false, openLibrary: true, intervalMs: DEFAULT_INTERVAL_MS };
+  const out: LaunchpadArgs = { allowLaunch: false, openLibrary: false, intervalMs: DEFAULT_INTERVAL_MS };
   while (args.length > 0) {
     const token = args.shift();
     if (!token) break;
@@ -136,6 +136,7 @@ const createShortcut = (
   ];
   if (allowLaunch) args.push("-AllowLaunch");
   if (openLibrary) args.push("-OpenLibrary");
+  args.push("-LaunchpadMode");
   const result = spawnSync("powershell.exe", args, { stdio: ["ignore", "pipe", "pipe"], encoding: "utf8" });
   if (result.status === 0) {
     return { ok: true };

@@ -210,6 +210,7 @@ suite("tools/windows shell assets", () => {
     assert(/WITHHELD/.test(text), "expected WITHHELD wrapper result");
     assert(/DENY/.test(text), "expected DENY wrapper result");
     assert(/OpenLibrary/.test(text), "expected OpenLibrary support");
+    assert(/LaunchpadMode/.test(text), "expected LaunchpadMode support");
 
     const blockMatch = text.match(/function Write-ReportCard[\s\S]*?function Read-ReceiptSummary/);
     if (blockMatch && blockMatch[0]) {
@@ -217,6 +218,18 @@ suite("tools/windows shell assets", () => {
       assert(!/[A-Za-z]:\\/.test(block), "report card block must not include absolute paths");
       assert(!/\\Users\\/.test(block), "report card block must not include user paths");
     }
+  });
+
+  register("launchpad assets use quiet run-mode defaults", () => {
+    const panelPath = path.join(shellDir, "launchpad_panel.ps1");
+    const panelText = fs.readFileSync(panelPath, "utf8");
+    assert(/--open-run/.test(panelText), "expected launchpad sync to use --open-run");
+    assert(!/--open-library"\)/.test(panelText), "launchpad sync must not force --open-library");
+
+    const shortcutPath = path.join(shellDir, "weftend_make_shortcut.ps1");
+    const shortcutText = fs.readFileSync(shortcutPath, "utf8");
+    assert(/LaunchpadMode/.test(shortcutText), "expected LaunchpadMode flag in shortcut tool");
+    assert(/-Open 0/.test(shortcutText), "expected quiet mode for launchpad shortcuts");
   });
 });
 
