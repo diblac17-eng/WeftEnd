@@ -94,6 +94,60 @@ function Get-IconImage {
   return $null
 }
 
+function Parse-ShortcutTargetFromArgs {
+  param([string]$Arguments)
+  if (-not $Arguments) { return $null }
+  $match = [System.Text.RegularExpressions.Regex]::Match($Arguments, '-Target\s+"([^"]+)"')
+  if ($match.Success -and $match.Groups.Count -gt 1) {
+    return [string]$match.Groups[1].Value
+  }
+  return $null
+}
+
+function Get-LaunchpadShortcutMetadata {
+  param([string]$ShortcutPath)
+  try {
+    $shell = New-Object -ComObject WScript.Shell
+    $sc = $shell.CreateShortcut($ShortcutPath)
+    $targetExe = if ($sc -and $sc.TargetPath) { [string]$sc.TargetPath } else { "" }
+    $args = if ($sc -and $sc.Arguments) { [string]$sc.Arguments } else { "" }
+    $desc = if ($sc -and $sc.Description) { [string]$sc.Description } else { "" }
+    $parsedTarget = Parse-ShortcutTargetFromArgs -Arguments $args
+    $expandedTarget = if ($parsedTarget) { [Environment]::ExpandEnvironmentVariables($parsedTarget) } else { "" }
+    $targetCanonical = ""
+    if ($expandedTarget -and (Test-Path -LiteralPath $expandedTarget)) {
+      $targetCanonical = [System.IO.Path]::GetFullPath($expandedTarget)
+    }
+    $targetsCanonical = [System.IO.Path]::GetFullPath($targetsDir).TrimEnd('\')
+    $exeName = [System.IO.Path]::GetFileName($targetExe).ToLowerInvariant()
+    $isTrusted = $false
+    if (
+      ($exeName -eq "powershell.exe" -or $exeName -eq "pwsh.exe") -and
+      $desc -eq "WeftEnd Launchpad Shortcut v1" -and
+      $args -match "weftend_safe_run\.ps1" -and
+      $args -match "(^|\s)-LaunchpadMode(\s|$)" -and
+      $args -match "(^|\s)-AllowLaunch(\s|$)" -and
+      $args -match "(^|\s)-Open\s+0(\s|$)" -and
+      -not ($args -match "(^|\s)-OpenLibrary(\s|$)") -and
+      $targetCanonical -and
+      $targetCanonical.StartsWith(($targetsCanonical + "\"), [System.StringComparison]::OrdinalIgnoreCase)
+    ) {
+      $isTrusted = $true
+    }
+    return @{
+      trusted = $isTrusted
+      arguments = $args
+      description = $desc
+    }
+  } catch {
+    return @{
+      trusted = $false
+      arguments = ""
+      description = ""
+    }
+  }
+}
+
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
@@ -207,9 +261,17 @@ function Load-Shortcuts {
   $Panel.Controls.Clear()
 
   $files = @(Get-ChildItem -LiteralPath $launchpadRoot -Filter "*.lnk" -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "* (WeftEnd).lnk" } | Sort-Object Name)
+  $trustedFiles = @()
+  foreach ($f in $files) {
+    $meta = Get-LaunchpadShortcutMetadata -ShortcutPath $f.FullName
+    if ($meta.trusted) {
+      $trustedFiles += $f
+    }
+  }
+  $files = $trustedFiles
   if (-not $files -or $files.Count -eq 0) {
     $label = New-Object System.Windows.Forms.Label
-    $label.Text = "No Launchpad shortcuts yet. Drop items into Targets and click Sync."
+    $label.Text = "No trusted Launchpad shortcuts yet. Drop items into Targets and click Sync."
     $label.AutoSize = $true
     $label.Margin = New-Object System.Windows.Forms.Padding 8
     $Panel.Controls.Add($label) | Out-Null
@@ -254,11 +316,13 @@ function Load-Shortcuts {
 
     $handler = {
       $lnk = $this.Tag
+      $meta = Get-LaunchpadShortcutMetadata -ShortcutPath $lnk
       if (
         $lnk -and
         (Test-Path -LiteralPath $lnk) -and
         $lnk.ToLowerInvariant().StartsWith($launchpadRoot.ToLowerInvariant()) -and
-        $lnk.ToLowerInvariant().EndsWith(" (weftend).lnk")
+        $lnk.ToLowerInvariant().EndsWith(" (weftend).lnk") -and
+        $meta.trusted
       ) {
         Start-Process -FilePath $lnk | Out-Null
       }

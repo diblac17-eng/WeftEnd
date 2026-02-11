@@ -227,11 +227,19 @@ suite("tools/windows shell assets", () => {
     assert(!/--open-library"\)/.test(panelText), "launchpad sync must not force --open-library");
     assert(/\* \(WeftEnd\)\.lnk/.test(panelText), "expected launchpad to list only WeftEnd shortcuts");
     assert(/Invoke-LaunchpadSync -Silent/.test(panelText), "expected launchpad refresh/auto-refresh silent sync");
+    assert(/Get-LaunchpadShortcutMetadata/.test(panelText), "expected launchpad shortcut metadata validation");
+    assert(/WeftEnd Launchpad Shortcut v1/.test(panelText), "expected launchpad shortcut description trust marker");
+    assert(/-LaunchpadMode/.test(panelText), "expected launchpad shortcut args to require LaunchpadMode");
+    assert(/-AllowLaunch/.test(panelText), "expected launchpad shortcut args to require AllowLaunch");
+    assert(/-Open\\s\+0/.test(panelText), "expected launchpad shortcut args to require Open 0");
+    assert(/-OpenLibrary/.test(panelText), "expected launchpad shortcut args to reject OpenLibrary");
 
     const shortcutPath = path.join(shellDir, "weftend_make_shortcut.ps1");
     const shortcutText = fs.readFileSync(shortcutPath, "utf8");
     assert(/LaunchpadMode/.test(shortcutText), "expected LaunchpadMode flag in shortcut tool");
     assert(/-Open 0/.test(shortcutText), "expected quiet mode for launchpad shortcuts");
+    assert(/Description = if \(\$LaunchpadMode\.IsPresent\)/.test(shortcutText), "expected launchpad description marker");
+    assert(/WeftEnd Launchpad Shortcut v1/.test(shortcutText), "expected launchpad description text");
   });
 });
 

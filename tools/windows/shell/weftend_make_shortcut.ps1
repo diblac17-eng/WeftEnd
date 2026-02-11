@@ -149,6 +149,7 @@ $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($ShortcutPath)
 $shortcut.TargetPath = $psExe
 $shortcut.Arguments = $args
+$shortcut.Description = if ($LaunchpadMode.IsPresent) { "WeftEnd Launchpad Shortcut v1" } else { "WeftEnd Shortcut v1" }
 if ($UseTargetIcon.IsPresent) {
   if ($shortcutIcon -and $shortcutIcon.Trim() -ne "") {
     $shortcut.IconLocation = $shortcutIcon
