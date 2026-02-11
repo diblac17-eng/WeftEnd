@@ -117,6 +117,30 @@ function Fnv1a32Hex {
   return "{0:x8}" -f $hash
 }
 
+function Compute-FileFNV1a32Digest {
+  param([string]$PathValue)
+  if (-not $PathValue -or -not (Test-Path -LiteralPath $PathValue)) { return $null }
+  $stream = $null
+  try {
+    $stream = [System.IO.File]::Open($PathValue, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
+    [uint32]$hash = 2166136261
+    $buffer = New-Object byte[] 65536
+    while ($true) {
+      $read = $stream.Read($buffer, 0, $buffer.Length)
+      if ($read -le 0) { break }
+      for ($i = 0; $i -lt $read; $i++) {
+        $hash = $hash -bxor [uint32]$buffer[$i]
+        $hash = [uint32](($hash * 16777619) -band 0xFFFFFFFF)
+      }
+    }
+    return "fnv1a32:{0:x8}" -f $hash
+  } catch {
+    return $null
+  } finally {
+    if ($stream) { $stream.Dispose() }
+  }
+}
+
 function Build-RunId {
   param(
     [string]$TargetKind,
@@ -487,6 +511,7 @@ function Read-ReceiptSummaryFromPath {
         analysisVerdict = $analysis
         executionVerdict = $execution
         rawArtifactKind = [string]$json.artifactKind
+        inputDigest = [string]$json.inputDigest
       }
       if ($content) {
         $summary.targetKind = [string]$content.targetKind
@@ -1055,16 +1080,27 @@ if ($AllowLaunch.IsPresent) {
   if ($result -ne "FAIL" -and -not $blockedRun -and $canLaunch) {
     $statusNow = if ($viewStatus) { $viewStatus } else { "UNKNOWN" }
     if ($statusNow -eq "SAME" -or $baselineAccepted) {
-      try {
-        $workDir = Split-Path -Parent $TargetPath
-        if ($workDir -and (Test-Path -LiteralPath $workDir)) {
-          Start-Process -FilePath $TargetPath -WorkingDirectory $workDir | Out-Null
-        } else {
-          Start-Process -FilePath $TargetPath | Out-Null
+      $expectedDigest = if ($summary -and $summary.inputDigest) { [string]$summary.inputDigest } else { "" }
+      $launchAllowed = $true
+      if ($expectedDigest -and $expectedDigest.StartsWith("fnv1a32:", [System.StringComparison]::OrdinalIgnoreCase)) {
+        $currentDigest = Compute-FileFNV1a32Digest -PathValue $TargetPath
+        if (-not $currentDigest -or ($currentDigest.ToLowerInvariant() -ne $expectedDigest.ToLowerInvariant())) {
+          $launchAllowed = $false
+          $launchResult = "BLOCKED_DIGEST_MISMATCH"
         }
-        $launchResult = "STARTED"
-      } catch {
-        $launchResult = "FAILED"
+      }
+      if ($launchAllowed) {
+        try {
+          $workDir = Split-Path -Parent $TargetPath
+          if ($workDir -and (Test-Path -LiteralPath $workDir)) {
+            Start-Process -FilePath $TargetPath -WorkingDirectory $workDir | Out-Null
+          } else {
+            Start-Process -FilePath $TargetPath | Out-Null
+          }
+          $launchResult = "STARTED"
+        } catch {
+          $launchResult = "FAILED"
+        }
       }
     }
   }
