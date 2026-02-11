@@ -1089,14 +1089,24 @@ if ($AllowLaunch.IsPresent) {
   $canLaunch = Is-LaunchableExecutable -PathValue $TargetPath
   if ($result -ne "FAIL" -and -not $blockedRun -and $canLaunch) {
     $statusNow = if ($viewStatus) { $viewStatus } else { "UNKNOWN" }
-    if ($statusNow -eq "SAME" -or $baselineAccepted) {
+    $isBlockedStatus = $statusNow -eq "CHANGED" -or $statusNow -eq "BLOCKED"
+    $allowLaunchByStatus = $statusNow -eq "SAME" -or $baselineAccepted
+    if ($LaunchpadMode.IsPresent) {
+      $allowLaunchByStatus = -not $isBlockedStatus
+    }
+    if ($allowLaunchByStatus) {
       $expectedDigest = if ($summary -and $summary.inputDigest) { [string]$summary.inputDigest } else { "" }
       $launchAllowed = $true
+      $launchDigestWarning = $false
       if ($expectedDigest -and $expectedDigest.StartsWith("fnv1a32:", [System.StringComparison]::OrdinalIgnoreCase)) {
         $currentDigest = Compute-FileFNV1a32Digest -PathValue $TargetPath
         if (-not $currentDigest -or ($currentDigest.ToLowerInvariant() -ne $expectedDigest.ToLowerInvariant())) {
-          $launchAllowed = $false
-          $launchResult = "BLOCKED_DIGEST_MISMATCH"
+          if ($LaunchpadMode.IsPresent) {
+            $launchDigestWarning = $true
+          } else {
+            $launchAllowed = $false
+            $launchResult = "BLOCKED_DIGEST_MISMATCH"
+          }
         }
       }
       if ($launchAllowed) {
@@ -1107,7 +1117,7 @@ if ($AllowLaunch.IsPresent) {
           } else {
             Start-Process -FilePath $TargetPath | Out-Null
           }
-          $launchResult = "STARTED"
+          $launchResult = if ($launchDigestWarning) { "STARTED_DIGEST_WARN" } else { "STARTED" }
         } catch {
           $launchResult = "FAILED"
         }

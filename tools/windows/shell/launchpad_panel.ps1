@@ -134,14 +134,17 @@ $nodePath = Resolve-ExecutablePath -Preferred $nodeCmd -CommandName "node" -Fall
 $mainJs = if ($repoRoot) { Join-Path $repoRoot "dist\src\cli\main.js" } else { $null }
 
 function Invoke-LaunchpadSync {
+  param([switch]$Silent)
   if (-not $nodePath -or -not $mainJs -or -not (Test-Path -LiteralPath $mainJs)) {
-    [System.Windows.Forms.MessageBox]::Show(
-      "Launchpad sync requires CLI runtime. Run npm run compile (source clone) or use the portable release bundle.",
-      "WeftEnd",
-      [System.Windows.Forms.MessageBoxButtons]::OK,
-      [System.Windows.Forms.MessageBoxIcon]::Information
-    ) | Out-Null
-    return
+    if (-not $Silent.IsPresent) {
+      [System.Windows.Forms.MessageBox]::Show(
+        "Launchpad sync requires CLI runtime. Run npm run compile (source clone) or use the portable release bundle.",
+        "WeftEnd",
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Information
+      ) | Out-Null
+    }
+    return $false
   }
   try {
     $args = @($mainJs, "launchpad", "sync", "--allow-launch", "--open-run")
@@ -163,14 +166,17 @@ function Invoke-LaunchpadSync {
       if ($bracket.Success -and $bracket.Groups.Count -gt 1) {
         $reason = [string]$bracket.Groups[1].Value
       }
-      [System.Windows.Forms.MessageBox]::Show(
-        ("Launchpad sync failed (" + $reason + ").`nOpen Targets and remove broken entries, then Sync again."),
-        "WeftEnd",
-        [System.Windows.Forms.MessageBoxButtons]::OK,
-        [System.Windows.Forms.MessageBoxIcon]::Warning
-      ) | Out-Null
-      return
+      if (-not $Silent.IsPresent) {
+        [System.Windows.Forms.MessageBox]::Show(
+          ("Launchpad sync failed (" + $reason + ").`nOpen Targets and remove broken entries, then Sync again."),
+          "WeftEnd",
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Warning
+        ) | Out-Null
+      }
+      return $false
     }
+    return $true
   } catch {
     try {
       $diagPath = Join-Path $launchpadRoot "sync_last.txt"
@@ -184,12 +190,15 @@ function Invoke-LaunchpadSync {
     } catch {
       # ignore diagnostic-write failures
     }
-    [System.Windows.Forms.MessageBox]::Show(
-      "Launchpad sync failed (LAUNCHPAD_SYNC_EXCEPTION). Check Launchpad/sync_last.txt for details.",
-      "WeftEnd",
-      [System.Windows.Forms.MessageBoxButtons]::OK,
-      [System.Windows.Forms.MessageBoxIcon]::Warning
-    ) | Out-Null
+    if (-not $Silent.IsPresent) {
+      [System.Windows.Forms.MessageBox]::Show(
+        "Launchpad sync failed (LAUNCHPAD_SYNC_EXCEPTION). Check Launchpad/sync_last.txt for details.",
+        "WeftEnd",
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Warning
+      ) | Out-Null
+    }
+    return $false
   }
 }
 
@@ -197,7 +206,7 @@ function Load-Shortcuts {
   param([System.Windows.Forms.FlowLayoutPanel]$Panel)
   $Panel.Controls.Clear()
 
-  $files = @(Get-ChildItem -LiteralPath $launchpadRoot -Filter "*.lnk" -File -ErrorAction SilentlyContinue | Sort-Object Name)
+  $files = @(Get-ChildItem -LiteralPath $launchpadRoot -Filter "*.lnk" -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "* (WeftEnd).lnk" } | Sort-Object Name)
   if (-not $files -or $files.Count -eq 0) {
     $label = New-Object System.Windows.Forms.Label
     $label.Text = "No Launchpad shortcuts yet. Drop items into Targets and click Sync."
@@ -245,7 +254,12 @@ function Load-Shortcuts {
 
     $handler = {
       $lnk = $this.Tag
-      if ($lnk -and (Test-Path -LiteralPath $lnk)) {
+      if (
+        $lnk -and
+        (Test-Path -LiteralPath $lnk) -and
+        $lnk.ToLowerInvariant().StartsWith($launchpadRoot.ToLowerInvariant()) -and
+        $lnk.ToLowerInvariant().EndsWith(" (weftend).lnk")
+      ) {
         Start-Process -FilePath $lnk | Out-Null
       }
     }
@@ -289,18 +303,8 @@ $btnSync.Text = "Sync"
 $btnSync.Width = 60
 $btnSync.Height = 30
 $btnSync.Add_Click({
-  Invoke-LaunchpadSync
+  Invoke-LaunchpadSync | Out-Null
   Load-Shortcuts -Panel $listPanel
-})
-
-$btnLibrary = New-Object System.Windows.Forms.Button
-$btnLibrary.Text = "Open Library"
-$btnLibrary.Width = 110
-$btnLibrary.Height = 30
-$btnLibrary.Add_Click({
-  $explorerPath = Join-Path $env:WINDIR "explorer.exe"
-  if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
-  Start-Process -FilePath $explorerPath -ArgumentList $libraryRoot | Out-Null
 })
 
 $btnRefresh = New-Object System.Windows.Forms.Button
@@ -308,6 +312,7 @@ $btnRefresh.Text = "Refresh"
 $btnRefresh.Width = 70
 $btnRefresh.Height = 30
 $btnRefresh.Add_Click({
+  Invoke-LaunchpadSync -Silent | Out-Null
   Load-Shortcuts -Panel $listPanel
 })
 
@@ -328,7 +333,6 @@ $chkTop.Add_CheckedChanged({
 
 $header.Controls.Add($btnTargets) | Out-Null
 $header.Controls.Add($btnSync) | Out-Null
-$header.Controls.Add($btnLibrary) | Out-Null
 $header.Controls.Add($btnRefresh) | Out-Null
 $header.Controls.Add($chkAuto) | Out-Null
 $header.Controls.Add($chkTop) | Out-Null
@@ -345,6 +349,7 @@ $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 5000
 $timer.Add_Tick({
   if ($chkAuto.Checked) {
+    Invoke-LaunchpadSync -Silent | Out-Null
     Load-Shortcuts -Panel $listPanel
   }
 })

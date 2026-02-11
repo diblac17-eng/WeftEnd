@@ -225,6 +225,8 @@ suite("tools/windows shell assets", () => {
     const panelText = fs.readFileSync(panelPath, "utf8");
     assert(/--open-run/.test(panelText), "expected launchpad sync to use --open-run");
     assert(!/--open-library"\)/.test(panelText), "launchpad sync must not force --open-library");
+    assert(/\* \(WeftEnd\)\.lnk/.test(panelText), "expected launchpad to list only WeftEnd shortcuts");
+    assert(/Invoke-LaunchpadSync -Silent/.test(panelText), "expected launchpad refresh/auto-refresh silent sync");
 
     const shortcutPath = path.join(shellDir, "weftend_make_shortcut.ps1");
     const shortcutText = fs.readFileSync(shortcutPath, "utf8");
