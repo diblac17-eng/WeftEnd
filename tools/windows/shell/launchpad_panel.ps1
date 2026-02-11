@@ -787,7 +787,16 @@ $chkTop.Text = "Topmost window"
 $chkTop.Checked = $TopMost.IsPresent
 $chkTop.AutoSize = $true
 $chkTop.ForeColor = $colorText
-$chkTop.Add_CheckedChanged({ $form.TopMost = $chkTop.Checked })
+$chkTop.Add_CheckedChanged({
+  $form.TopMost = $chkTop.Checked
+  if ($chkTop.Checked) {
+    $form.Activate()
+    $form.BringToFront()
+    Set-StatusLine -StatusLabel $statusLabel -Message "Topmost enabled." -IsError $false
+  } else {
+    Set-StatusLine -StatusLabel $statusLabel -Message "Topmost disabled." -IsError $false
+  }
+})
 
 $settingsHint = New-Object System.Windows.Forms.Label
 $settingsHint.Text = "SAME launches target. CHANGED blocks launch until accepted."

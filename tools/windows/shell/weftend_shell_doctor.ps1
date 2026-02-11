@@ -17,8 +17,17 @@ function Read-RegistryValue {
 function Read-CommandDefault {
   param([string]$KeyPath)
   try {
-    $item = Get-ItemProperty -LiteralPath $KeyPath -Name "(Default)" -ErrorAction Stop
-    return $item."(Default)"
+    $regPath = $KeyPath
+    if ($KeyPath.StartsWith("HKCU:\")) {
+      $regPath = $KeyPath.Substring(6)
+    }
+    $root = [Microsoft.Win32.Registry]::CurrentUser
+    $subKey = $root.OpenSubKey($regPath)
+    if (-not $subKey) { return $null }
+    $value = $subKey.GetValue("", $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+    $subKey.Close()
+    if ($null -eq $value) { return $null }
+    return [string]$value
   } catch {
     return $null
   }
