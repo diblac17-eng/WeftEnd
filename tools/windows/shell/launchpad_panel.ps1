@@ -155,8 +155,36 @@ $colorHeader = [System.Drawing.Color]::FromArgb(20, 21, 24)
 $colorText = [System.Drawing.Color]::FromArgb(235, 237, 242)
 $colorMuted = [System.Drawing.Color]::FromArgb(170, 174, 186)
 $colorBorder = [System.Drawing.Color]::FromArgb(56, 59, 68)
+$colorAccent = [System.Drawing.Color]::FromArgb(56, 94, 217)
+$colorAccentHover = [System.Drawing.Color]::FromArgb(66, 108, 235)
+$colorRowHover = [System.Drawing.Color]::FromArgb(42, 44, 50)
+$colorButtonAlt = [System.Drawing.Color]::FromArgb(42, 44, 50)
+$colorButtonAltHover = [System.Drawing.Color]::FromArgb(52, 55, 64)
 $fontMain = New-Object System.Drawing.Font "Segoe UI", 9
 $fontTitle = New-Object System.Drawing.Font "Segoe UI Semibold", 10
+$fontSmall = New-Object System.Drawing.Font "Segoe UI", 8
+
+function Style-Button {
+  param(
+    [System.Windows.Forms.Button]$Button,
+    [bool]$Primary = $false
+  )
+  if (-not $Button) { return }
+  $Button.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+  $Button.FlatAppearance.BorderSize = 0
+  $Button.ForeColor = $colorText
+  $Button.Font = $fontMain
+  $Button.Cursor = [System.Windows.Forms.Cursors]::Hand
+  if ($Primary) {
+    $Button.BackColor = $colorAccent
+    $Button.FlatAppearance.MouseOverBackColor = $colorAccentHover
+    $Button.FlatAppearance.MouseDownBackColor = $colorAccentHover
+  } else {
+    $Button.BackColor = $colorButtonAlt
+    $Button.FlatAppearance.MouseOverBackColor = $colorButtonAltHover
+    $Button.FlatAppearance.MouseDownBackColor = $colorButtonAltHover
+  }
+}
 
 $configPath = "HKCU:\Software\WeftEnd\Shell"
 $outRoot = Read-RegistryValue -Path $configPath -Name "OutRoot"
@@ -321,6 +349,8 @@ function Load-Shortcuts {
     $label.Text = "No trusted Launchpad shortcuts yet. Drop items into Targets and click Sync."
     $label.AutoSize = $true
     $label.Margin = New-Object System.Windows.Forms.Padding 8
+    $label.ForeColor = $colorMuted
+    $label.Font = $fontMain
     $Panel.Controls.Add($label) | Out-Null
     return
   }
@@ -335,6 +365,7 @@ function Load-Shortcuts {
     $row.BackColor = $colorPanel
     $row.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
     $row.Tag = $file.FullName
+    $row.Cursor = [System.Windows.Forms.Cursors]::Hand
 
     $iconBox = New-Object System.Windows.Forms.PictureBox
     $iconBox.Width = 34
@@ -380,6 +411,12 @@ function Load-Shortcuts {
     $row.Add_Click($handler)
     $iconBox.Add_Click($handler)
     $label.Add_Click($handler)
+    $row.Add_MouseEnter({ $this.BackColor = $colorRowHover })
+    $row.Add_MouseLeave({ $this.BackColor = $colorPanel })
+    $iconBox.Add_MouseEnter({ $row.BackColor = $colorRowHover })
+    $iconBox.Add_MouseLeave({ $row.BackColor = $colorPanel })
+    $label.Add_MouseEnter({ $row.BackColor = $colorRowHover })
+    $label.Add_MouseLeave({ $row.BackColor = $colorPanel })
 
     $row.Controls.Add($iconBox) | Out-Null
     $row.Controls.Add($label) | Out-Null
@@ -406,37 +443,49 @@ function Set-StatusLine {
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "WeftEnd Launchpad"
-$form.Width = 430
-$form.Height = 640
+$form.Width = 440
+$form.Height = 650
 $form.StartPosition = "CenterScreen"
 $form.BackColor = $colorBg
 $form.ForeColor = $colorText
 $form.Font = $fontMain
 $form.MaximizeBox = $false
+$form.MinimizeBox = $true
 $form.FormBorderStyle = "FixedDialog"
 if ($TopMost.IsPresent) { $form.TopMost = $true }
 
 $header = New-Object System.Windows.Forms.FlowLayoutPanel
 $header.FlowDirection = "LeftToRight"
 $header.Dock = "Top"
-$header.Height = 84
+$header.Height = 106
 $header.Padding = New-Object System.Windows.Forms.Padding 6
 $header.BackColor = $colorHeader
 
 $title = New-Object System.Windows.Forms.Label
 $title.Text = "WeftEnd Launchpad"
 $title.AutoSize = $false
-$title.Width = 398
+$title.Width = 406
 $title.Height = 24
 $title.Margin = New-Object System.Windows.Forms.Padding 6,4,6,2
 $title.Font = $fontTitle
 $title.ForeColor = $colorText
 $title.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
+$subtitle = New-Object System.Windows.Forms.Label
+$subtitle.Text = "Click a tile to run gated scan + launch workflow"
+$subtitle.AutoSize = $false
+$subtitle.Width = 406
+$subtitle.Height = 18
+$subtitle.Margin = New-Object System.Windows.Forms.Padding 6,0,6,4
+$subtitle.Font = $fontSmall
+$subtitle.ForeColor = $colorMuted
+$subtitle.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+
 $btnTargets = New-Object System.Windows.Forms.Button
 $btnTargets.Text = "Open Targets"
 $btnTargets.Width = 110
 $btnTargets.Height = 30
+Style-Button -Button $btnTargets -Primary:$false
 $btnTargets.Add_Click({
   $explorerPath = Join-Path $env:WINDIR "explorer.exe"
   if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
@@ -447,6 +496,7 @@ $btnSync = New-Object System.Windows.Forms.Button
 $btnSync.Text = "Sync"
 $btnSync.Width = 60
 $btnSync.Height = 30
+Style-Button -Button $btnSync -Primary:$true
 $btnSync.Add_Click({
   $sync = Invoke-LaunchpadSync
   $count = Load-Shortcuts -Panel $listPanel
@@ -462,6 +512,7 @@ $btnRefresh = New-Object System.Windows.Forms.Button
 $btnRefresh.Text = "Refresh"
 $btnRefresh.Width = 70
 $btnRefresh.Height = 30
+Style-Button -Button $btnRefresh -Primary:$false
 $btnRefresh.Add_Click({
   $sync = Invoke-LaunchpadSync -Silent
   $count = Load-Shortcuts -Panel $listPanel
@@ -477,22 +528,30 @@ $chkAuto.Text = "Auto refresh"
 $chkAuto.Checked = $true
 $chkAuto.AutoSize = $true
 $chkAuto.Margin = New-Object System.Windows.Forms.Padding 6,10,0,0
+$chkAuto.ForeColor = $colorText
 
 $chkTop = New-Object System.Windows.Forms.CheckBox
 $chkTop.Text = "Topmost"
 $chkTop.Checked = $TopMost.IsPresent
 $chkTop.AutoSize = $true
 $chkTop.Margin = New-Object System.Windows.Forms.Padding 6,10,0,0
+$chkTop.ForeColor = $colorText
 $chkTop.Add_CheckedChanged({
   $form.TopMost = $chkTop.Checked
 })
 
 $header.Controls.Add($title) | Out-Null
+$header.Controls.Add($subtitle) | Out-Null
 $header.Controls.Add($btnTargets) | Out-Null
 $header.Controls.Add($btnSync) | Out-Null
 $header.Controls.Add($btnRefresh) | Out-Null
 $header.Controls.Add($chkAuto) | Out-Null
 $header.Controls.Add($chkTop) | Out-Null
+
+$headerDivider = New-Object System.Windows.Forms.Panel
+$headerDivider.Dock = "Top"
+$headerDivider.Height = 1
+$headerDivider.BackColor = $colorBorder
 
 $listPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $listPanel.Dock = "Fill"
@@ -503,17 +562,17 @@ $listPanel.BackColor = $colorBg
 
 $statusBar = New-Object System.Windows.Forms.Panel
 $statusBar.Dock = "Bottom"
-$statusBar.Height = 26
+$statusBar.Height = 28
 $statusBar.BackColor = $colorHeader
 
 $statusLabel = New-Object System.Windows.Forms.Label
 $statusLabel.AutoSize = $false
-$statusLabel.Width = 410
+$statusLabel.Width = 420
 $statusLabel.Height = 24
-$statusLabel.Location = New-Object System.Drawing.Point 8,1
+$statusLabel.Location = New-Object System.Drawing.Point 8,2
 $statusLabel.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 $statusLabel.ForeColor = $colorMuted
-$statusLabel.Font = $fontMain
+$statusLabel.Font = $fontSmall
 $statusLabel.Text = "Ready."
 $statusBar.Controls.Add($statusLabel) | Out-Null
 
@@ -537,6 +596,7 @@ $timer.Start()
 
 $form.Controls.Add($listPanel)
 $form.Controls.Add($statusBar)
+$form.Controls.Add($headerDivider)
 $form.Controls.Add($header)
 
 [void]$form.ShowDialog()
