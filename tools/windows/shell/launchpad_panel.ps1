@@ -413,10 +413,18 @@ function Load-Shortcuts {
     $label.Add_Click($handler)
     $row.Add_MouseEnter({ $this.BackColor = $colorRowHover })
     $row.Add_MouseLeave({ $this.BackColor = $colorPanel })
-    $iconBox.Add_MouseEnter({ $row.BackColor = $colorRowHover })
-    $iconBox.Add_MouseLeave({ $row.BackColor = $colorPanel })
-    $label.Add_MouseEnter({ $row.BackColor = $colorRowHover })
-    $label.Add_MouseLeave({ $row.BackColor = $colorPanel })
+    $iconBox.Add_MouseEnter({
+      if ($this.Parent) { $this.Parent.BackColor = $colorRowHover }
+    })
+    $iconBox.Add_MouseLeave({
+      if ($this.Parent) { $this.Parent.BackColor = $colorPanel }
+    })
+    $label.Add_MouseEnter({
+      if ($this.Parent) { $this.Parent.BackColor = $colorRowHover }
+    })
+    $label.Add_MouseLeave({
+      if ($this.Parent) { $this.Parent.BackColor = $colorPanel }
+    })
 
     $row.Controls.Add($iconBox) | Out-Null
     $row.Controls.Add($label) | Out-Null
