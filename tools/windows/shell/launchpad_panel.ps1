@@ -464,17 +464,42 @@ function Read-ViewStateSummary {
   try {
     $obj = Get-Content -LiteralPath $viewPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $status = "UNKNOWN"
-    if ($obj.blocked) {
-      $status = "BLOCKED"
-    } elseif ($obj.lastCompare -and $obj.lastCompare.verdict) {
-      $status = [string]$obj.lastCompare.verdict
-    }
     $baseline = if ($obj.baselineRunId) { [string]$obj.baselineRunId } else { "-" }
     $latest = if ($obj.latestRunId) { [string]$obj.latestRunId } else { "-" }
     $buckets = "-"
-    if ($obj.lastCompare -and $obj.lastCompare.buckets -is [System.Array] -and $obj.lastCompare.buckets.Count -gt 0) {
-      $buckets = (($obj.lastCompare.buckets | ForEach-Object { [string]$_ }) -join ",")
+
+    if ($obj.blocked -and $obj.blocked.runId) {
+      $status = "BLOCKED"
     }
+
+    $lastN = @()
+    if ($obj.lastN -is [System.Array]) {
+      $lastN = @($obj.lastN | ForEach-Object { [string]$_ })
+    }
+    $keys = @()
+    if ($obj.keys -is [System.Array]) {
+      $keys = @($obj.keys)
+    }
+
+    if ($latest -ne "-" -and $lastN.Count -gt 0 -and $keys.Count -gt 0) {
+      $latestIdx = $lastN.IndexOf($latest)
+      if ($latestIdx -ge 0 -and $latestIdx -lt $keys.Count) {
+        $k = $keys[$latestIdx]
+        if ($k -and $k.verdictVsBaseline) {
+          $status = [string]$k.verdictVsBaseline
+        }
+        if ($k -and $k.buckets -is [System.Array] -and $k.buckets.Count -gt 0) {
+          $buckets = (($k.buckets | ForEach-Object { [string]$_ }) -join ",")
+        }
+      }
+    } elseif ($obj.lastCompare -and $obj.lastCompare.verdict) {
+      # Backward compatibility for older view-state snapshots.
+      $status = [string]$obj.lastCompare.verdict
+      if ($obj.lastCompare.buckets -is [System.Array] -and $obj.lastCompare.buckets.Count -gt 0) {
+        $buckets = (($obj.lastCompare.buckets | ForEach-Object { [string]$_ }) -join ",")
+      }
+    }
+
     return @{
       status = $status
       baseline = $baseline
