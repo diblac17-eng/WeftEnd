@@ -32,7 +32,7 @@ const hasSensitiveMarker = (value: string): boolean => hasAbsPath(value) || hasE
 
 const hasBuild = (value: unknown): value is WeftendBuildV0 =>
   isRecord(value) &&
-  value["algo"] === "fnv1a32" &&
+  value["algo"] === "sha256" &&
   isNonEmptyString(value["digest"]) &&
   (value["source"] === "HOST_BINARY_PATH" || value["source"] === "NODE_MAIN_JS" || value["source"] === "UNKNOWN");
 

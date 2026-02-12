@@ -26,7 +26,7 @@ import { ArtifactStoreV0, computeArtifactDigestV0 } from "../store/artifact_stor
 import { buildHostCapsSummaryV0 } from "./host_caps";
 import { makeDemoCryptoPort } from "../../ports/crypto-demo";
 import type { CapDenyTelemetry } from "../kernel/cap_kernel";
-import { getHostSelfStatus } from "./host_self_manifest";
+import { getHostSelfStatus, readTrustRoot } from "./host_self_manifest";
 import { computeWeftendBuildV0 } from "../weftend_build";
 import { captureTreeV0 } from "../examiner/capture_tree_v0";
 import { detectLayersV0 } from "../examiner/detect_layers_v0";
@@ -45,7 +45,7 @@ const path = require("path");
 const crypto = require("crypto");
 
 const MAX_INPUT_BYTES = 1024 * 1024;
-const ZERO_DIGEST = "fnv1a32:00000000";
+const ZERO_DIGEST = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
 const RECEIPT_NAME = "host_run_receipt.json";
 const DEFAULT_CAPTURE_LIMITS = {
   maxFiles: 20000,
@@ -297,17 +297,26 @@ export const runHostStrictV0 = async (options: HostRunOptionsV0): Promise<{ rece
     }
   }
 
+  const trustRoot = hostRoot && trustRootPath
+    ? readTrustRoot(trustRootPath)
+    : { ok: false as const, reason: "HOST_TRUST_ROOT_MISSING" };
+  if (!trustRoot.ok) {
+    reasons.push(trustRoot.reason);
+  }
+
+  const trustPublicKey = trustRoot.ok ? trustRoot.publicKey : "";
+  const trustKeyId = trustRoot.ok ? trustRoot.keyId : "";
   const cryptoPort =
-    publicKey && isDemoPublicKey(publicKey)
+    trustPublicKey && isDemoPublicKey(trustPublicKey)
       ? makeDemoCryptoPort("host")
-      : publicKey
+      : trustPublicKey
         ? {
             hash: (canonical: string) => computeArtifactDigestV0(canonical),
             verifySignature: (payload: string, sig: { algo: string; sig: string }, pk: string) =>
               verifySignature(payload, sig.algo, sig.sig, pk),
           }
         : undefined;
-  const keyAllowlist = publicKey && keyId ? { [keyId]: publicKey } : undefined;
+  const keyAllowlist = trustPublicKey && trustKeyId ? { [trustKeyId]: trustPublicKey } : undefined;
   const releaseVerify = verifyReleaseManifestV0({
     manifest: manifestParsed ?? null,
     expectedPlanDigest: planDigest,
@@ -493,8 +502,8 @@ export const runHostStrictV0 = async (options: HostRunOptionsV0): Promise<{ rece
     entryUsed: options.entry || entryBlock || "unknown",
     caps,
     artifactDigests,
-    artifactsWritten: [{ name: RECEIPT_NAME, digest: "fnv1a32:00000000" }],
-    receiptDigest: "fnv1a32:00000000",
+    artifactsWritten: [{ name: RECEIPT_NAME, digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000" }],
+    receiptDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
   };
 
   receipt.receiptDigest = computeHostRunReceiptDigestV0(receipt);

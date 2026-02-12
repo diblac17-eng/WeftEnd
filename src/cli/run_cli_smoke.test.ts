@@ -68,7 +68,7 @@ suite("cli/run", () => {
     assertEq(receipt.strictVerify.verdict, "DENY", "expected strict verify deny");
     assert(Array.isArray(receipt.artifactsWritten), "expected artifactsWritten array");
     assertEq(receipt.schemaVersion, 0, "expected schemaVersion 0");
-    assert(receipt.weftendBuild && receipt.weftendBuild.algo === "fnv1a32", "expected weftendBuild block");
+    assert(receipt.weftendBuild && receipt.weftendBuild.algo === "sha256", "expected weftendBuild block");
 
     const missingVersion = { ...receipt };
     delete (missingVersion as any).schemaVersion;

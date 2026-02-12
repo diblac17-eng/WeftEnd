@@ -1,6 +1,8 @@
 // test/harness/import_snapshot_v0.mjs
 // ImportSnapshotV0 helpers (harness-only, deterministic, bounded).
 
+import crypto from "crypto";
+
 const SNAPSHOT_KIND = "weftend.import.snapshot.v0";
 const MAX_HTML_BYTES = 256 * 1024;
 const MAX_BLOCKS = 256;
@@ -10,14 +12,7 @@ const MAX_BLOCK_ID_BYTES = 128;
 const MAX_NODE_PATH_BYTES = 128;
 const MAX_NAME_BYTES = 256;
 
-const fnv1a32 = (input) => {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < input.length; i += 1) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0).toString(16).padStart(8, "0");
-};
+const sha256 = (input) => crypto.createHash("sha256").update(String(input ?? ""), "utf8").digest("hex");
 
 const canonicalJSON = (obj) => {
   const seen = new WeakSet();
@@ -62,7 +57,7 @@ const truncateUtf8 = (value, maxBytes) => {
   return new TextDecoder("utf-8", { fatal: false }).decode(sliced);
 };
 
-const digestString = (value) => `fnv1a32:${fnv1a32(String(value))}`;
+const digestString = (value) => `sha256:${sha256(String(value))}`;
 
 const normalizeHtml = (html) => {
   if (typeof html !== "string") return "";

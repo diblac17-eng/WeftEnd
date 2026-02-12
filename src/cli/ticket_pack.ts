@@ -83,7 +83,7 @@ const buildManifest = (entries: TicketPackEntry[]): { schemaVersion: 0; entries:
       if (c1 !== 0) return c1;
       return a.bytes - b.bytes;
     });
-  const base: any = { schemaVersion: 0, entries: sorted, manifestDigest: "fnv1a32:00000000" };
+  const base: any = { schemaVersion: 0, entries: sorted, manifestDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000" };
   const digest = computeArtifactDigestV0(canonicalJSON(base));
   return { schemaVersion: 0 as const, entries: sorted, manifestDigest: digest };
 };

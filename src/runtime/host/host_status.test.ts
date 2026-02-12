@@ -131,7 +131,7 @@ suite("runtime/host status", () => {
     assert(receipt.reasonCodes.includes("HOST_BINARY_MISSING"), "expected HOST_BINARY_MISSING");
     assert(receipt.reasonCodes.includes("HOST_STARTUP_UNVERIFIED"), "expected HOST_STARTUP_UNVERIFIED");
     assertEq(receipt.schemaVersion, 0, "expected schemaVersion 0");
-    assert(receipt.weftendBuild && receipt.weftendBuild.algo === "fnv1a32", "expected weftendBuild block");
+    assert(receipt.weftendBuild && receipt.weftendBuild.algo === "sha256", "expected weftendBuild block");
   });
 
   register("oversize config yields HOST_INPUT_OVERSIZE", () => {
@@ -141,7 +141,7 @@ suite("runtime/host status", () => {
       hostRoot,
       trustRootPath: "",
       configOverride: bigConfig,
-      hostBinaryDigestOverride: "fnv1a32:11111111",
+      hostBinaryDigestOverride: "sha256:11111111",
       bundlePathsOverride: [],
       timestampMs: 1,
       outRootSource: "ENV_OUT_ROOT",
@@ -165,8 +165,8 @@ suite("runtime/host status", () => {
     } = {
       hostRoot: makeTempDir(),
       trustRootPath: "",
-      hostBinaryDigestOverride: "fnv1a32:11111111",
-      hostConfigDigestOverride: "fnv1a32:22222222",
+      hostBinaryDigestOverride: "sha256:11111111",
+      hostConfigDigestOverride: "sha256:22222222",
       bundlePathsOverride: [],
       timestampMs: 42,
       outRootSource: "ENV_OUT_ROOT",
@@ -190,8 +190,8 @@ suite("runtime/host status", () => {
     } = {
       hostRoot: makeTempDir(),
       trustRootPath: "",
-      hostBinaryDigestOverride: "fnv1a32:11111111",
-      hostConfigDigestOverride: "fnv1a32:22222222",
+      hostBinaryDigestOverride: "sha256:11111111",
+      hostConfigDigestOverride: "sha256:22222222",
       bundlePathsOverride: [],
       timestampMs: 42,
       outRootSource: "ENV_OUT_ROOT",
@@ -208,8 +208,8 @@ suite("runtime/host status", () => {
     const res = createHostStatusReceiptV0({
       hostRoot: makeTempDir(),
       trustRootPath: "",
-      hostBinaryDigestOverride: "fnv1a32:11111111",
-      hostConfigDigestOverride: "fnv1a32:22222222",
+      hostBinaryDigestOverride: "sha256:11111111",
+      hostConfigDigestOverride: "sha256:22222222",
       bundlePathsOverride: [],
       timestampMs: 42,
       outRootSource: "ENV_OUT_ROOT",

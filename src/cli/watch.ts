@@ -114,7 +114,7 @@ const buildRunId = (targetKind: string, targetNameOnly: string, repoRoot: string
   const repoRootDigest = computeArtifactDigestV0(String(repoRoot || "").trim().toLowerCase());
   const policyName = policyPath ? path.basename(policyPath) : "AUTO";
   const material = `${targetKind}|${targetNameOnly}|${repoRootDigest}|${policyName}|v0`;
-  return `run_${computeArtifactDigestV0(material).replace("fnv1a32:", "")}`;
+  return `run_${computeArtifactDigestV0(material).replace("sha256:", "")}`;
 };
 
 const ensureUniqueRunDir = (base: string): string => {
@@ -129,7 +129,7 @@ const ensureUniqueRunDir = (base: string): string => {
 
 const computeFingerprint = (targetPath: string): string => {
   const capture = captureTreeV0(targetPath, DEFAULT_CAPTURE_LIMITS);
-  return capture.rootDigest || "fnv1a32:00000000";
+  return capture.rootDigest || "sha256:0000000000000000000000000000000000000000000000000000000000000000";
 };
 
 const writeWatchTrigger = (outDir: string, options: { debounceMs: number; watchMode: string; eventCount: number }) => {

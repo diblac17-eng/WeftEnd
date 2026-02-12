@@ -95,16 +95,16 @@ const buildPlanSnapshotForRun = (
     publishInputHash: planDigest,
     trustPolicyHash: policyDigest,
     anchors: {
-      a1Hash: "fnv1a32:00000000",
-      a2Hash: "fnv1a32:00000000",
-      a3Hash: "fnv1a32:00000000",
+      a1Hash: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      a2Hash: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      a3Hash: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
     },
     plan: {
       planHash: planDigest,
-      trustHash: "fnv1a32:00000000",
+      trustHash: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
     },
     bundle: {
-      bundleHash: "fnv1a32:00000000",
+      bundleHash: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
     },
     packages: [],
     artifacts: [{ ref: blockHash, digest: expectedSourceDigest }],
@@ -338,7 +338,7 @@ const buildRunReceipt = (
       status: execution.status,
       reasonCodes: stableSortUniqueReasonsV0(execution.reasonCodes ?? []),
     },
-    receiptDigest: "fnv1a32:00000000",
+    receiptDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
   };
   receipt.receiptDigest = computeRunReceiptDigestV0(receipt);
   return receipt;

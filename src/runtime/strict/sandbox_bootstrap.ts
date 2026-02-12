@@ -13,6 +13,7 @@ import type {
 } from "./types";
 
 declare const require: (id: string) => any;
+declare const process: any;
 
 type CompartmentCtor = new (endowments?: Record<string, unknown>) => {
   evaluate: (source: string) => unknown;
@@ -62,7 +63,12 @@ const getCompartmentCtor = (): CompartmentCtor | null => {
 
   if (typeof g.Compartment === "function") return g.Compartment as CompartmentCtor;
 
-  if (typeof require === "function") {
+  const allowVmFallback =
+    typeof process !== "undefined" &&
+    process &&
+    process.env &&
+    process.env.WEFTEND_ALLOW_VM_FALLBACK === "1";
+  if (allowVmFallback && typeof require === "function") {
     try {
       const vm = require("vm");
       const VmCompartment = class {

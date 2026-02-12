@@ -82,7 +82,7 @@ const pickBuild = (loaded: {
   loaded.runReceipt?.weftendBuild ??
   loaded.hostRunReceipt?.weftendBuild ??
   loaded.operatorReceipt?.weftendBuild ??
-  { algo: "fnv1a32", digest: "fnv1a32:00000000", source: "UNKNOWN", reasonCodes: ["WEFTEND_BUILD_DIGEST_UNAVAILABLE"] };
+  { algo: "sha256", digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000", source: "UNKNOWN", reasonCodes: ["WEFTEND_BUILD_DIGEST_UNAVAILABLE"] };
 
 export const loadCompareSourceV0 = (
   inputRoot: string,

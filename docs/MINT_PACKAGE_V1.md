@@ -15,11 +15,11 @@ Top-level object:
 - profile: "web" | "mod" | "generic"
 - input:
   - kind: "file" | "dir" | "zip"
-  - rootDigest: "fnv1a32:..."
+  - rootDigest: "sha256:..."
   - fileCount: number
   - totalBytes: number
 - capture:
-  - captureDigest: "fnv1a32:..."
+  - captureDigest: "sha256:..."
   - paths: string[] (optional, bounded sample list)
 - observations:
   - fileKinds: { html, js, css, json, wasm, media, binary, other }
@@ -37,8 +37,8 @@ Top-level object:
   - receipts: ReceiptV1[] (bounded)
   - scars?: string[] (bounded)
 - digests:
-  - mintDigest: "fnv1a32:..."
-  - inputDigest: "fnv1a32:..."
+  - mintDigest: "sha256:..."
+  - inputDigest: "sha256:..."
   - policyDigest: string ("-" when unused)
 - limits:
   - maxFiles
@@ -58,7 +58,7 @@ ProbeResultV1:
 ReceiptV1:
 
 - kind: string
-- digest: "fnv1a32:..."
+- digest: "sha256:..."
 - summaryCounts: { [key]: number }
 - reasonCodes: string[] (bounded, deterministic order)
 

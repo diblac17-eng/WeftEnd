@@ -103,7 +103,7 @@ suite("runtime/host gate mode enforced", () => {
   register("baseline missing blocks execution", async () => {
     const host = setupHostRoot();
     const libraryRoot = makeTempDir();
-    const releaseDir = path.join(process.cwd(), "tests", "fixtures", "release_demo");
+    const releaseDir = path.join(process.cwd(), "tests", "fixtures", "release_demo_js");
     const outDir = makeTempDir();
     await withEnv({ WEFTEND_LIBRARY_ROOT: libraryRoot }, async () => {
       const res = await runHostStrictV0({
@@ -121,7 +121,7 @@ suite("runtime/host gate mode enforced", () => {
   register("baseline same allows execution path", async () => {
     const host = setupHostRoot();
     const libraryRoot = makeTempDir();
-    const releaseDir = path.join(process.cwd(), "tests", "fixtures", "release_demo");
+    const releaseDir = path.join(process.cwd(), "tests", "fixtures", "release_demo_js");
     const outDir = makeTempDir();
     const manifest = readJson(path.join(releaseDir, "release_manifest.json"));
     const targetKey = sanitizeLibraryTargetKeyV0(String(manifest.releaseId || "release_demo"));
@@ -153,7 +153,7 @@ suite("runtime/host gate mode enforced", () => {
   register("baseline changed blocks execution", async () => {
     const host = setupHostRoot();
     const libraryRoot = makeTempDir();
-    const releaseFixture = path.join(process.cwd(), "tests", "fixtures", "release_demo");
+    const releaseFixture = path.join(process.cwd(), "tests", "fixtures", "release_demo_js");
     const releaseDir = makeTempDir();
     copyDir(releaseFixture, releaseDir);
     const outDir = makeTempDir();
@@ -177,7 +177,7 @@ suite("runtime/host gate mode enforced", () => {
       const evidencePath = path.join(releaseDir, "evidence.json");
       const evidence = readJson(evidencePath);
       if (Array.isArray(evidence.records) && evidence.records.length > 0) {
-        evidence.records[0].evidenceId = "fnv1a32:deadbeef";
+        evidence.records[0].evidenceId = "sha256:deadbeef";
       }
       fs.writeFileSync(evidencePath, JSON.stringify(evidence), "utf8");
 

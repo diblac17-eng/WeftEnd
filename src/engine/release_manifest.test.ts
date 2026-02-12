@@ -2,6 +2,7 @@
 // Release manifest minting tests (deterministic).
 
 import { canonicalJSON } from "../core/canon";
+import { sha256HexV0 } from "../core/hash_v0";
 import { computeReleaseIdV0, validateReleaseManifestV0 } from "../core/validate";
 import { mintReleaseManifestV0 } from "./release_manifest";
 import type { CryptoPort } from "../ports/crypto-port";
@@ -38,20 +39,13 @@ function suite(name: string, define: () => void): void {
   else define();
 }
 
-const fnv1a32 = (input: string): string => {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0).toString(16).padStart(8, "0");
-};
+const sha256 = (input: string): string => sha256HexV0(input);
 
 const signatureForPayload = (payloadCanonical: string): string =>
-  Buffer.from(`sig:${fnv1a32(payloadCanonical)}`, "utf8").toString("base64");
+  Buffer.from(`sig:${sha256(payloadCanonical)}`, "utf8").toString("base64");
 
 const makeCryptoPort = (): CryptoPort => ({
-  hash: (canonical: string) => `fnv1a32:${fnv1a32(canonical)}`,
+  hash: (canonical: string) => `sha256:${sha256(canonical)}`,
   verifySignature: () => true,
   sign: (payloadCanonical: string, keyId: string) => ({
     algo: "sig.ed25519.v0",
@@ -66,7 +60,7 @@ suite("engine/release_manifest v0", () => {
       planDigest: "plan-1",
       policyDigest: "policy-1",
       blocks: ["block-a", "block-b"],
-      pathDigest: "fnv1a32:path-1",
+      pathDigest: "sha256:path-1",
     };
     const cryptoPort = makeCryptoPort();
     const res = mintReleaseManifestV0(body, "key-1", cryptoPort);
@@ -83,7 +77,7 @@ suite("engine/release_manifest v0", () => {
       planDigest: "plan-2",
       policyDigest: "policy-2",
       blocks: ["block-a"],
-      pathDigest: "fnv1a32:path-2",
+      pathDigest: "sha256:path-2",
     };
     const res = mintReleaseManifestV0(body, "key-1", undefined);
     assertEq(res.ok, false, "expected error");
