@@ -41,6 +41,7 @@ const scripts = [
   "uninstall_weftend_context_menu.ps1",
   "weftend_safe_run.ps1",
   "weftend_make_shortcut.ps1",
+  "report_card_viewer.ps1",
   "launchpad_panel.ps1",
   "weftend_shell_doctor.ps1",
   "weftend_shell_doctor.cmd",
@@ -125,9 +126,14 @@ suite("tools/windows shell assets", () => {
     const text = fs.readFileSync(doctorPath, "utf8");
     assert(/HKCU:\\Software\\WeftEnd\\Shell/.test(text), "expected config registry key");
     assert(/HKCU:\\Software\\Classes\\\*\\shell\\WeftEndSafeRun\\command/.test(text), "expected star command key");
+    assert(/HKCU:\\Software\\Classes\\lnkfile\\shell\\WeftEndSafeRun\\command/.test(text), "expected lnk command key");
     assert(
       /HKCU:\\Software\\Classes\\\*\\shell\\WeftEndSafeRunOpenLibrary\\command/.test(text),
       "expected star open-library command key"
+    );
+    assert(
+      /HKCU:\\Software\\Classes\\lnkfile\\shell\\WeftEndSafeRunOpenLibrary\\command/.test(text),
+      "expected lnk open-library command key"
     );
     assert(/HKCU:\\Software\\Classes\\Directory\\shell\\WeftEndSafeRun\\command/.test(text), "expected directory command key");
     assert(
@@ -198,9 +204,10 @@ suite("tools/windows shell assets", () => {
     assert(/TARGET_MISSING/.test(text), "expected explicit target-missing reason");
     assert(/WEFTEND_FAILED_BEFORE_RECEIPT/.test(text), "expected actionable pre-receipt reason");
     assert(/report_card\.txt/.test(text), "expected report card artifact");
+    assert(/report_card_v0\.json/.test(text), "expected report card json artifact");
     assert(/run_/.test(text), "expected deterministic run id prefix");
     assert(/Library/.test(text), "expected Library output subfolder");
-    assert(/Start-Process -FilePath \$notepadPath/.test(text), "expected report-card notepad open");
+    assert(/Start-ReportCardViewer/.test(text), "expected report viewer launch");
     assert(/Start-Process -FilePath \$explorerPath/.test(text), "expected explorer open for output folder");
     assert(/AllowLaunch/.test(text), "expected AllowLaunch gate");
     assert(/Start-Process -FilePath \$TargetPath/.test(text), "expected launch support");

@@ -18,6 +18,8 @@ function Remove-ContextMenu {
 
 Remove-ContextMenu -BaseSubKey "Software\Classes\*" -KeyName "WeftEndSafeRun"
 Remove-ContextMenu -BaseSubKey "Software\Classes\*" -KeyName "WeftEndSafeRunOpenLibrary"
+Remove-ContextMenu -BaseSubKey "Software\Classes\lnkfile" -KeyName "WeftEndSafeRun"
+Remove-ContextMenu -BaseSubKey "Software\Classes\lnkfile" -KeyName "WeftEndSafeRunOpenLibrary"
 Remove-ContextMenu -BaseSubKey "Software\Classes\Directory" -KeyName "WeftEndSafeRun"
 Remove-ContextMenu -BaseSubKey "Software\Classes\Directory" -KeyName "WeftEndSafeRunOpenLibrary"
 Remove-ContextMenu -BaseSubKey "Software\Classes\Directory\Background" -KeyName "WeftEndSafeRun"

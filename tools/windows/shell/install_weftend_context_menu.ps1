@@ -89,6 +89,8 @@ New-Item -Path $configKey -Force | Out-Null
 Set-ItemProperty -Path $configKey -Name "RepoRoot" -Value $RepoRoot
 Set-ItemProperty -Path $configKey -Name "OutRoot" -Value $OutRoot
 Set-ItemProperty -Path $configKey -Name "OpenFolderOnComplete" -Value "1"
+Set-ItemProperty -Path $configKey -Name "UseReportViewer" -Value "1"
+Set-ItemProperty -Path $configKey -Name "ReportViewerAutoOpen" -Value "1"
 $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
 if ($nodeCmd -and $nodeCmd.Path) {
   Set-ItemProperty -Path $configKey -Name "NodeExe" -Value $nodeCmd.Path
@@ -135,6 +137,8 @@ function Set-ContextMenu {
 
 Set-ContextMenu -BaseSubKey "Software\Classes\*" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\*" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\lnkfile" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\lnkfile" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\Directory" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\Directory" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\Directory\Background" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -TargetToken "%V" -IconPath $weftendIcon

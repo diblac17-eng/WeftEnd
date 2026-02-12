@@ -85,6 +85,21 @@ function Normalize-ShortcutIconLocation {
   return $raw
 }
 
+function Normalize-QuotedPath {
+  param([string]$Value)
+  if (-not $Value) { return $null }
+  $trimmed = $Value.Trim()
+  if ($trimmed.StartsWith('"') -and $trimmed.EndsWith('"') -and $trimmed.Length -ge 2) {
+    $trimmed = $trimmed.Substring(1, $trimmed.Length - 2)
+  }
+  if ($trimmed.StartsWith("'") -and $trimmed.EndsWith("'") -and $trimmed.Length -ge 2) {
+    $trimmed = $trimmed.Substring(1, $trimmed.Length - 2)
+  }
+  $expanded = [Environment]::ExpandEnvironmentVariables($trimmed)
+  if (-not $expanded -or $expanded.Trim() -eq "") { return $null }
+  return $expanded
+}
+
 $effectiveTarget = $null
 $shortcutIcon = $null
 $resolvedLaunchArgs = $null
@@ -119,7 +134,25 @@ if ($isShortcut) {
       if ($resolvedTarget -and (Test-Path -LiteralPath $resolvedTarget)) {
         $effectiveTarget = $resolvedTarget
         if ($sc -and $sc.Arguments) {
-          $resolvedLaunchArgs = [string]$sc.Arguments
+          $resolvedArgs = [string]$sc.Arguments
+          $targetLeaf = [System.IO.Path]::GetFileName($resolvedTarget).ToLowerInvariant()
+          $isPowerShellHost = $targetLeaf -eq "powershell.exe" -or $targetLeaf -eq "pwsh.exe"
+          if ($isPowerShellHost) {
+            $m = [System.Text.RegularExpressions.Regex]::Match(
+              $resolvedArgs,
+              '-File\s+("[^"]+"|''[^'']+''|\S+)',
+              [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+            )
+            if ($m.Success) {
+              $scriptCandidate = Normalize-QuotedPath -Value $m.Groups[1].Value
+              if ($scriptCandidate -and (Test-Path -LiteralPath $scriptCandidate)) {
+                # For PowerShell-hosted shortcuts, use the script path as analyzed target.
+                $effectiveTarget = $scriptCandidate
+              }
+            }
+          } else {
+            $resolvedLaunchArgs = $resolvedArgs
+          }
         }
       } else {
         Write-Output "[SHORTCUT_TARGET_MISSING]"

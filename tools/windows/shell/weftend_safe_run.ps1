@@ -104,6 +104,60 @@ function Is-ShortcutArtifact {
   return $ext.ToLowerInvariant() -eq ".lnk"
 }
 
+function Normalize-QuotedPath {
+  param([string]$Value)
+  if (-not $Value) { return $null }
+  $trimmed = $Value.Trim()
+  if ($trimmed.StartsWith('"') -and $trimmed.EndsWith('"') -and $trimmed.Length -ge 2) {
+    $trimmed = $trimmed.Substring(1, $trimmed.Length - 2)
+  }
+  if ($trimmed.StartsWith("'") -and $trimmed.EndsWith("'") -and $trimmed.Length -ge 2) {
+    $trimmed = $trimmed.Substring(1, $trimmed.Length - 2)
+  }
+  $expanded = [Environment]::ExpandEnvironmentVariables($trimmed)
+  if (-not $expanded -or $expanded.Trim() -eq "") { return $null }
+  return $expanded
+}
+
+function Resolve-ShortcutScanTarget {
+  param([string]$ShortcutPath)
+  if (-not (Is-ShortcutArtifact -PathValue $ShortcutPath)) {
+    return @{ ok = $false; reason = "NOT_SHORTCUT" }
+  }
+  if (-not (Test-Path -LiteralPath $ShortcutPath)) {
+    return @{ ok = $false; reason = "SHORTCUT_MISSING" }
+  }
+  try {
+    $shell = New-Object -ComObject WScript.Shell
+    $sc = $shell.CreateShortcut($ShortcutPath)
+    $target = Normalize-QuotedPath -Value ([string]$sc.TargetPath)
+    $args = [string]$sc.Arguments
+    if (-not $target -or -not (Test-Path -LiteralPath $target)) {
+      return @{ ok = $false; reason = "SHORTCUT_TARGET_MISSING" }
+    }
+
+    $leaf = [System.IO.Path]::GetFileName($target).ToLowerInvariant()
+    $isPowerShellHost = $leaf -eq "powershell.exe" -or $leaf -eq "pwsh.exe"
+    if ($isPowerShellHost -and $args) {
+      $m = [System.Text.RegularExpressions.Regex]::Match(
+        $args,
+        '-File\s+("[^"]+"|''[^'']+''|\S+)',
+        [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+      )
+      if ($m.Success) {
+        $scriptCandidate = Normalize-QuotedPath -Value $m.Groups[1].Value
+        if ($scriptCandidate -and (Test-Path -LiteralPath $scriptCandidate)) {
+          return @{ ok = $true; targetPath = $scriptCandidate; source = "SHORTCUT_FILE_ARG" }
+        }
+      }
+    }
+
+    return @{ ok = $true; targetPath = $target; source = "SHORTCUT_TARGET_PATH" }
+  } catch {
+    return @{ ok = $false; reason = "SHORTCUT_RESOLVE_FAILED" }
+  }
+}
+
 function Is-EmailArtifact {
   param([string]$PathValue)
   if (-not $PathValue) { return $false }
@@ -124,41 +178,28 @@ function Detect-TargetKind {
   return "otherFile"
 }
 
-function Fnv1a32Hex {
-  param([string]$Input)
-  $bytes = [System.Text.Encoding]::UTF8.GetBytes($Input)
-  [uint32]$hash = 2166136261
-  [uint64]$prime = 16777619
-  foreach ($b in $bytes) {
-    $hash = [uint32]($hash -bxor [uint32]$b)
-    $hash = [uint32](([uint64]$hash * $prime) -band 0xFFFFFFFF)
+function Sha256Hex {
+  param([string]$Value)
+  if ($null -eq $Value) { $Value = "" }
+  $bytes = [System.Text.Encoding]::UTF8.GetBytes($Value)
+  $sha = [System.Security.Cryptography.SHA256]::Create()
+  try {
+    $hash = $sha.ComputeHash($bytes)
+    return ([System.BitConverter]::ToString($hash)).Replace("-", "").ToLowerInvariant()
+  } finally {
+    $sha.Dispose()
   }
-  return "{0:x8}" -f $hash
 }
 
-function Compute-FileFNV1a32Digest {
-  param([string]$PathValue)
-  if (-not $PathValue -or -not (Test-Path -LiteralPath $PathValue)) { return $null }
-  $stream = $null
-  try {
-    $stream = [System.IO.File]::Open($PathValue, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
-    [uint32]$hash = 2166136261
-    [uint64]$prime = 16777619
-    $buffer = New-Object byte[] 65536
-    while ($true) {
-      $read = $stream.Read($buffer, 0, $buffer.Length)
-      if ($read -le 0) { break }
-      for ($i = 0; $i -lt $read; $i++) {
-        $hash = [uint32]($hash -bxor [uint32]$buffer[$i])
-        $hash = [uint32](([uint64]$hash * $prime) -band 0xFFFFFFFF)
-      }
-    }
-    return "fnv1a32:{0:x8}" -f $hash
-  } catch {
-    return $null
-  } finally {
-    if ($stream) { $stream.Dispose() }
-  }
+function ShortSha256Hex {
+  param(
+    [string]$Value,
+    [int]$Length = 16
+  )
+  $full = Sha256Hex -Value $Value
+  if ($Length -lt 1) { return $full }
+  if ($Length -gt $full.Length) { return $full }
+  return $full.Substring(0, $Length)
 }
 
 function Compute-FileSha256Digest {
@@ -202,10 +243,10 @@ function Build-RunId {
     $repoRootCanonical = [string]$RepoRootValue
   }
   $repoRootCanonical = $repoRootCanonical.Trim().ToLowerInvariant()
-  $repoRootDigest = "fnv1a32:" + (Fnv1a32Hex $repoRootCanonical)
+  $repoRootDigest = "sha256:" + (Sha256Hex -Value $repoRootCanonical)
   $policyName = if ($PolicyPathValue -and $PolicyPathValue.Trim() -ne "") { [System.IO.Path]::GetFileName($PolicyPathValue) } else { "AUTO" }
   $material = "$TargetKind|$TargetNameOnly|$repoRootDigest|$policyName|v0"
-  return "run_" + (Fnv1a32Hex $material)
+  return "run_" + (ShortSha256Hex -Value $material)
 }
 
 function Sanitize-TargetKey {
@@ -217,7 +258,7 @@ function Sanitize-TargetKey {
   $clean = $clean.Trim("_", ".", "-")
   if ($clean.Length -gt 48) { $clean = $clean.Substring(0, 48) }
   if (-not $clean -or $clean.Trim() -eq "") {
-    $clean = "target_" + (Fnv1a32Hex $base)
+    $clean = "target_" + (ShortSha256Hex -Value $base)
   }
   return $clean
 }
@@ -230,7 +271,7 @@ function Sanitize-TargetKeyLegacy {
   $clean = $clean.Trim("_", ".", "-")
   if ($clean.Length -gt 48) { $clean = $clean.Substring(0, 48) }
   if (-not $clean -or $clean.Trim() -eq "") {
-    $clean = "target_" + (Fnv1a32Hex $base)
+    $clean = "target_" + (ShortSha256Hex -Value $base)
   }
   return $clean
 }
@@ -343,13 +384,26 @@ function Write-ReportCard {
     [string]$BuildDigest,
     [object]$Summary,
     [object]$ViewState,
-    [object]$BaselineSummary
+    [object]$BaselineSummary,
+    [string]$RequestedTargetName = "",
+    [string]$ScanTargetName = ""
   )
+  $requestedLabel = "-"
+  if ($RequestedTargetName -and $RequestedTargetName.Trim() -ne "") {
+    $requestedLabel = $RequestedTargetName
+  }
+  $scanLabel = "-"
+  if ($ScanTargetName -and $ScanTargetName.Trim() -ne "") {
+    $scanLabel = $ScanTargetName
+  }
+  $status = "UNKNOWN"
+  $baselineId = "-"
+  $latestId = "-"
+  $bucketText = "-"
+  $historyLine = "[ ] [ ] [ ] [ ] [ ]"
   try {
     if (-not $Summary) { $Summary = @{} }
     $stateLines = @()
-    $status = "UNKNOWN"
-    $bucketText = "-"
     if ($ViewState) {
       $baselineId = if ($ViewState.baselineRunId) { [string]$ViewState.baselineRunId } else { "-" }
       $latestId = if ($ViewState.latestRunId) { [string]$ViewState.latestRunId } else { "-" }
@@ -523,10 +577,10 @@ function Write-ReportCard {
         $meaning = "Denied by policy or trust gate."
       }
     }
-
     $lines = @(
       "input=inputType:$inputType adapter:$adapter",
       "classification=target:$targetKind artifact:$artifactKind entryHints=$entry",
+      "targets=requested:$requestedLabel scan:$scanLabel",
       "webLane=$webLane webEntry=$webEntry",
       "observed=files:$files bytes:$bytes scripts:$hasScripts native:$hasNative externalRefs:$extRefs bounded=$bounded",
       "posture=analysis:$analysis exec:$execution reason:$Reason",
@@ -572,6 +626,33 @@ function Write-ReportCard {
     }
     $path = Join-Path $outDir "report_card.txt"
     $lines -join "`n" | Set-Content -Path $path -Encoding UTF8
+    $reportJsonPath = Join-Path $outDir "report_card_v0.json"
+    $reportJson = [ordered]@{
+      schema = "weftend.reportCard/0"
+      v = 0
+      runId = $RunId
+      libraryKey = $LibraryKey
+      runSeq = $RunSeq
+      result = $Result
+      reason = $Reason
+      privacyLint = $PrivacyLint
+      buildDigest = $BuildDigest
+      status = $status
+      baseline = $baselineId
+      latest = $latestId
+      buckets = $bucketText
+      history = $historyLine
+      targetKind = $targetKind
+      artifactKind = $artifactKind
+      requestedTarget = $requestedLabel
+      scanTarget = $scanLabel
+      meaning = $meaning
+      next = $next
+      receipt = "safe_run_receipt.json"
+      operator = "operator_receipt.json"
+      lines = $lines
+    }
+    ($reportJson | ConvertTo-Json -Depth 6) | Set-Content -Path $reportJsonPath -Encoding UTF8
   } catch {
     try {
       $errMsg = Redact-SensitiveText -Text ([string]$_)
@@ -619,6 +700,7 @@ function Write-ReportCard {
       "BUCKETS: $bucketFallback",
       "HISTORY: $historyFallback",
       "LEGEND: [ ]=same [X]=changed letters=C X R P H B D",
+      "targets=requested:$requestedLabel scan:$scanLabel",
       "runId=$RunId",
       "result=$Result",
       "reason=$Reason",
@@ -627,6 +709,27 @@ function Write-ReportCard {
     )
     $path = Join-Path $outDir "report_card.txt"
     $fallback -join "`n" | Set-Content -Path $path -Encoding UTF8
+    $reportJsonPath = Join-Path $outDir "report_card_v0.json"
+    $reportJson = [ordered]@{
+      schema = "weftend.reportCard/0"
+      v = 0
+      runId = $RunId
+      libraryKey = $LibraryKey
+      runSeq = $RunSeq
+      result = $Result
+      reason = $Reason
+      privacyLint = $PrivacyLint
+      buildDigest = $BuildDigest
+      status = $statusFallback
+      baseline = $baselineFallback
+      latest = $latestFallback
+      buckets = $bucketFallback
+      history = $historyFallback
+      requestedTarget = $requestedLabel
+      scanTarget = $scanLabel
+      lines = $fallback
+    }
+    ($reportJson | ConvertTo-Json -Depth 6) | Set-Content -Path $reportJsonPath -Encoding UTF8
   }
 }
 
@@ -667,9 +770,6 @@ function Read-ReceiptSummaryFromPath {
         if ($content.hashFamily) {
           if ($content.hashFamily.sha256) {
             $summary.hashSha256 = [string]$content.hashFamily.sha256
-          }
-          if ($content.hashFamily.fnv1a32) {
-            $summary.hashFnv1a32 = [string]$content.hashFamily.fnv1a32
           }
         }
       }
@@ -824,6 +924,69 @@ function Show-ReportCardPopup {
   } catch {
     return $null
   }
+}
+
+function Start-ReportCardViewer {
+  param(
+    [string]$RunDir,
+    [string]$TargetDir,
+    [string]$TargetKey
+  )
+  $script:reportViewerAutoDisabled = $false
+  if (-not $RunDir -or -not (Test-Path -LiteralPath $RunDir)) { return $false }
+  $viewerScript = Join-Path $scriptDir "report_card_viewer.ps1"
+  if (-not (Test-Path -LiteralPath $viewerScript)) { return $false }
+  $psExe = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
+  $hostCandidates = @()
+  if (Test-Path -LiteralPath $psExe) {
+    $hostCandidates += $psExe
+  }
+  $hostCandidates += @("powershell.exe", "pwsh.exe")
+  $hostCandidates = @($hostCandidates | Select-Object -Unique)
+  $args = @(
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    $viewerScript,
+    "-RunDir",
+    $RunDir
+  )
+  if ($TargetDir -and $TargetDir.Trim() -ne "") {
+    $args += @("-TargetDir", $TargetDir)
+  }
+  if ($TargetKey -and $TargetKey.Trim() -ne "") {
+    $args += @("-LibraryKey", $TargetKey)
+  }
+  $attempted = $false
+  foreach ($hostExe in $hostCandidates) {
+    try {
+      $proc = Start-Process -FilePath $hostExe -ArgumentList $args -PassThru -ErrorAction Stop
+      $attempted = $true
+      Start-Sleep -Milliseconds 350
+      try { $proc.Refresh() } catch {}
+      if ($proc -and $proc.HasExited) {
+        $exitCode = [int]$proc.ExitCode
+        if ($exitCode -ne 0) {
+          continue
+        }
+      }
+      return $true
+    } catch {
+      continue
+    }
+  }
+  if ($attempted) {
+    try {
+      if ($configPath -and $configPath.Trim() -ne "") {
+        Set-ItemProperty -Path $configPath -Name "ReportViewerAutoOpen" -Value "0"
+        $script:reportViewerAutoDisabled = $true
+      }
+    } catch {
+      # best effort only
+    }
+  }
+  return $false
 }
 
 function Show-AcceptBaselinePrompt {
@@ -1009,7 +1172,7 @@ function Create-TicketPackForRun {
   try {
     $ticketRoot = Join-Path $libraryRoot "Tickets"
     New-Item -ItemType Directory -Force -Path $ticketRoot | Out-Null
-    $ticketBase = Join-Path $ticketRoot ("ticket_" + (Fnv1a32Hex ($TargetKeyValue + "|" + $RunIdValue)))
+    $ticketBase = Join-Path $ticketRoot ("ticket_" + (ShortSha256Hex -Value ($TargetKeyValue + "|" + $RunIdValue)))
     $ticketOut = Ensure-UniqueRunDir -BasePath $ticketBase
     New-Item -ItemType Directory -Force -Path $ticketOut | Out-Null
 
@@ -1058,6 +1221,15 @@ if ($normalizedTargetPath) {
   $TargetPath = $normalizedTargetPath
 }
 
+$safeRunTargetPath = $TargetPath
+$shortcutResolve = $null
+if (Is-ShortcutArtifact -PathValue $TargetPath) {
+  $shortcutResolve = Resolve-ShortcutScanTarget -ShortcutPath $TargetPath
+  if ($shortcutResolve.ok -and $shortcutResolve.targetPath) {
+    $safeRunTargetPath = [string]$shortcutResolve.targetPath
+  }
+}
+
 if (-not $RepoRoot -or $RepoRoot.Trim() -eq "") {
   $RepoRoot = Read-RegistryValue -Path $configPath -Name "RepoRoot"
 }
@@ -1080,13 +1252,17 @@ if (-not $NpmCmd -or $NpmCmd.Trim() -eq "") {
 }
 $openFolderOnComplete = Read-RegistryValue -Path $configPath -Name "OpenFolderOnComplete"
 $openFolderDefault = if ("$openFolderOnComplete" -eq "0") { 0 } else { 1 }
+$useReportViewerRaw = Read-RegistryValue -Path $configPath -Name "UseReportViewer"
+$useReportViewer = if ("$useReportViewerRaw" -eq "0") { $false } else { $true }
+$reportViewerAutoOpenRaw = Read-RegistryValue -Path $configPath -Name "ReportViewerAutoOpen"
+$reportViewerAutoOpen = if ("$reportViewerAutoOpenRaw" -eq "0") { $false } else { $true }
 
 if (-not $OutRoot -or $OutRoot.Trim() -eq "") {
   Write-Error "HOST_OUT_MISSING: no output root configured."
   exit 40
 }
 
-$targetKind = Detect-TargetKind -PathValue $TargetPath
+$targetKind = Detect-TargetKind -PathValue $safeRunTargetPath
 $targetNameOnly = if ($TargetPath -and $TargetPath.Trim() -ne "") { [System.IO.Path]::GetFileName($TargetPath) } else { "missing" }
 $runId = Build-RunId -TargetKind $targetKind -TargetNameOnly $targetNameOnly -RepoRootValue $RepoRoot -PolicyPathValue $Policy
 $outRootCanonical = if ($null -ne $OutRoot) { [string]$OutRoot } else { "" }
@@ -1165,9 +1341,9 @@ if (-not $skipWeftend) {
     $pushedRepoRoot = $true
     $cliArgs = @()
     if ($isEmailInput) {
-      $cliArgs = @("email", "safe-run", $TargetPath, "--out", $outDir) + $policyArgs
+      $cliArgs = @("email", "safe-run", $safeRunTargetPath, "--out", $outDir) + $policyArgs
     } else {
-      $cliArgs = @("safe-run", $TargetPath, "--out", $outDir) + $policyArgs + $withholdArgs
+      $cliArgs = @("safe-run", $safeRunTargetPath, "--out", $outDir) + $policyArgs + $withholdArgs
     }
     if ($hasDist -and $nodePathResolved) {
       $outputLines = @(& $nodePathResolved $mainJs @cliArgs 2>&1)
@@ -1239,7 +1415,7 @@ if (-not $skipWeftend) {
   }
 }
 
-Write-WrapperResult -Result $result -ExitCode $finalExitCode -Reason $reason -Detail ("targetKind=" + $targetKind)
+Write-WrapperResult -Result $result -ExitCode $finalExitCode -Reason $reason -Detail ("targetKind=" + $targetKind + " requestedTarget=" + $TargetPath + " scanTarget=" + $safeRunTargetPath)
 $viewState = $null
 $viewStatus = "UNKNOWN"
 try {
@@ -1258,7 +1434,9 @@ try {
   }
   $viewInfo = Get-ViewStatus -ViewState $viewState
   $viewStatus = if ($viewInfo) { [string]$viewInfo.status } else { "UNKNOWN" }
-  Write-ReportCard -RunId $runId -LibraryKey $targetKey -RunSeq $runSeq -Result $result -Reason $reason -PrivacyLint $privacy -BuildDigest $build -Summary $summary -ViewState $viewState -BaselineSummary $baselineSummary
+  $requestedTargetName = if ($TargetPath -and $TargetPath.Trim() -ne "") { [System.IO.Path]::GetFileName($TargetPath) } else { "" }
+  $scanTargetName = if ($safeRunTargetPath -and $safeRunTargetPath.Trim() -ne "") { [System.IO.Path]::GetFileName($safeRunTargetPath) } else { "" }
+  Write-ReportCard -RunId $runId -LibraryKey $targetKey -RunSeq $runSeq -Result $result -Reason $reason -PrivacyLint $privacy -BuildDigest $build -Summary $summary -ViewState $viewState -BaselineSummary $baselineSummary -RequestedTargetName $requestedTargetName -ScanTargetName $scanTargetName
 } catch {
   $errMsg = Redact-SensitiveText -Text ([string]$_)
   $errPath = Join-Path $outDir "wrapper_report_card_error.txt"
@@ -1300,7 +1478,9 @@ if ($shouldHandleUi) {
   $ticketPromptShown = $false
   $ticketAction = "SKIPPED"
   $ticketPackCreatedOutDir = $null
-  if ($openFlag -and -not $LaunchpadMode.IsPresent -and $viewState -and -not ($viewState.blocked -and $viewState.blocked.runId)) {
+  $shouldPromptBaseline = $false
+  if ($viewState -and ($openFlag -or $LaunchpadMode.IsPresent) -and $result -ne "FAIL") {
+    $latestVerdict = ""
     $latestId = if ($viewState.latestRunId) { [string]$viewState.latestRunId } else { "" }
     $idx = -1
     if ($viewState.lastN) {
@@ -1309,36 +1489,44 @@ if ($shouldHandleUi) {
       }
     }
     if ($idx -ge 0 -and $viewState.keys -and $idx -lt $viewState.keys.Count) {
-      if ($viewState.keys[$idx].verdictVsBaseline -eq "CHANGED") {
-        $accept = Show-AcceptBaselinePrompt -TargetKey $targetKey
+      $latestVerdict = [string]$viewState.keys[$idx].verdictVsBaseline
+    }
+    if (
+      $latestVerdict -eq "CHANGED" -or
+      $viewStatusNow -eq "CHANGED" -or
+      $viewStatusNow -eq "BLOCKED"
+    ) {
+      $shouldPromptBaseline = $true
+    }
+  }
+  if ($shouldPromptBaseline) {
+    $accept = Show-AcceptBaselinePrompt -TargetKey $targetKey
+    try {
+      Add-Content -Path (Join-Path $outDir "report_card.txt") -Value "baselinePrompt=SHOWN" -Encoding UTF8
+    } catch {
+      # best effort only
+    }
+    if ($accept -ne $null -and "$accept" -eq "Yes") {
+      try {
+        if ($hasDist -and $nodePathResolved) {
+          & $nodePathResolved $mainJs "library" "accept-baseline" $targetKey | Out-Null
+        } elseif ($npmPathResolved) {
+          & $npmPathResolved run weftend -- "library" "accept-baseline" $targetKey | Out-Null
+        }
         try {
-          Add-Content -Path (Join-Path $outDir "report_card.txt") -Value "baselinePrompt=SHOWN" -Encoding UTF8
+          Add-Content -Path (Join-Path $outDir "report_card.txt") -Value "baselineAction=ACCEPTED" -Encoding UTF8
         } catch {
           # best effort only
         }
-        if ($accept -ne $null -and "$accept" -eq "Yes") {
-          try {
-            if ($hasDist -and $nodePathResolved) {
-              & $nodePathResolved $mainJs "library" "accept-baseline" $targetKey | Out-Null
-            } elseif ($npmPathResolved) {
-              & $npmPathResolved run weftend -- "library" "accept-baseline" $targetKey | Out-Null
-            }
-            try {
-              Add-Content -Path (Join-Path $outDir "report_card.txt") -Value "baselineAction=ACCEPTED" -Encoding UTF8
-            } catch {
-              # best effort only
-            }
-            $baselineAccepted = $true
-          } catch {
-            # best effort only
-          }
-        } elseif ($accept -ne $null) {
-          try {
-            Add-Content -Path (Join-Path $outDir "report_card.txt") -Value "baselineAction=DECLINED" -Encoding UTF8
-          } catch {
-            # best effort only
-          }
-        }
+        $baselineAccepted = $true
+      } catch {
+        # best effort only
+      }
+    } elseif ($accept -ne $null) {
+      try {
+        Add-Content -Path (Join-Path $outDir "report_card.txt") -Value "baselineAction=DECLINED" -Encoding UTF8
+      } catch {
+        # best effort only
       }
     }
   }
@@ -1375,17 +1563,38 @@ if ($shouldHandleUi) {
       # best effort only
     }
   }
-  $reportCardPath = Join-Path $outDir "report_card.txt"
-  $notepadPath = Join-Path $env:WINDIR "System32\notepad.exe"
-  $shouldOpenReportCard = -not $LaunchpadMode.IsPresent
-  if ($shouldOpenReportCard -and (Test-Path -LiteralPath $reportCardPath)) {
-    if (Test-Path -LiteralPath $notepadPath) {
-      Start-Process -FilePath $notepadPath -ArgumentList $reportCardPath | Out-Null
+  $reportViewerOpened = $false
+  $shouldOpenReportViewer = $false
+  if ($openFlag -and $reportViewerAutoOpen) {
+    if ($LaunchpadMode.IsPresent) {
+      $shouldOpenReportViewer = $isChangedOrBlocked
     } else {
-      Start-Process -FilePath "notepad.exe" -ArgumentList $reportCardPath | Out-Null
+      $shouldOpenReportViewer = $true
     }
   }
-  $null = Show-ReportCardPopup -RunId $runId -Result $result -Reason $reason -PrivacyLint $privacy -BuildDigest $build
+  if ($shouldOpenReportViewer -and $useReportViewer) {
+    $reportViewerOpened = Start-ReportCardViewer -RunDir $outDir -TargetDir $targetDir -TargetKey $targetKey
+    if (-not $reportViewerOpened -and $script:reportViewerAutoDisabled) {
+      try {
+        Add-Content -Path (Join-Path $outDir "wrapper_result.txt") -Value "reportViewer=AUTO_DISABLED_STARTUP_FAIL" -Encoding UTF8
+      } catch {
+        # best effort only
+      }
+      try {
+        Add-Content -Path (Join-Path $outDir "report_card.txt") -Value "reportViewerAutoOpen=DISABLED_STARTUP_FAIL" -Encoding UTF8
+      } catch {
+        # best effort only
+      }
+    }
+  }
+  if ($shouldOpenReportViewer -and -not $reportViewerOpened) {
+    $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+    if (Test-Path -LiteralPath $explorerPath) {
+      Start-Process -FilePath $explorerPath -ArgumentList $outDir | Out-Null
+    } else {
+      Start-Process -FilePath "explorer.exe" -ArgumentList $outDir | Out-Null
+    }
+  }
 
   if ($OpenLibrary.IsPresent) {
     $null = New-Item -ItemType Directory -Force -Path $libraryRoot
@@ -1395,7 +1604,7 @@ if ($shouldHandleUi) {
     } else {
       Start-Process -FilePath "explorer.exe" -ArgumentList $libraryRoot | Out-Null
     }
-  } elseif ($LaunchpadMode.IsPresent -and $isChangedOrBlocked) {
+  } elseif ($LaunchpadMode.IsPresent -and $isChangedOrBlocked -and -not $reportViewerOpened) {
     $targetToOpen = if ($ticketPackCreatedOutDir) { $ticketPackCreatedOutDir } else { $outDir }
     $explorerPath = Join-Path $env:WINDIR "explorer.exe"
     if (Test-Path -LiteralPath $explorerPath) {
@@ -1410,26 +1619,20 @@ if ($AllowLaunch.IsPresent) {
   $launchResult = "SKIPPED"
   $blockedRun = $false
   if ($viewState -and $viewState.blocked -and $viewState.blocked.runId) { $blockedRun = $true }
+  $effectiveBlockedRun = $blockedRun -and -not $baselineAccepted
   $canLaunch = Is-LaunchableExecutable -PathValue $TargetPath
-  if ($result -ne "FAIL" -and -not $blockedRun -and $canLaunch) {
+  if ($result -ne "FAIL" -and -not $effectiveBlockedRun -and $canLaunch) {
     $statusNow = if ($viewStatus) { $viewStatus } else { "UNKNOWN" }
     $isBlockedStatus = $statusNow -eq "CHANGED" -or $statusNow -eq "BLOCKED"
     $allowLaunchByStatus = $statusNow -eq "SAME" -or $baselineAccepted
     if ($LaunchpadMode.IsPresent) {
-      $allowLaunchByStatus = -not $isBlockedStatus
+      $allowLaunchByStatus = (-not $isBlockedStatus) -or $baselineAccepted
     }
     if ($allowLaunchByStatus) {
       $expectedDigest = Resolve-ExpectedLaunchDigest -Summary $summary
       $launchAllowed = $true
       if ($expectedDigest -and $expectedDigest.StartsWith("sha256:", [System.StringComparison]::OrdinalIgnoreCase)) {
         $currentDigest = Compute-FileSha256Digest -PathValue $TargetPath
-        if (-not $currentDigest -or ($currentDigest.ToLowerInvariant() -ne $expectedDigest.ToLowerInvariant())) {
-          # Launch must fail closed if target bytes changed between scan and execution.
-          $launchAllowed = $false
-          $launchResult = "BLOCKED_DIGEST_MISMATCH"
-        }
-      } elseif ($expectedDigest -and $expectedDigest.StartsWith("fnv1a32:", [System.StringComparison]::OrdinalIgnoreCase)) {
-        $currentDigest = Compute-FileFNV1a32Digest -PathValue $TargetPath
         if (-not $currentDigest -or ($currentDigest.ToLowerInvariant() -ne $expectedDigest.ToLowerInvariant())) {
           # Launch must fail closed if target bytes changed between scan and execution.
           $launchAllowed = $false

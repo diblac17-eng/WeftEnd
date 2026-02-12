@@ -69,12 +69,17 @@ function Check-CommandKey {
 $configKey = "HKCU:\Software\WeftEnd\Shell"
 $repoRoot = Read-RegistryValue -Path $configKey -Name "RepoRoot"
 $outRoot = Read-RegistryValue -Path $configKey -Name "OutRoot"
+$useReportViewer = Read-RegistryValue -Path $configKey -Name "UseReportViewer"
+$reportViewerAutoOpen = Read-RegistryValue -Path $configKey -Name "ReportViewerAutoOpen"
 
 $allOk = $true
 if (-not (Print-ConfigStatus -Name "RepoRoot" -Value $repoRoot)) { $allOk = $false }
 if (-not (Print-ConfigStatus -Name "OutRoot" -Value $outRoot)) { $allOk = $false }
+if (-not (Print-ConfigStatus -Name "UseReportViewer" -Value $useReportViewer)) { $allOk = $false }
+if (-not (Print-ConfigStatus -Name "ReportViewerAutoOpen" -Value $reportViewerAutoOpen)) { $allOk = $false }
 
 $starKey = "HKCU:\Software\Classes\*\shell\WeftEndSafeRun\command"
+$lnkKey = "HKCU:\Software\Classes\lnkfile\shell\WeftEndSafeRun\command"
 $dirKey = "HKCU:\Software\Classes\Directory\shell\WeftEndSafeRun\command"
 $dirBgKey = "HKCU:\Software\Classes\Directory\Background\shell\WeftEndSafeRun\command"
 $zipKey = "HKCU:\Software\Classes\SystemFileAssociations\.zip\shell\WeftEndSafeRun\command"
@@ -82,6 +87,7 @@ $emlKey = "HKCU:\Software\Classes\SystemFileAssociations\.eml\shell\WeftEndSafeR
 $mboxKey = "HKCU:\Software\Classes\SystemFileAssociations\.mbox\shell\WeftEndSafeRun\command"
 $msgKey = "HKCU:\Software\Classes\SystemFileAssociations\.msg\shell\WeftEndSafeRun\command"
 $starOpenKey = "HKCU:\Software\Classes\*\shell\WeftEndSafeRunOpenLibrary\command"
+$lnkOpenKey = "HKCU:\Software\Classes\lnkfile\shell\WeftEndSafeRunOpenLibrary\command"
 $dirOpenKey = "HKCU:\Software\Classes\Directory\shell\WeftEndSafeRunOpenLibrary\command"
 $dirBgOpenKey = "HKCU:\Software\Classes\Directory\Background\shell\WeftEndSafeRunOpenLibrary\command"
 $zipOpenKey = "HKCU:\Software\Classes\SystemFileAssociations\.zip\shell\WeftEndSafeRunOpenLibrary\command"
@@ -90,6 +96,7 @@ $mboxOpenKey = "HKCU:\Software\Classes\SystemFileAssociations\.mbox\shell\WeftEn
 $msgOpenKey = "HKCU:\Software\Classes\SystemFileAssociations\.msg\shell\WeftEndSafeRunOpenLibrary\command"
 
 if (-not (Check-CommandKey -Label "STAR_FILE_CMD" -KeyPath $starKey -Token "%1")) { $allOk = $false }
+if (-not (Check-CommandKey -Label "LNK_FILE_CMD" -KeyPath $lnkKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "DIR_CMD" -KeyPath $dirKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "DIR_BG_CMD" -KeyPath $dirBgKey -Token "%V")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "ZIP_CMD" -KeyPath $zipKey -Token "%1")) { $allOk = $false }
@@ -97,6 +104,7 @@ if (-not (Check-CommandKey -Label "EML_CMD" -KeyPath $emlKey -Token "%1")) { $al
 if (-not (Check-CommandKey -Label "MBOX_CMD" -KeyPath $mboxKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "MSG_CMD" -KeyPath $msgKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "STAR_FILE_OPEN_LIB" -KeyPath $starOpenKey -Token "%1")) { $allOk = $false }
+if (-not (Check-CommandKey -Label "LNK_FILE_OPEN_LIB" -KeyPath $lnkOpenKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "DIR_OPEN_LIB" -KeyPath $dirOpenKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "DIR_BG_OPEN_LIB" -KeyPath $dirBgOpenKey -Token "%V")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "ZIP_OPEN_LIB" -KeyPath $zipOpenKey -Token "%1")) { $allOk = $false }

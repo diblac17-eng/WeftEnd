@@ -1,4 +1,4 @@
-# tools/windows/shell/launchpad_panel.ps1
+﻿# tools/windows/shell/launchpad_panel.ps1
 # Small Launchpad panel for clicking WeftEnd shortcuts.
 
 param(
@@ -222,6 +222,9 @@ $nodePath = Resolve-ExecutablePath -Preferred $nodeCmd -CommandName "node" -Fall
 )
 $mainJs = if ($repoRoot) { Join-Path $repoRoot "dist\src\cli\main.js" } else { $null }
 $shellDoctorScript = if ($repoRoot) { Join-Path $repoRoot "tools\windows\shell\weftend_shell_doctor.ps1" } else { $null }
+$reportViewerScript = if ($repoRoot) { Join-Path $repoRoot "tools\windows\shell\report_card_viewer.ps1" } else { $null }
+$powershellExe = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
+if (-not (Test-Path -LiteralPath $powershellExe)) { $powershellExe = "powershell.exe" }
 
 function Invoke-LaunchpadSync {
   param([switch]$Silent)
@@ -534,11 +537,72 @@ function Load-HistoryRows {
     [void]$item.SubItems.Add($s.baseline)
     [void]$item.SubItems.Add($s.latest)
     [void]$item.SubItems.Add($s.buckets)
+    $item.Tag = [PSCustomObject]@{
+      targetDir = $dir.FullName
+      targetKey = $dir.Name
+      latestRun = $s.latest
+    }
     [void]$ListView.Items.Add($item)
   }
 
   $ListView.EndUpdate()
   return $dirs.Count
+}
+
+function Open-ReportViewerFromHistory {
+  param(
+    [System.Windows.Forms.ListView]$ListView,
+    [System.Windows.Forms.Label]$StatusLabel
+  )
+  if (-not $ListView -or $ListView.SelectedItems.Count -lt 1) {
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Select a history row first." -IsError $true
+    return
+  }
+  $selected = $ListView.SelectedItems[0]
+  $meta = $selected.Tag
+  $targetDir = if ($meta -and $meta.targetDir) { [string]$meta.targetDir } else { "" }
+  $targetKey = if ($meta -and $meta.targetKey) { [string]$meta.targetKey } else { [string]$selected.Text }
+  $latestRun = if ($meta -and $meta.latestRun) { [string]$meta.latestRun } else { "" }
+  if (-not $targetDir -or -not (Test-Path -LiteralPath $targetDir)) {
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Target history folder missing." -IsError $true
+    return
+  }
+  if (-not $reportViewerScript -or -not (Test-Path -LiteralPath $reportViewerScript)) {
+    $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+    if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
+    Start-Process -FilePath $explorerPath -ArgumentList $targetDir | Out-Null
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Viewer missing. Opened target history folder." -IsError $true
+    return
+  }
+  $runDir = if ($latestRun -and $latestRun -ne "-") { Join-Path $targetDir $latestRun } else { "" }
+  $args = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $reportViewerScript)
+  if ($runDir -and (Test-Path -LiteralPath $runDir)) {
+    $args += @("-RunDir", $runDir)
+  } else {
+    $args += @("-TargetDir", $targetDir)
+    if ($latestRun -and $latestRun -ne "-") {
+      $args += @("-RunId", $latestRun)
+    }
+  }
+  if ($targetKey -and $targetKey.Trim() -ne "") {
+    $args += @("-LibraryKey", $targetKey)
+  }
+  try {
+    $proc = Start-Process -FilePath $powershellExe -ArgumentList $args -PassThru -ErrorAction Stop
+    Start-Sleep -Milliseconds 350
+    try { $proc.Refresh() } catch {}
+    if ($proc -and $proc.HasExited -and [int]$proc.ExitCode -ne 0) {
+      $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+      if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
+      Start-Process -FilePath $explorerPath -ArgumentList $targetDir | Out-Null
+      Set-StatusLine -StatusLabel $StatusLabel -Message "Viewer failed to start. Opened target history folder." -IsError $true
+      return
+    }
+    $statusText = if ($latestRun -and $latestRun -ne "-") { "Opened report: " + $targetKey + " / " + $latestRun } else { "Opened report viewer: " + $targetKey }
+    Set-StatusLine -StatusLabel $StatusLabel -Message $statusText -IsError $false
+  } catch {
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Failed to open report viewer." -IsError $true
+  }
 }
 
 $form = New-Object System.Windows.Forms.Form
@@ -747,6 +811,13 @@ $btnHistoryRefresh.Height = 30
 Style-Button -Button $btnHistoryRefresh -Primary:$false
 $historyActions.Controls.Add($btnHistoryRefresh) | Out-Null
 
+$btnHistoryView = New-Object System.Windows.Forms.Button
+$btnHistoryView.Text = "View Report"
+$btnHistoryView.Width = 96
+$btnHistoryView.Height = 30
+Style-Button -Button $btnHistoryView -Primary:$true
+$historyActions.Controls.Add($btnHistoryView) | Out-Null
+
 $historyList = New-Object System.Windows.Forms.ListView
 $historyList.Dock = "Fill"
 $historyList.View = [System.Windows.Forms.View]::Details
@@ -878,6 +949,19 @@ $btnRefresh.Add_Click({ & $syncNow -Silent })
 $btnHistoryRefresh.Add_Click({
   $tracked = Load-HistoryRows -ListView $historyList
   Set-StatusLine -StatusLabel $statusLabel -Message ("History refreshed. tracked=" + $tracked) -IsError $false
+})
+$btnHistoryView.Add_Click({
+  Open-ReportViewerFromHistory -ListView $historyList -StatusLabel $statusLabel
+})
+$historyList.Add_DoubleClick({
+  Open-ReportViewerFromHistory -ListView $historyList -StatusLabel $statusLabel
+})
+$historyList.Add_KeyDown({
+  param($sender, $e)
+  if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
+    $e.Handled = $true
+    Open-ReportViewerFromHistory -ListView $historyList -StatusLabel $statusLabel
+  }
 })
 $btnDoctorRun.Add_Click({
   if (-not $shellDoctorScript -or -not (Test-Path -LiteralPath $shellDoctorScript)) {
