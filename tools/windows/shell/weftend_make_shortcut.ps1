@@ -163,7 +163,7 @@ $psExe = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
 if (-not (Test-Path $psExe)) { $psExe = "powershell.exe" }
 
 $args = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$runnerPath`" -Target `"$effectiveTarget`""
-if ($AllowLaunch.IsPresent -or $LaunchpadMode.IsPresent) { $args += " -AllowLaunch" }
+if ($AllowLaunch.IsPresent) { $args += " -AllowLaunch" }
 if ($OpenLibrary.IsPresent) { $args += " -OpenLibrary" }
 if ($LaunchpadMode.IsPresent) { $args += " -LaunchpadMode -Open 0" }
 if ($resolvedLaunchArgs -and $resolvedLaunchArgs.Trim() -ne "") {

@@ -120,13 +120,12 @@ function Get-LaunchpadShortcutMetadata {
     }
     $exeName = [System.IO.Path]::GetFileName($targetExe).ToLowerInvariant()
     $isTrusted = $false
-    $hasAllowLaunch = $false
-    if ($args -match "(^|\s)-AllowLaunch(\s|$)") { $hasAllowLaunch = $true }
     if (
       ($exeName -eq "powershell.exe" -or $exeName -eq "pwsh.exe") -and
       $desc -eq "WeftEnd Launchpad Shortcut v1" -and
       $args -match "weftend_safe_run\.ps1" -and
       $args -match "(^|\s)-LaunchpadMode(\s|$)" -and
+      $args -match "(^|\s)-AllowLaunch(\s|$)" -and
       $args -match "(^|\s)-Open\s+0(\s|$)" -and
       -not ($args -match "(^|\s)-OpenLibrary(\s|$)") -and
       $targetCanonical
@@ -135,7 +134,6 @@ function Get-LaunchpadShortcutMetadata {
     }
     return @{
       trusted = $isTrusted
-      allowLaunch = $hasAllowLaunch
       arguments = $args
       description = $desc
     }

@@ -1406,8 +1406,7 @@ if ($shouldHandleUi) {
   }
 }
 
-$allowLaunchNow = $AllowLaunch.IsPresent -or $LaunchpadMode.IsPresent
-if ($allowLaunchNow) {
+if ($AllowLaunch.IsPresent) {
   $launchResult = "SKIPPED"
   $blockedRun = $false
   if ($viewState -and $viewState.blocked -and $viewState.blocked.runId) { $blockedRun = $true }
