@@ -348,7 +348,7 @@ suite("engine/portal_model v0", () => {
       planDigest: "plan-rel",
       releaseStatus: "UNVERIFIED",
       releaseReasonCodes: ["RELEASE_SIGNATURE_BAD", "RELEASE_MANIFEST_INVALID"],
-      releaseId: "sha256:deadbeef",
+      releaseId: "fnv1a32:deadbeef",
       blocks: [
         {
           blockHash: "block-r",
@@ -368,7 +368,7 @@ suite("engine/portal_model v0", () => {
       "RELEASE_MANIFEST_INVALID,RELEASE_SIGNATURE_BAD",
       "expected sorted releaseReasonCodes"
     );
-    assertEq(model.releaseId, "sha256:deadbeef", "expected releaseId");
+    assertEq(model.releaseId, "fnv1a32:deadbeef", "expected releaseId");
     assert(model.warnings?.includes("RELEASE_UNVERIFIED"), "expected RELEASE_UNVERIFIED warning");
   });
 

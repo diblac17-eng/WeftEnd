@@ -2,13 +2,19 @@
 // Platform intake policy schema + canonicalization (v1).
 
 import { canonicalJSON } from "./canon";
-import { sha256HexV0 } from "./hash_v0";
 import { truncateListWithMarker } from "./bounds";
 import type { EvidenceProfileV1, IntakeActionV1, IntakeSeverityV1, WeftEndPolicyV1 } from "./types";
 
 export type { EvidenceProfileV1, IntakeActionV1, IntakeSeverityV1, WeftEndPolicyV1 };
 
-const sha256 = (input: string): string => sha256HexV0(input);
+const fnv1a32 = (input: string): string => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
 
 const normalizeDomain = (value: string): string => value.trim().toLowerCase().replace(/\.+$/, "");
 
@@ -101,5 +107,5 @@ export const canonicalizeWeftEndPolicyV1 = (policy: WeftEndPolicyV1): WeftEndPol
 
 export const computeWeftEndPolicyIdV1 = (policy: WeftEndPolicyV1): string => {
   const canonical = canonicalizeWeftEndPolicyV1(policy);
-  return `sha256:${sha256(canonicalJSON(canonical))}`;
+  return `fnv1a32:${fnv1a32(canonicalJSON(canonical))}`;
 };

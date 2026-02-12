@@ -3,10 +3,16 @@
 // @ts-nocheck
 
 import { canonicalJSON } from "./canon";
-import { sha256HexV0 } from "./hash_v0";
 import { stableSortUniqueReasonsV0 } from "./trust_algebra_v0_core";
 
-const sha256 = (input) => sha256HexV0(String(input ?? ""));
+const fnv1a32 = (input) => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
 
 const isNonEmptyString = (v) => typeof v === "string" && v.trim().length > 0;
 
@@ -51,7 +57,7 @@ export const normalizePulseBodyV0 = (pulse) => {
 
 export const canonicalizePulseV0 = (pulse) => canonicalJSON(normalizePulseBodyV0(pulse));
 
-export const computePulseDigestV0 = (pulse) => `sha256:${sha256(canonicalizePulseV0(pulse))}`;
+export const computePulseDigestV0 = (pulse) => `fnv1a32:${fnv1a32(canonicalizePulseV0(pulse))}`;
 
 export const sealPulseV0 = (pulse) => ({
   ...normalizePulseBodyV0(pulse),
@@ -83,4 +89,4 @@ export const canonicalizeReceiptSummaryV0 = (summary) => {
 };
 
 export const computeReceiptSummaryDigestV0 = (summary) =>
-  `sha256:${sha256(canonicalizeReceiptSummaryV0(summary))}`;
+  `fnv1a32:${fnv1a32(canonicalizeReceiptSummaryV0(summary))}`;

@@ -65,9 +65,9 @@ const testTicketPack = async () => {
       schemaVersion: 0,
       command: "safe-run",
       result: "WITHHELD",
-      receiptDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-      weftendBuild: { algo: "sha256", digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000", source: "UNKNOWN" },
-      receipts: [{ kind: "safe_run_receipt", relPath: "../outside.txt", digest: "sha256:deadbeef" }],
+      receiptDigest: "fnv1a32:00000000",
+      weftendBuild: { algo: "fnv1a32", digest: "fnv1a32:00000000", source: "UNKNOWN" },
+      receipts: [{ kind: "safe_run_receipt", relPath: "../outside.txt", digest: "fnv1a32:deadbeef" }],
       warnings: [],
     }),
     "utf8"

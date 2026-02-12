@@ -48,7 +48,7 @@ suite("orangeteam/privacy-lint", () => {
     const temp = makeTempDir();
     const receipt = {
       schemaVersion: 0,
-      weftendBuild: { algo: "sha256", digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000", source: "UNKNOWN" },
+      weftendBuild: { algo: "fnv1a32", digest: "fnv1a32:00000000", source: "UNKNOWN" },
       leak: "C:\\Users\\alice\\secret.txt",
     };
     fs.writeFileSync(path.join(temp, "safe_run_receipt.json"), JSON.stringify(receipt), "utf8");
@@ -61,7 +61,7 @@ suite("orangeteam/privacy-lint", () => {
     const temp = makeTempDir();
     const receipt = {
       schemaVersion: 0,
-      weftendBuild: { algo: "sha256", digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000", source: "UNKNOWN" },
+      weftendBuild: { algo: "fnv1a32", digest: "fnv1a32:00000000", source: "UNKNOWN" },
       note: "OK",
     };
     fs.writeFileSync(path.join(temp, "safe_run_receipt.json"), JSON.stringify(receipt), "utf8");

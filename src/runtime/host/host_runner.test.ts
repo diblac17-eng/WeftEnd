@@ -90,7 +90,7 @@ suite("runtime/host runner", () => {
     assertEq(res.receipt.verify.verdict, "DENY", "expected verify deny");
     assert(res.receipt.verify.reasonCodes.includes("RELEASE_MANIFEST_MISSING"), "expected RELEASE_MANIFEST_MISSING");
     assertEq(res.receipt.schemaVersion, 0, "expected schemaVersion 0");
-    assert(res.receipt.weftendBuild && res.receipt.weftendBuild.algo === "sha256", "expected weftendBuild block");
+    assert(res.receipt.weftendBuild && res.receipt.weftendBuild.algo === "fnv1a32", "expected weftendBuild block");
     const issues = validateHostRunReceiptV0(res.receipt, "receipt");
     assertEq(issues.length, 0, "expected valid receipt");
   });
@@ -116,7 +116,7 @@ suite("runtime/host runner", () => {
     copyDir(fixture, releaseDir);
     const evidencePath = path.join(releaseDir, "evidence.json");
     const evidence = readJson(evidencePath);
-    evidence.records[0].evidenceId = "sha256:deadbeef";
+    evidence.records[0].evidenceId = "fnv1a32:deadbeef";
     fs.writeFileSync(evidencePath, JSON.stringify(evidence), "utf8");
     const res = await runHostStrictV0({ releaseDir, outDir, hostRoot: host.hostRoot, trustRootPath: host.trustRootPath });
     assertEq(res.receipt.verify.verdict, "DENY", "expected verify deny");
@@ -125,7 +125,7 @@ suite("runtime/host runner", () => {
 
   register("compartment unavailable yields SKIP", async () => {
     const host = setupHostRoot();
-    const releaseDir = path.join(process.cwd(), "tests", "fixtures", "release_demo_js");
+    const releaseDir = path.join(process.cwd(), "tests", "fixtures", "release_demo");
     const outDir = makeTempDir();
     const res = await runHostStrictV0({ releaseDir, outDir, testForceCompartmentUnavailable: true, hostRoot: host.hostRoot, trustRootPath: host.trustRootPath });
     assertEq(res.receipt.execute.result, "SKIP", "expected SKIP");

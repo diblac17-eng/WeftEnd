@@ -7,13 +7,19 @@ import {
   stableSortUniqueReasonsV0,
   stableSortUniqueStringsV0,
 } from "../core/trust_algebra_v0_core";
-import { sha256HexV0 } from "../core/hash_v0";
 
-const sha256 = (input) => sha256HexV0(String(input ?? ""));
+const fnv1a32 = (input) => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
 
 export const computeRecordIdV0 = (recordSansId) => {
   const canon = canonicalJSONV0(recordSansId);
-  return `sha256:${sha256(canon)}`;
+  return `fnv1a32:${fnv1a32(canon)}`;
 };
 
 const secretCaps = new Set([

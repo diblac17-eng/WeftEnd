@@ -1,8 +1,6 @@
 // test/harness/harness_session_v0.mjs
 // Harness session bundle (UI-only, deterministic, time-free).
 
-import crypto from "crypto";
-
 export const HARNESS_SESSION_SCHEMA_V0 = "weftend.harness.session/0";
 export const HARNESS_SESSION_VERSION = 0;
 
@@ -43,7 +41,14 @@ const normalizeString = (value) => {
   return truncateUtf8(trimmed, MAX_STRING_BYTES);
 };
 
-const sha256 = (input) => crypto.createHash("sha256").update(String(input ?? ""), "utf8").digest("hex");
+const fnv1a32 = (input) => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
 
 const canonicalJSON = (obj) => {
   const seen = new WeakSet();
@@ -106,7 +111,7 @@ export const canonicalizeHarnessSessionV0 = (session) => canonicalJSON(session);
 
 export const digestHarnessSessionV0 = (session) => {
   const canon = canonicalizeHarnessSessionV0(session);
-  return `sha256:${sha256(canon)}`;
+  return `fnv1a32:${fnv1a32(canon)}`;
 };
 
 export const buildHarnessSessionV0 = (input, outputs) => {

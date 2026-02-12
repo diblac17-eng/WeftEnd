@@ -1,7 +1,5 @@
-// test/harness/adapter_v0.ts
+﻿// test/harness/adapter_v0.ts
 // Harness-only adapter format (deterministic, bounded, informational).
-
-import crypto from "crypto";
 
 const ADAPTER_SCHEMA = "weftend.adapter/0";
 const MAX_REASON_CODES = 25;
@@ -10,7 +8,14 @@ const MAX_PROOF_POINTERS = 25;
 const MAX_NOTES_BYTES = 256;
 const MAX_STR_BYTES = 128;
 
-const sha256 = (input) => crypto.createHash("sha256").update(String(input ?? ""), "utf8").digest("hex");
+const fnv1a32 = (input) => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
 
 const canonicalJSON = (obj) => {
   const seen = new WeakSet();
@@ -55,7 +60,7 @@ const truncateUtf8 = (value, maxBytes) => {
   return new TextDecoder("utf-8", { fatal: false }).decode(sliced);
 };
 
-const digestString = (value) => `sha256:${sha256(String(value))}`;
+const digestString = (value) => `fnv1a32:${fnv1a32(String(value))}`;
 
 const normalizeHtml = (html) => {
   if (typeof html !== "string") return "";

@@ -39,8 +39,8 @@ const baseSecretBox = () => ({
   kind: "opaque.secret",
   secretB64: "AQI=", // 2 bytes
   bindings: { planHash: "plan-1", issuerId: "issuer-1", mintedSeq: 0, mintedAt: "t0" },
-  secretHash: "sha256:deadbeef",
-  boxDigest: "sha256:cafebabe",
+  secretHash: "fnv1a32:deadbeef",
+  boxDigest: "fnv1a32:cafebabe",
 });
 
 suite("core/redteam secret smuggling + leak", () => {

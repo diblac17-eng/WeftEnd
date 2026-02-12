@@ -42,8 +42,8 @@ suite("cli/compare", () => {
       result: "ALLOW",
       exitCode: 0,
       reasonCodes: ["OK"],
-      artifactDigest: "sha256:11111111",
-      policyDigest: "sha256:22222222",
+      artifactDigest: "fnv1a32:11111111",
+      policyDigest: "fnv1a32:22222222",
     };
     const out = compareSummariesV0(summary, summary);
     assertEq(out.verdict, "SAME", "expected SAME verdict");
@@ -71,10 +71,10 @@ suite("cli/compare", () => {
       schema: "weftend.compareReceipt/0",
       v: 0,
       schemaVersion: 0,
-      weftendBuild: { algo: "sha256", digest: "sha256:aaaaaaaa", source: "NODE_MAIN_JS" },
+      weftendBuild: { algo: "fnv1a32", digest: "fnv1a32:aaaaaaaa", source: "NODE_MAIN_JS" },
       kind: "CompareReceiptV0",
-      left: { summaryDigest: "sha256:11111111", receiptKinds: ["safe_run_receipt"] },
-      right: { summaryDigest: "sha256:22222222", receiptKinds: ["safe_run_receipt"] },
+      left: { summaryDigest: "fnv1a32:11111111", receiptKinds: ["safe_run_receipt"] },
+      right: { summaryDigest: "fnv1a32:22222222", receiptKinds: ["safe_run_receipt"] },
       verdict: "CHANGED",
       changeBuckets: ["REASONS_CHANGED"],
       changes: [
@@ -86,7 +86,7 @@ suite("cli/compare", () => {
       ],
       privacyLint: "PASS",
       reasonCodes: [],
-      receiptDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      receiptDigest: "fnv1a32:00000000",
     };
     receipt.receiptDigest = computeCompareReceiptDigestV0(receipt);
     const issues = validateCompareReceiptV0(receipt, "compareReceipt");

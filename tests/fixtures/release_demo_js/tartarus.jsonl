@@ -1,1 +1,1 @@
-{"schema":"weftend.tartarus/0","recordId":"sha256:deadbeef","planDigest":"sha256:9bdda3cf","blockHash":"block:sha256-4e93ae89","kind":"artifact.mismatch","severity":"QUARANTINE","remedy":"REBUILD_FROM_TRUSTED","reasonCodes":["ARTIFACT_DIGEST_MISMATCH"],"seq":1}
+{"schema":"weftend.tartarus/0","recordId":"fnv1a32:deadbeef","planDigest":"fnv1a32:9bdda3cf","blockHash":"block:fnv1a32-4e93ae89","kind":"artifact.mismatch","severity":"QUARANTINE","remedy":"REBUILD_FROM_TRUSTED","reasonCodes":["ARTIFACT_DIGEST_MISMATCH"],"seq":1}

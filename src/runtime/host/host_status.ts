@@ -29,7 +29,7 @@ const ENFORCEMENT_VERSION = "host_enforcement_v0";
 
 const MAX_BINARY_BYTES = 128 * 1024 * 1024;
 const MAX_CONFIG_BYTES = 64 * 1024;
-const ZERO_DIGEST = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
+const ZERO_DIGEST = "fnv1a32:00000000";
 
 export interface HostStatusOptionsV0 {
   hostRoot: string;

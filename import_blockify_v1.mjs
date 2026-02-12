@@ -1,8 +1,6 @@
 // test/harness/import_blockify_v1.mjs
 // Harness-only blockify (A1->A2) mirror, JS-only for Node tests.
 
-import crypto from "crypto";
-
 const boundaryTags = new Set(["section", "article", "nav", "main", "header", "footer", "aside"]);
 const voidTags = new Set([
   "area",
@@ -44,7 +42,14 @@ const sortBuildErrors = (errs) =>
     return a.message.localeCompare(b.message);
   });
 
-const sha256 = (input) => crypto.createHash("sha256").update(String(input ?? ""), "utf8").digest("hex");
+const fnv1a32 = (input) => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = (hash + ((hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24))) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
+};
 
 const normalizeWhitespace = (value) => value.replace(/\s+/g, " ").trim();
 
@@ -381,7 +386,7 @@ const blockifyHtmlToPlan = (html, pageId) => {
     const nodePath = block.path ?? `root/${index + 1}`;
     const hint = firstStableAttrHint(block.attrs);
     const hashInput = `${pageId}\u0000${nodePath}\u0000${block.tag}\u0000${hint}`;
-    const blockId = `sha256:${sha256(hashInput)}`;
+    const blockId = `fnv1a32:${fnv1a32(hashInput)}`;
     const name = computeBlockName(block, index + 1);
 
     const collected = collectDeps(block);

@@ -405,7 +405,7 @@ const buildCompareReceipt = (input: {
       })),
     privacyLint: input.privacyLint,
     reasonCodes: dedupeSort(input.reasonCodes),
-    receiptDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    receiptDigest: "fnv1a32:00000000",
   };
   receipt.receiptDigest = computeCompareReceiptDigestV0(receipt);
   return receipt;

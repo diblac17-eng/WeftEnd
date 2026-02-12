@@ -490,7 +490,7 @@ export const buildContentSummaryV0 = (options: {
       reasonCodes: stableSortUniqueStringsV0(options.policyMatch.reasonCodes ?? []),
     },
     hashFamily: {
-      sha256: options.capture.rootDigest,
+      fnv1a32: options.capture.rootDigest,
       ...(sha256 ? { sha256 } : {}),
     },
   };

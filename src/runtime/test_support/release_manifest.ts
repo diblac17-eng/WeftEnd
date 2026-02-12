@@ -2,7 +2,6 @@
 // Test helpers for ReleaseManifest v0.
 
 import { canonicalJSON } from "../../core/canon";
-import { sha256HexV0 } from "../../core/hash_v0";
 import { computeReleaseIdV0 } from "../../core/validate";
 import type { ReleaseManifestV0 } from "../../core/types";
 import type { CryptoPort } from "../../ports/crypto-port";
@@ -16,13 +15,20 @@ export const releaseKeyAllowlist: Record<string, string> = {
   [RELEASE_KEY_ID]: RELEASE_PUBLIC_KEY,
 };
 
-const sha256 = (input: string): string => sha256HexV0(input);
+const fnv1a32 = (input: string): string => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
 
 const signatureForPayload = (payloadCanonical: string): string =>
-  Buffer.from(`sig:${sha256(payloadCanonical)}`, "utf8").toString("base64");
+  Buffer.from(`sig:${fnv1a32(payloadCanonical)}`, "utf8").toString("base64");
 
 export const makeReleaseCryptoPort = (): CryptoPort => ({
-  hash: (canonical: string) => `sha256:${sha256(canonical)}`,
+  hash: (canonical: string) => `fnv1a32:${fnv1a32(canonical)}`,
   verifySignature: (payload: string, sig: { sig?: string }, publicKey: string) =>
     publicKey === RELEASE_PUBLIC_KEY && sig?.sig === signatureForPayload(payload),
 });

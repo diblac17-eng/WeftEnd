@@ -24,7 +24,7 @@ This is the exact demo sequence used to verify the local harness end-to-end.
 Optional: Path digest binding in release publish
 
 Add `pathDigest` to `publish.json`, or pass it on the CLI (must match if both are set):
-`node dist/src/cli/main.js publish out/publish_in out/publish_out --path-digest sha256:deadbeef`
+`node dist/src/cli/main.js publish out/publish_in out/publish_out --path-digest fnv1a32:deadbeef`
 
 ## What this proves
 

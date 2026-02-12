@@ -4,8 +4,6 @@
 declare const require: any;
 declare const Buffer: any;
 
-import { createSha256HasherV0, sha256HexBytesV0, sha256HexV0 } from "../../core/hash_v0";
-
 const fs = require("fs");
 const path = require("path");
 
@@ -37,9 +35,23 @@ export interface CaptureTreeV0 {
   truncated: boolean;
 }
 
-const sha256 = (input: string): string => sha256HexV0(input);
+const fnv1a32 = (input: string): string => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
 
-const sha256Bytes = (buf: Uint8Array): string => sha256HexBytesV0(buf);
+const fnv1a32Bytes = (buf: Uint8Array): string => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < buf.length; i += 1) {
+    hash ^= buf[i];
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
 
 const normalizePath = (p: string): string => p.replace(/\\/g, "/").replace(/^\.\/+/, "");
 
@@ -51,15 +63,18 @@ const computeFileDigest = (absPath: string): { digest: string; size: number } =>
   const fd = fs.openSync(absPath, "r");
   const chunk = Buffer.allocUnsafe(64 * 1024);
   let bytesRead = 0;
-  const hasher = createSha256HasherV0();
+  let hash = 0x811c9dc5;
   try {
     while ((bytesRead = fs.readSync(fd, chunk, 0, chunk.length, null)) > 0) {
-      hasher.update(chunk.subarray(0, bytesRead));
+      for (let i = 0; i < bytesRead; i += 1) {
+        hash ^= chunk[i];
+        hash = Math.imul(hash, 0x01000193);
+      }
     }
   } finally {
     fs.closeSync(fd);
   }
-  return { digest: `sha256:${hasher.digest("hex")}`, size };
+  return { digest: `fnv1a32:${(hash >>> 0).toString(16).padStart(8, "0")}`, size };
 };
 
 const canonicalizeListing = (entries: CaptureEntryV0[]): string => {
@@ -183,7 +198,7 @@ const parseZipEntries = (buf: Uint8Array, issues: string[]): CaptureEntryV0[] =>
     entries.push({
       path: normalized,
       size: Math.max(uncompSize || 0, 0),
-      digest: `sha256:${sha256(`${normalized}\u0000${compSize}\u0000${uncompSize}`)}`,
+      digest: `fnv1a32:${fnv1a32(`${normalized}\u0000${compSize}\u0000${uncompSize}`)}`,
     });
   }
   if (cdSize === 0 || cdOffset === 0) {
@@ -200,8 +215,8 @@ export const captureTreeV0 = (inputPath: string, limits: CaptureLimitsV0): Captu
     return {
       kind: "file",
       basePath: inputPath,
-      rootDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-      captureDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      rootDigest: "fnv1a32:00000000",
+      captureDigest: "fnv1a32:00000000",
       fileCount: 0,
       totalBytes: 0,
       entries: [],
@@ -216,8 +231,8 @@ export const captureTreeV0 = (inputPath: string, limits: CaptureLimitsV0): Captu
     walkDir(inputPath, "", limits, entries, issues, state);
     const listing = canonicalizeListing(entries);
     const digests = canonicalizeDigests(entries);
-    const rootDigest = `sha256:${sha256(digests)}`;
-    const captureDigest = `sha256:${sha256(listing)}`;
+    const rootDigest = `fnv1a32:${fnv1a32(digests)}`;
+    const captureDigest = `fnv1a32:${fnv1a32(listing)}`;
     const sample = entries.map((e) => e.path).slice(0, limits.maxFiles);
     return {
       kind: "dir",
@@ -236,7 +251,7 @@ export const captureTreeV0 = (inputPath: string, limits: CaptureLimitsV0): Captu
   const ext = path.extname(inputPath).toLowerCase();
   if (stat.isFile() && ext === ".zip") {
     const buf = fs.readFileSync(inputPath);
-    const rootDigest = `sha256:${sha256Bytes(buf)}`;
+    const rootDigest = `fnv1a32:${fnv1a32Bytes(buf)}`;
     const zipEntries = parseZipEntries(buf, issues);
     zipEntries.sort((a, b) => a.path.localeCompare(b.path));
     let totalBytes = 0;
@@ -260,7 +275,7 @@ export const captureTreeV0 = (inputPath: string, limits: CaptureLimitsV0): Captu
       totalBytes += entry.size;
     }
     const listing = canonicalizeListing(entries);
-    const captureDigest = `sha256:${sha256(listing)}`;
+    const captureDigest = `fnv1a32:${fnv1a32(listing)}`;
     const sample = entries.map((e) => e.path).slice(0, limits.maxFiles);
     return {
       kind: "zip",
@@ -286,7 +301,7 @@ export const captureTreeV0 = (inputPath: string, limits: CaptureLimitsV0): Captu
       kind: "file",
       basePath: inputPath,
       rootDigest: digest,
-      captureDigest: `sha256:${sha256(listing)}`,
+      captureDigest: `fnv1a32:${fnv1a32(listing)}`,
       fileCount: 1,
       totalBytes: size,
       entries: [entry],
@@ -299,8 +314,8 @@ export const captureTreeV0 = (inputPath: string, limits: CaptureLimitsV0): Captu
   return {
     kind: "file",
     basePath: inputPath,
-    rootDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-    captureDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    rootDigest: "fnv1a32:00000000",
+    captureDigest: "fnv1a32:00000000",
     fileCount: 0,
     totalBytes: 0,
     entries: [],

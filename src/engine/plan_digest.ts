@@ -4,12 +4,18 @@
  */
 
 import { canonicalJSON } from "../core/canon";
-import { sha256HexV0 } from "../core/hash_v0";
 import { stableSortUniqueStringsV0 } from "../core/trust_algebra_v0";
 import { normalizePathSummaryV0 } from "../core/validate";
 import type { PlanSnapshotV0 } from "../core/types";
 
-const sha256 = (input: string): string => sha256HexV0(input);
+const fnv1a32 = (input: string): string => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
 
 const normalizeSnapshot = (snapshot: PlanSnapshotV0): PlanSnapshotV0 => {
   const artifacts = [...snapshot.artifacts].sort((a, b) => {
@@ -43,5 +49,5 @@ const normalizeSnapshot = (snapshot: PlanSnapshotV0): PlanSnapshotV0 => {
 export const computePlanDigestV0 = (snapshot: PlanSnapshotV0): string => {
   const normalized = normalizeSnapshot(snapshot);
   const canon = canonicalJSON(normalized);
-  return `sha256:${sha256(canon)}`;
+  return `fnv1a32:${fnv1a32(canon)}`;
 };

@@ -329,7 +329,7 @@ suite("core/validate", () => {
       v: 0,
       bind: { releaseId: "release-demo", pathDigest: "path-demo" },
       contents: { verifyReport: report },
-      digests: { verifyReportDigest: "sha256:11111111", packageDigest: "sha256:22222222" },
+      digests: { verifyReportDigest: "fnv1a32:11111111", packageDigest: "fnv1a32:22222222" },
     };
     const issues = validateReceiptPackageV0(pkg, "/receipt_package.json");
     assertEq(issues.length, 0, "expected valid receipt package");

@@ -1047,7 +1047,7 @@ export type StrictExecuteOutcomeV0 = "ALLOW" | "DENY" | "SKIP";
 export type WeftendBuildSourceV0 = "HOST_BINARY_PATH" | "NODE_MAIN_JS" | "UNKNOWN";
 
 export interface WeftendBuildV0 {
-  algo: "sha256";
+  algo: "fnv1a32";
   digest: string;
   source: WeftendBuildSourceV0;
   reasonCodes?: string[];
@@ -1192,7 +1192,8 @@ export interface ContentSummaryV0 {
     reasonCodes: string[];
   };
   hashFamily: {
-    sha256: string;
+    fnv1a32: string;
+    sha256?: string;
   };
 }
 

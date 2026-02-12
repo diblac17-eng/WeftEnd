@@ -2,7 +2,6 @@
 // Deterministic canonicalization + digest for WeftEnd Mint Package v1.
 
 import { canonicalJSON } from "./canon";
-import { sha256HexV0 } from "./hash_v0";
 import { stableSortUniqueReasonsV0, stableSortUniqueStringsV0 } from "./trust_algebra_v0";
 import type {
   MintCaptureV1,
@@ -15,7 +14,14 @@ import type {
   WeftendMintPackageV1,
 } from "./types";
 
-const sha256 = (input: string): string => sha256HexV0(input);
+const fnv1a32 = (input: string): string => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
 
 const isNonEmptyString = (v: unknown): v is string =>
   typeof v === "string" && v.trim().length > 0;
@@ -133,5 +139,5 @@ export const canonicalizeMintPackageV1 = (pkg: WeftendMintPackageV1): string => 
 };
 
 export const computeMintDigestV1 = (pkg: WeftendMintPackageV1): string =>
-  `sha256:${sha256(canonicalizeMintPackageV1(pkg))}`;
+  `fnv1a32:${fnv1a32(canonicalizeMintPackageV1(pkg))}`;
 

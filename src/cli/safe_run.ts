@@ -254,16 +254,16 @@ const buildPlanSnapshotForRun = (
     publishInputHash: planDigest,
     trustPolicyHash: policyDigest,
     anchors: {
-      a1Hash: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-      a2Hash: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-      a3Hash: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      a1Hash: "fnv1a32:00000000",
+      a2Hash: "fnv1a32:00000000",
+      a3Hash: "fnv1a32:00000000",
     },
     plan: {
       planHash: planDigest,
-      trustHash: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      trustHash: "fnv1a32:00000000",
     },
     bundle: {
-      bundleHash: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      bundleHash: "fnv1a32:00000000",
     },
     packages: [],
     artifacts: [{ ref: blockHash, digest: expectedSourceDigest }],
@@ -368,8 +368,8 @@ const buildRuntimeBundle = (
     compilerId: "weftend.safe-run",
     compilerVersion: "0.0.0",
     builtAt: "1970-01-01T00:00:00.000Z",
-    manifestHash: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-    trustHash: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    manifestHash: "fnv1a32:00000000",
+    trustHash: "fnv1a32:00000000",
     planHash,
   };
 
@@ -438,7 +438,7 @@ const isReleaseDir = (inputPath: string): boolean => {
 const buildSafeRunReceipt = (input: Omit<SafeRunReceiptV0, "receiptDigest">): SafeRunReceiptV0 => {
   const receipt: SafeRunReceiptV0 = {
     ...input,
-    receiptDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    receiptDigest: "fnv1a32:00000000",
   };
   receipt.receiptDigest = computeSafeRunReceiptDigestV0(receipt);
   return receipt;
@@ -624,7 +624,7 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
         executionVerdict: "NOT_ATTEMPTED",
         topReasonCode: topReason(reasonCodes, classified.reasonCodes),
         ...(meta.releaseId ? { releaseId: meta.releaseId } : {}),
-        releaseDirDigest: meta.releaseDirDigest || "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        releaseDirDigest: meta.releaseDirDigest || "fnv1a32:00000000",
         policyId,
         contentSummary: releaseSummary,
         execution: { result: toExecutionResult("NOT_ATTEMPTED"), reasonCodes },

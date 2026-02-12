@@ -9,7 +9,6 @@ import {
   truncateReasonDetailV0,
 } from "../core/trust_algebra_v0_core";
 import { computeReceiptSummaryDigestV0 } from "../core/pulse_digest_core";
-import { sha256HexV0 } from "../core/hash_v0";
 
 const isNonEmptyString = (v) => typeof v === "string" && v.trim().length > 0;
 
@@ -100,12 +99,19 @@ const safeCanonicalJSON = (v) => {
   }
 };
 
-const sha256 = (input) => sha256HexV0(String(input ?? ""));
+const fnv1a32 = (input) => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
 
 const digestEvidence = (env) => {
   const canon = safeCanonicalJSON(env.payload);
   const basis = canon ?? "CANONICAL_INVALID";
-  return `sha256:${sha256(`${env.kind}\u0000${basis}`)}`;
+  return `fnv1a32:${fnv1a32(`${env.kind}\u0000${basis}`)}`;
 };
 
 const normalizeRenderState = (verify) => {

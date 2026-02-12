@@ -61,9 +61,9 @@ Example:
   "html": "<main><section id=\"hero\"></section></main>",
   "pageId": "page:/home",
   "policy": { "id": "policy-1", "rules": [{ "id": "r1", "match": {}, "action": "trust" }], "grantRules": [] },
-  "policyDigest": "sha256:def67890",
+  "policyDigest": "fnv1a32:def67890",
   "compiler": { "compilerId": "weftend", "compilerVersion": "0.1.0", "builtAt": "2025-01-01T00:00:00.000Z" },
-  "pathDigest": "sha256:deadbeef",
+  "pathDigest": "fnv1a32:deadbeef",
   "buildInfo": { "toolId": "weftend", "toolVer": "0.1.0" }
 }
 ```

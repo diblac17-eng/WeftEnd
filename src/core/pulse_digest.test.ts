@@ -60,11 +60,11 @@ suite("core/pulse_digest", () => {
       quarantines: 1,
       bindTo: { releaseId: "release-1", pathDigest: "path-1" },
       lastReceiptId: "receipt-1",
-      receiptDigest: "sha256:aaaa",
+      receiptDigest: "fnv1a32:aaaa",
     };
     const summaryB = {} as ReceiptSummaryV0;
     summaryB.bindTo = { pathDigest: "path-1", releaseId: "release-1" };
-    summaryB.receiptDigest = "sha256:bbbb";
+    summaryB.receiptDigest = "fnv1a32:bbbb";
     summaryB.schema = "weftend.receiptSummary/0";
     summaryB.v = 0;
     summaryB.denies = 1;

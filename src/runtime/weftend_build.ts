@@ -11,7 +11,7 @@ declare const Buffer: any;
 const fs = require("fs");
 const path = require("path");
 
-const ZERO_DIGEST = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
+const ZERO_DIGEST = "fnv1a32:00000000";
 const MAX_BUILD_BYTES = 128 * 1024 * 1024;
 
 const toBinaryString = (buf: unknown): string => {
@@ -35,7 +35,7 @@ export const computeWeftendBuildV0 = (options: {
   if (!filePath || !fs.existsSync(filePath)) {
     reasons.push("WEFTEND_BUILD_DIGEST_UNAVAILABLE");
     return {
-      build: { algo: "sha256", digest: ZERO_DIGEST, source: "UNKNOWN", reasonCodes: reasons },
+      build: { algo: "fnv1a32", digest: ZERO_DIGEST, source: "UNKNOWN", reasonCodes: reasons },
       reasonCodes: reasons,
     };
   }
@@ -45,14 +45,14 @@ export const computeWeftendBuildV0 = (options: {
     if (!stat.isFile() || stat.size > maxBytes) {
       reasons.push("WEFTEND_BUILD_DIGEST_UNAVAILABLE");
       return {
-        build: { algo: "sha256", digest: ZERO_DIGEST, source: "UNKNOWN", reasonCodes: reasons },
+        build: { algo: "fnv1a32", digest: ZERO_DIGEST, source: "UNKNOWN", reasonCodes: reasons },
         reasonCodes: reasons,
       };
     }
   } catch {
     reasons.push("WEFTEND_BUILD_DIGEST_UNAVAILABLE");
     return {
-      build: { algo: "sha256", digest: ZERO_DIGEST, source: "UNKNOWN", reasonCodes: reasons },
+      build: { algo: "fnv1a32", digest: ZERO_DIGEST, source: "UNKNOWN", reasonCodes: reasons },
       reasonCodes: reasons,
     };
   }
@@ -61,13 +61,13 @@ export const computeWeftendBuildV0 = (options: {
     const data = fs.readFileSync(filePath);
     const digest = computeArtifactDigestV0(toBinaryString(data));
     return {
-      build: { algo: "sha256", digest, source: options.source },
+      build: { algo: "fnv1a32", digest, source: options.source },
       reasonCodes: reasons,
     };
   } catch {
     reasons.push("WEFTEND_BUILD_DIGEST_UNAVAILABLE");
     return {
-      build: { algo: "sha256", digest: ZERO_DIGEST, source: "UNKNOWN", reasonCodes: reasons },
+      build: { algo: "fnv1a32", digest: ZERO_DIGEST, source: "UNKNOWN", reasonCodes: reasons },
       reasonCodes: reasons,
     };
   }

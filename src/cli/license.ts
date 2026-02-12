@@ -3,7 +3,6 @@
 
 import { canonicalJSON } from "../core/canon";
 import { canonicalizeWeftendEntitlementPayloadV1 } from "../core/entitlement_v1";
-import { sha256HexV0 } from "../core/hash_v0";
 import { validateWeftendEntitlementV1 } from "../core/validate";
 import type { WeftendEntitlementPayloadV1, WeftendEntitlementV1 } from "../core/types";
 
@@ -41,11 +40,18 @@ const parseArgs = (args: string[]): { cmd: string; flags: Record<string, string 
   return out;
 };
 
-const sha256 = (input: string): string => sha256HexV0(input);
+const fnv1a32 = (input: string): string => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
 
 const buildLicenseId = (payload: Omit<WeftendEntitlementPayloadV1, "licenseId">): string => {
   const canon = canonicalJSON(payload);
-  return `lic_${sha256(canon)}`;
+  return `lic_${fnv1a32(canon)}`;
 };
 
 const readText = (p: string): string => fs.readFileSync(p, "utf8");

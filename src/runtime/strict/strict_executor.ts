@@ -99,7 +99,6 @@ export interface StrictExecutorOptions {
   testUntrustedMessageSource?: { onMessage: (handler: (msg: SandboxMessage) => void) => void };
   /** Test-only seam to override release verification. */
   testReleaseVerifyOverride?: ReleaseVerifyResultV0;
-  entryTimeoutMs?: number;
 }
 
 const normalizeReasonCodes = (codes: unknown): string[] => {
@@ -132,7 +131,6 @@ export class StrictExecutor {
   private pulseSeqBySubject = new Map<string, number>();
   private loadPulseEmitted = false;
   private exitPulseEmitted = false;
-  private entryTimeoutHandle: any = null;
 
   constructor(opts: StrictExecutorOptions) {
     this.opts = opts;
@@ -423,13 +421,11 @@ export class StrictExecutor {
     }
     this.selfTestPassed = true;
     this.kernel.setSelfTestPassed(true);
-    this.startEntryTimeout();
 
     return this.entryPromise;
   }
 
   async terminate(): Promise<void> {
-    this.clearEntryTimeout();
     if (this.worker) {
       await this.worker.terminate();
       this.worker = null;
@@ -466,7 +462,6 @@ export class StrictExecutor {
   }
 
   private resolveEntry(result: SandboxResult) {
-    this.clearEntryTimeout();
     this.emitExitPulse(result);
     if (this.entryResolve) {
       const resolve = this.entryResolve;
@@ -663,32 +658,5 @@ export class StrictExecutor {
       planDigest: this.opts.planDigest,
       sessionNonce: this.sessionNonce,
     } as SandboxResult;
-  }
-
-  private startEntryTimeout() {
-    if (this.entryTimeoutHandle) return;
-    const timeoutMsRaw = this.opts.entryTimeoutMs;
-    const timeoutMs =
-      typeof timeoutMsRaw === "number" && Number.isFinite(timeoutMsRaw) && timeoutMsRaw >= 0
-        ? Math.floor(timeoutMsRaw)
-        : 10000;
-    if (timeoutMs <= 0) return;
-    this.entryTimeoutHandle = setTimeout(() => {
-      this.entryTimeoutHandle = null;
-      this.resolveEntry(
-        this.makeResult({
-          kind: "result",
-          reqId: "entry",
-          ok: false,
-          reasonCodes: ["SANDBOX_ENTRY_TIMEOUT"],
-        })
-      );
-    }, timeoutMs);
-  }
-
-  private clearEntryTimeout() {
-    if (!this.entryTimeoutHandle) return;
-    clearTimeout(this.entryTimeoutHandle);
-    this.entryTimeoutHandle = null;
   }
 }

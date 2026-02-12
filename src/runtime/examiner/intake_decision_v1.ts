@@ -3,7 +3,6 @@
 
 import { canonicalJSON } from "../../core/canon";
 import { makeTruncationMarker, truncateListWithMarker, truncateTextWithMarker } from "../../core/bounds";
-import { sha256HexV0 } from "../../core/hash_v0";
 import { stableSortUniqueReasonsV0 } from "../../core/trust_algebra_v0";
 import type {
   EvidenceProfileV1,
@@ -28,9 +27,16 @@ export interface IntakeDecisionOptionsV1 {
   scriptText?: string;
 }
 
-const sha256 = (input: string): string => sha256HexV0(input);
+const fnv1a32 = (input: string): string => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
 
-const computeDigest = (payload: string): string => `sha256:${sha256(payload)}`;
+const computeDigest = (payload: string): string => `fnv1a32:${fnv1a32(payload)}`;
 
 const utf8ByteLength = (value: string): number => {
   if (typeof TextEncoder !== "undefined") return new TextEncoder().encode(value).length;
@@ -204,8 +210,8 @@ const buildDisclosure = (
 };
 
 const computeDecisionDigest = (decision: IntakeDecisionV1): string => {
-  const payload = { ...decision, decisionDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000" };
-  return `sha256:${sha256(canonicalJSON(payload))}`;
+  const payload = { ...decision, decisionDigest: "fnv1a32:00000000" };
+  return `fnv1a32:${fnv1a32(canonicalJSON(payload))}`;
 };
 
 const buildAppealPayload = (
@@ -299,9 +305,9 @@ export const buildIntakeDecisionV1 = (
         action,
         topReasonCodes,
         capSummary,
-        disclosureDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-        appealDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-        decisionDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        disclosureDigest: "fnv1a32:00000000",
+        appealDigest: "fnv1a32:00000000",
+        decisionDigest: "fnv1a32:00000000",
       },
       topReasonCodes,
       capSummary,
@@ -348,7 +354,7 @@ export const buildIntakeDecisionV1 = (
     capSummary,
     disclosureDigest,
     appealDigest,
-    decisionDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    decisionDigest: "fnv1a32:00000000",
   };
   decision.decisionDigest = computeDecisionDigest(decision);
 

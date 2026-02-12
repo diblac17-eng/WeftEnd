@@ -49,7 +49,7 @@ export const buildOperatorReceiptV0 = (input: {
     receipts: entries,
     warnings,
     ...(input.contentSummary ? { contentSummary: input.contentSummary } : {}),
-    receiptDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    receiptDigest: "fnv1a32:00000000",
   };
   receipt.receiptDigest = computeOperatorReceiptDigestV0(receipt);
   const issues = validateOperatorReceiptV0(receipt, "operatorReceipt");

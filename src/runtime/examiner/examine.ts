@@ -2,7 +2,6 @@
 // Mint package builder for v1 examiner flow.
 
 import { canonicalJSON } from "../../core/canon";
-import { sha256HexV0 } from "../../core/hash_v0";
 import { computeMintDigestV1, normalizeMintPackageV1 } from "../../core/mint_digest";
 import { stableSortUniqueReasonsV0, stableSortUniqueStringsV0 } from "../../core/trust_algebra_v0";
 import type {
@@ -22,7 +21,6 @@ export interface ExamineOptionsV1 {
   profile: MintProfileV1;
   scriptText?: string;
   limits?: Partial<MintLimitsV1>;
-  scriptTimeoutMs?: number;
 }
 
 export interface ExamineResultV1 {
@@ -31,7 +29,14 @@ export interface ExamineResultV1 {
   capture: CaptureTreeV0;
 }
 
-const sha256 = (input: string): string => sha256HexV0(input);
+const fnv1a32 = (input: string): string => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
 
 const defaultLimits: MintLimitsV1 = {
   maxFiles: 20000,
@@ -43,7 +48,7 @@ const defaultLimits: MintLimitsV1 = {
 };
 
 const computeReceiptDigest = (payload: unknown): string =>
-  `sha256:${sha256(canonicalJSON(payload))}`;
+  `fnv1a32:${fnv1a32(canonicalJSON(payload))}`;
 
 const summarizeProbe = (probe: MintProbeResultV1, kind: string): MintReceiptV1 => {
   const denied = Object.values(probe.deniedCaps ?? {}).reduce((a, b) => a + b, 0);
@@ -80,7 +85,6 @@ export const examineArtifactV1 = (inputPath: string, opts: ExamineOptionsV1): Ex
 
   let loadProbe = runStrictProbeV0(detect.htmlEntryText, {
     maxScriptBytes: limits.maxScriptBytes,
-    scriptTimeoutMs: opts.scriptTimeoutMs,
   });
   if (!loadProbe.strictAvailable && opts.profile !== "web") {
     loadProbe = {
@@ -101,7 +105,6 @@ export const examineArtifactV1 = (inputPath: string, opts: ExamineOptionsV1): Ex
     const probe = runStrictProbeV0(detect.htmlEntryText, {
       interactions: parsed.actions,
       maxScriptBytes: limits.maxScriptBytes,
-      scriptTimeoutMs: opts.scriptTimeoutMs,
     });
     scriptProbe = {
       status: probe.probe.status,
@@ -180,7 +183,7 @@ export const examineArtifactV1 = (inputPath: string, opts: ExamineOptionsV1): Ex
     },
     grade,
     digests: {
-      mintDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      mintDigest: "fnv1a32:00000000",
       inputDigest: capture.rootDigest,
       policyDigest: "-",
     },

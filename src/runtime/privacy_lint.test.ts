@@ -58,7 +58,7 @@ suite("runtime/privacy lint", () => {
     ].join("\n");
     fs.writeFileSync(readmePath, contents, "utf8");
 
-    const fixedBuild = { algo: "sha256", digest: "sha256:22222222", source: "NODE_MAIN_JS" } as any;
+    const fixedBuild = { algo: "fnv1a32", digest: "fnv1a32:22222222", source: "NODE_MAIN_JS" } as any;
     const result = runPrivacyLintV0({ root, weftendBuild: fixedBuild });
     assertEq(result.report.verdict, "PASS", "expected PASS verdict for README reasonCodes line");
     assertEq(result.report.violations.length, 0, "expected no violations");
@@ -72,7 +72,7 @@ suite("runtime/privacy lint", () => {
     const contents = ["schemaVersion=0", "note=WEFTEND_HOST_OUT_ROOT", ""].join("\n");
     fs.writeFileSync(readmePath, contents, "utf8");
 
-    const fixedBuild = { algo: "sha256", digest: "sha256:22222222", source: "NODE_MAIN_JS" } as any;
+    const fixedBuild = { algo: "fnv1a32", digest: "fnv1a32:22222222", source: "NODE_MAIN_JS" } as any;
     const result = runPrivacyLintV0({ root, weftendBuild: fixedBuild });
     assertEq(result.report.verdict, "FAIL", "expected FAIL verdict for WEFTEND_ in README");
     assert(result.report.violations.some((v) => v.code === "WEFTEND_TOKEN"), "expected WEFTEND_TOKEN violation");
@@ -85,12 +85,12 @@ suite("runtime/privacy lint", () => {
       schema: "weftend.runReceipt/0",
       v: 0,
       schemaVersion: 0,
-      weftendBuild: { algo: "sha256", digest: "sha256:11111111", source: "NODE_MAIN_JS" },
+      weftendBuild: { algo: "fnv1a32", digest: "fnv1a32:11111111", source: "NODE_MAIN_JS" },
       note: "C:\\\\Users\\\\alice\\\\secret",
     };
     fs.writeFileSync(receiptPath, JSON.stringify(bad), "utf8");
 
-    const fixedBuild = { algo: "sha256", digest: "sha256:22222222", source: "NODE_MAIN_JS" } as any;
+    const fixedBuild = { algo: "fnv1a32", digest: "fnv1a32:22222222", source: "NODE_MAIN_JS" } as any;
     const a = runPrivacyLintV0({ root, weftendBuild: fixedBuild });
     const b = runPrivacyLintV0({ root, weftendBuild: fixedBuild });
 
@@ -114,12 +114,12 @@ suite("runtime/privacy lint", () => {
       schema: "weftend.runReceipt/0",
       v: 0,
       schemaVersion: 0,
-      weftendBuild: { algo: "sha256", digest: "sha256:11111111", source: "NODE_MAIN_JS" },
+      weftendBuild: { algo: "fnv1a32", digest: "fnv1a32:11111111", source: "NODE_MAIN_JS" },
     } as any;
     bad["C:\\\\Users\\\\bob\\\\secret"] = "ok";
     fs.writeFileSync(receiptPath, JSON.stringify(bad), "utf8");
 
-    const fixedBuild = { algo: "sha256", digest: "sha256:22222222", source: "NODE_MAIN_JS" } as any;
+    const fixedBuild = { algo: "fnv1a32", digest: "fnv1a32:22222222", source: "NODE_MAIN_JS" } as any;
     const result = runPrivacyLintV0({ root, weftendBuild: fixedBuild });
     assertEq(result.report.verdict, "FAIL", "expected FAIL verdict for path in key");
     assert(result.report.violations.some((v) => v.code === "ABS_PATH_WIN"), "expected ABS_PATH_WIN");

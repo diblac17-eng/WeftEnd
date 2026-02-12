@@ -49,12 +49,12 @@ const makeFixture = (): WeftendMintPackageV1 => {
     profile: "generic",
     input: {
       kind: "file",
-      rootDigest: "sha256:aaaaaaaa",
+      rootDigest: "fnv1a32:aaaaaaaa",
       fileCount: 1,
       totalBytes: 12,
     },
     capture: {
-      captureDigest: "sha256:bbbbbbbb",
+      captureDigest: "fnv1a32:bbbbbbbb",
       paths: ["a.txt"],
     },
     observations: {
@@ -78,8 +78,8 @@ const makeFixture = (): WeftendMintPackageV1 => {
       receipts: [],
     },
     digests: {
-      mintDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-      inputDigest: "sha256:aaaaaaaa",
+      mintDigest: "fnv1a32:00000000",
+      inputDigest: "fnv1a32:aaaaaaaa",
       policyDigest: "-",
     },
     limits: {

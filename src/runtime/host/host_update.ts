@@ -35,7 +35,7 @@ const crypto = require("crypto");
 
 const RECEIPT_NAME = "host_update_receipt.json";
 const MAX_INPUT_BYTES = 1024 * 1024;
-const ZERO_DIGEST = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
+const ZERO_DIGEST = "fnv1a32:00000000";
 
 export interface HostInstallOptionsV0 {
   releaseDir: string;
@@ -362,8 +362,8 @@ export const installHostUpdateV0 = (options: HostInstallOptionsV0): { receipt: H
       result: applyResult,
       reasonCodes: stableSortUniqueReasonsV0(applyReasons),
     },
-    artifactsWritten: [{ name: RECEIPT_NAME, digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000" }],
-    receiptDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    artifactsWritten: [{ name: RECEIPT_NAME, digest: "fnv1a32:00000000" }],
+    receiptDigest: "fnv1a32:00000000",
   };
   receipt.receiptDigest = computeHostUpdateReceiptDigestV0(receipt);
   receipt.artifactsWritten = [{ name: RECEIPT_NAME, digest: receipt.receiptDigest }];
