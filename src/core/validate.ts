@@ -36,6 +36,7 @@ import type {
 import type { IntakeActionV1, IntakeSeverityV1, WeftEndPolicyV1 } from "./types";
 
 import { canonicalJSON } from "./canon";
+import { sha256HexV0 } from "./hash_v0";
 import { computeMintDigestV1 } from "./mint_digest";
 import { computePulseDigestV0 } from "./pulse_digest";
 import { MAX_REASONS_PER_BLOCK, checkpointEqOrReasonV0, stableSortUniqueReasonsV0 } from "./trust_algebra_v0";
@@ -231,14 +232,7 @@ const isHostOutRootSourceV0 = (v: unknown): boolean =>
 const isOperatorCommandV0 = (v: unknown): boolean =>
   v === "host status" || v === "host run" || v === "host update" || v === "run" || v === "safe-run" || v === "compare";
 
-const fnv1a32 = (input: string): string => {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < input.length; i += 1) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0).toString(16).padStart(8, "0");
-};
+const sha256 = (input: string): string => sha256HexV0(input);
 
 const utf8ByteLength = (value: string): number => {
   if (typeof TextEncoder !== "undefined") {
@@ -643,19 +637,12 @@ function validateContentSummaryV0(v: unknown, path: string): ValidationIssue[] {
   if (!isRecord(o.hashFamily)) {
     issues.push(issue("FIELD_INVALID", "hashFamily must be an object.", `${path}.hashFamily`));
   } else {
-    if (!isTightString(o.hashFamily.fnv1a32)) {
-      issues.push(issue("FIELD_INVALID", "hashFamily.fnv1a32 must be a non-empty string.", `${path}.hashFamily.fnv1a32`));
-    } else if (containsSensitiveMarker(o.hashFamily.fnv1a32)) {
-      issues.push(issue("FIELD_INVALID", "hashFamily.fnv1a32 contains sensitive markers.", `${path}.hashFamily.fnv1a32`));
+    if (!isTightString(o.hashFamily.sha256)) {
+      issues.push(issue("FIELD_INVALID", "hashFamily.sha256 must be a non-empty string.", `${path}.hashFamily.sha256`));
+    } else if (containsSensitiveMarker(o.hashFamily.sha256)) {
+      issues.push(issue("FIELD_INVALID", "hashFamily.sha256 contains sensitive markers.", `${path}.hashFamily.sha256`));
     }
-    if (o.hashFamily.sha256 !== undefined) {
-      if (!isTightString(o.hashFamily.sha256)) {
-        issues.push(issue("FIELD_INVALID", "hashFamily.sha256 must be a non-empty string when present.", `${path}.hashFamily.sha256`));
-      } else if (containsSensitiveMarker(o.hashFamily.sha256)) {
-        issues.push(issue("FIELD_INVALID", "hashFamily.sha256 contains sensitive markers.", `${path}.hashFamily.sha256`));
-      }
-    }
-    if (!hasOnlyKeys(o.hashFamily, ["fnv1a32", "sha256"])) {
+    if (!hasOnlyKeys(o.hashFamily, ["sha256"])) {
       issues.push(issue("FIELD_INVALID", "hashFamily contains disallowed fields.", `${path}.hashFamily`));
     }
   }
@@ -1783,7 +1770,7 @@ export const validateWeftEndPolicyV1 = (
   return sortIssuesDeterministically(issues);
 };
 
-export const computeReleaseIdV0 = (manifestBody: unknown): string => `fnv1a32:${fnv1a32(canonicalJSON(manifestBody))}`;
+export const computeReleaseIdV0 = (manifestBody: unknown): string => `sha256:${sha256(canonicalJSON(manifestBody))}`;
 
 export function validateReleaseManifestV0(v: unknown, path: string): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -2042,11 +2029,11 @@ export const computeEvidenceIdV0 = (record: {
   if (record.issuer !== undefined) envelope.issuer = record.issuer;
   if (record.subject !== undefined) envelope.subject = record.subject;
   if (record.meta !== undefined) envelope.meta = record.meta;
-  return `fnv1a32:${fnv1a32(canonicalJSON(envelope))}`;
+  return `sha256:${sha256(canonicalJSON(envelope))}`;
 };
 
 export const computeEvidenceBundleDigestV0 = (bundle: unknown): string =>
-  `fnv1a32:${fnv1a32(canonicalJSON(bundle))}`;
+  `sha256:${sha256(canonicalJSON(bundle))}`;
 
 export const normalizePathSummaryV0 = (summary: any): any => {
   const packages = Array.isArray(summary?.packages) ? summary.packages : [];
@@ -2107,7 +2094,7 @@ export const normalizePathSummaryV0 = (summary: any): any => {
 };
 
 export const computePathDigestV0 = (summary: any): string =>
-  `fnv1a32:${fnv1a32(canonicalJSON(normalizePathSummaryV0(summary)))}`;
+  `sha256:${sha256(canonicalJSON(normalizePathSummaryV0(summary)))}`;
 
 const normalizeRecoveryPlanActionsV0 = (actions: any): any[] => {
   const items = Array.isArray(actions) ? actions : [];
@@ -2166,7 +2153,7 @@ export const normalizeRecoveryPlanV0 = (plan: any): any => {
 };
 
 export const computeRecoveryPlanDigestV0 = (plan: any): string =>
-  `fnv1a32:${fnv1a32(canonicalJSON(normalizeRecoveryPlanV0(plan)))}`;
+  `sha256:${sha256(canonicalJSON(normalizeRecoveryPlanV0(plan)))}`;
 
 export function validateBuildAttestationPayloadV0(v: unknown, path: string): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -2195,8 +2182,8 @@ export function validateBuildAttestationPayloadV0(v: unknown, path: string): Val
   if (o.v !== 0) issues.push(issue("FIELD_INVALID", "v must be 0.", `${path}.v`));
   if (!isBoundedTightString(o.alg, MAX_ATTESTATION_STR_BYTES)) {
     issues.push(issue("FIELD_INVALID", "alg must be a non-empty string.", `${path}.alg`));
-  } else if (o.alg !== "fnv1a32") {
-    issues.push(issue("FIELD_INVALID", "alg must be fnv1a32.", `${path}.alg`));
+  } else if (o.alg !== "sha256") {
+    issues.push(issue("FIELD_INVALID", "alg must be sha256.", `${path}.alg`));
   }
   if (!isBoundedTightString(o.pipelineId, MAX_ATTESTATION_STR_BYTES)) {
     issues.push(issue("FIELD_INVALID", "pipelineId must be a non-empty string.", `${path}.pipelineId`));
@@ -2651,8 +2638,8 @@ const validateWeftendBuildV0 = (v: unknown, path: string): ValidationIssue[] => 
   if (!hasOnlyKeys(v as Record<string, unknown>, allowed)) {
     issues.push(issue("FIELD_INVALID", "weftendBuild contains disallowed fields.", path));
   }
-  if (o.algo !== "fnv1a32") {
-    issues.push(issue("FIELD_INVALID", "weftendBuild.algo must be fnv1a32.", `${path}.algo`));
+  if (o.algo !== "sha256") {
+    issues.push(issue("FIELD_INVALID", "weftendBuild.algo must be sha256.", `${path}.algo`));
   }
   if (!isBoundedTightString(o.digest, PRIVACY_MAX_STRING_BYTES)) {
     issues.push(issue("FIELD_INVALID", "weftendBuild.digest must be a non-empty string.", `${path}.digest`));
@@ -3840,63 +3827,63 @@ export const privacyValidateCoreTruthV0 = (input: unknown, path: string = "core"
 };
 
 export const computeGateReceiptIdV0 = (body: GateReceiptV0["body"]): string =>
-  `fnv1a32:${fnv1a32(canonicalJSON(body))}`;
+  `sha256:${sha256(canonicalJSON(body))}`;
 
 export const computeRunReceiptDigestV0 = (receipt: RunReceiptV0): string => {
-  const payload = { ...receipt, receiptDigest: "fnv1a32:00000000" };
-  return `fnv1a32:${fnv1a32(canonicalJSON(payload))}`;
+  const payload = { ...receipt, receiptDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000" };
+  return `sha256:${sha256(canonicalJSON(payload))}`;
 };
 
 export const computeHostRunReceiptDigestV0 = (receipt: HostRunReceiptV0): string => {
-  const payload: any = { ...receipt, receiptDigest: "fnv1a32:00000000" };
+  const payload: any = { ...receipt, receiptDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000" };
   if (Array.isArray(payload.artifactsWritten)) {
     payload.artifactsWritten = payload.artifactsWritten.map((entry: any) => {
       if (entry && entry.name === "host_run_receipt.json") {
-        return { ...entry, digest: "fnv1a32:00000000" };
+        return { ...entry, digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000" };
       }
       return entry;
     });
   }
-  return `fnv1a32:${fnv1a32(canonicalJSON(payload))}`;
+  return `sha256:${sha256(canonicalJSON(payload))}`;
 };
 
 export const computeHostStatusReceiptDigestV0 = (receipt: HostStatusReceiptV0): string => {
-  const payload: any = { ...receipt, receiptDigest: "fnv1a32:00000000" };
+  const payload: any = { ...receipt, receiptDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000" };
   if (payload.signature) {
     delete payload.signature;
   }
-  return `fnv1a32:${fnv1a32(canonicalJSON(payload))}`;
+  return `sha256:${sha256(canonicalJSON(payload))}`;
 };
 
 export const computeSafeRunReceiptDigestV0 = (receipt: SafeRunReceiptV0): string => {
-  const payload = { ...receipt, receiptDigest: "fnv1a32:00000000" };
-  return `fnv1a32:${fnv1a32(canonicalJSON(payload))}`;
+  const payload = { ...receipt, receiptDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000" };
+  return `sha256:${sha256(canonicalJSON(payload))}`;
 };
 
 export const computeOperatorReceiptDigestV0 = (receipt: OperatorReceiptV0): string => {
-  const payload = { ...receipt, receiptDigest: "fnv1a32:00000000" };
-  return `fnv1a32:${fnv1a32(canonicalJSON(payload))}`;
+  const payload = { ...receipt, receiptDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000" };
+  return `sha256:${sha256(canonicalJSON(payload))}`;
 };
 
 export const computeCompareReceiptDigestV0 = (receipt: CompareReceiptV0): string => {
-  const payload = { ...receipt, receiptDigest: "fnv1a32:00000000" };
-  return `fnv1a32:${fnv1a32(canonicalJSON(payload))}`;
+  const payload = { ...receipt, receiptDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000" };
+  return `sha256:${sha256(canonicalJSON(payload))}`;
 };
 
 export const computeHostSelfIdV0 = (body: HostSelfManifestV0["body"]): string =>
-  `fnv1a32:${fnv1a32(canonicalJSON(body))}`;
+  `sha256:${sha256(canonicalJSON(body))}`;
 
 export const computeHostUpdateReceiptDigestV0 = (receipt: HostUpdateReceiptV0): string => {
-  const payload: any = { ...receipt, receiptDigest: "fnv1a32:00000000" };
+  const payload: any = { ...receipt, receiptDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000" };
   if (Array.isArray(payload.artifactsWritten)) {
     payload.artifactsWritten = payload.artifactsWritten.map((entry: any) => {
       if (entry && entry.name === "host_update_receipt.json") {
-        return { ...entry, digest: "fnv1a32:00000000" };
+        return { ...entry, digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000" };
       }
       return entry;
     });
   }
-  return `fnv1a32:${fnv1a32(canonicalJSON(payload))}`;
+  return `sha256:${sha256(canonicalJSON(payload))}`;
 };
 
 export function validateRunReceiptV0(v: unknown, path: string = "runReceipt"): ValidationIssue[] {

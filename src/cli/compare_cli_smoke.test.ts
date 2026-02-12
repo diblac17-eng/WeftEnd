@@ -92,7 +92,7 @@ suite("cli/compare", () => {
     const issues = validateCompareReceiptV0(receipt, "compareReceipt");
     assertEq(issues.length, 0, "expected compare receipt to validate");
     assertEq(receipt.schemaVersion, 0, "expected schemaVersion 0");
-    assert(receipt.weftendBuild && receipt.weftendBuild.algo === "fnv1a32", "expected weftendBuild");
+    assert(receipt.weftendBuild && receipt.weftendBuild.algo === "sha256", "expected weftendBuild");
     assertEq(receipt.privacyLint, "PASS", "expected receipt privacy lint pass");
 
     const report = fs.readFileSync(compareReportPath, "utf8");
@@ -144,17 +144,17 @@ suite("cli/compare", () => {
         schema: "weftend.safeRunReceipt/0",
         v: 0,
         schemaVersion: 0,
-        weftendBuild: { algo: "fnv1a32", digest: "fnv1a32:11111111", source: "NODE_MAIN_JS" },
+        weftendBuild: { algo: "sha256", digest: "sha256:11111111", source: "NODE_MAIN_JS" },
         inputKind: "raw",
         artifactKind: "TEXT",
         entryHint: null,
         analysisVerdict: "WITHHELD",
         executionVerdict: "NOT_ATTEMPTED",
         topReasonCode: "SAFE_RUN_EXECUTION_NOT_REQUESTED",
-        policyId: "fnv1a32:22222222",
+        policyId: "sha256:22222222",
         execution: { result: "WITHHELD", reasonCodes: ["SAFE_RUN_EXECUTION_NOT_REQUESTED"] },
         subReceipts: [],
-        receiptDigest: "fnv1a32:00000000",
+        receiptDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
         "C:\\\\Users\\\\leak": "BAD",
       };
     unsafe.receiptDigest = computeSafeRunReceiptDigestV0(unsafe);
@@ -188,10 +188,10 @@ suite("cli/compare", () => {
         schema: "weftend.operatorReceipt/0",
         v: 0,
         command: "safe-run",
-        outRootDigest: "fnv1a32:11111111",
+        outRootDigest: "sha256:11111111",
         receipts: [],
         warnings: [],
-        receiptDigest: "fnv1a32:22222222",
+        receiptDigest: "sha256:22222222",
       }),
       "utf8"
     );

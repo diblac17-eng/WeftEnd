@@ -37,7 +37,7 @@ function suite(name: string, define: () => void): void {
 
 suite("runtime/release_loader v0", () => {
   register("verifies a valid release manifest", () => {
-    const pathDigest = "fnv1a32:path-ok";
+    const pathDigest = "sha256:path-ok";
     const manifest = makeReleaseManifest("plan-1", ["block-a"], undefined, pathDigest);
     const res = verifyReleaseManifestV0({
       manifest,
@@ -64,7 +64,7 @@ suite("runtime/release_loader v0", () => {
   });
 
   register("rejects bad signature", () => {
-    const pathDigest = "fnv1a32:path-ok";
+    const pathDigest = "sha256:path-ok";
     const manifest = makeReleaseManifest("plan-1", ["block-a"], undefined, pathDigest);
     manifest.signatures[0].sigB64 = "AQ==";
     const res = verifyReleaseManifestV0({
@@ -80,7 +80,7 @@ suite("runtime/release_loader v0", () => {
   });
 
   register("rejects planDigest mismatch", () => {
-    const pathDigest = "fnv1a32:path-ok";
+    const pathDigest = "sha256:path-ok";
     const manifest = makeReleaseManifest("plan-1", ["block-a"], undefined, pathDigest);
     const res = verifyReleaseManifestV0({
       manifest,
@@ -94,7 +94,7 @@ suite("runtime/release_loader v0", () => {
   });
 
   register("rejects blockset mismatch", () => {
-    const pathDigest = "fnv1a32:path-ok";
+    const pathDigest = "sha256:path-ok";
     const manifest = makeReleaseManifest("plan-1", ["block-a", "block-b"], undefined, pathDigest);
     const res = verifyReleaseManifestV0({
       manifest,
@@ -108,13 +108,13 @@ suite("runtime/release_loader v0", () => {
   });
 
   register("rejects missing pathDigest when expected", () => {
-    const manifest = makeReleaseManifest("plan-1", ["block-a"], undefined, "fnv1a32:path-ok");
+    const manifest = makeReleaseManifest("plan-1", ["block-a"], undefined, "sha256:path-ok");
     delete (manifest as any).manifestBody.pathDigest;
     const res = verifyReleaseManifestV0({
       manifest,
       expectedPlanDigest: "plan-1",
       expectedBlocks: ["block-a"],
-      expectedPathDigest: "fnv1a32:path-missing",
+      expectedPathDigest: "sha256:path-missing",
       cryptoPort: makeReleaseCryptoPort(),
       keyAllowlist: releaseKeyAllowlist,
     });
@@ -128,16 +128,16 @@ suite("runtime/release_loader v0", () => {
       v: 0,
       pipelineId: "TEST_PIPELINE",
       weftendVersion: "0.0.0",
-      publishInputHash: "fnv1a32:aa11",
-      trustPolicyHash: "fnv1a32:bb22",
-      anchors: { a1Hash: "fnv1a32:a1", a2Hash: "fnv1a32:a2", a3Hash: "fnv1a32:a3" },
-      plan: { planHash: "fnv1a32:p1", trustHash: "fnv1a32:t1" },
-      bundle: { bundleHash: "fnv1a32:b1" },
+      publishInputHash: "sha256:aa11",
+      trustPolicyHash: "sha256:bb22",
+      anchors: { a1Hash: "sha256:a1", a2Hash: "sha256:a2", a3Hash: "sha256:a3" },
+      plan: { planHash: "sha256:p1", trustHash: "sha256:t1" },
+      bundle: { bundleHash: "sha256:b1" },
       packages: [],
       artifacts: [],
     };
     const expectedPathDigest = computePathDigestV0(pathSummary as any);
-    const manifest = makeReleaseManifest("plan-1", ["block-a"], undefined, "fnv1a32:path-ok");
+    const manifest = makeReleaseManifest("plan-1", ["block-a"], undefined, "sha256:path-ok");
     const res = verifyReleaseManifestV0({
       manifest,
       expectedPlanDigest: "plan-1",

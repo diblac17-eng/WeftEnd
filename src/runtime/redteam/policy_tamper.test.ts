@@ -45,11 +45,11 @@ const basePathSummary = () => ({
   v: 0 as const,
   pipelineId: "TEST_PIPELINE",
   weftendVersion: "0.0.0",
-  publishInputHash: "fnv1a32:aa11",
-  trustPolicyHash: "fnv1a32:bb22",
-  anchors: { a1Hash: "fnv1a32:a1", a2Hash: "fnv1a32:a2", a3Hash: "fnv1a32:a3" },
-  plan: { planHash: "fnv1a32:p1", trustHash: "fnv1a32:t1" },
-  bundle: { bundleHash: "fnv1a32:b1" },
+  publishInputHash: "sha256:aa11",
+  trustPolicyHash: "sha256:bb22",
+  anchors: { a1Hash: "sha256:a1", a2Hash: "sha256:a2", a3Hash: "sha256:a3" },
+  plan: { planHash: "sha256:p1", trustHash: "sha256:t1" },
+  bundle: { bundleHash: "sha256:b1" },
   packages: [],
   artifacts: [],
 });
@@ -101,7 +101,7 @@ suite("runtime/redteam policy tamper", () => {
     const registry = buildEvidenceRegistry([keytransInclusionVerifier]);
     const record: any = {
       kind: "keytrans.inclusion.v1",
-      payload: { directoryHeadDigest: "fnv1a32:aaaa", keyIdDigest: "fnv1a32:bbbb" },
+      payload: { directoryHeadDigest: "sha256:aaaa", keyIdDigest: "sha256:bbbb" },
       subject: { nodeId: "block:a", contentHash: "hash-a" },
     };
     const records = [{ ...record, evidenceId: computeEvidenceIdV0(record) }] as any;

@@ -100,7 +100,7 @@ suite("cli/safe-run", () => {
     assertEq(receipt.executionVerdict, "ALLOW", "expected ALLOW execution verdict");
     assertEq(receipt.artifactKind, "RELEASE_DIR", "expected RELEASE_DIR kind");
     assertEq(receipt.schemaVersion, 0, "expected schemaVersion 0");
-    assert(receipt.weftendBuild && receipt.weftendBuild.algo === "fnv1a32", "expected weftendBuild block");
+    assert(receipt.weftendBuild && receipt.weftendBuild.algo === "sha256", "expected weftendBuild block");
     const readmePath = path.join(outDir, "weftend", "README.txt");
     assert(fs.existsSync(readmePath), "expected README.txt");
     const readme = fs.readFileSync(readmePath, "utf8");

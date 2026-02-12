@@ -70,7 +70,7 @@ suite("runtime/host update", () => {
     assertEq(res.receipt.decision, "DENY", "expected decision DENY");
     assert(res.receipt.apply.result !== "APPLIED", "apply must not be APPLIED when verify is UNVERIFIED");
     assertEq(res.receipt.schemaVersion, 0, "expected schemaVersion 0");
-    assert(res.receipt.weftendBuild && res.receipt.weftendBuild.algo === "fnv1a32", "expected weftendBuild block");
+    assert(res.receipt.weftendBuild && res.receipt.weftendBuild.algo === "sha256", "expected weftendBuild block");
 
     const mutated = { ...res.receipt } as any;
     delete mutated.schemaVersion;

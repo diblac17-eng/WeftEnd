@@ -1,6 +1,8 @@
 // test/harness/integrity_scan_v0.mjs
 // Harness-only Integrity Scan helpers (deterministic, bounded, time-free).
 
+import crypto from "crypto";
+
 const INTEGRITY_KIND = "weftend.integrity.report.v0";
 const MAX_REASON_CODES = 32;
 const MAX_ISSUES = 32;
@@ -11,14 +13,7 @@ const MAX_ACTIONS = 50;
 const MAX_REPEAT = 20;
 const MAX_NESTING = 4;
 
-const fnv1a32 = (input) => {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < input.length; i += 1) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0).toString(16).padStart(8, "0");
-};
+const sha256 = (input) => crypto.createHash("sha256").update(String(input ?? ""), "utf8").digest("hex");
 
 const canonicalJSON = (obj) => {
   const seen = new WeakSet();
@@ -68,7 +63,7 @@ const normalizeHtml = (html) => {
   return html.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 };
 
-const digestString = (value) => `fnv1a32:${fnv1a32(String(value))}`;
+const digestString = (value) => `sha256:${sha256(String(value))}`;
 
 const normalizeStringList = (list, maxItems) => {
   const items = Array.isArray(list) ? list : [];

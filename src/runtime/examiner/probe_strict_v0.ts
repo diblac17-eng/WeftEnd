@@ -10,6 +10,7 @@ import type { ProbeActionV0 } from "./probe_script_v0";
 export interface ProbeStrictOptionsV0 {
   interactions?: ProbeActionV0[];
   maxScriptBytes: number;
+  scriptTimeoutMs?: number;
 }
 
 export interface ProbeStrictResultV0 {
@@ -241,6 +242,10 @@ export const runStrictProbeV0 = (html: string | undefined, opts: ProbeStrictOpti
   };
 
   const context = vm.createContext(sandbox);
+  const scriptTimeoutMs =
+    typeof opts.scriptTimeoutMs === "number" && Number.isFinite(opts.scriptTimeoutMs) && opts.scriptTimeoutMs > 0
+      ? Math.floor(opts.scriptTimeoutMs)
+      : 250;
   const scripts = extractInlineScripts(html).filter((s) => s.trim().length > 0);
   for (const script of scripts) {
     if (script.length > opts.maxScriptBytes) {
@@ -248,10 +253,11 @@ export const runStrictProbeV0 = (html: string | undefined, opts: ProbeStrictOpti
       continue;
     }
     try {
-      vm.runInContext(script, context);
+      vm.runInContext(script, context, { timeout: scriptTimeoutMs });
     } catch (err: any) {
       const code = getCapDenyCode(err);
       if (code) recorder.addReason(code);
+      else if (String(err?.message || "").includes("Script execution timed out")) recorder.addReason("SCRIPT_TIMEOUT");
       else recorder.addReason("SCRIPT_ERROR");
     }
   }

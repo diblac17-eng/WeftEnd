@@ -2,16 +2,10 @@
 // Offline entitlement schema helpers (v1).
 
 import { canonicalJSON } from "./canon";
+import { sha256HexV0 } from "./hash_v0";
 import type { WeftendEntitlementPayloadV1 } from "./types";
 
-const fnv1a32 = (input: string): string => {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < input.length; i += 1) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0).toString(16).padStart(8, "0");
-};
+const sha256 = (input: string): string => sha256HexV0(input);
 
 const stableSortUnique = (values: string[]): string[] => {
   const seen = new Set<string>();
@@ -46,5 +40,5 @@ export const canonicalizeWeftendEntitlementPayloadV1 = (
 
 export const computeWeftendEntitlementDigestV1 = (payload: WeftendEntitlementPayloadV1): string => {
   const canon = canonicalJSON(canonicalizeWeftendEntitlementPayloadV1(payload));
-  return `fnv1a32:${fnv1a32(canon)}`;
+  return `sha256:${sha256(canon)}`;
 };
