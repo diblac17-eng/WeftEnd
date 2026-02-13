@@ -1,34 +1,60 @@
-﻿# RELEASE_CHECKLIST_ALPHA.md
+# RELEASE_CHECKLIST_ALPHA.md
 Short, strict release checklist (alpha).
 
-1) Full loop (no skips)
+1) Clean repo state
+- git status --short
+- Expect no pending changes before build/tag.
+
+2) Full validation loop (no skips)
 - npm run compile --silent
 - npm test
-- set WEFTEND_RELEASE_DIR=tests\fixtures\release_demo
-- npm run proofcheck
-- npm run release-loop
+- In PowerShell:
+  - $env:WEFTEND_RELEASE_DIR = "tests\\fixtures\\release_demo"
+  - npm run proofcheck
+  - npm run release-loop
 
-2) Build release bundle
-- powershell -ExecutionPolicy Bypass -File tools\windows\weftend_release_zip.ps1
+3) Build release bundle
+- Preferred (repo root):
+  - powershell -NoProfile -ExecutionPolicy Bypass -File .\\weftend_release_zip.ps1 -OutDir out\\release
+- Wrapper option:
+  - powershell -NoProfile -ExecutionPolicy Bypass -File tools\\windows\\weftend_release_zip.ps1 -OutDir out\\release
 
-3) Verify sha256
-- Get-Content out\release\weftend_*.sha256
-- Get-FileHash out\release\weftend_*.zip -Algorithm SHA256
-- Confirm both artifacts exist and match:
-  - `weftend_<version>_<date>.zip`
-  - `weftend_<version>_<date>_portable.zip`
+4) Verify release artifact set (required files)
+- weftend_<version>_<date>.zip
+- weftend_<version>_<date>.zip.sha256
+- weftend_<version>_<date>_portable.zip
+- weftend_<version>_<date>_portable.zip.sha256
+- RELEASE_NOTES.txt
+- RELEASE_ANNOUNCEMENT.txt
+- QUICKSTART.txt
+- RELEASE_CHECKLIST_ALPHA.md
 
-4) First 5 minutes script
-- tools\windows\FIRST_5_MINUTES.cmd
-- Confirm FIRST_5_MINUTES_REPORT.txt shows PASS.
+5) Verify SHA256
+- Get-Content out\\release\\weftend_*.sha256
+- Get-FileHash out\\release\\weftend_*.zip -Algorithm SHA256
+- Confirm each printed hash matches its corresponding .sha256 file entry.
 
-5) Team suites (required)
-[ ] Purple/Blue/Orange/Green suites PASS (see TEAM_SUITES.md)
-[ ] proofcheck includes team suites (no skips)
+6) Operator smoke (first 5 minutes)
+- tools\\windows\\FIRST_5_MINUTES.cmd
+- Confirm out\\first_5_minutes\\FIRST_5_MINUTES_REPORT.txt shows:
+  - native_stub=PASS
+  - web_stub_run1=PASS
+  - web_stub_run2=PASS
+  - compare=PASS
+  - overall=PASS
 
-6) Auto-scan + gate config (if used)
-[ ] `.weftend/config.json` (optional) is valid and bounded.
-[ ] Gate mode tested only via explicit `--gate-mode enforced`.
+7) Windows shell checks (if shipping shell integration)
+- powershell -NoProfile -ExecutionPolicy Bypass -File tools\\windows\\shell\\weftend_shell_doctor.ps1
+- Confirm all command keys report OK.
+- Confirm installed shortcut set is intentional:
+  - WeftEnd Launchpad
+  - WeftEnd Download
 
-7) Tag + publish
-- Only after steps 1-4 are PASS.
+8) Release folder sync check
+- Copy from out\\release to release upload folder.
+- Ensure upload folder has no stale extra files.
+- Re-verify zip hashes in upload folder if contents were rebuilt.
+
+9) Tag + publish
+- Only after steps 1-8 pass.
+- Upload artifacts from the latest synced release folder.
