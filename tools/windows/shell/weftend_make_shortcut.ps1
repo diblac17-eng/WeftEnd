@@ -214,6 +214,7 @@ $shortcut = $shell.CreateShortcut($ShortcutPath)
 $shortcut.TargetPath = $psExe
 $shortcut.Arguments = $args
 $shortcut.Description = if ($LaunchpadMode.IsPresent) { "WeftEnd Launchpad Shortcut v1" } else { "WeftEnd Shortcut v1" }
+$shortcut.WindowStyle = 7
 if ($UseTargetIcon.IsPresent) {
   if ($shortcutIcon -and $shortcutIcon.Trim() -ne "") {
     $shortcut.IconLocation = $shortcutIcon

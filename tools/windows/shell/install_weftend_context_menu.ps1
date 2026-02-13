@@ -12,6 +12,7 @@ $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $runnerPath = Join-Path $scriptDir "weftend_safe_run.ps1"
+$bindPath = Join-Path $scriptDir "weftend_bind.ps1"
 
 if (-not $RepoRoot -or $RepoRoot.Trim() -eq "") {
   $guess = Join-Path $scriptDir "..\..\.."
@@ -112,13 +113,14 @@ function Set-ContextMenu {
     [string]$Verb,
     [string]$TargetToken = "%1",
     [string]$ExtraArgs = "",
+    [string]$ScriptPath = $runnerPath,
     [string]$IconPath = $null
   )
   $baseClean = $BaseSubKey.TrimEnd('\')
   $menuKey = "$baseClean\shell\$KeyName"
   $commandKey = "$menuKey\command"
   $suffix = if ($ExtraArgs -and $ExtraArgs.Trim() -ne "") { " $ExtraArgs" } else { "" }
-  $command = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$runnerPath`" -Target `"$TargetToken`"$suffix"
+  $command = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$ScriptPath`" -Target `"$TargetToken`"$suffix"
   $root = [Microsoft.Win32.Registry]::CurrentUser
   $menuKeyObj = $root.CreateSubKey($menuKey)
   if ($menuKeyObj) {
@@ -137,10 +139,16 @@ function Set-ContextMenu {
 
 Set-ContextMenu -BaseSubKey "Software\Classes\*" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\*" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\*" -KeyName "WeftEndBind" -Verb "Bind to WeftEnd" -ExtraArgs "-Action bind" -ScriptPath $bindPath -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\*" -KeyName "WeftEndUnbind" -Verb "Unbind from WeftEnd" -ExtraArgs "-Action unbind" -ScriptPath $bindPath -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\lnkfile" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\lnkfile" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\lnkfile" -KeyName "WeftEndBind" -Verb "Bind to WeftEnd" -ExtraArgs "-Action bind" -ScriptPath $bindPath -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\lnkfile" -KeyName "WeftEndUnbind" -Verb "Unbind from WeftEnd" -ExtraArgs "-Action unbind" -ScriptPath $bindPath -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\Directory" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\Directory" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\Directory" -KeyName "WeftEndBind" -Verb "Bind to WeftEnd" -ExtraArgs "-Action bind" -ScriptPath $bindPath -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\Directory" -KeyName "WeftEndUnbind" -Verb "Unbind from WeftEnd" -ExtraArgs "-Action unbind" -ScriptPath $bindPath -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\Directory\Background" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -TargetToken "%V" -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\Directory\Background" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -TargetToken "%V" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.zip" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
@@ -181,6 +189,7 @@ function Install-LaunchpadShortcut {
     $shortcut.TargetPath = $explorerTarget
     $shortcut.Arguments = "`"$launchpadRoot`""
   }
+  $shortcut.WindowStyle = 7
   $shortcut.IconLocation = if ($weftendIcon) { $weftendIcon } else { $target }
   $shortcut.Save()
 }
@@ -197,6 +206,7 @@ function Install-DownloadShortcut {
   $shortcut = $shell.CreateShortcut($ShortcutPath)
   $shortcut.TargetPath = $psExe
   $shortcut.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$downloadScript`" -BuildIfMissing"
+  $shortcut.WindowStyle = 7
   $shortcut.IconLocation = if ($weftendIcon) { $weftendIcon } else { $psExe }
   $shortcut.Save()
 }

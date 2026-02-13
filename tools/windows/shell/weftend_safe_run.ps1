@@ -96,6 +96,13 @@ function Is-LaunchableExecutable {
   return $ext.ToLowerInvariant() -eq ".exe"
 }
 
+function Should-LaunchMinimized {
+  param([string]$PathValue)
+  if (-not $PathValue) { return $false }
+  $leaf = [System.IO.Path]::GetFileName($PathValue).ToLowerInvariant()
+  return $leaf -eq "powershell.exe" -or $leaf -eq "pwsh.exe" -or $leaf -eq "cmd.exe"
+}
+
 function Is-ShortcutArtifact {
   param([string]$PathValue)
   if (-not $PathValue) { return $false }
@@ -1643,17 +1650,34 @@ if ($AllowLaunch.IsPresent) {
         try {
           $workDir = Split-Path -Parent $TargetPath
           $launchArgs = Decode-LaunchArgs -Value $LaunchArgsB64
+          $launchMinimized = Should-LaunchMinimized -PathValue $TargetPath
           if ($workDir -and (Test-Path -LiteralPath $workDir)) {
             if ($launchArgs -and $launchArgs.Trim() -ne "") {
-              Start-Process -FilePath $TargetPath -ArgumentList $launchArgs -WorkingDirectory $workDir | Out-Null
+              if ($launchMinimized) {
+                Start-Process -FilePath $TargetPath -ArgumentList $launchArgs -WorkingDirectory $workDir -WindowStyle Minimized | Out-Null
+              } else {
+                Start-Process -FilePath $TargetPath -ArgumentList $launchArgs -WorkingDirectory $workDir | Out-Null
+              }
             } else {
-              Start-Process -FilePath $TargetPath -WorkingDirectory $workDir | Out-Null
+              if ($launchMinimized) {
+                Start-Process -FilePath $TargetPath -WorkingDirectory $workDir -WindowStyle Minimized | Out-Null
+              } else {
+                Start-Process -FilePath $TargetPath -WorkingDirectory $workDir | Out-Null
+              }
             }
           } else {
             if ($launchArgs -and $launchArgs.Trim() -ne "") {
-              Start-Process -FilePath $TargetPath -ArgumentList $launchArgs | Out-Null
+              if ($launchMinimized) {
+                Start-Process -FilePath $TargetPath -ArgumentList $launchArgs -WindowStyle Minimized | Out-Null
+              } else {
+                Start-Process -FilePath $TargetPath -ArgumentList $launchArgs | Out-Null
+              }
             } else {
-              Start-Process -FilePath $TargetPath | Out-Null
+              if ($launchMinimized) {
+                Start-Process -FilePath $TargetPath -WindowStyle Minimized | Out-Null
+              } else {
+                Start-Process -FilePath $TargetPath | Out-Null
+              }
             }
           }
           $launchResult = "STARTED"

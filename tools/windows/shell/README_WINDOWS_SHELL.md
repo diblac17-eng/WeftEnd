@@ -18,6 +18,7 @@ tools\windows\shell\uninstall_weftend_context_menu.ps1
 Usage
 - Right-click a file/folder/.zip -> "Run with WeftEnd"
 - Right-click a file/folder/.zip -> "Run with WeftEnd (Open Library)"
+- Right-click a file/folder/.lnk -> "Bind to WeftEnd" or "Unbind from WeftEnd"
 - Right-click inside a folder background -> "Run with WeftEnd"
 - Right-click `.eml`, `.mbox`, or `.msg` -> "Run with WeftEnd" (routes through `weftend email safe-run`)
 - Output is stored in the local Report Library:
@@ -34,7 +35,7 @@ Analysis-first contract
 - Right-click "Run with WeftEnd" always performs deterministic analysis first.
 - Native executables are withheld from execution unless wrapped as a verified WeftEnd release.
 - You still get receipts, decision posture, and privacy lint status on every run.
-- Right-click `.lnk` shortcuts are treated as opaque artifacts and return `WITHHELD` with `ARTIFACT_SHORTCUT_UNSUPPORTED`.
+- `.lnk` targets are resolved for analysis so shortcut-based workflows can be gated consistently.
 
 Wrapper behavior
 - The wrapper creates an output folder under `Library\<target>\run_<digest>` (deterministic ID).
@@ -45,11 +46,12 @@ Wrapper behavior
   - `node dist\src\cli\main.js safe-run ...` if `dist` exists, otherwise
   - `npm run weftend -- safe-run ...`
 - It writes `wrapper_result.txt` in the output folder (PASS/FAIL + exit code + reason).
-- It writes `report_card.txt` in the output folder and opens it in Notepad by default.
+- It writes `report_card.txt` and `report_card_v0.json` in the output folder.
+- It opens the native report viewer by default; if viewer startup fails, it falls back to opening run artifacts in Explorer.
 - Report card highlights:
   - `webLane=ACTIVE|NOT_APPLICABLE`
   - `delta=...` on CHANGED runs
-- The installer creates Start Menu shortcuts: **WeftEnd**, **WeftEnd Library**, **WeftEnd Launchpad**, and **WeftEnd Download**.
+- The installer creates Start Menu shortcuts: **WeftEnd Launchpad** and **WeftEnd Download**.
 - Wrapper never executes or shell-opens the target artifact.
 
 Launchpad flow (Windows convenience UI)
@@ -60,14 +62,6 @@ Launchpad flow (Windows convenience UI)
 - Click a launchpad tile:
   - SAME vs baseline: launch proceeds for executable targets.
   - CHANGED vs baseline: launch is blocked until baseline is explicitly accepted.
-
-Operator menu (Windows convenience UI)
-- Open Start Menu: **WeftEnd**.
-- Buttons include:
-  - Open Library
-  - Run shell doctor
-  - Install/Uninstall context menu
-  - Open Launchpad
 
 Ticket pack flow
 - On CHANGED runs, the wrapper prompts to create a ticket pack immediately.

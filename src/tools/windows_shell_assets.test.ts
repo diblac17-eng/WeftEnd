@@ -40,6 +40,7 @@ const scripts = [
   "install_weftend_context_menu.ps1",
   "uninstall_weftend_context_menu.ps1",
   "weftend_safe_run.ps1",
+  "weftend_bind.ps1",
   "weftend_make_shortcut.ps1",
   "report_card_viewer.ps1",
   "launchpad_panel.ps1",
@@ -85,6 +86,11 @@ suite("tools/windows shell assets", () => {
     assert(/%V/.test(text), "expected %V target token for folder background");
     assert(/-Target/.test(text), "expected Target command parameter");
     assert(/WeftEndSafeRunOpenLibrary/.test(text), "expected open-library context menu");
+    assert(/WeftEndBind/.test(text), "expected bind context menu");
+    assert(/WeftEndUnbind/.test(text), "expected unbind context menu");
+    assert(/-Action bind/.test(text), "expected bind command action");
+    assert(/-Action unbind/.test(text), "expected unbind command action");
+    assert(/weftend_bind\.ps1/.test(text), "expected bind script reference");
     assert(/-OpenLibrary/.test(text), "expected -OpenLibrary flag");
     assert(/WeftEnd Launchpad\.lnk/.test(text), "expected launchpad shortcut");
     assert(!/weftend_menu\.ps1/.test(text), "menu script reference must be removed");
@@ -100,6 +106,7 @@ suite("tools/windows shell assets", () => {
     assert(/launchpad_panel\.ps1/.test(text), "expected launchpad panel script reference");
     assert(/open_release_folder\.ps1/.test(text), "expected open_release_folder script reference");
     assert(/WScript\.Shell/.test(text), "expected shortcut creation via WScript.Shell");
+    assert(/\$shortcut\.WindowStyle = 7/.test(text), "expected minimized shortcut window style");
   });
 
   register("windows tools scripts exist and avoid hardcoded paths/secrets", () => {
@@ -133,6 +140,12 @@ suite("tools/windows shell assets", () => {
     assert(/HKCU:\\Software\\WeftEnd\\Shell/.test(text), "expected config registry key");
     assert(/HKCU:\\Software\\Classes\\\*\\shell\\WeftEndSafeRun\\command/.test(text), "expected star command key");
     assert(/HKCU:\\Software\\Classes\\lnkfile\\shell\\WeftEndSafeRun\\command/.test(text), "expected lnk command key");
+    assert(/HKCU:\\Software\\Classes\\\*\\shell\\WeftEndBind\\command/.test(text), "expected star bind key");
+    assert(/HKCU:\\Software\\Classes\\\*\\shell\\WeftEndUnbind\\command/.test(text), "expected star unbind key");
+    assert(/HKCU:\\Software\\Classes\\lnkfile\\shell\\WeftEndBind\\command/.test(text), "expected lnk bind key");
+    assert(/HKCU:\\Software\\Classes\\lnkfile\\shell\\WeftEndUnbind\\command/.test(text), "expected lnk unbind key");
+    assert(/HKCU:\\Software\\Classes\\Directory\\shell\\WeftEndBind\\command/.test(text), "expected directory bind key");
+    assert(/HKCU:\\Software\\Classes\\Directory\\shell\\WeftEndUnbind\\command/.test(text), "expected directory unbind key");
     assert(
       /HKCU:\\Software\\Classes\\\*\\shell\\WeftEndSafeRunOpenLibrary\\command/.test(text),
       "expected star open-library command key"
@@ -250,6 +263,7 @@ suite("tools/windows shell assets", () => {
     const shortcutText = fs.readFileSync(shortcutPath, "utf8");
     assert(/LaunchpadMode/.test(shortcutText), "expected LaunchpadMode flag in shortcut tool");
     assert(/-Open 0/.test(shortcutText), "expected quiet mode for launchpad shortcuts");
+    assert(/WindowStyle = 7/.test(shortcutText), "expected minimized shortcut window style");
     assert(/Description = if \(\$LaunchpadMode\.IsPresent\)/.test(shortcutText), "expected launchpad description marker");
     assert(/WeftEnd Launchpad Shortcut v1/.test(shortcutText), "expected launchpad description text");
   });

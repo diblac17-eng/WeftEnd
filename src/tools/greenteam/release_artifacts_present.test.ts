@@ -55,6 +55,7 @@ suite("greenteam/release-artifacts", () => {
       "tools/windows/shell/install_weftend_context_menu.ps1",
       "tools/windows/shell/uninstall_weftend_context_menu.ps1",
       "tools/windows/shell/weftend_safe_run.ps1",
+      "tools/windows/shell/weftend_bind.ps1",
       "tools/windows/shell/report_card_viewer.ps1",
       "tools/windows/shell/weftend_shell_doctor.ps1",
       "WEFTEND_PORTABLE.cmd",

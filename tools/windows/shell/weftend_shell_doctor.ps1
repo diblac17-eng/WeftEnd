@@ -94,6 +94,12 @@ $zipOpenKey = "HKCU:\Software\Classes\SystemFileAssociations\.zip\shell\WeftEndS
 $emlOpenKey = "HKCU:\Software\Classes\SystemFileAssociations\.eml\shell\WeftEndSafeRunOpenLibrary\command"
 $mboxOpenKey = "HKCU:\Software\Classes\SystemFileAssociations\.mbox\shell\WeftEndSafeRunOpenLibrary\command"
 $msgOpenKey = "HKCU:\Software\Classes\SystemFileAssociations\.msg\shell\WeftEndSafeRunOpenLibrary\command"
+$starBindKey = "HKCU:\Software\Classes\*\shell\WeftEndBind\command"
+$starUnbindKey = "HKCU:\Software\Classes\*\shell\WeftEndUnbind\command"
+$lnkBindKey = "HKCU:\Software\Classes\lnkfile\shell\WeftEndBind\command"
+$lnkUnbindKey = "HKCU:\Software\Classes\lnkfile\shell\WeftEndUnbind\command"
+$dirBindKey = "HKCU:\Software\Classes\Directory\shell\WeftEndBind\command"
+$dirUnbindKey = "HKCU:\Software\Classes\Directory\shell\WeftEndUnbind\command"
 
 if (-not (Check-CommandKey -Label "STAR_FILE_CMD" -KeyPath $starKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "LNK_FILE_CMD" -KeyPath $lnkKey -Token "%1")) { $allOk = $false }
@@ -111,6 +117,12 @@ if (-not (Check-CommandKey -Label "ZIP_OPEN_LIB" -KeyPath $zipOpenKey -Token "%1
 if (-not (Check-CommandKey -Label "EML_OPEN_LIB" -KeyPath $emlOpenKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "MBOX_OPEN_LIB" -KeyPath $mboxOpenKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "MSG_OPEN_LIB" -KeyPath $msgOpenKey -Token "%1")) { $allOk = $false }
+if (-not (Check-CommandKey -Label "STAR_BIND" -KeyPath $starBindKey -Token "-Action bind")) { $allOk = $false }
+if (-not (Check-CommandKey -Label "STAR_UNBIND" -KeyPath $starUnbindKey -Token "-Action unbind")) { $allOk = $false }
+if (-not (Check-CommandKey -Label "LNK_BIND" -KeyPath $lnkBindKey -Token "-Action bind")) { $allOk = $false }
+if (-not (Check-CommandKey -Label "LNK_UNBIND" -KeyPath $lnkUnbindKey -Token "-Action unbind")) { $allOk = $false }
+if (-not (Check-CommandKey -Label "DIR_BIND" -KeyPath $dirBindKey -Token "-Action bind")) { $allOk = $false }
+if (-not (Check-CommandKey -Label "DIR_UNBIND" -KeyPath $dirUnbindKey -Token "-Action unbind")) { $allOk = $false }
 
 if ($allOk) { exit 0 }
 exit 40
