@@ -39,6 +39,11 @@ function Get-BindMetaPath {
   return ($ShortcutPath + ".weftend_bind_v1.json")
 }
 
+function Get-BackupShortcutPath {
+  param([string]$ShortcutPath)
+  return ($ShortcutPath + ".weftend_bind_v1.original.lnk")
+}
+
 function Read-ShortcutSnapshot {
   param([string]$ShortcutPath)
   $shell = New-Object -ComObject WScript.Shell
@@ -148,6 +153,17 @@ function Save-BindMeta {
   ($Meta | ConvertTo-Json -Depth 8) | Set-Content -LiteralPath $MetaPath -Encoding UTF8
 }
 
+function Get-MetaValue {
+  param(
+    [object]$Meta,
+    [string]$Name
+  )
+  if (-not $Meta -or -not $Name) { return $null }
+  $prop = $Meta.PSObject.Properties[$Name]
+  if ($null -eq $prop) { return $null }
+  return $prop.Value
+}
+
 $normalizedTarget = Normalize-TargetPath -Value $TargetPath
 if (-not $normalizedTarget) {
   $normalizedTarget = Normalize-TargetPath -Value $TargetCompat
@@ -169,32 +185,52 @@ if ($Action -eq "bind") {
   if ($isShortcutTarget) {
     $metaPath = Get-BindMetaPath -ShortcutPath $targetCanonical
     $existingMeta = Load-BindMeta -MetaPath $metaPath
-    if ($existingMeta -and [string]$existingMeta.mode -eq "rewrap_lnk") {
-      Write-Output "[BIND_ALREADY_BOUND]"
-      exit 0
+    $existingMode = [string](Get-MetaValue -Meta $existingMeta -Name "mode")
+    if ($existingMeta -and $existingMode -eq "rewrap_lnk") {
+      $currentSnapshot = Read-ShortcutSnapshot -ShortcutPath $targetCanonical
+      if (Is-WeftEndShortcutSnapshot -Snapshot $currentSnapshot) {
+        Write-Output "[BIND_ALREADY_BOUND]"
+        exit 0
+      }
+      Remove-Item -LiteralPath $metaPath -Force -ErrorAction SilentlyContinue
+      $legacyBackupPath = Get-BackupShortcutPath -ShortcutPath $targetCanonical
+      if (Test-Path -LiteralPath $legacyBackupPath) {
+        Remove-Item -LiteralPath $legacyBackupPath -Force -ErrorAction SilentlyContinue
+      }
     }
     $snapshot = Read-ShortcutSnapshot -ShortcutPath $targetCanonical
     if (Is-WeftEndShortcutSnapshot -Snapshot $snapshot) {
       Write-Output "[BIND_ALREADY_WEFTEND_SHORTCUT]"
       exit 0
     }
-    $meta = [ordered]@{
-      schema = "weftend.bind/1"
-      mode = "rewrap_lnk"
-      sourcePath = $targetCanonical
-      original = $snapshot
-      createdAtUtc = [DateTime]::UtcNow.ToString("o")
+    $backupPath = Get-BackupShortcutPath -ShortcutPath $targetCanonical
+    if (-not (Test-Path -LiteralPath $backupPath)) {
+      Copy-Item -LiteralPath $targetCanonical -Destination $backupPath -Force
     }
-    Save-BindMeta -MetaPath $metaPath -Meta $meta
     try {
       Invoke-MakeShortcut -TargetValue $targetCanonical -ShortcutValue $targetCanonical -ResolveShortcut:$true
       $after = Read-ShortcutSnapshot -ShortcutPath $targetCanonical
       $after.description = "WeftEnd Bound Shortcut v1"
+      if ($snapshot.iconLocation -and [string]$snapshot.iconLocation -ne "") {
+        $after.iconLocation = [string]$snapshot.iconLocation
+      }
       Write-ShortcutSnapshot -ShortcutPath $targetCanonical -Snapshot $after
+      $meta = [ordered]@{
+        schema = "weftend.bind/1"
+        mode = "rewrap_lnk"
+        sourcePath = $targetCanonical
+        backupPath = $backupPath
+        original = $snapshot
+        createdAtUtc = [DateTime]::UtcNow.ToString("o")
+      }
+      Save-BindMeta -MetaPath $metaPath -Meta $meta
       Write-Output "[BIND_OK mode=rewrap]"
       exit 0
     } catch {
       Write-Output ("[BIND_ERROR " + [string]$_ + "]")
+      if (Test-Path -LiteralPath $backupPath) {
+        Copy-Item -LiteralPath $backupPath -Destination $targetCanonical -Force
+      }
       if (Test-Path -LiteralPath $metaPath) {
         Remove-Item -LiteralPath $metaPath -Force -ErrorAction SilentlyContinue
       }
@@ -242,13 +278,22 @@ if ($Action -eq "unbind") {
       Write-Output "[UNBIND_METADATA_MISSING]"
       exit 40
     }
-    $mode = [string]$meta.mode
+    $mode = [string](Get-MetaValue -Meta $meta -Name "mode")
     if ($mode -eq "rewrap_lnk") {
-      if (-not $meta.original) {
+      $backupPath = [string](Get-MetaValue -Meta $meta -Name "backupPath")
+      if (-not $backupPath -or $backupPath.Trim() -eq "") {
+        $backupPath = Get-BackupShortcutPath -ShortcutPath $targetCanonical
+      }
+      $originalSnapshot = Get-MetaValue -Meta $meta -Name "original"
+      if ($backupPath -and (Test-Path -LiteralPath $backupPath)) {
+        Copy-Item -LiteralPath $backupPath -Destination $targetCanonical -Force
+        Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue
+      } elseif ($null -ne $originalSnapshot) {
+        Write-ShortcutSnapshot -ShortcutPath $targetCanonical -Snapshot $originalSnapshot
+      } else {
         Write-Output "[UNBIND_METADATA_INVALID]"
         exit 40
       }
-      Write-ShortcutSnapshot -ShortcutPath $targetCanonical -Snapshot $meta.original
       Remove-Item -LiteralPath $metaPath -Force -ErrorAction SilentlyContinue
       Write-Output "[UNBIND_OK mode=rewrap_restore]"
       exit 0
