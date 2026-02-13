@@ -1,0 +1,34 @@
+WeftEnd Alpha Update
+
+This release combines operator UX polish with trust/runtime hardening and shell workflow reliability updates.
+
+Highlights
+1. Report viewing defaults to the native WeftEnd report viewer.
+2. Report viewer host console now launches hidden while the report card window stays visible for review.
+3. Launchpad History supports direct report viewing (button, double-click, Enter).
+4. CHANGED/BLOCKED baseline accept/decline flow is restored and hardened.
+5. Structured report artifacts are available: report_card_v0.json and report_card.txt.
+6. Shortcut analysis resolves real .lnk targets/scripts for accurate compare behavior.
+7. New right-click bind flow:
+   - Bind to WeftEnd
+   - Unbind from WeftEnd
+8. .lnk rewrap bind mode preserves icon and restores original shortcut on unbind.
+9. Shell integration is simplified to two shortcuts:
+   - WeftEnd Launchpad
+   - WeftEnd Download
+10. Builder integration surface is documented and available:
+    - weftend export-json <outRoot> --format normalized_v0
+    - contract: weftend.normalizedSummary/0
+11. Core/runtime trust hardening sweep is included in release scope.
+
+Validation on release state
+- npm run compile --silent: pass
+- node dist/src/tools/windows_shell_assets.test.js: pass
+- node dist/src/tools/greenteam/release_artifacts_present.test.js: pass
+- npm test: pass
+
+Reference docs
+- docs/RELEASE_NOTES.txt
+- docs/QUICKSTART.txt
+- docs/POWERED_BY_WEFTEND.md
+- docs/DISCLAIMER.md

@@ -385,6 +385,14 @@ if (Test-Path $releaseNotes) {
   Write-Warn "docs/RELEASE_NOTES.txt not found, skipping"
 }
 
+$releaseAnnouncement = Join-Path $root "docs\\RELEASE_ANNOUNCEMENT.txt"
+if (Test-Path $releaseAnnouncement) {
+  Copy-Item -Path $releaseAnnouncement -Destination (Join-Path $outAbs "RELEASE_ANNOUNCEMENT.txt") -Force
+  Write-Ok "RELEASE_ANNOUNCEMENT.txt copied"
+} else {
+  Write-Warn "docs/RELEASE_ANNOUNCEMENT.txt not found, skipping"
+}
+
 $quickstart = Join-Path $root "docs\\QUICKSTART.txt"
 if (Test-Path $quickstart) {
   Copy-Item -Path $quickstart -Destination (Join-Path $outAbs "QUICKSTART.txt") -Force
