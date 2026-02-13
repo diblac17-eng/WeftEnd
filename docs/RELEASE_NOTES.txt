@@ -5,6 +5,7 @@ Liability scope: WeftEnd is an evidence and change-tracking engine, not a malwar
 
 Included
 - Core/runtime trust hardening sweep applied in release scope (digest/trust/runtime path updates, host verification flow updates, and aligned fixture/contract updates).
+- Builder integration surface explicitly supported: `weftend export-json <outRoot> --format normalized_v0` emits deterministic `weftend.normalizedSummary/0` output for downstream tools (see docs/POWERED_BY_WEFTEND.md).
 - Shortcut scan accuracy fix for .lnk targets: report and compare now resolve the actual target script/program instead of effectively classifying the shell host.
 - Baseline decision flow hardening for CHANGED/BLOCKED runs in Launchpad paths (accept/decline prompt reliability and gating behavior).
 - Native report viewer workflow is the default operator path; Notepad is no longer the primary report UX.

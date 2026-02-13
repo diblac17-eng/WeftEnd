@@ -20,6 +20,7 @@ Key behaviors
 - Host execution exists for WeftEnd releases but is off by default; v0 remains analysis-only for native binaries.
 - Optional watch daemon for automatic re-checks; operators still accept baselines.
 - Optional adapters can convert external formats (example: local `.eml`/`.mbox`/`.msg`) into deterministic WeftEnd inputs.
+- Builder surface: `weftend export-json <outRoot> --format normalized_v0` provides a deterministic integration contract (`weftend.normalizedSummary/0`) for tools built on top of WeftEnd.
 
 What it is not
 - Not an antivirus
