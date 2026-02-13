@@ -1,31 +1,38 @@
-﻿WeftEnd Alpha 0.2 (Public Alpha)
-Scope: Deterministic evidence, change tracking, change control, receipts, compare, local library, and portable-first runtime packaging.
-Liability scope: WeftEnd is an evidence lens, not a safety/compliance guarantee engine.
+WeftEnd Alpha Update (Windows Shell + Trust Hardening)
+Date: 2026-02-13
+Scope: Deterministic artifact intake, baseline/compare workflows, operator-facing report cards, and Windows shell reliability hardening.
+Liability scope: WeftEnd is an evidence and change-tracking engine, not a malware oracle or compliance guarantee.
 
 Included
-- Deterministic intake of files, folders, zips, and web exports.
-- Privacy-clean, bounded receipts and report cards.
-- WITHHELD posture for native binaries (analysis-only by default).
-- Local, append-only report library with baseline + compare view.
-- Deterministic compare between runs.
-- Windows right-click flow (per-user) with Open Library option.
-- Portable release bundle with SHA-256 verification.
-- Two release artifacts: standard zip and portable zip with bundled runtime.
+- Core/runtime trust hardening sweep applied in release scope (digest/trust/runtime path updates, host verification flow updates, and aligned fixture/contract updates).
+- Shortcut scan accuracy fix for .lnk targets: report and compare now resolve the actual target script/program instead of effectively classifying the shell host.
+- Baseline decision flow hardening for CHANGED/BLOCKED runs in Launchpad paths (accept/decline prompt reliability and gating behavior).
+- Native report viewer workflow is the default operator path; Notepad is no longer the primary report UX.
+- Report viewer startup hardened: host console launches hidden while the report viewer opens in normal visible state for review.
+- Launchpad History UX improvements: direct View Report action and keyboard open behavior (double-click/Enter).
+- New bind/unbind right-click flow:
+- Bind to WeftEnd and Unbind from WeftEnd verbs for files, shortcuts, and folders.
+- .lnk rewrap mode preserves icon and stores an original shortcut backup for safe restoration.
+- Legacy metadata compatibility fixes prevent stale-state and strict-mode unbind failures.
+- Shell integration simplification: only WeftEnd Launchpad and WeftEnd Download shortcuts are installed by default.
+- Structured report artifacts available for UI and automation:
+- report_card_v0.json
+- report_card.txt
+
+Validation
+- npm run compile --silent: pass
+- node dist/src/tools/windows_shell_assets.test.js: pass
+- node dist/src/tools/greenteam/release_artifacts_present.test.js: pass
+- npm test: pass (on release hardening sweep state)
 
 Not included
 - Malware scoring or reputation.
 - Cloud analysis or telemetry.
-- Automatic execution of native binaries.
-- Publishing / block market ecosystem.
+- Automatic execution of native binaries outside explicit gated flows.
+- Automatic trust root generation.
 
-Known limitations (by design)
-- Native executables are analysis-only unless explicitly installed into a host.
-- Receipts are deterministic snapshots, not live monitoring.
-- No automatic trust roots or keys are generated.
-- Operators and organizations remain responsible for decisions based on outputs.
-
-Verification
-- Standard and portable release zips each ship with a .sha256 file.
-- Run the release checklist before tagging/publishing.
-- Use the release zip, not the GitHub auto-generated Source code archives.
+Operator notes
+- Standard and portable release zips each ship with a .sha256 file for verification.
+- Use published release zips, not GitHub auto-generated source archives, for operator installs.
+- STATUS SAME can occur after a changed run if that changed state was accepted as the current baseline.
 - See docs/DISCLAIMER.md for legal scope and non-guarantees.
