@@ -1,74 +1,68 @@
-﻿WeftEnd Quickstart (5 minutes)
+WeftEnd Quickstart (5 minutes)
 
 What WeftEnd is (short)
 - Deterministic evidence + change tracking + change control.
 - Compare against a baseline to see what changed.
 - Privacy-clean outputs you can attach to tickets.
-See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for the full explanation.
+See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 
 1) Install (Windows, per-user)
 - Run tools\windows\INSTALL_WINDOWS.cmd
-- This sets the context menu and runs shell doctor.
+- This installs right-click entries and runs shell doctor checks.
+- Start Menu shortcuts installed by default:
+  - WeftEnd Launchpad
+  - WeftEnd Download
 - Cross-platform note: CLI works on Windows/macOS/Linux (Node.js required).
-- Windows shell integration is Windows-only; macOS/Linux integration is planned.
+- Windows shell integration is Windows-only.
 
 2) First run (right-click)
 - Right-click any file or folder -> Run with WeftEnd
-- Read report_card.txt (opens immediately)
-- Native binaries are WITHHELD by design (analysis-only)
-- `webLane=NOT_APPLICABLE` is normal for non-web artifacts
-- On CHANGED runs, read the `delta=` line before compare
+- Report card opens in the WeftEnd viewer by default.
+- Native binaries are WITHHELD by design (analysis-first).
+- webLane=NOT_APPLICABLE is normal for non-web artifacts.
+- On CHANGED runs, review delta= and SIGNAL lines before accepting baseline.
 
 3) Compare (optional)
 - Run again after any change.
-- Use: npm run weftend -- compare <oldOut> <newOut> --out <diffOut>
+- Use:
+  npm run weftend -- compare <oldOut> <newOut> --out <diffOut>
 - Read compare_report.txt
 
-3.5) Optional launcher shortcut
-- Create a WeftEnd-run shortcut:
-  npm run weftend -- shortcut create --target <path-to-app.exe> --allow-launch
-
-3.6) Launchpad (no CLI after install)
-- Open Start Menu -> "WeftEnd Launchpad"
-- Drop shortcuts/apps into: `%LOCALAPPDATA%\WeftEnd\Library\Launchpad\Targets`
-- Click `Sync`, then click a launchpad item.
+4) Launchpad (no CLI after install)
+- Open Start Menu -> WeftEnd Launchpad
+- Add shortcuts/apps in:
+  %LOCALAPPDATA%\WeftEnd\Library\Launchpad\Targets
+- Click Sync, then run items from Launchpad.
 - Behavior:
-  - SAME vs baseline: app opens normally.
-  - CHANGED vs baseline: app does not open until baseline is accepted.
+  - SAME vs baseline: launch allowed.
+  - CHANGED/BLOCKED vs baseline: explicit accept/decline flow.
 
-3.7) Optional operator menu (no CLI)
-- Open Start Menu -> "WeftEnd"
-- Use buttons for:
-  - Open Library
-  - Shell doctor
-  - Install/Uninstall context menu
-  - Open Launchpad
+5) Bind/unbind to WeftEnd (right-click)
+- Right-click a file/shortcut/folder:
+  - Bind to WeftEnd
+  - Unbind from WeftEnd
+- For .lnk rewrap mode, WeftEnd preserves icon and can restore original shortcut state on unbind.
 
-3.7.1) Ticket packs on change
-- On CHANGED runs, WeftEnd prompts to create a ticket pack.
-- This keeps ticket creation contextual and avoids manual run-folder selection.
+6) Open Library and ticket packs
+- Right-click target -> Run with WeftEnd (Open Library)
+- On CHANGED runs, WeftEnd can prompt to create a ticket pack.
+- CLI alternative:
+  npm run weftend -- library
+  npm run weftend -- ticket-pack <outRoot> --out <ticketDir> --zip
 
-3.8) Optional advanced watch mode (CLI)
-- `npm run weftend -- watch <target>`
-- This is optional; baseline acceptance remains manual.
+7) Builder integration (for tools built on top)
+- Export deterministic integration JSON:
+  npm run weftend -- export-json <outRoot> --format normalized_v0
+- Contract: weftend.normalizedSummary/0
+- Policy/usage boundary: docs/POWERED_BY_WEFTEND.md
 
-4) Open the Library
-- Start Menu: "WeftEnd Library" shortcut
-- Or: npm run weftend -- library
-
-4.5) Optional email lane (local files)
-- Unpack: npm run weftend -- email unpack <mail.eml|mail.mbox> --out out/email
-- Analyze: npm run weftend -- email safe-run <mail.eml|mail.mbox> --out out/email_run
-
-5) Grab the portable bundle (optional)
-- Start Menu: "WeftEnd Download" shortcut
-- Drag the .zip from the release folder to a USB drive
-- Preferred artifact for field use: `weftend_*_portable.zip`
-- Runtime is never auto-downloaded: bundled `runtime\node\node.exe` is used first; otherwise local Node is required.
+8) Portable bundle
+- Open Start Menu -> WeftEnd Download
+- Use weftend_*_portable.zip for field/offline operator use.
+- Runtime is never auto-downloaded: bundled runtime/node/node.exe is preferred; local Node fallback is fail-closed.
 
 Notes
-- No cloud. No telemetry. No automatic execution.
+- No cloud. No telemetry. No malware scoring.
 - Host execution is optional and off by default.
 - Receipts are deterministic and privacy-clean.
 - WeftEnd is evidence support; operators remain responsible for decisions (see docs/DISCLAIMER.md).
-
