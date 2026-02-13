@@ -1,0 +1,4 @@
+WeftEnd demo fixture: CASE 02 CHANGED CONTENT
+Revision: step_1
+Payload: baseline content for compare demo.
+

@@ -1,0 +1,4 @@
+WeftEnd demo fixture: CASE 01 SAME
+This file is intentionally static.
+Run it twice to demonstrate STATUS: SAME.
+

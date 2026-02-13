@@ -1,0 +1,2 @@
+Added in step_2 to create a deterministic structure delta.
+

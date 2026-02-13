@@ -1,0 +1,4 @@
+WeftEnd demo fixture: CASE 02 CHANGED CONTENT
+Revision: step_2
+Payload: content changed from baseline to force CHANGED.
+

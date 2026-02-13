@@ -7,5 +7,10 @@ Suggested videos to add later
 - Baseline + compare flow (SAME / CHANGED / BLOCKED)
 - Interpreting compare buckets
 
+Curated demo fixtures (recommended)
+- Use `demo/reportcard_video_pack` for synthetic video scenarios.
+- Runbook: `demo/reportcard_video_pack/README.txt`
+- Includes staged SAME/CHANGED cases with stable names to exercise report-card flows.
+
 Links
 - None in v0. Add later if needed.

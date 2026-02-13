@@ -1,0 +1,4 @@
+WeftEnd demo fixture: CASE 03 CHANGED STRUCTURE
+Revision: step_1
+This folder begins with one file.
+

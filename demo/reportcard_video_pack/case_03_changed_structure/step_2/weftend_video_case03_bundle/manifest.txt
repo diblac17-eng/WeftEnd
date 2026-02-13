@@ -1,0 +1,4 @@
+WeftEnd demo fixture: CASE 03 CHANGED STRUCTURE
+Revision: step_2
+Structure differs because an additional file exists in this folder.
+
