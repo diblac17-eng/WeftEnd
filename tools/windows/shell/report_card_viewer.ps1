@@ -417,6 +417,9 @@ $footer.Controls.Add($btnOpenRun) | Out-Null
 
 $form.Add_Shown({
   try {
+    $form.WindowState = [System.Windows.Forms.FormWindowState]::Normal
+    $form.Activate()
+    $form.BringToFront()
     $reportText.SelectionStart = 0
     $reportText.SelectionLength = 0
     $reportText.ScrollToCaret()

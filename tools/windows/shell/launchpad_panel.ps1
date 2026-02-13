@@ -588,7 +588,7 @@ function Open-ReportViewerFromHistory {
     $args += @("-LibraryKey", $targetKey)
   }
   try {
-    $proc = Start-Process -FilePath $powershellExe -ArgumentList $args -WindowStyle Minimized -PassThru -ErrorAction Stop
+    $proc = Start-Process -FilePath $powershellExe -ArgumentList $args -WindowStyle Hidden -PassThru -ErrorAction Stop
     Start-Sleep -Milliseconds 350
     try { $proc.Refresh() } catch {}
     if ($proc -and $proc.HasExited -and [int]$proc.ExitCode -ne 0) {

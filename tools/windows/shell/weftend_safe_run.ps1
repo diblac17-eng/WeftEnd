@@ -968,7 +968,7 @@ function Start-ReportCardViewer {
   $attempted = $false
   foreach ($hostExe in $hostCandidates) {
     try {
-      $proc = Start-Process -FilePath $hostExe -ArgumentList $args -PassThru -ErrorAction Stop
+      $proc = Start-Process -FilePath $hostExe -ArgumentList $args -WindowStyle Hidden -PassThru -ErrorAction Stop
       $attempted = $true
       Start-Sleep -Milliseconds 350
       try { $proc.Refresh() } catch {}
