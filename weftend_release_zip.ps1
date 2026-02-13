@@ -94,6 +94,29 @@ function New-ZipAndHash {
   }
 }
 
+function Remove-ReleaseNoise {
+  param(
+    [string]$StageRoot
+  )
+  $removedCount = 0
+  $distRoot = Join-Path $StageRoot "dist"
+  if (Test-Path -LiteralPath $distRoot) {
+    $testFiles = Get-ChildItem -Path $distRoot -Recurse -File -Include "*.test.js", "*.spec.js", "*_test.js" -ErrorAction SilentlyContinue
+    foreach ($testFile in $testFiles) {
+      Remove-Item -Force -LiteralPath $testFile.FullName
+      $removedCount += 1
+    }
+  }
+
+  $demoNativeStub = Join-Path $StageRoot "demo\\native_app_stub\\app.exe"
+  if (Test-Path -LiteralPath $demoNativeStub) {
+    Remove-Item -Force -LiteralPath $demoNativeStub
+    $removedCount += 1
+  }
+
+  return $removedCount
+}
+
 Write-Section "Repo Root"
 $root = Get-RepoRoot
 Set-Location $root
@@ -151,13 +174,6 @@ if (Test-Path $demoPath) {
 } else {
   Write-Warn "demo/ not found, skipping"
 }
-$srcPath = Join-Path $root "src"
-if (Test-Path $srcPath) {
-  $items += $srcPath
-  Write-Ok "src/ included"
-} else {
-  Write-Warn "src/ not found, skipping"
-}
 $tsconfigPath = Join-Path $root "tsconfig.json"
 if (Test-Path $tsconfigPath) {
   $items += $tsconfigPath
@@ -169,14 +185,6 @@ if (Test-Path $examplesPath) {
   Write-Ok "examples/ included"
 } else {
   Write-Warn "examples/ not found, skipping"
-}
-
-$harnessPath = Join-Path $root "test\\harness"
-if (Test-Path $harnessPath) {
-  $items += $harnessPath
-  Write-Ok "test/harness included"
-} else {
-  Write-Warn "test/harness not found, skipping"
 }
 
 $items += (Join-Path $root "package.json")
@@ -246,9 +254,7 @@ $includePrefixes = @(
   "policies/",
   "tools/windows/",
   "demo/",
-  "src/",
-  "examples/",
-  "test/harness/"
+  "examples/"
 )
 $includeSingles = @(
   "package.json",
@@ -315,6 +321,11 @@ if (Test-Path -LiteralPath $docsAssetsSrc) {
   }
   Copy-Item -Path (Join-Path $docsAssetsSrc "*") -Destination $docsAssetsDst -Recurse -Force
   Write-Ok "docs/assets staged"
+}
+
+$noiseRemoved = Remove-ReleaseNoise -StageRoot $stagePath
+if ($noiseRemoved -gt 0) {
+  Write-Ok "Release hygiene prune removed $noiseRemoved staged file(s)"
 }
 
 Write-Section "Create Standard Zip"
