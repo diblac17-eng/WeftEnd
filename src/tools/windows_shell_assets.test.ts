@@ -86,11 +86,17 @@ suite("tools/windows shell assets", () => {
     assert(/-Target/.test(text), "expected Target command parameter");
     assert(/WeftEndSafeRunOpenLibrary/.test(text), "expected open-library context menu");
     assert(/-OpenLibrary/.test(text), "expected -OpenLibrary flag");
-    assert(/WeftEnd Library\.lnk/.test(text), "expected Start Menu shortcut");
     assert(/WeftEnd Launchpad\.lnk/.test(text), "expected launchpad shortcut");
-    assert(/WeftEnd\.lnk/.test(text), "expected main menu shortcut");
     assert(!/weftend_menu\.ps1/.test(text), "menu script reference must be removed");
     assert(/WeftEnd Download\.lnk/.test(text), "expected download shortcut");
+    assert(
+      !/Install-LaunchpadShortcut -ShortcutPath \(Join-Path \$startMenu "WeftEnd\.lnk"\)/.test(text),
+      "must not install a generic WeftEnd shortcut"
+    );
+    assert(
+      !/Install-LibraryShortcut -ShortcutPath \(Join-Path \$startMenu "WeftEnd Library\.lnk"\)/.test(text),
+      "must not install a Library shortcut"
+    );
     assert(/launchpad_panel\.ps1/.test(text), "expected launchpad panel script reference");
     assert(/open_release_folder\.ps1/.test(text), "expected open_release_folder script reference");
     assert(/WScript\.Shell/.test(text), "expected shortcut creation via WScript.Shell");

@@ -152,20 +152,6 @@ Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.mbox" -Key
 Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.msg" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.msg" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
 
-function Install-LibraryShortcut {
-  param([string]$ShortcutPath)
-  if (-not $ShortcutPath) { return }
-  if (-not $libraryRoot -or $libraryRoot.Trim() -eq "") { return }
-  $explorerPath = Join-Path $env:WINDIR "explorer.exe"
-  $target = if (Test-Path -LiteralPath $explorerPath) { $explorerPath } else { "explorer.exe" }
-  $shell = New-Object -ComObject WScript.Shell
-  $shortcut = $shell.CreateShortcut($ShortcutPath)
-  $shortcut.TargetPath = $target
-  $shortcut.Arguments = "`"$libraryRoot`""
-  $shortcut.IconLocation = if ($weftendIcon) { $weftendIcon } else { $target }
-  $shortcut.Save()
-}
-
 function Remove-LegacyShortcut {
   param([string]$ShortcutPath)
   if ($ShortcutPath -and (Test-Path -LiteralPath $ShortcutPath)) {
@@ -220,8 +206,8 @@ if ($startMenu -and (Test-Path $startMenu)) {
   Remove-LegacyShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Watch Targets.lnk")
   Remove-LegacyShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Watcher Start.lnk")
   Remove-LegacyShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Watcher Stop.lnk")
-  Install-LaunchpadShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd.lnk")
-  Install-LibraryShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Library.lnk")
+  Remove-LegacyShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd.lnk")
+  Remove-LegacyShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Library.lnk")
   Install-LaunchpadShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Launchpad.lnk")
   Install-DownloadShortcut -ShortcutPath (Join-Path $startMenu "WeftEnd Download.lnk")
 }
@@ -232,8 +218,8 @@ if ($DesktopShortcut.IsPresent) {
     Remove-LegacyShortcut -ShortcutPath (Join-Path $desktop "WeftEnd Watch Targets.lnk")
     Remove-LegacyShortcut -ShortcutPath (Join-Path $desktop "WeftEnd Watcher Start.lnk")
     Remove-LegacyShortcut -ShortcutPath (Join-Path $desktop "WeftEnd Watcher Stop.lnk")
-    Install-LaunchpadShortcut -ShortcutPath (Join-Path $desktop "WeftEnd.lnk")
-    Install-LibraryShortcut -ShortcutPath (Join-Path $desktop "WeftEnd Library.lnk")
+    Remove-LegacyShortcut -ShortcutPath (Join-Path $desktop "WeftEnd.lnk")
+    Remove-LegacyShortcut -ShortcutPath (Join-Path $desktop "WeftEnd Library.lnk")
     Install-LaunchpadShortcut -ShortcutPath (Join-Path $desktop "WeftEnd Launchpad.lnk")
     Install-DownloadShortcut -ShortcutPath (Join-Path $desktop "WeftEnd Download.lnk")
   }
