@@ -1,155 +1,115 @@
-# WeftEnd
+WeftEnd
 
 WeftEnd is a deterministic evidence, change-tracking, and change-control tool for operators.
-It analyzes artifacts, produces privacy-clean receipts, and lets you compare what changed
-without executing unknown code.
+It analyzes artifacts, produces privacy-clean receipts, and lets you compare what changed without executing unknown code.
 
-Deterministic evidence means the same artifact always produces the same receipts, regardless of machine or time.
-This makes the output suitable as evidence: you can re-run it later, compare against a baseline,
-and prove what changed without trusting memory, logs, or external services.
+Deterministic evidence means the same artifact produces the same receipts for the same input.
+That gives operators defensible baseline and compare workflows without relying on memory, screenshots, or external services.
 
-Why this matters (operator value)
-- Evidence you can compare later without re-running or trusting memory.
-- Change control you can defend (baseline + compare).
-- Privacy-clean outputs you can share in tickets without leaking host details.
+Why this matters
+- Evidence you can re-run and verify later.
+- Change control you can defend (SAME / CHANGED / BLOCKED).
+- Privacy-clean outputs suitable for tickets and handoffs.
 
-Key behaviors
-- Analysis-first: native binaries are always WITHHELD (never executed).
-- Deterministic receipts: stable ordering, canonical JSON, bounded outputs.
-- Baseline memory: runs compare against last accepted baseline (SAME/CHANGED/BLOCKED).
-- Host execution exists for WeftEnd releases but is off by default; v0 remains analysis-only for native binaries.
-- Optional watch daemon for automatic re-checks; operators still accept baselines.
-- Optional adapters can convert external formats (example: local `.eml`/`.mbox`/`.msg`) into deterministic WeftEnd inputs.
-- Builder surface: `weftend export-json <outRoot> --format normalized_v0` provides a deterministic integration contract (`weftend.normalizedSummary/0`) for tools built on top of WeftEnd.
+What’s new in the latest alpha
+- Native report viewer is now the default report experience.
+- Report viewer host console launches hidden while the report card window stays visible.
+- Notepad is no longer the primary report path (fallback only if needed).
+- Launchpad History supports direct report open (button, double-click, Enter).
+- CHANGED/BLOCKED accept/decline baseline flow is restored and hardened.
+- Shortcut analysis now resolves real .lnk targets/scripts for accurate compare behavior.
+- New right-click bind flow:
+  - Bind to WeftEnd
+  - Unbind from WeftEnd
+- .lnk rewrap bind mode preserves icon and restores original shortcut on unbind.
+- Structured report artifacts added:
+  - report_card_v0.json
+  - report_card.txt
+- Shell install defaults simplified to two shortcuts:
+  - WeftEnd Launchpad
+  - WeftEnd Download
+- Builder integration contract is available:
+  - weftend export-json <outRoot> --format normalized_v0
+  - contract: weftend.normalizedSummary/0
+- Core/runtime trust hardening sweep included in release scope.
+- Release packaging hygiene hardened:
+  - internal test/harness payloads are pruned from release bundles
+  - unsigned demo native stub binary is excluded from release bundles
 
-What it is not
-- Not an antivirus
-- Not a sandbox by default
-- Not a cloud service
+Core behaviors
+- Analysis-first posture: native binaries are WITHHELD by default.
+- Deterministic receipts: canonical JSON, stable ordering, bounded outputs.
+- Baseline memory: each target compares against last accepted baseline.
+- Explicit operator control for baseline acceptance and launch gating.
+- Optional adapters for external formats (.eml, .mbox, .msg).
+- Optional watch mode for automatic re-checks.
+- Host execution support exists for WeftEnd release workflows and remains explicitly gated.
+
+What WeftEnd is not
+- Not antivirus.
+- Not reputation scoring.
+- Not cloud analysis.
+- Not telemetry-driven triage.
 
 Liability and scope
-- WeftEnd is a lens for evidence and change tracking, not an oracle for truth.
-- It does not guarantee safety, prevention, or legal/compliance outcomes.
-- Operators and organizations remain responsible for decisions made using WeftEnd outputs.
-- See `docs/DISCLAIMER.md`.
-
-Who it's for
-- IT admins validating tools, installers, and scripts
-- Security teams needing reproducible evidence
-- Modders/users checking what changed between versions
-
-Deployment note
-- Core tool is fully functional for manual use.
-- Windows-first UX (shell integration + shortcuts).
-- macOS/Linux CLI supported; native shell integration planned.
-- Release artifacts include a portable Windows bundle with bundled runtime (`runtime/node`) and an explicit fail-closed fallback to local Node (no auto-download).
+- WeftEnd is an evidence lens, not an oracle.
+- It does not guarantee prevention, legal outcomes, or compliance outcomes.
+- Operators remain responsible for trust decisions.
 
 Quickstart
+- npm ci
+- npm run compile --silent
+- npm run weftend -- safe-run <input> --out out/run
 
-```powershell
-npm ci
-npm run compile --silent
-npm run weftend -- safe-run <input> --out out/run
-```
+Operator workflow (Windows)
+1) Right-click file/folder/shortcut -> Run with WeftEnd
+2) Review report card
+3) Re-run after change
+4) Compare baseline status and signals
+5) Accept or decline baseline when prompted
+6) Optionally create ticket pack
 
-Outputs
-- `out/run/safe_run_receipt.json` (machine adapter)
-- `out/run/operator_receipt.json` (run summary)
-- `out/run/README.txt` (receipt info)
-- Windows shell wrapper also writes `report_card.txt` in the library run folder.
-- Ticket attachments: `npm run weftend -- ticket-pack <outRoot> --out <dir> --zip`
+Useful commands
+- npm run weftend -- compare <oldOut> <newOut> --out <diffOut>
+- npm run weftend -- ticket-pack <outRoot> --out <ticketDir> --zip
+- npm run weftend -- library
+- npm run weftend -- launchpad sync
+- npm run weftend -- export-json <outRoot> --format normalized_v0
 
-Report card lines (quick read)
-- `classification=...`: target/artifact classification and entry hints.
-- `input=...`: adapter lane and input type (`email_v0`, `zip_v0`, `filesystem_v0`).
-- `SIGNAL: ...`: explicit changed-state markers (`CONTENT_CHANGED`, `SIZE_CHANGED`, `STRUCTURE_CHANGED`) when baseline delta exists.
-- `webLane=ACTIVE|NOT_APPLICABLE`: whether web probe lane applies.
-- `observed=...`: file/byte/script/native/reference counts.
-- `posture=...`: analysis/execution result + top reason.
-- `delta=...`: shown on CHANGED runs; summarizes what moved vs baseline.
+Release trust notes
+- Standard and portable release zips ship with .sha256 files.
+- Portable bundle prefers bundled runtime/node/node.exe.
+- Local Node fallback is explicit and fail-closed.
 
-Success & abnormal outcomes (operator view)
-- Safe-Run success: report card + receipts exist. WITHHELD is normal for native binaries.
-- Compare success: `compare_receipt.json` + `compare_report.txt` exist; verdict SAME/CHANGED.
-- Library success: `weftend library` opens root; baseline/changed shown in report card.
+Validation status (latest release state)
+- npm run compile --silent: pass
+- node dist/src/tools/windows_shell_assets.test.js: pass
+- node dist/src/tools/greenteam/release_artifacts_present.test.js: pass
+- npm test: pass
 
-WeftEnd includes deterministic Purple/Blue/Orange/Green team suites. See `docs/TEAM_SUITES.md`.
-Quick team intent (operator view):
+WeftEnd roadmap
 
-| Team | Intent (short) |
-| --- | --- |
-| Purple | Change detection + operator-visible signals |
-| Blue | Exit codes, report cards, library behavior |
-| Orange | No implicit secrets + privacy lint enforcement |
-| Green | Release readiness + required artifacts |
+Current track (active): Operator trust layer
+- Deterministic intake, receipts, baseline/compare, report cards, launch gating.
+- Windows shell UX and Launchpad reliability.
+- Bind/unbind for practical day-to-day gated workflows.
+- Ongoing hardening of trust/runtime boundaries.
 
-Status meanings (short)
-- WITHHELD: analyzed, not executed (expected for native binaries).
-- DENY: policy/trust gate stopped the run.
-- BLOCKED: baseline view frozen until operator accepts/rejects.
-- SAME/CHANGED: compare vs baseline result.
-- SKIP/NOT_ATTEMPTED: no execution attempted (analysis-only).
+Near-term roadmap
+- Policy pack expansion for operator personas (MSP, DFIR, DevOps).
+- Integration templates for CI and downstream tooling using normalizedSummary/0.
+- Continued release hardening and verification guidance.
+- Additional operator UX polish for history, review, and ticket flows.
 
-Exit codes
-- `0` success (even if WITHHELD)
-- `40` expected precondition failure
-- `1` unexpected/internal error
+Mid-term roadmap
+- Stronger signing/provenance and verification ergonomics.
+- Wider automation pathways while preserving deterministic local evidence.
+- Broader platform support for non-Windows operator ergonomics.
 
-Troubleshooting
-- See `docs/TROUBLESHOOTING.md` for common codes and fixes.
-
-How to use (operator flow)
-1) Right-click any file/folder -> Run with WeftEnd.
-2) Read `report_card.txt` (opens immediately).
-3) Re-run after changes, then compare:
-   `npm run weftend -- compare <oldOut> <newOut> --out <diffOut>`
-3.5) Optional: create a WeftEnd-run shortcut (analysis first, then launch if baseline OK):
-   `npm run weftend -- shortcut create --target <path-to-app.exe> --allow-launch`
-3.6) Optional: use Start Menu **WeftEnd Launchpad** for a click-to-run gated launcher.
-3.7) Optional: use Start Menu **WeftEnd** for a click-first operator menu (safe-run, compare, ticket pack, shell doctor, and context tools).
-4) Create a ticket bundle when needed:
-   `npm run weftend -- ticket-pack <outRoot> --out <ticketDir> --zip`
-5) Use the library to track baseline + history:
-   `npm run weftend -- library`
-
-Glossary (short)
-- Receipt: deterministic JSON artifact (bounded, privacy-clean).
-- Report card: human summary for a single run.
-- Disclosure: short text required by policy for WARN/DENY. If not required, it may say `DISCLOSURE_NOT_REQUIRED`.
-- Appeal bundle: minimal reproducible evidence (no secrets).
-- Policy: rules that map reasons -> actions.
-- Baseline: last accepted run for a target (SAME/CHANGED/BLOCKED is computed against it).
-- Library key: stable folder name for a target (no paths).
-- Compare buckets: C=content, X=external refs, R=reasons, P=policy, H=host truth, B=bounds, D=digest.
-
-Keys & trust (v0)
-- WeftEnd does not auto-generate real signing keys.
-- Demo crypto requires explicit operator intent.
-- Host update trust roots and verification are documented in `docs/HOST_UPDATE_MODEL.md`.
-- Key discipline and rules are documented in `docs/LAWS_KEYS_AND_SECRETS.md`.
-
-Docs
-- `docs/WHAT_IS_WEFTEND.md`
-- `docs/WHY_RECEIPTS.md`
-- `docs/DISCLAIMER.md`
-- `docs/TRUTH_MODEL_V0_V1.md`
-- `docs/TEAM_SUITES.md`
-- `docs/AUTO_SCAN.md`
-- `docs/CONFIG.md`
-- `docs/REPORT_LIBRARY.md`
-- `docs/SUPPORT.md`
-- `docs/SUPPORT_RECEIPTS.md`
-- `docs/SUPPORT_ONBOARDING.md`
-- `docs/SUPPORT_FAQ.md`
-- `NOTICE.md`
-- `docs/PUBLIC_ALPHA.md`
-- `docs/INSTALL.md`
-- `docs/MINT_PACKAGE_V1.md`
-- `docs/INTEGRATION_CONTRACT.md`
-- `docs/EMAIL_ADAPTER_V0.md`
-- `docs/POWERED_BY_WEFTEND.md`
-- `docs/LOCAL_TESTING.md`
- - `docs/HOST_RUN.md`
- - `docs/HOST_UPDATE_MODEL.md`
- - `docs/LAWS_KEYS_AND_SECRETS.md`
- - `docs/ENTITLEMENTS.md`
+Long-term roadmap: WeftEnd beyond tool platform vision
+- WeftEnd began as a future-web builder vision: websites built from reusable composable blocks.
+- DAG/blockifier foundation exists and remains part of the long-term direction.
+- The current security/truth/trust layer is the operational foundation for that platform and became a stand alone tool.
+- Planned releases: trusted block execution, deterministic provenance, and reusable block-based web composition.
+- Market/exchange layer is planned after trust and operator-grade infrastructure are fully matured.
+  
