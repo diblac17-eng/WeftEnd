@@ -2,6 +2,7 @@
 // Build a deterministic ticket-pack bundle for attaching receipts to tickets.
 
 import { canonicalJSON } from "../core/canon";
+import { cmpStrV0 } from "../core/order";
 import { computeArtifactDigestV0 } from "../runtime/store/artifact_store";
 import { runPrivacyLintV0 } from "../runtime/privacy_lint";
 
@@ -77,9 +78,9 @@ const buildManifest = (entries: TicketPackEntry[]): { schemaVersion: 0; entries:
   const sorted = entries
     .slice()
     .sort((a, b) => {
-      const c0 = a.relPath.localeCompare(b.relPath);
+      const c0 = cmpStrV0(a.relPath, b.relPath);
       if (c0 !== 0) return c0;
-      const c1 = a.sha256.localeCompare(b.sha256);
+      const c1 = cmpStrV0(a.sha256, b.sha256);
       if (c1 !== 0) return c1;
       return a.bytes - b.bytes;
     });
@@ -139,7 +140,7 @@ export const runTicketPackCli = (options: {
     "compare_receipt.json",
     "weftend/README.txt",
   ];
-  const relPaths = Array.from(new Set([...collected.entries, ...extras])).sort((a, b) => a.localeCompare(b));
+  const relPaths = Array.from(new Set([...collected.entries, ...extras])).sort((a, b) => cmpStrV0(a, b));
   const missing: string[] = [];
   const copied: Array<{ relPath: string; absPath: string }> = [];
   relPaths.forEach((rel) => {
@@ -213,7 +214,7 @@ export const runTicketPackCli = (options: {
       const sha = sha256File(abs);
       return { relPath: entry.relPath, sha256: sha, bytes: fs.statSync(abs).size };
     })
-    .sort((a, b) => a.relPath.localeCompare(b.relPath));
+    .sort((a, b) => cmpStrV0(a.relPath, b.relPath));
   const checksumLines = checksumFiles.map((entry) => `sha256:${entry.sha256} ${entry.relPath}`);
   writeText(path.join(packDir, "checksums.txt"), `${checksumLines.join("\n")}\n`);
 

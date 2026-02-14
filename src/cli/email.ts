@@ -2,6 +2,7 @@
 // Email adapter v0: local email artifacts -> deterministic folder -> safe-run.
 
 import { canonicalJSON } from "../core/canon";
+import { cmpStrV0 } from "../core/order";
 import { stableSortUniqueStringsV0 } from "../core/trust_algebra_v0";
 import { runSafeRun } from "./safe_run";
 
@@ -318,7 +319,7 @@ const toCanonicalHeadersObject = (headers: HeaderEntry[]) => {
     grouped.get(entry.nameLower)!.push(entry.value);
   });
   return Array.from(grouped.keys())
-    .sort((a, b) => a.localeCompare(b))
+    .sort((a, b) => cmpStrV0(a, b))
     .map((key) => ({
       name: key,
       values: grouped
@@ -445,7 +446,7 @@ const writeEmailExport = (parsed: ParsedEmailV0, outDir: string, format: EmailFo
       bytes: Number(attachment.bytes.length || 0),
     };
   });
-  manifestEntries.sort((a, b) => a.name.localeCompare(b.name));
+  manifestEntries.sort((a, b) => cmpStrV0(a.name, b.name));
 
   writeText(
     path.join(exportDir, "attachments", "manifest.json"),

@@ -18,7 +18,7 @@ const bytesToBase64Url = (bytes: Uint8Array): string => {
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 };
 
-const randomBytes = (len: number): Uint8Array => {
+const randomBytes = (len: number): Uint8Array | null => {
   const g = globalThis as any;
   if (g.crypto?.getRandomValues) {
     const buf = new Uint8Array(len);
@@ -29,14 +29,13 @@ const randomBytes = (len: number): Uint8Array => {
     const crypto = require("crypto");
     return crypto.randomBytes(len);
   } catch {
-    const buf = new Uint8Array(len);
-    for (let i = 0; i < len; i++) buf[i] = Math.floor(Math.random() * 256);
-    return buf;
+    return null;
   }
 };
 
 export const newNonce = (): string => {
   const bytes = randomBytes(16);
+  if (!bytes || bytes.length !== 16) return "";
   return bytesToBase64Url(bytes);
 };
 

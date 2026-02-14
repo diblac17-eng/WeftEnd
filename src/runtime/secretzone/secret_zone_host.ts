@@ -38,6 +38,9 @@ export class SecretZoneHost {
     if (!validateNonce(this.sessionNonce)) {
       this.sessionNonce = newNonce();
     }
+    if (!validateNonce(this.sessionNonce)) {
+      throw new Error("NONCE_INVALID");
+    }
     const { hostPort, childPort } = createBoundChannel();
     this.hostPort = hostPort;
     this.attachPortListener(hostPort);

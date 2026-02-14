@@ -1422,7 +1422,9 @@ if (-not $skipWeftend) {
   }
 }
 
-Write-WrapperResult -Result $result -ExitCode $finalExitCode -Reason $reason -Detail ("targetKind=" + $targetKind + " requestedTarget=" + $TargetPath + " scanTarget=" + $safeRunTargetPath)
+$requestedTargetLeaf = if ($TargetPath -and $TargetPath.Trim() -ne "") { [System.IO.Path]::GetFileName($TargetPath) } else { "-" }
+$scanTargetLeaf = if ($safeRunTargetPath -and $safeRunTargetPath.Trim() -ne "") { [System.IO.Path]::GetFileName($safeRunTargetPath) } else { "-" }
+Write-WrapperResult -Result $result -ExitCode $finalExitCode -Reason $reason -Detail ("targetKind=" + $targetKind + " requestedTarget=" + $requestedTargetLeaf + " scanTarget=" + $scanTargetLeaf)
 $viewState = $null
 $viewStatus = "UNKNOWN"
 try {

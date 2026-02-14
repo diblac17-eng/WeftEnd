@@ -2,6 +2,7 @@
 // Offline entitlement schema helpers (v1).
 
 import { canonicalJSON } from "./canon";
+import { cmpStrV0 } from "./order";
 import { sha256HexV0 } from "./hash_v0";
 import type { WeftendEntitlementPayloadV1 } from "./types";
 
@@ -15,7 +16,7 @@ const stableSortUnique = (values: string[]): string[] => {
     seen.add(v);
     out.push(v);
   });
-  out.sort((a, b) => a.localeCompare(b));
+  out.sort((a, b) => cmpStrV0(a, b));
   return out;
 };
 

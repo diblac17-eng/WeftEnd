@@ -5,6 +5,7 @@
 
 import { canonicalJSON } from "../core/canon";
 import { sha256HexV0 } from "../core/hash_v0";
+import { cmpStrV0 } from "../core/order";
 import { stableSortUniqueStringsV0 } from "../core/trust_algebra_v0";
 import { normalizePathSummaryV0 } from "../core/validate";
 import type { PlanSnapshotV0 } from "../core/types";
@@ -13,15 +14,15 @@ const sha256 = (input: string): string => sha256HexV0(input);
 
 const normalizeSnapshot = (snapshot: PlanSnapshotV0): PlanSnapshotV0 => {
   const artifacts = [...snapshot.artifacts].sort((a, b) => {
-    const c = a.nodeId.localeCompare(b.nodeId);
+    const c = cmpStrV0(a.nodeId, b.nodeId);
     if (c !== 0) return c;
-    return a.contentHash.localeCompare(b.contentHash);
+    return cmpStrV0(a.contentHash, b.contentHash);
   });
 
   const evidenceDigests = stableSortUniqueStringsV0(snapshot.evidenceDigests || []);
 
   const grants = [...snapshot.grants]
-    .sort((a, b) => a.blockHash.localeCompare(b.blockHash))
+    .sort((a, b) => cmpStrV0(a.blockHash, b.blockHash))
     .map((grant) => ({
       blockHash: grant.blockHash,
       eligibleCaps: stableSortUniqueStringsV0(grant.eligibleCaps || []),

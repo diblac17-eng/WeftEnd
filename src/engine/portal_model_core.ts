@@ -10,6 +10,7 @@ import {
 } from "../core/trust_algebra_v0_core";
 import { computeReceiptSummaryDigestV0 } from "../core/pulse_digest_core";
 import { sha256HexV0 } from "../core/hash_v0";
+import { cmpStrV0 } from "../core/order";
 
 const isNonEmptyString = (v) => typeof v === "string" && v.trim().length > 0;
 
@@ -28,7 +29,7 @@ const stableSortBy = (items, key) =>
   items
     .map((v, i) => ({ v, i, k: key(v) }))
     .sort((a, b) => {
-      const c = a.k.localeCompare(b.k);
+      const c = cmpStrV0(a.k, b.k);
       if (c !== 0) return c;
       return a.i - b.i;
     })
@@ -596,7 +597,7 @@ const stableSortTartarusRecords = (records) =>
       if (sa !== sb) return sb - sa;
       const ra = String(a.v.recordId || "");
       const rb = String(b.v.recordId || "");
-      const c = ra.localeCompare(rb);
+      const c = cmpStrV0(ra, rb);
       if (c !== 0) return c;
       return a.i - b.i;
     })
@@ -612,7 +613,7 @@ const pickLatestTartarus = (records) => {
         const sa = a.v.seq;
         const sb = b.v.seq;
         if (sa !== sb) return sb - sa;
-        const c = String(a.v.recordId || "").localeCompare(String(b.v.recordId || ""));
+        const c = cmpStrV0(String(a.v.recordId || ""), String(b.v.recordId || ""));
         if (c !== 0) return c;
         return a.i - b.i;
       })[0].v;

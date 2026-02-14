@@ -5,6 +5,7 @@ import { canonicalJSON } from "../core/canon";
 import type { WeftendBuildV0 } from "../core/types";
 import { computeArtifactDigestV0 } from "./store/artifact_store";
 import { computeWeftendBuildV0 } from "./weftend_build";
+import { cmpStrV0 } from "../core/order";
 
 declare const require: any;
 declare const process: any;
@@ -47,6 +48,11 @@ const allowedFile = (relPath: string): boolean => {
   if (base === "headers.json") return true;
   if (base === "body.txt") return true;
   if (base === "body.html.txt") return true;
+  if (base === "report_card.txt") return true;
+  if (base === "report_card_v0.json") return true;
+  if (base === "wrapper_result.txt") return true;
+  if (base === "wrapper_stderr.txt") return true;
+  if (base === "wrapper_report_card_error.txt") return true;
   if (relPath.endsWith("/attachments/manifest.json")) return true;
   return false;
 };
@@ -91,7 +97,7 @@ const scanJsonPaths = (value: unknown, relPath: string, out: PrivacyLintViolatio
     return;
   }
   if (value && typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b));
+    const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) => cmpStrV0(a, b));
     entries.forEach(([key, entry]) => {
       addViolationsFromText(String(key), relPath, out);
       scanJsonPaths(entry, relPath, out);
@@ -122,11 +128,11 @@ const sortViolations = (items: PrivacyLintViolationV0[]): PrivacyLintViolationV0
   items
     .slice()
     .sort((a, b) => {
-      const c0 = a.code.localeCompare(b.code);
+      const c0 = cmpStrV0(a.code, b.code);
       if (c0 !== 0) return c0;
-      const c1 = a.relPath.localeCompare(b.relPath);
+      const c1 = cmpStrV0(a.relPath, b.relPath);
       if (c1 !== 0) return c1;
-      return a.sampleHash.localeCompare(b.sampleHash);
+      return cmpStrV0(a.sampleHash, b.sampleHash);
     });
 
 const buildReport = (weftendBuild: WeftendBuildV0, violations: PrivacyLintViolationV0[]): PrivacyLintReportV0 => ({
@@ -165,7 +171,7 @@ export const runPrivacyLintV0 = (options: {
     } catch {
       return;
     }
-    entries.sort((a: any, b: any) => String(a.name).localeCompare(String(b.name)));
+    entries.sort((a: any, b: any) => cmpStrV0(String(a.name), String(b.name)));
     for (const entry of entries) {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory && entry.isDirectory()) {

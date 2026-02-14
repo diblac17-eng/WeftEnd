@@ -6,6 +6,7 @@ declare const process: any;
 
 import { canonicalJSON } from "../core/canon";
 import { canonicalizeWeftEndPolicyV1, computeWeftEndPolicyIdV1 } from "../core/intake_policy_v1";
+import { cmpStrV0 } from "../core/order";
 import { stableSortUniqueReasonsV0 } from "../core/trust_algebra_v0";
 import {
   computeEvidenceBundleDigestV0,
@@ -175,7 +176,7 @@ const hasHtmlEntry = (dir: string, maxFiles: number = 200): boolean => {
     } catch {
       continue;
     }
-    entries.sort((a: any, b: any) => String(a.name).localeCompare(String(b.name)));
+    entries.sort((a: any, b: any) => cmpStrV0(String(a.name), String(b.name)));
     for (const entry of entries) {
       const name = String(entry.name);
       const full = path.join(current, name);
@@ -225,7 +226,7 @@ const pickStrictEntry = (capture: ReturnType<typeof examineArtifactV1>["capture"
   const jsExts = new Set([".js", ".mjs", ".cjs"]);
   const entries = capture.entries
     .filter((entry) => jsExts.has(path.extname(entry.path).toLowerCase()))
-    .sort((a, b) => a.path.localeCompare(b.path));
+    .sort((a, b) => cmpStrV0(a.path, b.path));
   if (entries.length === 0) return null;
   const entry = entries[0];
   const absPath = capture.kind === "dir" ? path.join(capture.basePath, entry.path) : capture.basePath;
@@ -837,7 +838,7 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
     );
   }
 
-  subReceipts.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.digest.localeCompare(b.digest)));
+  subReceipts.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : cmpStrV0(a.digest, b.digest)));
 
   const contentSummary = buildContentSummaryV0({
     inputPath: options.inputPath,

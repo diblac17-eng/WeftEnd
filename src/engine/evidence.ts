@@ -4,6 +4,7 @@
  */
 
 import { stableSortUniqueReasonsV0, stableSortUniqueStringsV0 } from "../core/trust_algebra_v0";
+import { cmpStrV0 } from "../core/order";
 import { validateEvidenceRecord } from "../core/validate";
 import type { EvidenceRecord, EvidenceVerifyResult, EvidenceKind } from "../core/types";
 
@@ -33,15 +34,15 @@ const sortEvidenceRecords = (records: EvidenceRecord[]): EvidenceRecord[] =>
   records
     .map((v, i) => ({ v, i }))
     .sort((a, b) => {
-      const ak = (a.v.kind ?? "").localeCompare(b.v.kind ?? "");
+      const ak = cmpStrV0(a.v.kind ?? "", b.v.kind ?? "");
       if (ak !== 0) return ak;
-      const ai = (a.v.issuer ?? "").localeCompare(b.v.issuer ?? "");
+      const ai = cmpStrV0(a.v.issuer ?? "", b.v.issuer ?? "");
       if (ai !== 0) return ai;
       const ap = safeCanonical(a.v.payload);
       const bp = safeCanonical(b.v.payload);
-      const ac = ap.localeCompare(bp);
+      const ac = cmpStrV0(ap, bp);
       if (ac !== 0) return ac;
-      const ae = (a.v.evidenceId ?? "").localeCompare(b.v.evidenceId ?? "");
+      const ae = cmpStrV0(a.v.evidenceId ?? "", b.v.evidenceId ?? "");
       if (ae !== 0) return ae;
       return a.i - b.i;
     })
@@ -50,9 +51,9 @@ const sortEvidenceRecords = (records: EvidenceRecord[]): EvidenceRecord[] =>
 export function buildEvidenceRegistry(verifiers: EvidenceVerifier[]): EvidenceRegistry {
   const registry: EvidenceRegistry = new Map();
   const sorted = [...verifiers].sort((a, b) => {
-    const ck = String(a.kind).localeCompare(String(b.kind));
+    const ck = cmpStrV0(String(a.kind), String(b.kind));
     if (ck !== 0) return ck;
-    return a.verifierId.localeCompare(b.verifierId);
+    return cmpStrV0(a.verifierId, b.verifierId);
   });
 
   for (const verifier of sorted) {

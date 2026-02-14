@@ -14,6 +14,7 @@ import {
   validateRunReceiptV0,
   validateSafeRunReceiptV0,
 } from "../core/validate";
+import { cmpStrV0 } from "../core/order";
 
 declare const require: any;
 declare const process: any;
@@ -39,7 +40,7 @@ export interface CompareLoadedSourceV0 {
 }
 
 const sortKinds = (kinds: ReceiptKindV0[]): ReceiptKindV0[] =>
-  kinds.slice().sort((a, b) => a.localeCompare(b));
+  kinds.slice().sort((a, b) => cmpStrV0(a, b));
 
 const sideCode = (side: CompareSideV0, suffix: string): string =>
   side === "left" ? `COMPARE_LEFT_${suffix}` : `COMPARE_RIGHT_${suffix}`;

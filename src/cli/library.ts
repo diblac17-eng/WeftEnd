@@ -1,6 +1,7 @@
 /* src/cli/library.ts */
 // CLI: open local WeftEnd library root.
 
+import { cmpStrV0 } from "../core/order";
 import { resolveLibraryRootV0 } from "../runtime/library_root";
 import { computeWeftendBuildV0, formatBuildDigestSummaryV0 } from "../runtime/weftend_build";
 import { runPrivacyLintV0 } from "../runtime/privacy_lint";
@@ -83,7 +84,7 @@ const pickLatestRun = (runs: Array<{ path: string; name: string; mtimeMs: number
   runs.sort((a, b) => {
     const t = b.mtimeMs - a.mtimeMs;
     if (t !== 0) return t;
-    return a.name.localeCompare(b.name);
+    return cmpStrV0(a.name, b.name);
   });
   return runs[0].path;
 };

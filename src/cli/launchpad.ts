@@ -1,6 +1,7 @@
 // src/cli/launchpad.ts
 // Launchpad: sync WeftEnd-run shortcuts from a targets folder (Windows only).
 
+import { cmpStrV0 } from "../core/order";
 import { resolveLibraryRootV0 } from "../runtime/library_root";
 import { computeWeftendBuildV0, formatBuildDigestSummaryV0 } from "../runtime/weftend_build";
 
@@ -240,7 +241,7 @@ const syncLaunchpad = (
 
   if (scanned > 0 && desiredShortcuts.size === 0) {
     const reasonSummary = Array.from(failedCodes.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
+      .sort((a, b) => cmpStrV0(a[0], b[0]))
       .map(([code, count]) => `${code}:${count}`)
       .join(",");
     console.error(`[LAUNCHPAD_SYNC_NO_SHORTCUTS] reasons=${reasonSummary || "UNKNOWN"}`);
@@ -249,7 +250,7 @@ const syncLaunchpad = (
 
   if (failed > 0) {
     const reasonSummary = Array.from(failedCodes.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
+      .sort((a, b) => cmpStrV0(a[0], b[0]))
       .map(([code, count]) => `${code}:${count}`)
       .join(",");
     console.error(`[LAUNCHPAD_TARGET_SHORTCUT_FAILURES] failed=${failed} reasons=${reasonSummary || "UNKNOWN"}`);

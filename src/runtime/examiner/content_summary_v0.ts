@@ -9,6 +9,7 @@ import type {
 } from "../../core/types";
 import type { CaptureTreeV0 } from "./capture_tree_v0";
 import { stableSortUniqueStringsV0 } from "../../core/trust_algebra_v0";
+import { cmpStrV0 } from "../../core/order";
 
 declare const require: any;
 declare const Buffer: any;
@@ -141,7 +142,7 @@ const detectHtmlLikeContent = (inputPath: string, capture: CaptureTreeV0): boole
     return buf ? hasHtmlLikePrefix(buf) : false;
   }
   if (capture.kind !== "dir") return false;
-  const entries = capture.entries.slice().sort((a, b) => a.path.localeCompare(b.path));
+  const entries = capture.entries.slice().sort((a, b) => cmpStrV0(a.path, b.path));
   let scanned = 0;
   for (const entry of entries) {
     if (scanned >= MAX_HTML_LIKE_FILES) break;
@@ -278,7 +279,7 @@ const buildTopExtensions = (capture: CaptureTreeV0): Array<{ ext: string; count:
     .sort((a, b) => {
       const c0 = b[1] - a[1];
       if (c0 !== 0) return c0;
-      return a[0].localeCompare(b[0]);
+      return cmpStrV0(a[0], b[0]);
     })
     .slice(0, MAX_TOP_EXT)
     .map(([ext, count]) => ({ ext, count }));
@@ -325,7 +326,7 @@ const extractTopDomains = (refs: string[] | undefined): { count: number; topDoma
       // ignore non-URL refs
     }
   });
-  const top = Array.from(domains.values()).sort((a, b) => a.localeCompare(b)).slice(0, MAX_TOP_DOMAINS);
+  const top = Array.from(domains.values()).sort((a, b) => cmpStrV0(a, b)).slice(0, MAX_TOP_DOMAINS);
   return { count: normalized.length, topDomains: top };
 };
 
@@ -379,7 +380,7 @@ const scanIndicators = (inputPath: string, capture: CaptureTreeV0) => {
     cmdExecLikeCount: 0,
   };
   if (capture.kind === "dir") {
-    const entries = capture.entries.slice().sort((a, b) => a.path.localeCompare(b.path));
+    const entries = capture.entries.slice().sort((a, b) => cmpStrV0(a.path, b.path));
     let remaining = MAX_SCAN_TOTAL_BYTES;
     for (const entry of entries) {
       if (remaining <= 0) break;

@@ -11,6 +11,7 @@
  */
 
 import { sortDependencies } from "../core/canon";
+import { cmpStrV0 } from "../core/order";
 import type { Err, GraphError, GraphManifest, Node, Ok, Result } from "../core/types";
 
 type Wrapped<T> = { v: T; i: number };
@@ -20,7 +21,7 @@ const wrap = <T>(arr: T[]): Wrapped<T>[] => arr.map((v, i) => ({ v, i }));
 const sortNodesStable = (nodes: Node[]): Node[] =>
   wrap(nodes)
     .sort((a, b) => {
-      const c = a.v.id.localeCompare(b.v.id);
+      const c = cmpStrV0(a.v.id, b.v.id);
       if (c !== 0) return c;
       return a.i - b.i;
     })
@@ -29,11 +30,11 @@ const sortNodesStable = (nodes: Node[]): Node[] =>
 const sortErrors = (errs: GraphError[]): GraphError[] =>
   wrap(errs)
     .sort((a, b) => {
-      const cc = a.v.code.localeCompare(b.v.code);
+      const cc = cmpStrV0(a.v.code, b.v.code);
       if (cc !== 0) return cc;
-      const cn = (a.v.nodeId ?? "").localeCompare(b.v.nodeId ?? "");
+      const cn = cmpStrV0(a.v.nodeId ?? "", b.v.nodeId ?? "");
       if (cn !== 0) return cn;
-      const cp = (a.v.path ?? "").localeCompare(b.v.path ?? "");
+      const cp = cmpStrV0(a.v.path ?? "", b.v.path ?? "");
       if (cp !== 0) return cp;
       return a.i - b.i;
     })
@@ -114,7 +115,7 @@ export function validateGraph(manifest: GraphManifest): Result<GraphCheckResult,
   for (const node of sortedNodes) indegree.set(node.id, (node.dependencies ?? []).length);
 
   const queue = wrap(sortedNodes.filter((n) => (indegree.get(n.id) ?? 0) === 0)).sort((a, b) => {
-    const c = a.v.id.localeCompare(b.v.id);
+    const c = cmpStrV0(a.v.id, b.v.id);
     if (c !== 0) return c;
     return a.i - b.i;
   });
@@ -131,7 +132,7 @@ export function validateGraph(manifest: GraphManifest): Result<GraphCheckResult,
         const originalIdx = manifest.nodes.findIndex((n) => n.id === dependent);
         queue.push({ v: manifest.nodes[originalIdx], i: originalIdx });
         queue.sort((a, b) => {
-          const c = a.v.id.localeCompare(b.v.id);
+          const c = cmpStrV0(a.v.id, b.v.id);
           if (c !== 0) return c;
           return a.i - b.i;
         });

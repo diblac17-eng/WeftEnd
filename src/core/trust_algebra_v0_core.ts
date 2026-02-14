@@ -3,6 +3,7 @@
 // @ts-nocheck
 
 import { canonicalJSON } from "./canon";
+import { cmpStrV0 } from "./order";
 
 const isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
 
@@ -47,7 +48,7 @@ const normalizeReasonArray = (xs, opts) => {
   }
   const subject = (opts && opts.subject) || "";
   const locator = (opts && opts.locator) || "";
-  out.sort((a, b) => reasonKey(a, subject, locator).localeCompare(reasonKey(b, subject, locator)));
+  out.sort((a, b) => cmpStrV0(reasonKey(a, subject, locator), reasonKey(b, subject, locator)));
   return out;
 };
 

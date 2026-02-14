@@ -8,6 +8,7 @@
  * - core only (TS/stdlib)
  * - pure functions
  */
+import { cmpStrV0 } from "./order";
 
 export function canonicalJSON(obj: unknown): string {
   const seen = new WeakSet<object>();
@@ -40,7 +41,7 @@ export function canonicalJSON(obj: unknown): string {
 export const sortById = <T extends { id: string }>(arr: T[]) =>
   stableWrap(arr)
     .sort((a, b) => {
-      const c = a.v.id.localeCompare(b.v.id);
+      const c = cmpStrV0(a.v.id, b.v.id);
       if (c !== 0) return c;
       return a.i - b.i;
     })
@@ -49,10 +50,10 @@ export const sortById = <T extends { id: string }>(arr: T[]) =>
 export const sortDependencies = (deps: { id: string; role: string }[]) =>
   stableWrap(deps)
     .sort((a, b) => {
-      const c = a.v.id.localeCompare(b.v.id);
+      const c = cmpStrV0(a.v.id, b.v.id);
       if (c !== 0) return c;
 
-      const r = a.v.role.localeCompare(b.v.role);
+      const r = cmpStrV0(a.v.role, b.v.role);
       if (r !== 0) return r;
 
       return a.i - b.i;
@@ -62,7 +63,7 @@ export const sortDependencies = (deps: { id: string; role: string }[]) =>
 export const sortCapRequests = (caps: { capId: string; params?: any }[]) =>
   stableWrap(caps)
     .sort((a, b) => {
-      const c = a.v.capId.localeCompare(b.v.capId);
+      const c = cmpStrV0(a.v.capId, b.v.capId);
       if (c !== 0) return c;
 
       const ap = canonicalJSON(a.v.params ?? null);
@@ -73,7 +74,7 @@ export const sortCapRequests = (caps: { capId: string; params?: any }[]) =>
       const bNull = bp === "null";
       if (aNull !== bNull) return aNull ? -1 : 1;
 
-      const cp = ap.localeCompare(bp);
+      const cp = cmpStrV0(ap, bp);
       if (cp !== 0) return cp;
 
       return a.i - b.i;
@@ -83,7 +84,7 @@ export const sortCapRequests = (caps: { capId: string; params?: any }[]) =>
 export const sortCapGrants = (caps: { capId: string; params?: any }[]) =>
   stableWrap(caps)
     .sort((a, b) => {
-      const c = a.v.capId.localeCompare(b.v.capId);
+      const c = cmpStrV0(a.v.capId, b.v.capId);
       if (c !== 0) return c;
 
       const ap = canonicalJSON(a.v.params ?? null);
@@ -93,7 +94,7 @@ export const sortCapGrants = (caps: { capId: string; params?: any }[]) =>
       const bNull = bp === "null";
       if (aNull !== bNull) return aNull ? -1 : 1;
 
-      const cp = ap.localeCompare(bp);
+      const cp = cmpStrV0(ap, bp);
       if (cp !== 0) return cp;
 
       return a.i - b.i;
@@ -103,7 +104,7 @@ export const sortCapGrants = (caps: { capId: string; params?: any }[]) =>
 export const sortByNodeId = <T extends { nodeId: string }>(arr: T[]) =>
   stableWrap(arr)
     .sort((a, b) => {
-      const c = a.v.nodeId.localeCompare(b.v.nodeId);
+      const c = cmpStrV0(a.v.nodeId, b.v.nodeId);
       if (c !== 0) return c;
       return a.i - b.i;
     })
@@ -112,10 +113,10 @@ export const sortByNodeId = <T extends { nodeId: string }>(arr: T[]) =>
 export const sortBlockPins = (pins: { nodeId: string; contentHash: string }[]) =>
   stableWrap(pins)
     .sort((a, b) => {
-      const c = a.v.nodeId.localeCompare(b.v.nodeId);
+      const c = cmpStrV0(a.v.nodeId, b.v.nodeId);
       if (c !== 0) return c;
 
-      const h = a.v.contentHash.localeCompare(b.v.contentHash);
+      const h = cmpStrV0(a.v.contentHash, b.v.contentHash);
       if (h !== 0) return h;
 
       return a.i - b.i;
@@ -127,7 +128,7 @@ const stableWrap = <T>(arr: T[]) => arr.map((v, i) => ({ v, i }));
 export const sortEvidenceEnvelopes = (evidence: { kind: string; payload: unknown }[]) =>
   stableWrap(evidence)
     .sort((a, b) => {
-      const ck = a.v.kind.localeCompare(b.v.kind);
+      const ck = cmpStrV0(a.v.kind, b.v.kind);
       if (ck !== 0) return ck;
 
       const ap = canonicalJSON(a.v.payload ?? null);
@@ -137,7 +138,7 @@ export const sortEvidenceEnvelopes = (evidence: { kind: string; payload: unknown
       const bNull = bp === "null";
       if (aNull !== bNull) return aNull ? -1 : 1;
 
-      const cp = ap.localeCompare(bp);
+      const cp = cmpStrV0(ap, bp);
       if (cp !== 0) return cp;
 
       return a.i - b.i;
@@ -149,15 +150,13 @@ export const sortNormalizedClaims = (
 ) =>
   stableWrap(claims)
     .sort((a, b) => {
-      const cid = a.v.claimId.localeCompare(b.v.claimId);
+      const cid = cmpStrV0(a.v.claimId, b.v.claimId);
       if (cid !== 0) return cid;
 
-      const cek = a.v.evidenceKind.localeCompare(b.v.evidenceKind);
+      const cek = cmpStrV0(a.v.evidenceKind, b.v.evidenceKind);
       if (cek !== 0) return cek;
 
-      const cn = canonicalJSON(a.v.normalized ?? null).localeCompare(
-        canonicalJSON(b.v.normalized ?? null)
-      );
+      const cn = cmpStrV0(canonicalJSON(a.v.normalized ?? null), canonicalJSON(b.v.normalized ?? null));
       if (cn !== 0) return cn;
 
       return a.i - b.i;
@@ -174,18 +173,16 @@ export const sortPortalCollection = (
 ) =>
   stableWrap(items)
     .sort((a, b) => {
-      const cn = a.v.nodeId.localeCompare(b.v.nodeId);
+      const cn = cmpStrV0(a.v.nodeId, b.v.nodeId);
       if (cn !== 0) return cn;
 
-      const cek = (a.v.evidenceKind ?? "").localeCompare(b.v.evidenceKind ?? "");
+      const cek = cmpStrV0(a.v.evidenceKind ?? "", b.v.evidenceKind ?? "");
       if (cek !== 0) return cek;
 
-      const cc = (a.v.claimId ?? "").localeCompare(b.v.claimId ?? "");
+      const cc = cmpStrV0(a.v.claimId ?? "", b.v.claimId ?? "");
       if (cc !== 0) return cc;
 
-      const cp = canonicalJSON(a.v.payload ?? null).localeCompare(
-        canonicalJSON(b.v.payload ?? null)
-      );
+      const cp = cmpStrV0(canonicalJSON(a.v.payload ?? null), canonicalJSON(b.v.payload ?? null));
       if (cp !== 0) return cp;
 
       return a.i - b.i;

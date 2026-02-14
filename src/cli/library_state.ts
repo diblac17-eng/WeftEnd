@@ -2,6 +2,7 @@
 // Library view-state: baseline/blocked/latest + history keys (no receipt changes).
 
 import { canonicalJSON } from "../core/canon";
+import { cmpStrV0 } from "../core/order";
 import { stableSortUniqueStringsV0 } from "../core/trust_algebra_v0";
 import { resolveLibraryRootV0 } from "../runtime/library_root";
 import { loadCompareSourceV0 } from "./compare_loader";
@@ -46,7 +47,7 @@ const listRunDirs = (dir: string): string[] => {
     .filter((entry) => entry.isDirectory && entry.isDirectory())
     .map((entry) => String(entry.name))
     .filter((name) => isRunDirName(name))
-    .sort((a, b) => a.localeCompare(b));
+    .sort((a, b) => cmpStrV0(a, b));
 };
 
 const readPointer = (filePath: string): string | null => {
@@ -136,7 +137,7 @@ const mapBuckets = (compareBuckets: string[], digestChanged: boolean): string[] 
   if (compareBuckets.includes("POLICY_CHANGED")) letters.add("P");
   if (compareBuckets.includes("HOST_TRUTH_CHANGED")) letters.add("H");
   if (compareBuckets.includes("BOUNDS_CHANGED")) letters.add("B");
-  return Array.from(letters).sort((a, b) => a.localeCompare(b));
+  return Array.from(letters).sort((a, b) => cmpStrV0(a, b));
 };
 
 const loadSummary = (runDir: string): ReturnType<typeof normalizeCompareSourceV0> | null => {

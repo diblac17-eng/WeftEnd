@@ -6,6 +6,7 @@ const vm = require("vm");
 
 import type { MintProbeResultV1 } from "../../core/types";
 import type { ProbeActionV0 } from "./probe_script_v0";
+import { cmpStrV0 } from "../../core/order";
 
 export interface ProbeStrictOptionsV0 {
   interactions?: ProbeActionV0[];
@@ -106,7 +107,7 @@ const extractIds = (html: string): string[] => {
   while ((match = re.exec(html))) {
     if (match[1]) ids.add(match[1]);
   }
-  return Array.from(ids).sort((a, b) => a.localeCompare(b));
+  return Array.from(ids).sort((a, b) => cmpStrV0(a, b));
 };
 
 export const runStrictProbeV0 = (html: string | undefined, opts: ProbeStrictOptionsV0): ProbeStrictResultV0 => {
@@ -287,7 +288,7 @@ export const runStrictProbeV0 = (html: string | undefined, opts: ProbeStrictOpti
     }
   }
 
-  const reasonCodes = Array.from(recorder.reasonCodes).sort((a, b) => a.localeCompare(b));
+  const reasonCodes = Array.from(recorder.reasonCodes).sort((a, b) => cmpStrV0(a, b));
   const status = reasonCodes.length > 0 ? "WARN" : "OK";
   return {
     strictAvailable: true,

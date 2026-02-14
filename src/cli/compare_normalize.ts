@@ -3,6 +3,7 @@
 
 import type { CompareLoadedSourceV0 } from "./compare_loader";
 import { canonicalJSON } from "../core/canon";
+import { cmpStrV0 } from "../core/order";
 import { stableSortUniqueStringsV0 } from "../core/trust_algebra_v0";
 import { computeArtifactDigestV0 } from "../runtime/store/artifact_store";
 
@@ -66,7 +67,7 @@ const parseExternalCounts = (root: string): { externalRefCount?: number; uniqueD
       .filter((v: unknown) => typeof v === "string")
       .map((v: string) => v.trim())
       .filter((v: string) => v.length > 0)
-      .sort((a: string, b: string) => a.localeCompare(b));
+      .sort((a: string, b: string) => cmpStrV0(a, b));
     const domains = new Set<string>();
     normalized.forEach((ref: string) => {
       try {
@@ -138,7 +139,7 @@ export const normalizeCompareSourceV0 = (
     capsRequested = Array.isArray(host.caps?.requested) ? host.caps.requested.length : undefined;
     capsDenied = Array.isArray(host.caps?.denied) ? host.caps.denied.length : undefined;
     deniedCapCodes = Array.isArray(host.caps?.denied)
-      ? host.caps.denied.slice().map(String).sort((a, b) => a.localeCompare(b))
+      ? host.caps.denied.slice().map(String).sort((a, b) => cmpStrV0(a, b))
       : undefined;
     summaryContent = host.contentSummary ?? summaryContent;
     if (exitCode === undefined) {
@@ -165,7 +166,7 @@ export const normalizeCompareSourceV0 = (
     : parseExternalCounts(source.root);
   const topDomains =
     summaryContent && Array.isArray(summaryContent.externalRefs?.topDomains)
-      ? summaryContent.externalRefs.topDomains.slice().map(String).sort((a: string, b: string) => a.localeCompare(b))
+      ? summaryContent.externalRefs.topDomains.slice().map(String).sort((a: string, b: string) => cmpStrV0(a, b))
       : undefined;
   const summary: CompareSummaryV0 = {
     result,

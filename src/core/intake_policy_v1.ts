@@ -4,6 +4,7 @@
 import { canonicalJSON } from "./canon";
 import { sha256HexV0 } from "./hash_v0";
 import { truncateListWithMarker } from "./bounds";
+import { cmpStrV0 } from "./order";
 import type { EvidenceProfileV1, IntakeActionV1, IntakeSeverityV1, WeftEndPolicyV1 } from "./types";
 
 export type { EvidenceProfileV1, IntakeActionV1, IntakeSeverityV1, WeftEndPolicyV1 };
@@ -23,7 +24,7 @@ const stableSortUnique = (values: string[]): string[] => {
     seen.add(v);
     out.push(v);
   });
-  out.sort((a, b) => a.localeCompare(b));
+  out.sort((a, b) => cmpStrV0(a, b));
   return out;
 };
 
@@ -60,7 +61,7 @@ export const canonicalizeWeftEndPolicyV1 = (policy: WeftEndPolicyV1): WeftEndPol
 
   const reasonSeverity: Record<string, IntakeSeverityV1> = {};
   Object.keys(policy.reasonSeverity ?? {})
-    .sort((a, b) => a.localeCompare(b))
+    .sort((a, b) => cmpStrV0(a, b))
     .forEach((key) => {
       const trimmed = key.trim();
       if (!trimmed) return;

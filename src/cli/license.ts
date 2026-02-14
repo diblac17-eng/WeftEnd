@@ -4,6 +4,7 @@
 import { canonicalJSON } from "../core/canon";
 import { canonicalizeWeftendEntitlementPayloadV1 } from "../core/entitlement_v1";
 import { sha256HexV0 } from "../core/hash_v0";
+import { cmpStrV0 } from "../core/order";
 import { validateWeftendEntitlementV1 } from "../core/validate";
 import type { WeftendEntitlementPayloadV1, WeftendEntitlementV1 } from "../core/types";
 
@@ -81,7 +82,7 @@ const issueLicense = (flags: Record<string, string | boolean>): number => {
     .split(",")
     .map((f) => f.trim())
     .filter((f) => f.length > 0)
-    .sort((a, b) => a.localeCompare(b));
+    .sort((a, b) => cmpStrV0(a, b));
 
   const basePayload: Omit<WeftendEntitlementPayloadV1, "licenseId"> = {
     schema: "weftend.entitlement/1",

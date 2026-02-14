@@ -6,6 +6,7 @@ import type { OperatorReceiptEntryV0, OperatorReceiptV0, WeftendBuildV0 } from "
 import { computeArtifactDigestV0 } from "./store/artifact_store";
 import { computeOperatorReceiptDigestV0, validateOperatorReceiptV0 } from "../core/validate";
 import { stableSortUniqueReasonsV0 } from "../core/trust_algebra_v0";
+import { cmpStrV0 } from "../core/order";
 
 declare const require: any;
 
@@ -18,11 +19,11 @@ const sortEntries = (entries: OperatorReceiptEntryV0[]): OperatorReceiptEntryV0[
   entries
     .slice()
     .sort((a, b) => {
-      const c0 = a.kind.localeCompare(b.kind);
+      const c0 = cmpStrV0(a.kind, b.kind);
       if (c0 !== 0) return c0;
-      const c1 = a.relPath.localeCompare(b.relPath);
+      const c1 = cmpStrV0(a.relPath, b.relPath);
       if (c1 !== 0) return c1;
-      return a.digest.localeCompare(b.digest);
+      return cmpStrV0(a.digest, b.digest);
     });
 
 export const computeOutRootDigestV0 = (entries: OperatorReceiptEntryV0[]): string =>

@@ -5,6 +5,7 @@ declare const require: any;
 declare const Buffer: any;
 
 import { createSha256HasherV0, sha256HexBytesV0, sha256HexV0 } from "../../core/hash_v0";
+import { cmpStrV0 } from "../../core/order";
 
 const fs = require("fs");
 const path = require("path");
@@ -64,19 +65,19 @@ const computeFileDigest = (absPath: string): { digest: string; size: number } =>
 
 const canonicalizeListing = (entries: CaptureEntryV0[]): string => {
   const items = entries.map((entry) => ({ path: entry.path, size: entry.size }));
-  items.sort((a, b) => a.path.localeCompare(b.path));
+  items.sort((a, b) => cmpStrV0(a.path, b.path));
   return JSON.stringify(items);
 };
 
 const canonicalizeDigests = (entries: CaptureEntryV0[]): string => {
   const items = entries.map((entry) => ({ path: entry.path, digest: entry.digest }));
-  items.sort((a, b) => a.path.localeCompare(b.path));
+  items.sort((a, b) => cmpStrV0(a.path, b.path));
   return JSON.stringify(items);
 };
 
 const listDir = (dir: string): string[] => {
   const names = fs.readdirSync(dir);
-  names.sort((a: string, b: string) => a.localeCompare(b));
+  names.sort((a: string, b: string) => cmpStrV0(a, b));
   return names;
 };
 
@@ -238,7 +239,7 @@ export const captureTreeV0 = (inputPath: string, limits: CaptureLimitsV0): Captu
     const buf = fs.readFileSync(inputPath);
     const rootDigest = `sha256:${sha256Bytes(buf)}`;
     const zipEntries = parseZipEntries(buf, issues);
-    zipEntries.sort((a, b) => a.path.localeCompare(b.path));
+    zipEntries.sort((a, b) => cmpStrV0(a.path, b.path));
     let totalBytes = 0;
     let truncated = false;
     for (const entry of zipEntries) {

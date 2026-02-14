@@ -7,6 +7,7 @@ const path = require("path");
 
 import type { MintFileKindCountsV1, MintObservationsV1 } from "../../core/types";
 import type { CaptureTreeV0 } from "./capture_tree_v0";
+import { cmpStrV0 } from "../../core/order";
 
 export interface DetectLimitsV0 {
   maxFileBytes: number;
@@ -62,7 +63,7 @@ const readTextBounded = (absPath: string, maxBytes: number): string | null => {
 
 const findHtmlEntry = (entries: { path: string }[]): string | undefined => {
   const htmls = entries.filter((e) => htmlExts.has(path.extname(e.path).toLowerCase()));
-  htmls.sort((a, b) => a.path.localeCompare(b.path));
+  htmls.sort((a, b) => cmpStrV0(a.path, b.path));
   const preferred = htmls.find((e) => e.path.toLowerCase().endsWith("index.html"));
   return (preferred ?? htmls[0])?.path;
 };
@@ -150,7 +151,7 @@ export const detectLayersV0 = (capture: CaptureTreeV0, limits: DetectLimitsV0): 
 
   const observations: MintObservationsV1 = {
     fileKinds: counts,
-    externalRefs: Array.from(externalRefs).sort((a, b) => a.localeCompare(b)),
+    externalRefs: Array.from(externalRefs).sort((a, b) => cmpStrV0(a, b)),
     scriptsDetected,
     wasmDetected,
   };

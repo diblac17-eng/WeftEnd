@@ -10,6 +10,7 @@ const path = require("path");
 
 import { canonicalJSON } from "../core/canon";
 import { canonicalizeWeftEndPolicyV1 } from "../core/intake_policy_v1";
+import { cmpStrV0 } from "../core/order";
 import { stableSortUniqueReasonsV0 } from "../core/trust_algebra_v0";
 import {
   computePathDigestV0,
@@ -66,7 +67,7 @@ const pickStrictEntry = (capture: ReturnType<typeof examineArtifactV1>["capture"
   const jsExts = new Set([".js", ".mjs", ".cjs"]);
   const entries = capture.entries
     .filter((entry) => jsExts.has(path.extname(entry.path).toLowerCase()))
-    .sort((a, b) => a.path.localeCompare(b.path));
+    .sort((a, b) => cmpStrV0(a.path, b.path));
   if (entries.length === 0) return null;
   const entry = entries[0];
   const absPath = capture.kind === "dir" ? path.join(capture.basePath, entry.path) : capture.basePath;
@@ -438,7 +439,7 @@ export const runWeftendRun = async (options: RunCliOptionsV0): Promise<number> =
     { name: "intake_decision.json", digest: digestText(decisionJson) },
     { name: "weftend_mint_v1.json", digest: digestText(mintJson) },
     { name: "weftend_mint_v1.txt", digest: digestText(mintTxt) },
-  ].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.digest.localeCompare(b.digest)));
+  ].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : cmpStrV0(a.digest, b.digest)));
 
   const weftendBuild = computeWeftendBuildV0({ filePath: process?.argv?.[1], source: "NODE_MAIN_JS" }).build;
   const receipt = buildRunReceipt(

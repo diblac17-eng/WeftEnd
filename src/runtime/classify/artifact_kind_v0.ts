@@ -4,6 +4,7 @@
 import type { ArtifactKindV0 } from "../../core/types";
 import type { CaptureTreeV0 } from "../examiner/capture_tree_v0";
 import { stableSortUniqueReasonsV0 } from "../../core/trust_algebra_v0";
+import { cmpStrV0 } from "../../core/order";
 
 declare const require: any;
 declare const process: any;
@@ -73,7 +74,7 @@ const fromDir = (inputPath: string, capture?: CaptureTreeV0): ArtifactKindResult
       const ext = path.extname(name).toLowerCase();
       return ext === ".html" || ext === ".htm";
     })
-    .sort((a, b) => a.localeCompare(b));
+    .sort((a, b) => cmpStrV0(a, b));
   if (htmlEntries.length > 0) {
     return {
       artifactKind: "WEB_DIR",

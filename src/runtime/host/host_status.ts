@@ -8,6 +8,7 @@ import {
   validateHostStatusReceiptV0,
 } from "../../core/validate";
 import { stableSortUniqueReasonsV0 } from "../../core/trust_algebra_v0";
+import { cmpStrV0 } from "../../core/order";
 import { computeArtifactDigestV0 } from "../store/artifact_store";
 import { isDemoCryptoAllowed, makeDemoCryptoPort } from "../../ports/crypto-demo";
 import { computeWeftendBuildV0 } from "../weftend_build";
@@ -94,7 +95,7 @@ const computeBundleDigest = (bundlePaths: string[], reasons: string[]): string =
       const data = readFileBounded(p, reasons, "HOST_BUNDLE_MISSING");
       return { name: p, digest: data ? digestBuffer(data) : ZERO_DIGEST };
     })
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => cmpStrV0(a.name, b.name));
   return computeArtifactDigestV0(canonicalJSON(entries));
 };
 

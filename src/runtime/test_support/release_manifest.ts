@@ -3,6 +3,7 @@
 
 import { canonicalJSON } from "../../core/canon";
 import { sha256HexV0 } from "../../core/hash_v0";
+import { cmpStrV0 } from "../../core/order";
 import { computeReleaseIdV0 } from "../../core/validate";
 import type { ReleaseManifestV0 } from "../../core/types";
 import type { CryptoPort } from "../../ports/crypto-port";
@@ -33,7 +34,7 @@ export const makeReleaseManifest = (
   policyDigest = "policy-demo",
   pathDigest: string
 ): ReleaseManifestV0 => {
-  const sortedBlocks = Array.from(new Set(blocks)).sort((a, b) => a.localeCompare(b));
+  const sortedBlocks = Array.from(new Set(blocks)).sort((a, b) => cmpStrV0(a, b));
   const manifestBody: ReleaseManifestV0["manifestBody"] = {
     planDigest,
     policyDigest,

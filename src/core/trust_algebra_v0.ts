@@ -2,6 +2,7 @@
 // TRUST_ALGEBRA_V0 helpers (pure, deterministic).
 
 import { canonicalJSON } from "./canon";
+import { cmpStrV0 } from "./order";
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
@@ -64,7 +65,7 @@ const normalizeReasonArray = (
   }
   const subject = opts.subject ?? "";
   const locator = opts.locator ?? "";
-  out.sort((a, b) => reasonKey(a, subject, locator).localeCompare(reasonKey(b, subject, locator)));
+  out.sort((a, b) => cmpStrV0(reasonKey(a, subject, locator), reasonKey(b, subject, locator)));
   return out;
 };
 

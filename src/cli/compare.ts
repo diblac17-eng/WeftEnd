@@ -2,6 +2,7 @@
 // Deterministic compare lane for receipt roots.
 
 import { canonicalJSON } from "../core/canon";
+import { cmpStrV0 } from "../core/order";
 import type { CompareChangeV0, CompareReceiptV0, WeftendBuildV0 } from "../core/types";
 import { computeCompareReceiptDigestV0, validateCompareReceiptV0 } from "../core/validate";
 import { stableSortUniqueStringsV0 } from "../core/trust_algebra_v0";
@@ -49,7 +50,7 @@ const bool = (value: boolean | undefined): number => (value === true ? 1 : value
 const recordDiff = (left: Record<string, number> | undefined, right: Record<string, number> | undefined) => {
   const keys = Array.from(
     new Set([...(left ? Object.keys(left) : []), ...(right ? Object.keys(right) : [])])
-  ).sort();
+  ).sort((a, b) => cmpStrV0(a, b));
   let changed = false;
   const counts: Record<string, number> = {};
   keys.forEach((key) => {
@@ -156,7 +157,7 @@ export const compareSummariesV0 = (
         ...(left.fileCountsByKind ? Object.keys(left.fileCountsByKind) : []),
         ...(right.fileCountsByKind ? Object.keys(right.fileCountsByKind) : []),
       ])
-    ).sort();
+    ).sort((a, b) => cmpStrV0(a, b));
     fileKeys.forEach((key) => {
       const l = left.fileCountsByKind && typeof left.fileCountsByKind[key] === "number" ? left.fileCountsByKind[key] : 0;
       const r = right.fileCountsByKind && typeof right.fileCountsByKind[key] === "number" ? right.fileCountsByKind[key] : 0;
@@ -298,12 +299,18 @@ export const compareSummariesV0 = (
   const sortedBuckets = dedupeSort(buckets);
   const sortedChanges = changes
     .slice()
-    .sort((a, b) => a.bucket.localeCompare(b.bucket))
+    .sort((a, b) => cmpStrV0(a.bucket, b.bucket))
     .map((entry) => ({
       bucket: entry.bucket,
       added: entry.added,
       removed: entry.removed,
-      ...(entry.counts ? { counts: Object.keys(entry.counts).sort().reduce((acc, key) => ({ ...acc, [key]: entry.counts![key] }), {}) } : {}),
+      ...(entry.counts
+        ? {
+            counts: Object.keys(entry.counts)
+              .sort((a, b) => cmpStrV0(a, b))
+              .reduce((acc, key) => ({ ...acc, [key]: entry.counts![key] }), {}),
+          }
+        : {}),
     }));
 
   return {
@@ -396,7 +403,7 @@ const buildCompareReceipt = (input: {
     changeBuckets: dedupeSort(input.changeBuckets),
     changes: input.changes
       .slice()
-      .sort((a, b) => a.bucket.localeCompare(b.bucket))
+      .sort((a, b) => cmpStrV0(a.bucket, b.bucket))
       .map((entry) => ({
         bucket: entry.bucket,
         added: entry.added,

@@ -4,6 +4,7 @@
 import type { CompareSummaryV0 } from "../../cli/compare_normalize";
 import type { WeftendBuildV0 } from "../../core/types";
 import { canonicalJSON } from "../../core/canon";
+import { cmpStrV0 } from "../../core/order";
 import { computeArtifactDigestV0 } from "../../runtime/store/artifact_store";
 import { stableSortUniqueStringsV0 } from "../../core/trust_algebra_v0";
 
@@ -80,7 +81,7 @@ export const validateNormalizedSummaryV0 = (value: unknown, path: string = "norm
     }
     if (isRecord(entry)) {
       Object.keys(entry)
-        .sort((a, b) => a.localeCompare(b))
+        .sort((a, b) => cmpStrV0(a, b))
         .forEach((key) => {
           if (hasSensitiveMarker(key)) reasons.push("NORMALIZED_SUMMARY_PRIVACY_FAIL");
           scan(entry[key], `${keyPath}.${key}`);

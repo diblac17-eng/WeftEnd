@@ -63,34 +63,6 @@ const getCompartmentCtor = (): CompartmentCtor | null => {
 
   if (typeof g.Compartment === "function") return g.Compartment as CompartmentCtor;
 
-  const allowVmFallback =
-    typeof process !== "undefined" &&
-    process &&
-    process.env &&
-    process.env.WEFTEND_ALLOW_VM_FALLBACK === "1";
-  if (allowVmFallback && typeof require === "function") {
-    try {
-      const vm = require("vm");
-      const VmCompartment = class {
-        private context: any;
-        constructor(endowments?: Record<string, unknown>) {
-          const sandbox: Record<string, unknown> = { ...(endowments ?? {}) };
-          try {
-            this.context = vm.createContext(sandbox, { codeGeneration: { strings: false, wasm: false } });
-          } catch {
-            this.context = vm.createContext(sandbox);
-          }
-        }
-        evaluate(source: string) {
-          return vm.runInContext(source, this.context);
-        }
-      };
-      return VmCompartment as unknown as CompartmentCtor;
-    } catch {
-      return null;
-    }
-  }
-
   return null;
 };
 

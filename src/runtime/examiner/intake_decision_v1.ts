@@ -4,6 +4,7 @@
 import { canonicalJSON } from "../../core/canon";
 import { makeTruncationMarker, truncateListWithMarker, truncateTextWithMarker } from "../../core/bounds";
 import { sha256HexV0 } from "../../core/hash_v0";
+import { cmpStrV0 } from "../../core/order";
 import { stableSortUniqueReasonsV0 } from "../../core/trust_algebra_v0";
 import type {
   EvidenceProfileV1,
@@ -125,7 +126,7 @@ const buildCapSummary = (mint: WeftendMintPackageV1, maxItems: number) => {
   const byKindMap: Record<string, { attempted: number; denied: number }> = {};
   const allCaps = new Set([...Object.keys(attemptedCaps), ...Object.keys(deniedCaps)]);
   Array.from(allCaps)
-    .sort((a, b) => a.localeCompare(b))
+    .sort((a, b) => cmpStrV0(a, b))
     .forEach((capId) => {
       const kind = capId.includes(".")
         ? capId.split(".")[0]
@@ -146,7 +147,7 @@ const buildCapSummary = (mint: WeftendMintPackageV1, maxItems: number) => {
   const notable = truncateListWithMarker(notableDomains, maxItems).items;
 
   const byKind: Record<string, { attempted: number; denied: number }> = {};
-  const sortedKinds = Object.keys(byKindMap).sort((a, b) => a.localeCompare(b));
+  const sortedKinds = Object.keys(byKindMap).sort((a, b) => cmpStrV0(a, b));
   if (sortedKinds.length > maxItems) {
     const kept = sortedKinds.slice(0, Math.max(0, maxItems));
     const dropped = sortedKinds.slice(Math.max(0, maxItems));
@@ -218,7 +219,7 @@ const buildAppealPayload = (
   const receiptDigests = mint.grade.receipts
     .map((r) => r.digest)
     .filter((d): d is string => typeof d === "string" && d.length > 0)
-    .sort((a, b) => a.localeCompare(b));
+    .sort((a, b) => cmpStrV0(a, b));
   const boundedReceipts = truncateListWithMarker(receiptDigests, maxItems).items;
   const probeScriptDigest =
     scriptText && scriptText.trim().length > 0 ? computeDigest(scriptText) : undefined;

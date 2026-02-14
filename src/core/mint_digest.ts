@@ -3,6 +3,7 @@
 
 import { canonicalJSON } from "./canon";
 import { sha256HexV0 } from "./hash_v0";
+import { cmpStrV0 } from "./order";
 import { stableSortUniqueReasonsV0, stableSortUniqueStringsV0 } from "./trust_algebra_v0";
 import type {
   MintCaptureV1,
@@ -23,7 +24,7 @@ const isNonEmptyString = (v: unknown): v is string =>
 const normalizeCounts = (input: Record<string, number> | undefined): Record<string, number> => {
   const out: Record<string, number> = {};
   if (!input) return out;
-  const keys = Object.keys(input).sort();
+  const keys = Object.keys(input).sort((a, b) => cmpStrV0(a, b));
   for (const key of keys) {
     const value = input[key];
     if (Number.isFinite(value)) out[key] = Math.max(0, Math.floor(value));
@@ -54,9 +55,9 @@ const normalizeGrade = (grade: MintGradeV1): MintGradeV1 => {
   const reasonCodes = stableSortUniqueReasonsV0(grade.reasonCodes ?? []);
   const receipts = (grade.receipts ?? []).map(normalizeReceipt);
   receipts.sort((a, b) => {
-    const kc = a.kind.localeCompare(b.kind);
+    const kc = cmpStrV0(a.kind, b.kind);
     if (kc !== 0) return kc;
-    return a.digest.localeCompare(b.digest);
+    return cmpStrV0(a.digest, b.digest);
   });
   const out: MintGradeV1 = {
     status: grade.status,
