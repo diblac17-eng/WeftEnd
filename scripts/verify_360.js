@@ -86,6 +86,26 @@ const runCommand = (label, cmd, args, envExtra = {}) => {
   };
 };
 
+const gitChangedFiles = () => {
+  const res = spawnSync("git", ["status", "--porcelain"], {
+    cwd: root,
+    encoding: "utf8",
+    windowsHide: true,
+  });
+  if (typeof res.status !== "number" || res.status !== 0) return null;
+  const out = String(res.stdout || "");
+  return out
+    .split(/\r?\n/)
+    .map((line) => line.trimEnd())
+    .filter((line) => line.length >= 4)
+    .map((line) => {
+      const body = line.slice(3).trim();
+      const renameIdx = body.indexOf("->");
+      const pathText = renameIdx >= 0 ? body.slice(renameIdx + 2).trim() : body;
+      return pathText.split(path.sep).join("/");
+    });
+};
+
 const compareFilesEqual = (a, b) => {
   const hasA = fs.existsSync(a);
   const hasB = fs.existsSync(b);
@@ -148,6 +168,44 @@ const main = () => {
   const npm = npmExec();
   const npmRun = (name, extraArgs = [], envExtra = {}) =>
     runCommand(name, npm.cmd, [...npm.argsPrefix, "run", name, ...extraArgs], envExtra);
+
+  // Docs/update discipline check (catches "little misses" before commit/release).
+  const changed = gitChangedFiles();
+  if (!changed) {
+    addStep({
+      id: "docs_sync",
+      status: "PARTIAL",
+      reasonCodes: ["VERIFY360_GIT_STATUS_UNAVAILABLE"],
+    });
+  } else {
+    const codeTouched = changed.some(
+      (p) =>
+        p === "package.json" ||
+        p.startsWith("src/") ||
+        p.startsWith("scripts/") ||
+        p.startsWith("tools/")
+    );
+    const docsTouched = changed.some(
+      (p) =>
+        p === "README.md" ||
+        p === "docs/RELEASE_NOTES.txt" ||
+        p === "docs/QUICKSTART.txt" ||
+        p === "docs/RELEASE_CHECKLIST_ALPHA.md"
+    );
+    if (codeTouched && !docsTouched) {
+      addStep({
+        id: "docs_sync",
+        status: "FAIL",
+        reasonCodes: ["VERIFY360_DOC_SYNC_MISSING"],
+      });
+    } else {
+      addStep({
+        id: "docs_sync",
+        status: "PASS",
+        reasonCodes: [],
+      });
+    }
+  }
 
   // Compile
   const compile = npmRun("compile", ["--silent"]);

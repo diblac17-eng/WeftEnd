@@ -8,6 +8,7 @@ Included
 - `npm run verify:360` now performs compile/test/proofcheck + deterministic replay + privacy lint + compare smoke.
 - Gate now always writes evidence artifacts (`verify_360_receipt.json` and `verify_360_report.txt`) for PASS/PARTIAL/FAIL outcomes.
 - Host precondition misses are explicit PARTIAL/SKIP evidence, not silent no-output aborts.
+- Gate enforces docs/update discipline: code changes without operator-facing doc updates fail with `VERIFY360_DOC_SYNC_MISSING`.
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)

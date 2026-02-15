@@ -25,6 +25,7 @@ Loops
   - Requires WEFTEND_RELEASE_DIR and will fail if it is missing.
 - Commit Gate 360: npm run verify:360
   - Full spin gate for reusable commits:
+    - docs/update discipline check
     - compile
     - test
     - proofcheck with release fixture
