@@ -65,6 +65,7 @@ Included
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)
 - Unknown `--enable-plugin` names now fail closed with `ADAPTER_PLUGIN_UNKNOWN` (no silent plugin-name fallback/ignore).
+- Unknown plugin names are validated before adapter routing, so `ADAPTER_PLUGIN_UNKNOWN` also fails closed under `--adapter none`.
 - `safe-run --enable-plugin` now fails closed when plugin value is missing (`INPUT_INVALID`) instead of silently ignoring malformed flags.
 - New adapter discovery command: `weftend adapter list`
 - Additive receipt/summary surface:

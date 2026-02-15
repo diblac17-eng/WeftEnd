@@ -1963,7 +1963,6 @@ const analyzeByClass = (adapterClass: AdapterClassV1, ctx: AnalyzeCtx): AnalyzeR
 
 export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunResultV1 => {
   const selection = options.selection;
-  if (selection === "none") return { ok: true, reasonCodes: [] };
   const requestedPlugins = stableSortUniqueStringsV0(
     (options.enabledPlugins || [])
       .map((name) => String(name || "").trim().toLowerCase())
@@ -1978,6 +1977,7 @@ export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunRe
       reasonCodes: stableSortUniqueReasonsV0(["ADAPTER_PLUGIN_UNKNOWN"]),
     };
   }
+  if (selection === "none") return { ok: true, reasonCodes: [] };
   const enabledPlugins = new Set(requestedPlugins);
   const inputPath = path.resolve(process.cwd(), options.inputPath || "");
   const ctx: AnalyzeCtx = {

@@ -21,6 +21,7 @@ Hard rules
 - If a plugin-required format is selected and plugin is not enabled, run fails with explicit code.
 - If plugin is enabled but unavailable, run fails with explicit code.
 - If an unknown plugin name is provided, run fails closed with `ADAPTER_PLUGIN_UNKNOWN`.
+- Unknown plugin-name validation runs before adapter routing and still fails closed under `--adapter none`.
 
 5) No silent downgrade
 - Missing plugin support never silently claims full analysis coverage.
