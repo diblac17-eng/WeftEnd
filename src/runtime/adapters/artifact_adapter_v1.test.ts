@@ -77,6 +77,39 @@ const writeStoredZip = (outPath: string, files: Array<{ name: string; text: stri
   fs.writeFileSync(outPath, Buffer.concat([...localParts, ...centralParts, eocd]));
 };
 
+const writeSimpleTar = (outPath: string, files: Array<{ name: string; text: string }>): void => {
+  const blocks: any[] = [];
+  const pushHeader = (name: string, size: number) => {
+    const header = Buffer.alloc(512, 0);
+    const nameBuf = Buffer.from(name, "utf8");
+    nameBuf.copy(header, 0, 0, Math.min(nameBuf.length, 100));
+    Buffer.from("0000777\0", "ascii").copy(header, 100);
+    Buffer.from("0000000\0", "ascii").copy(header, 108);
+    Buffer.from("0000000\0", "ascii").copy(header, 116);
+    const sizeOct = size.toString(8).padStart(11, "0");
+    Buffer.from(`${sizeOct}\0`, "ascii").copy(header, 124);
+    Buffer.from("00000000000\0", "ascii").copy(header, 136);
+    for (let i = 148; i < 156; i += 1) header[i] = 0x20; // checksum placeholder
+    header[156] = "0".charCodeAt(0);
+    Buffer.from("ustar\0", "ascii").copy(header, 257);
+    Buffer.from("00", "ascii").copy(header, 263);
+    let sum = 0;
+    for (let i = 0; i < 512; i += 1) sum += header[i];
+    const chk = sum.toString(8).padStart(6, "0");
+    Buffer.from(`${chk}\0 `, "ascii").copy(header, 148);
+    blocks.push(header);
+  };
+  files.forEach((file) => {
+    const data = Buffer.from(file.text, "utf8");
+    pushHeader(file.name.replace(/\\/g, "/"), data.length);
+    blocks.push(data);
+    const pad = (512 - (data.length % 512)) % 512;
+    if (pad > 0) blocks.push(Buffer.alloc(pad, 0));
+  });
+  blocks.push(Buffer.alloc(1024, 0));
+  fs.writeFileSync(outPath, Buffer.concat(blocks));
+};
+
 const limits = {
   maxFiles: 20000,
   maxTotalBytes: 512 * 1024 * 1024,
@@ -243,6 +276,58 @@ const run = (): void => {
     assert((res.summary?.counts.activeContentCount ?? 0) > 0, "docm active content count missing");
     assert((res.summary?.counts.embeddedObjectCount ?? 0) > 0, "docm embedded object count missing");
     assert((res.summary?.counts.externalLinkCount ?? 0) > 0, "docm external link count missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const ociDir = path.join(tmp, "oci_layout");
+    fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
+    fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
+    fs.writeFileSync(
+      path.join(ociDir, "index.json"),
+      JSON.stringify({ schemaVersion: 2, manifests: [{ mediaType: "x" }, { mediaType: "y" }] }),
+      "utf8"
+    );
+    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", "a"), "x", "utf8");
+    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", "b"), "y", "utf8");
+    const capture = captureTreeV0(ociDir, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: ociDir, capture });
+    assert(res.ok, "container adapter should parse oci layout counts");
+    assert((res.summary?.counts.ociManifestCount ?? 0) === 2, "oci manifest count mismatch");
+    assert((res.summary?.counts.ociBlobCount ?? 0) === 2, "oci blob count mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
+    const tarPath = path.join(tmp, "container.tar");
+    writeSimpleTar(tarPath, [
+      { name: "manifest.json", text: "[]" },
+      { name: "repositories", text: "{}" },
+      { name: "layer.tar", text: "layer-bytes" },
+    ]);
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(res.ok, "container adapter should parse container tar entries");
+    assert((res.summary?.counts.tarballScanPresent ?? 0) === 1, "container tar flag mismatch");
+    assert((res.summary?.counts.tarEntryCount ?? 0) >= 3, "container tar entry count missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const sbomPath = path.join(tmp, "demo.spdx.json");
+    fs.writeFileSync(
+      sbomPath,
+      JSON.stringify({
+        SPDXID: "SPDXRef-DOCUMENT",
+        packages: [{ name: "a" }, { name: "b" }, { name: "c" }],
+      }),
+      "utf8"
+    );
+    const capture = captureTreeV0(sbomPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: sbomPath, capture });
+    assert(res.ok, "container adapter should parse sbom package count");
+    assert((res.summary?.counts.sbomPresent ?? 0) === 1, "sbom present flag mismatch");
+    assert((res.summary?.counts.sbomPackageCount ?? 0) === 3, "sbom package count mismatch");
   }
 };
 

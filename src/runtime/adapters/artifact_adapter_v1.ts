@@ -554,6 +554,16 @@ const collectTextFiles = (inputPath: string, capture: CaptureTreeV0, exts: Set<s
   return out.slice(0, 256);
 };
 
+const readJsonBounded = (filePath: string): unknown | null => {
+  const text = readTextBounded(filePath, MAX_TEXT_BYTES);
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
 const countMatchesV1 = (text: string, pattern: RegExp): number => {
   const flags = pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`;
   const re = new RegExp(pattern.source, flags);
@@ -1145,7 +1155,13 @@ const analyzeContainer = (ctx: AnalyzeCtx): AnalyzeResult => {
     lower === "compose.yaml" ||
     hasAnyPath(ctx.capture, ["docker-compose.yml", "docker-compose.yaml", "compose.yaml", "compose.yml"]);
   const isSbom = /sbom|spdx|cyclonedx|bom/i.test(lower);
-  const isContainerTar = ctx.ext === ".tar" && hasAnyPath(ctx.capture, ["manifest.json", "repositories"]);
+  const isContainerTarByHint = ctx.ext === ".tar" && hasAnyPath(ctx.capture, ["manifest.json", "repositories"]);
+  const tarEntries = ctx.ext === ".tar" ? readTarEntries(ctx.inputPath) : { entries: [] as string[], markers: [] as string[] };
+  const isContainerTarByEntries =
+    ctx.ext === ".tar" &&
+    tarEntries.entries.some((name) => path.basename(String(name || "")).toLowerCase() === "manifest.json") &&
+    tarEntries.entries.some((name) => path.basename(String(name || "")).toLowerCase() === "repositories");
+  const isContainerTar = isContainerTarByHint || isContainerTarByEntries;
   if (!isOciLayout && !isCompose && !isSbom && !isContainerTar) {
     return {
       ok: false,
@@ -1156,6 +1172,61 @@ const analyzeContainer = (ctx: AnalyzeCtx): AnalyzeResult => {
   }
   const reasons = ["CONTAINER_ADAPTER_V1"];
   const findings: string[] = [];
+  const markers: string[] = [];
+  let ociManifestCount = 0;
+  let ociBlobCount = 0;
+  let tarEntryCount = 0;
+  let composeImageRefCount = 0;
+  let composeServiceHintCount = 0;
+  let sbomPackageCount = 0;
+
+  if (isOciLayout) {
+    const index = readJsonBounded(path.join(ctx.inputPath, "index.json"));
+    if (index && typeof index === "object" && Array.isArray((index as any).manifests)) {
+      ociManifestCount = (index as any).manifests.length;
+    } else {
+      markers.push("CONTAINER_INDEX_PARTIAL");
+    }
+    ociBlobCount = ctx.capture.entries
+      .map((entry) => String(entry.path || "").replace(/\\/g, "/").toLowerCase())
+      .filter((name) => name.startsWith("blobs/sha256/"))
+      .length;
+  }
+  if (isContainerTar) {
+    tarEntryCount = tarEntries.entries.length;
+    markers.push(...tarEntries.markers);
+  }
+  if (isCompose) {
+    const composeTexts: string[] = [];
+    if (ctx.capture.kind === "file") {
+      composeTexts.push(readTextBounded(ctx.inputPath));
+    } else {
+      const composeFiles = ctx.capture.entries
+        .map((entry) => entry.path)
+        .filter((p) => {
+          const base = path.basename(String(p || "")).toLowerCase();
+          return base === "docker-compose.yml" || base === "docker-compose.yaml" || base === "compose.yml" || base === "compose.yaml";
+        })
+        .slice(0, 8);
+      composeFiles.forEach((relPath) => composeTexts.push(readTextBounded(path.join(ctx.inputPath, relPath))));
+    }
+    composeTexts.forEach((text) => {
+      composeImageRefCount += countMatchesV1(text, /\bimage\s*:\s*[^\s#]+/gi);
+      composeServiceHintCount += countMatchesV1(text, /^\s{0,2}[A-Za-z0-9._-]+\s*:\s*$/gm);
+    });
+  }
+  if (isSbom) {
+    const sbom = readJsonBounded(ctx.inputPath);
+    if (sbom && typeof sbom === "object") {
+      const pkg = Array.isArray((sbom as any).packages) ? (sbom as any).packages.length : 0;
+      const comps = Array.isArray((sbom as any).components) ? (sbom as any).components.length : 0;
+      sbomPackageCount = Math.max(pkg, comps);
+      if (sbomPackageCount === 0) markers.push("CONTAINER_SBOM_PARTIAL");
+    } else {
+      markers.push("CONTAINER_SBOM_PARTIAL");
+    }
+  }
+
   if (isOciLayout) {
     reasons.push("CONTAINER_OCI_LAYOUT");
     findings.push("CONTAINER_OCI_LAYOUT");
@@ -1179,8 +1250,14 @@ const analyzeContainer = (ctx: AnalyzeCtx): AnalyzeResult => {
       tarballScanPresent: isContainerTar ? 1 : 0,
       sbomPresent: isSbom ? 1 : 0,
       composeHintPresent: isCompose ? 1 : 0,
+      ociManifestCount,
+      ociBlobCount,
+      tarEntryCount,
+      composeImageRefCount,
+      composeServiceHintCount,
+      sbomPackageCount,
     },
-    markers: [],
+    markers: stableSortUniqueStringsV0(markers),
     reasonCodes: stableSortUniqueReasonsV0(reasons),
     findingCodes: stableSortUniqueReasonsV0(findings),
   };

@@ -22,6 +22,10 @@ Included
 - IaC/CI adapter extraction deepened:
 - Deterministic action reference parsing now distinguishes pinned commit/digest refs from unpinned refs.
 - Remote module/source indicators and external runner signals are counted with structured counters in adapter summary output.
+- Container adapter extraction deepened:
+- OCI layout counts now include manifest and blob counts.
+- Container tarball detection can use tar entry metadata (`manifest.json` + `repositories`) for local tar inputs.
+- SBOM JSON parsing now emits bounded package/component counts when present.
 - Container scan now emits adapter metadata/signals plus adapter artifacts using the same deterministic contract as safe-run adapters.
 - Container scan evidence remains local-only inspect data and excludes unstable fields (timestamps/raw env/path values).
 - Wave coverage now includes:
