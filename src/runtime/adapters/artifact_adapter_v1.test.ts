@@ -346,6 +346,50 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const iso = path.join(tmp, "sample.iso");
+    const bytes = Buffer.alloc(16 * 2048 + 64, 0);
+    bytes[16 * 2048] = 1; // primary volume descriptor
+    Buffer.from("CD001", "ascii").copy(bytes, 16 * 2048 + 1);
+    fs.writeFileSync(iso, bytes);
+    const capture = captureTreeV0(iso, limits);
+    const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: iso, capture });
+    assert(res.ok, "image adapter should parse iso pvd");
+    assertEq(res.summary?.sourceClass, "image", "iso image class mismatch");
+    assertEq(res.summary?.counts.isoPvdPresent, 1, "iso pvd should be detected");
+    assert((res.summary?.counts.headerMatchCount ?? 0) > 0, "iso header match count missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const qcow = path.join(tmp, "sample.qcow2");
+    const bytes = Buffer.alloc(32, 0);
+    bytes[0] = 0x51; // Q
+    bytes[1] = 0x46; // F
+    bytes[2] = 0x49; // I
+    bytes[3] = 0xfb;
+    bytes.writeUInt32BE(3, 4);
+    fs.writeFileSync(qcow, bytes);
+    const capture = captureTreeV0(qcow, limits);
+    const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: qcow, capture });
+    assert(res.ok, "image adapter should parse qcow2 header");
+    assertEq(res.summary?.counts.qcowMagicPresent, 1, "qcow2 magic should be detected");
+    assertEq(res.summary?.counts.qcowVersion, 3, "qcow2 version mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
+    const vhdx = path.join(tmp, "sample.vhdx");
+    const bytes = Buffer.alloc(64, 0);
+    Buffer.from("vhdxfile", "ascii").copy(bytes, 0);
+    fs.writeFileSync(vhdx, bytes);
+    const capture = captureTreeV0(vhdx, limits);
+    const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: vhdx, capture });
+    assert(res.ok, "image adapter should parse vhdx signature");
+    assertEq(res.summary?.counts.vhdxSignaturePresent, 1, "vhdx signature should be detected");
+  }
+
+  {
+    const tmp = mkTmp();
     const pem = path.join(tmp, "chain.pem");
     fs.writeFileSync(
       pem,

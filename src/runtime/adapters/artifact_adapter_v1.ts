@@ -580,6 +580,24 @@ const readBytesBounded = (filePath: string, maxBytes: number = MAX_TEXT_BYTES): 
   }
 };
 
+const readFileHeadTailBounded = (filePath: string, headBytes: number, tailBytes: number): { head: any; tail: any; size: number } => {
+  try {
+    const stat = fs.statSync(filePath);
+    const size = Math.max(0, Number(stat.size || 0));
+    const headLen = Math.max(0, Math.min(headBytes, size));
+    const tailLen = Math.max(0, Math.min(tailBytes, size));
+    const fd = fs.openSync(filePath, "r");
+    const head = Buffer.alloc(headLen);
+    const tail = Buffer.alloc(tailLen);
+    if (headLen > 0) fs.readSync(fd, head, 0, headLen, 0);
+    if (tailLen > 0) fs.readSync(fd, tail, 0, tailLen, Math.max(0, size - tailLen));
+    fs.closeSync(fd);
+    return { head, tail, size };
+  } catch {
+    return { head: Buffer.alloc(0), tail: Buffer.alloc(0), size: 0 };
+  }
+};
+
 const countBufferPatternV1 = (haystack: any, needle: any): number => {
   if (!haystack || !needle) return 0;
   if (needle.length <= 0 || haystack.length < needle.length) return 0;
@@ -1315,6 +1333,62 @@ const analyzeImage = (ctx: AnalyzeCtx): AnalyzeResult => {
   } catch {
     fileBytes = 0;
   }
+  const markers: string[] = [];
+  const { head, tail } = readFileHeadTailBounded(ctx.inputPath, 64 * 1024, 1024);
+  const headerBytesRead = head.length + tail.length;
+  if (headerBytesRead === 0 && fileBytes > 0) markers.push("IMAGE_HEADER_PARTIAL");
+
+  let isoPvdPresent = 0;
+  let vhdFooterPresent = 0;
+  let vhdxSignaturePresent = 0;
+  let qcowMagicPresent = 0;
+  let qcowVersion = 0;
+  let vmdkDescriptorHintCount = 0;
+  let vmdkSparseMagicCount = 0;
+
+  if (ctx.ext === ".iso") {
+    const pvdOffset = 16 * 2048;
+    if (head.length >= pvdOffset + 6) {
+      const sig = head.subarray(pvdOffset + 1, pvdOffset + 6).toString("ascii");
+      const type = head[pvdOffset];
+      if (sig === "CD001" && (type === 1 || type === 2)) isoPvdPresent = 1;
+    } else {
+      markers.push("IMAGE_HEADER_PARTIAL");
+    }
+  } else if (ctx.ext === ".vhd") {
+    if (tail.length >= 512) {
+      const footer = tail.subarray(Math.max(0, tail.length - 512), Math.max(0, tail.length - 504)).toString("ascii");
+      if (footer === "conectix") vhdFooterPresent = 1;
+    } else {
+      markers.push("IMAGE_HEADER_PARTIAL");
+    }
+  } else if (ctx.ext === ".vhdx") {
+    if (head.length >= 8) {
+      if (head.subarray(0, 8).toString("ascii").toLowerCase() === "vhdxfile") vhdxSignaturePresent = 1;
+    } else {
+      markers.push("IMAGE_HEADER_PARTIAL");
+    }
+  } else if (ctx.ext === ".qcow2") {
+    if (head.length >= 8) {
+      const magic = head.subarray(0, 4);
+      if (magic[0] === 0x51 && magic[1] === 0x46 && magic[2] === 0x49 && magic[3] === 0xfb) qcowMagicPresent = 1;
+      qcowVersion = head.readUInt32BE(4);
+    } else {
+      markers.push("IMAGE_HEADER_PARTIAL");
+    }
+  } else if (ctx.ext === ".vmdk") {
+    const text = head.toString("utf8");
+    vmdkDescriptorHintCount = countMatchesV1(text, /disk descriptorfile|createType|RW\s+\d+\s+/gi);
+    const sparseMagic = Buffer.from("KDMV", "ascii");
+    vmdkSparseMagicCount = countBufferPatternV1(head, sparseMagic);
+    if (vmdkDescriptorHintCount === 0 && vmdkSparseMagicCount === 0 && fileBytes > 0) markers.push("IMAGE_HEADER_PARTIAL");
+  }
+
+  const headerMatchCount =
+    isoPvdPresent + vhdFooterPresent + vhdxSignaturePresent + qcowMagicPresent + (vmdkDescriptorHintCount > 0 || vmdkSparseMagicCount > 0 ? 1 : 0);
+  if (fileBytes > 0 && headerMatchCount === 0) markers.push("IMAGE_FORMAT_MISMATCH");
+  markers.push("IMAGE_TABLE_TRUNCATED");
+
   return {
     ok: true,
     sourceClass: "image",
@@ -1323,9 +1397,18 @@ const analyzeImage = (ctx: AnalyzeCtx): AnalyzeResult => {
     adapterId: "image_adapter_v1",
     counts: {
       fileBytesBounded: fileBytes,
+      headerBytesRead,
+      headerMatchCount,
+      isoPvdPresent,
+      vhdFooterPresent,
+      vhdxSignaturePresent,
+      qcowMagicPresent,
+      qcowVersion,
+      vmdkDescriptorHintCount,
+      vmdkSparseMagicCount,
       imageTableEntries: 0,
     },
-    markers: ["IMAGE_TABLE_TRUNCATED"],
+    markers: stableSortUniqueStringsV0(markers),
     reasonCodes: stableSortUniqueReasonsV0(["IMAGE_ADAPTER_V1", "IMAGE_TABLE_TRUNCATED"]),
     findingCodes: stableSortUniqueReasonsV0(["IMAGE_TABLE_TRUNCATED"]),
   };
