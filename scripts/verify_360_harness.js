@@ -146,6 +146,20 @@ const runVerify = (envExtra = {}) => {
   });
   return typeof res.status === "number" ? res.status : 1;
 };
+const runAuditStrict = () => {
+  const env = {
+    ...process.env,
+    WEFTEND_360_OUT_ROOT: outRoot,
+    WEFTEND_360_AUDIT_STRICT: "1",
+  };
+  const res = spawnSync(process.execPath, ["scripts/verify_360_audit.js"], {
+    cwd: root,
+    env,
+    stdio: "inherit",
+    windowsHide: true,
+  });
+  return typeof res.status === "number" ? res.status : 1;
+};
 
 const main = () => {
   ensureDir(historyRoot);
@@ -215,6 +229,8 @@ const main = () => {
     reasonCodes.includes(`VERIFY360_FAIL_CLOSED_AT_${String(receiptC.interpreted?.gateState || "").toUpperCase()}`),
     "VERIFY360_HARNESS_FAIL_CLOSED_AT_REASON_MISSING"
   );
+  const auditStatus = runAuditStrict();
+  assert(auditStatus === 0, `VERIFY360_HARNESS_AUDIT_STRICT_FAILED status=${auditStatus}`);
 
   console.log(
     `verify:360:harness PASS outRoot=${outRoot} beforeLatest=${beforeLatest || "NONE"} passRun=${runA} replayRun=${runB} forcedRun=${runC}`

@@ -91,6 +91,11 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   npm run verify:360
 - Optional corridor harness (pass/replay/forced-exception):
   npm run verify:360:harness
+- Optional history audit:
+  npm run verify:360:audit
+- Strict history audit (warnings fail):
+  npm run verify:360:audit:strict
+- Note: non-strict audit may report legacy warnings on older history runs.
 - This runs a full 360 verification pass (compile, test, proofcheck, deterministic replay, privacy lint, compare smoke).
 - It always writes a verification receipt/report, including PARTIAL/FAIL outcomes:
   - out/verify_360/history/run_<seq>/verify_360_receipt.json

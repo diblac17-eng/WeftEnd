@@ -40,6 +40,9 @@ Included
 - harness now uses isolated output root per run and enforces first run idempotence mode `NEW`.
 - History chain now includes deterministic `historyLinkDigest`, mirrored in evidence-chain links and asserted by harness.
 - Harness now also asserts stable-sorted receipt reason codes and capability-ledger set/status integrity.
+- Added `verify:360:audit` command to validate history folder integrity (receipt/report/manifest, digests, and chain links).
+- Added strict audit mode `verify:360:audit:strict` (fails on warnings/legacy gaps).
+- Non-strict audit is backward-compatible and reports legacy gaps as warnings.
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)

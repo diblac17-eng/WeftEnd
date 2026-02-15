@@ -12,7 +12,9 @@
     "clean-loop": "node -e \"const {spawnSync}=require('child_process');const env={...process.env,WEFTEND_ALLOW_SKIP_RELEASE:'1'};const npmCli=env.npm_execpath||'';if(!npmCli){console.error('Missing npm_execpath.');process.exit(1);}const run=(args)=>{const r=spawnSync(process.execPath,[npmCli,...args],{stdio:'inherit',env});if(r.status!==0)process.exit(r.status||1);};run(['run','clean']);run(['run','loop']);\"",
     "release-loop": "node -e \"const {spawnSync}=require('child_process');const env={...process.env};if(!env.WEFTEND_RELEASE_DIR){console.error('Missing WEFTEND_RELEASE_DIR. Set it to a release folder path before running npm run release-loop.');process.exit(1);}const npmCli=env.npm_execpath||'';if(!npmCli){console.error('Missing npm_execpath.');process.exit(1);}console.log(`WEFTEND_RELEASE_DIR=${env.WEFTEND_RELEASE_DIR}`);const run=(args)=>{const r=spawnSync(process.execPath,[npmCli,...args],{stdio:'inherit',env});if(r.status!==0)process.exit(r.status||1);};run(['run','compile','--silent']);run(['test']);run(['run','proofcheck']);\"",
     "verify:360": "node scripts/verify_360.js",
-    "verify:360:harness": "node scripts/verify_360_harness.js"
+    "verify:360:harness": "node scripts/verify_360_harness.js",
+    "verify:360:audit": "node scripts/verify_360_audit.js",
+    "verify:360:audit:strict": "node -e \"const {spawnSync}=require('child_process');const env={...process.env,WEFTEND_360_AUDIT_STRICT:'1'};const r=spawnSync(process.execPath,['scripts/verify_360_audit.js'],{stdio:'inherit',env});process.exit(r.status||0);\""
   },
   "devDependencies": {
     "typescript": "5.9.3"

@@ -72,10 +72,17 @@ Core rule
    - top-level `reasonCodes` must be stable-sorted/unique
    - capability ledger requested/decisions sets must match exactly
    - each capability decision status must be `GRANTED` or `DENIED`
+19. History audit validates run-folder integrity:
+   - receipt/report/manifest presence and digest integrity
+   - history chain continuity and prior-receipt digest links
+   - strict mode can fail on legacy warnings
+   - non-strict mode permits legacy warning-only runs for backward compatibility
 
 Command
 - `npm run verify:360`
 - `npm run verify:360:harness` (replay + forced-exception corridor validation)
+- `npm run verify:360:audit` (history integrity audit)
+- `npm run verify:360:audit:strict` (strict audit; warnings fail)
 - Fault-injection check (optional): `WEFTEND_360_FORCE_EXCEPTION=1 node scripts/verify_360.js`
   - Expected: exit 1 with fail receipt/report written and no `latest.txt` advance.
 - Optional output root override for isolated runs:
