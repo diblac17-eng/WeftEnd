@@ -372,8 +372,13 @@ const runSafeRunCli = async (args: string[]): Promise<number> => {
   const pluginValues: string[] = [];
   for (let i = 0; i < args.length; i += 1) {
     if (args[i] !== "--enable-plugin") continue;
-    const value = i + 1 < args.length ? String(args[i + 1] || "").trim() : "";
-    if (value.length > 0) pluginValues.push(value);
+    const raw = i + 1 < args.length ? String(args[i + 1] || "") : "";
+    const value = raw.trim();
+    if (value.length === 0 || value.startsWith("--")) {
+      console.error("[INPUT_INVALID] --enable-plugin requires a plugin name.");
+      return 40;
+    }
+    pluginValues.push(value);
   }
   const adapterValue = String((flags["adapter"] as string) || "auto").trim().toLowerCase();
   const adapter = (adapterValue === "" ? "auto" : adapterValue) as

@@ -78,6 +78,14 @@ const run = async (): Promise<void> => {
 
   {
     const outDir = mkTmp();
+    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive", "--enable-plugin"]);
+    assertEq(res.status, 40, "safe-run should fail closed when --enable-plugin value is missing");
+    assert(res.stderr.includes("INPUT_INVALID"), "expected INPUT_INVALID on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
     const tmp = mkTmp();
     const input = path.join(tmp, "doc_with_signals.pdf");
     fs.writeFileSync(input, "macro javascript EmbeddedFile http://example.test", "utf8");

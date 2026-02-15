@@ -11,6 +11,7 @@ Hard rules
 2) Explicit enable only
 - Plugin paths activate only with explicit `--enable-plugin <name>`.
 - Plugin names are recorded in adapter metadata and reason codes.
+- Missing plugin names are invalid input and fail closed.
 
 3) Local-only behavior
 - Plugin commands must run locally and read-only for the target artifact.
