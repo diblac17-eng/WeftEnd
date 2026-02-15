@@ -97,6 +97,11 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   npm run verify:360:audit:strict
 - Note: non-strict audit may report legacy warnings on older history runs.
 - This runs a full 360 verification pass (compile, test, proofcheck, deterministic replay, privacy lint, compare smoke).
+- `verify:360` also runs a built-in non-strict history audit pass:
+  - audit errors fail the gate
+  - legacy history warnings are surfaced without forcing strict failure
+- To enforce strict warning-fail behavior inside `verify:360`, set:
+  WEFTEND_360_AUDIT_STRICT=1
 - It always writes a verification receipt/report, including PARTIAL/FAIL outcomes:
   - out/verify_360/history/run_<seq>/verify_360_receipt.json
   - out/verify_360/history/run_<seq>/verify_360_report.txt

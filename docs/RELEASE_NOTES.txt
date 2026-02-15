@@ -43,6 +43,8 @@ Included
 - Added `verify:360:audit` command to validate history folder integrity (receipt/report/manifest, digests, and chain links).
 - Added strict audit mode `verify:360:audit:strict` (fails on warnings/legacy gaps).
 - Non-strict audit is backward-compatible and reports legacy gaps as warnings.
+- `verify:360` now runs a built-in non-strict history audit pass and fails on audit errors (`VERIFY360_HISTORY_AUDIT_FAILED`).
+- Legacy history warnings are surfaced deterministically (`VERIFY360_HISTORY_AUDIT_WARNINGS_PRESENT`) without forcing strict-mode failure by default.
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)

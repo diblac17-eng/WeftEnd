@@ -41,6 +41,7 @@ const CAPABILITY_REQUESTS = [
   "output.update_latest_pointer",
   "output.write_receipt",
   "runtime.privacy_lint",
+  "verify360.history_audit",
 ];
 const VERIFY360_EXPLAIN_VERSION = "weftend.verify360Explain/0";
 const VERDICT_EXPLANATIONS = {
@@ -273,6 +274,35 @@ const runCommand = (label, cmd, args, envExtra = {}) => {
     ok: status === 0,
     exitCode: status,
   };
+};
+
+const runCommandCapture = (label, cmd, args, envExtra = {}) => {
+  const env = { ...process.env, ...envExtra };
+  const res = spawnSync(cmd, args, {
+    cwd: root,
+    encoding: "utf8",
+    env,
+    windowsHide: true,
+  });
+  const stdout = String(res.stdout || "");
+  const stderr = String(res.stderr || "");
+  if (stdout.length > 0) process.stdout.write(stdout);
+  if (stderr.length > 0) process.stderr.write(stderr);
+  const status = typeof res.status === "number" ? res.status : 1;
+  return {
+    label,
+    ok: status === 0,
+    exitCode: status,
+    stdout,
+    stderr,
+  };
+};
+
+const parseAuditWarnings = (stdoutText) => {
+  const m = String(stdoutText || "").match(/\bwarnings=([0-9]+)\b/);
+  if (!m) return 0;
+  const n = Number.parseInt(m[1], 10);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
 };
 
 const gitChangedFiles = () => {
@@ -921,6 +951,28 @@ const main = () => {
     }
   }
   advanceState("DETERMINISM_DONE");
+
+  // Full-spin history audit: fail on integrity errors, surface warnings deterministically.
+  const audit = runCommandCapture("history-audit", process.execPath, ["scripts/verify_360_audit.js"], {
+    WEFTEND_360_OUT_ROOT: OUT_ROOT,
+    WEFTEND_360_AUDIT_ALLOW_EMPTY: "1",
+    WEFTEND_360_AUDIT_SUMMARY_ONLY: "1",
+  });
+  const auditWarningCount = parseAuditWarnings(audit.stdout);
+  const auditReasons = [];
+  if (!audit.ok) auditReasons.push("VERIFY360_HISTORY_AUDIT_FAILED");
+  if (audit.ok && auditWarningCount > 0) auditReasons.push("VERIFY360_HISTORY_AUDIT_WARNINGS_PRESENT");
+  addStep({
+    id: "history_audit",
+    status: audit.ok ? "PASS" : "FAIL",
+    exitCode: audit.exitCode,
+    reasonCodes: auditReasons,
+    details: {
+      warningCount: auditWarningCount,
+      strictMode: process.env.WEFTEND_360_AUDIT_STRICT === "1" ? 1 : 0,
+    },
+  });
+  recordCapability("verify360.history_audit", audit.ok, auditReasons);
 
   const statuses = steps.map((s) => s.status);
   const hasFail = statuses.includes("FAIL");

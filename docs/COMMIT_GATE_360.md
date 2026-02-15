@@ -77,6 +77,11 @@ Core rule
    - history chain continuity and prior-receipt digest links
    - strict mode can fail on legacy warnings
    - non-strict mode permits legacy warning-only runs for backward compatibility
+20. `verify:360` includes an internal non-strict history audit pass:
+   - audit errors fail the gate (`VERIFY360_HISTORY_AUDIT_FAILED`)
+   - legacy warnings are surfaced as reason codes (`VERIFY360_HISTORY_AUDIT_WARNINGS_PRESENT`) without forcing strict-mode failure
+   - pre-write first-run lanes allow empty history (`WEFTEND_360_AUDIT_ALLOW_EMPTY=1`) so new isolated roots fail only on real integrity errors
+   - strict behavior remains available via `WEFTEND_360_AUDIT_STRICT=1`
 
 Command
 - `npm run verify:360`

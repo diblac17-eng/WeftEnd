@@ -11,6 +11,8 @@ const outRoot = process.env.WEFTEND_360_OUT_ROOT
   : path.join(root, "out", "verify_360");
 const historyRoot = path.join(outRoot, "history");
 const strictMode = process.env.WEFTEND_360_AUDIT_STRICT === "1";
+const allowEmptyHistory = process.env.WEFTEND_360_AUDIT_ALLOW_EMPTY === "1";
+const summaryOnly = process.env.WEFTEND_360_AUDIT_SUMMARY_ONLY === "1";
 
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const stableSortUnique = (items) =>
@@ -90,6 +92,12 @@ const main = () => {
     .sort(cmp);
 
   if (runs.length === 0) {
+    if (allowEmptyHistory) {
+      console.log(
+        `verify:360:audit PASS outRoot=${outRoot} runs=0 warnings=0 strict=${strictMode ? "1" : "0"}`
+      );
+      process.exit(0);
+    }
     fail("VERIFY360_AUDIT_NO_RUNS", historyRoot, errors);
   }
 
@@ -197,7 +205,9 @@ const main = () => {
     }
   }
 
-  warnings.forEach((w) => console.error(`WARN ${w.code}: ${w.detail}`));
+  if (!summaryOnly) {
+    warnings.forEach((w) => console.error(`WARN ${w.code}: ${w.detail}`));
+  }
   if (errors.length > 0) {
     errors.forEach((e) => console.error(`${e.code}: ${e.detail}`));
     process.exit(1);
