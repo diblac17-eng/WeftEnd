@@ -329,6 +329,49 @@ const run = (): void => {
     assert((res.summary?.counts.sbomPresent ?? 0) === 1, "sbom present flag mismatch");
     assert((res.summary?.counts.sbomPackageCount ?? 0) === 3, "sbom package count mismatch");
   }
+
+  {
+    const tmp = mkTmp();
+    const pem = path.join(tmp, "chain.pem");
+    fs.writeFileSync(
+      pem,
+      [
+        "-----BEGIN CERTIFICATE-----",
+        "MIIB",
+        "-----END CERTIFICATE-----",
+        "-----BEGIN CERTIFICATE-----",
+        "MIIC",
+        "-----END CERTIFICATE-----",
+        "# timestamp countersignature present",
+      ].join("\n"),
+      "utf8"
+    );
+    const capture = captureTreeV0(pem, limits);
+    const res = runArtifactAdapterV1({ selection: "signature", enabledPlugins: [], inputPath: pem, capture });
+    assert(res.ok, "signature adapter should parse pem chain");
+    assertEq(res.summary?.sourceClass, "signature", "signature class mismatch");
+    assert((res.summary?.counts.pemCertificateCount ?? 0) === 2, "pem certificate count mismatch");
+    assert((res.summary?.counts.chainPresent ?? 0) === 1, "chain presence flag mismatch");
+    assert((res.summary?.counts.timestampPresent ?? 0) === 1, "timestamp presence flag mismatch");
+    assert((res.summary?.reasonCodes ?? []).includes("SIGNER_PRESENT"), "missing SIGNER_PRESENT reason");
+  }
+
+  {
+    const tmp = mkTmp();
+    const p7b = path.join(tmp, "sample.p7b");
+    const bytes = Buffer.concat([
+      Buffer.from([0x30, 0x82, 0x00, 0x10]),
+      Buffer.from([0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x07, 0x02]), // cms signedData oid
+      Buffer.from([0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x08]), // timestamp EKU oid
+    ]);
+    fs.writeFileSync(p7b, bytes);
+    const capture = captureTreeV0(p7b, limits);
+    const res = runArtifactAdapterV1({ selection: "signature", enabledPlugins: [], inputPath: p7b, capture });
+    assert(res.ok, "signature adapter should parse binary oid hints");
+    assert((res.summary?.counts.cmsSignedDataOidCount ?? 0) > 0, "cms signedData oid count missing");
+    assert((res.summary?.counts.timestampOidCount ?? 0) > 0, "timestamp oid count missing");
+    assert((res.summary?.counts.signerPresent ?? 0) === 1, "signer presence should be set");
+  }
 };
 
 try {

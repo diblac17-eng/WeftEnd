@@ -26,6 +26,9 @@ Included
 - OCI layout counts now include manifest and blob counts.
 - Container tarball detection can use tar entry metadata (`manifest.json` + `repositories`) for local tar inputs.
 - SBOM JSON parsing now emits bounded package/component counts when present.
+- Signature/cert adapter extraction deepened:
+- Deterministic PEM block counting for certificate/PKCS7/signature material.
+- Binary OID hint counts added for CMS signedData and timestamp EKU indicators.
 - Container scan now emits adapter metadata/signals plus adapter artifacts using the same deterministic contract as safe-run adapters.
 - Container scan evidence remains local-only inspect data and excludes unstable fields (timestamps/raw env/path values).
 - Wave coverage now includes:

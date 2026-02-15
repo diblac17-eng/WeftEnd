@@ -564,6 +564,43 @@ const readJsonBounded = (filePath: string): unknown | null => {
   }
 };
 
+const readBytesBounded = (filePath: string, maxBytes: number = MAX_TEXT_BYTES): any => {
+  try {
+    const stat = fs.statSync(filePath);
+    if (!Number.isFinite(stat.size) || stat.size <= 0) return Buffer.alloc(0);
+    const bytes = Math.min(Math.floor(stat.size), Math.floor(maxBytes));
+    const fd = fs.openSync(filePath, "r");
+    const buf = Buffer.alloc(bytes);
+    const read = fs.readSync(fd, buf, 0, bytes, 0);
+    fs.closeSync(fd);
+    if (read <= 0) return Buffer.alloc(0);
+    return Buffer.from(buf.subarray(0, read));
+  } catch {
+    return Buffer.alloc(0);
+  }
+};
+
+const countBufferPatternV1 = (haystack: any, needle: any): number => {
+  if (!haystack || !needle) return 0;
+  if (needle.length <= 0 || haystack.length < needle.length) return 0;
+  let count = 0;
+  let offset = 0;
+  while (offset <= haystack.length - needle.length) {
+    const idx = haystack.indexOf(needle, offset);
+    if (idx < 0) break;
+    count += 1;
+    offset = idx + 1;
+    if (count >= 100000) break;
+  }
+  return count;
+};
+
+const countPemBlocksV1 = (text: string, label: string): number => {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`-----BEGIN\\s+${escaped}-----[\\s\\S]*?-----END\\s+${escaped}-----`, "g");
+  return countMatchesV1(text, re);
+};
+
 const countMatchesV1 = (text: string, pattern: RegExp): number => {
   const flags = pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`;
   const re = new RegExp(pattern.source, flags);
@@ -1344,13 +1381,34 @@ const analyzeSignature = (ctx: AnalyzeCtx): AnalyzeResult => {
     };
   }
   const text = readTextBounded(ctx.inputPath);
-  const signerPresent = /BEGIN CERTIFICATE|BEGIN PKCS7|BEGIN SIGNATURE/i.test(text);
-  const chainPresent = /BEGIN CERTIFICATE[\s\S]*BEGIN CERTIFICATE/i.test(text);
-  const timestampPresent = /timestamp|tsa/i.test(text);
+  const bytes = readBytesBounded(ctx.inputPath);
+  const pemCertificateCount = countPemBlocksV1(text, "CERTIFICATE");
+  const pemPkcs7Count = countPemBlocksV1(text, "PKCS7");
+  const pemSignatureCount = countPemBlocksV1(text, "SIGNATURE");
+  const textualTimestampCount = countMatchesV1(text, /\b(timestamp|time[\s_-]?stamp|tsa|countersignature)\b/gi);
+  const textualChainHintCount = countMatchesV1(text, /\b(certificate[\s_-]?chain|intermediate|root[\s_-]?ca)\b/gi);
+
+  const OID_CMS_SIGNED_DATA = Buffer.from([0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x07, 0x02]); // 1.2.840.113549.1.7.2
+  const OID_TIMESTAMP_EKU = Buffer.from([0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x08]); // 1.3.6.1.5.5.7.3.8
+  const cmsSignedDataOidCount = countBufferPatternV1(bytes, OID_CMS_SIGNED_DATA);
+  const timestampOidCount = countBufferPatternV1(bytes, OID_TIMESTAMP_EKU);
+
+  const signerPresent =
+    pemCertificateCount + pemPkcs7Count + pemSignatureCount + cmsSignedDataOidCount > 0 ||
+    /BEGIN CERTIFICATE|BEGIN PKCS7|BEGIN SIGNATURE/i.test(text);
+  const chainPresent = pemCertificateCount >= 2 || textualChainHintCount > 0;
+  const timestampPresent = textualTimestampCount > 0 || timestampOidCount > 0;
   const reasons = ["SIGNATURE_EVIDENCE_V1"];
+  const markers: string[] = [];
+  if (bytes.length >= MAX_TEXT_BYTES) markers.push("SIGNATURE_BOUNDED");
+  if (!signerPresent && text.length === 0 && bytes.length > 0) markers.push("SIGNATURE_PARSE_PARTIAL");
   if (signerPresent) reasons.push("SIGNER_PRESENT");
   if (chainPresent) reasons.push("CHAIN_PRESENT");
   if (timestampPresent) reasons.push("TIMESTAMP_PRESENT");
+  const findingCodes: string[] = [];
+  if (signerPresent) findingCodes.push("SIGNER_PRESENT");
+  if (chainPresent) findingCodes.push("CHAIN_PRESENT");
+  if (timestampPresent) findingCodes.push("TIMESTAMP_PRESENT");
   return {
     ok: true,
     sourceClass: "signature",
@@ -1361,10 +1419,17 @@ const analyzeSignature = (ctx: AnalyzeCtx): AnalyzeResult => {
       signerPresent: signerPresent ? 1 : 0,
       chainPresent: chainPresent ? 1 : 0,
       timestampPresent: timestampPresent ? 1 : 0,
+      pemCertificateCount,
+      pemPkcs7Count,
+      pemSignatureCount,
+      cmsSignedDataOidCount,
+      timestampTokenCount: textualTimestampCount,
+      timestampOidCount,
+      chainHintCount: textualChainHintCount,
     },
-    markers: [],
+    markers: stableSortUniqueStringsV0(markers),
     reasonCodes: stableSortUniqueReasonsV0(reasons),
-    findingCodes: stableSortUniqueReasonsV0(reasons.filter((code) => code !== "SIGNATURE_EVIDENCE_V1")),
+    findingCodes: stableSortUniqueReasonsV0(findingCodes),
   };
 };
 
