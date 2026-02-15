@@ -374,7 +374,11 @@ const buildResult = (requestRaw: unknown): ShadowResult => {
   const events = parseEvents(stream?.events, state);
   state.events = events;
 
-  const policyObj = req.policy && typeof req.policy === "object" && !Array.isArray(req.policy) ? (req.policy as JsonObject) : undefined;
+  const policyRaw = (req as JsonObject).policy;
+  if (typeof policyRaw !== "undefined" && (!policyRaw || typeof policyRaw !== "object" || Array.isArray(policyRaw))) {
+    state.reasons.add("SHADOW_AUDIT_SCHEMA_INVALID");
+  }
+  const policyObj = policyRaw && typeof policyRaw === "object" && !Array.isArray(policyRaw) ? (policyRaw as JsonObject) : undefined;
   if (policyObj && hasUnknownKeys(policyObj, POLICY_KEYS)) state.reasons.add("SHADOW_AUDIT_SCHEMA_INVALID");
   const deny = policyObj?.denyThresholds;
   if (deny && typeof deny === "object" && !Array.isArray(deny) && hasUnknownKeys(deny as JsonObject, DENY_THRESHOLD_KEYS)) {

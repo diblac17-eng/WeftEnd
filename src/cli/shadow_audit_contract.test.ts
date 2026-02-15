@@ -66,6 +66,12 @@ const run = async (): Promise<void> => {
       status: 40,
     },
     {
+      name: "schema_invalid_policy_type",
+      req: "schema_invalid_policy_type_request.json",
+      expected: "schema_invalid_policy_type_expected.json",
+      status: 40,
+    },
+    {
       name: "schema_invalid_event_unknown_key",
       req: "schema_invalid_event_unknown_key_request.json",
       expected: "schema_invalid_event_unknown_key_expected.json",
