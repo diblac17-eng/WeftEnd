@@ -10,6 +10,7 @@ declare const Buffer: any;
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const childProcess = require("child_process");
 
 const assert = (cond: boolean, msg: string): void => {
   if (!cond) throw new Error(msg);
@@ -20,6 +21,19 @@ const assertEq = (actual: unknown, expected: unknown, msg: string): void => {
 };
 
 const mkTmp = (): string => fs.mkdtempSync(path.join(os.tmpdir(), "weftend-adapter-v1-"));
+
+const runCmd = (cmd: string, args: string[], cwd?: string): { ok: boolean; stdout: string; stderr: string } => {
+  const res = childProcess.spawnSync(cmd, args, {
+    cwd: cwd || process.cwd(),
+    encoding: "utf8",
+    windowsHide: true,
+  });
+  return {
+    ok: typeof res.status === "number" && res.status === 0,
+    stdout: String(res.stdout || ""),
+    stderr: String(res.stderr || ""),
+  };
+};
 
 const writeStoredZip = (outPath: string, files: Array<{ name: string; text: string }>): void => {
   const localParts: any[] = [];
@@ -371,6 +385,41 @@ const run = (): void => {
     assert((res.summary?.counts.cmsSignedDataOidCount ?? 0) > 0, "cms signedData oid count missing");
     assert((res.summary?.counts.timestampOidCount ?? 0) > 0, "timestamp oid count missing");
     assert((res.summary?.counts.signerPresent ?? 0) === 1, "signer presence should be set");
+  }
+
+  {
+    const tmp = mkTmp();
+    const repo = path.join(tmp, "repo");
+    fs.mkdirSync(repo, { recursive: true });
+    const gitAvailable = runCmd("git", ["--version"]).ok;
+    if (!gitAvailable) {
+      fs.mkdirSync(path.join(repo, ".git"), { recursive: true });
+      fs.writeFileSync(path.join(repo, "a.txt"), "x", "utf8");
+      const capture = captureTreeV0(repo, limits);
+      const res = runArtifactAdapterV1({ selection: "scm", enabledPlugins: [], inputPath: repo, capture });
+      assert(res.ok, "scm adapter should still produce unresolved evidence without git binary");
+      assertEq(res.summary?.counts.commitResolved, 0, "commit should be unresolved without git");
+    } else {
+      assert(runCmd("git", ["init"], repo).ok, "git init failed");
+      fs.writeFileSync(path.join(repo, "a.txt"), "x", "utf8");
+      assert(runCmd("git", ["add", "a.txt"], repo).ok, "git add failed");
+      assert(
+        runCmd(
+          "git",
+          ["-c", "user.name=weft", "-c", "user.email=weft@example.invalid", "-c", "commit.gpgSign=false", "commit", "-m", "init"],
+          repo
+        ).ok,
+        "git commit failed"
+      );
+      const capture = captureTreeV0(repo, limits);
+      const res = runArtifactAdapterV1({ selection: "scm", enabledPlugins: [], inputPath: repo, capture });
+      assert(res.ok, "scm adapter should capture git repo evidence");
+      assertEq(res.summary?.sourceClass, "scm", "scm source class mismatch");
+      assertEq(res.summary?.counts.commitResolved, 1, "commit should resolve");
+      assert((res.summary?.counts.treeEntryCount ?? 0) >= 1, "tree entry count missing");
+      assert((res.summary?.counts.branchRefCount ?? 0) >= 1, "branch ref count missing");
+      assert((res.summary?.reasonCodes ?? []).includes("SCM_TREE_CAPTURED"), "missing SCM_TREE_CAPTURED reason");
+    }
   }
 };
 

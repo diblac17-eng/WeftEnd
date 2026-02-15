@@ -29,6 +29,8 @@ Included
 - Signature/cert adapter extraction deepened:
 - Deterministic PEM block counting for certificate/PKCS7/signature material.
 - Binary OID hint counts added for CMS signedData and timestamp EKU indicators.
+- SCM/source evidence adapter extraction deepened:
+- Deterministic repo counters now include tree entry count, branch/tag ref counts, detached HEAD indicator, and working-tree entry count.
 - Container scan now emits adapter metadata/signals plus adapter artifacts using the same deterministic contract as safe-run adapters.
 - Container scan evidence remains local-only inspect data and excludes unstable fields (timestamps/raw env/path values).
 - Wave coverage now includes:

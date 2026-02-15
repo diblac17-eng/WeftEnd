@@ -1341,6 +1341,12 @@ const analyzeScm = (ctx: AnalyzeCtx): AnalyzeResult => {
     };
   }
   const rev = runCommandLines("git", ["-C", ctx.inputPath, "rev-parse", "HEAD"]);
+  const markers: string[] = [];
+  const countWorkingTreeEntries = () =>
+    ctx.capture.entries
+      .map((entry) => String(entry.path || "").replace(/\\/g, "/"))
+      .filter((p) => p.length > 0 && !p.startsWith(".git/"))
+      .length;
   if (!rev.ok || rev.lines.length === 0) {
     return {
       ok: true,
@@ -1350,12 +1356,31 @@ const analyzeScm = (ctx: AnalyzeCtx): AnalyzeResult => {
       adapterId: "scm_adapter_v1",
       counts: {
         commitResolved: 0,
+        detachedHead: 0,
+        treeEntryCount: 0,
+        branchRefCount: 0,
+        tagRefCount: 0,
+        workingTreeEntryCount: countWorkingTreeEntries(),
       },
-      markers: [],
+      markers,
       reasonCodes: stableSortUniqueReasonsV0(["SCM_ADAPTER_V1", "SCM_REF_UNRESOLVED"]),
       findingCodes: stableSortUniqueReasonsV0(["SCM_REF_UNRESOLVED"]),
     };
   }
+  const branch = runCommandLines("git", ["-C", ctx.inputPath, "rev-parse", "--abbrev-ref", "HEAD"]);
+  const headDetached = branch.ok && branch.lines[0] === "HEAD" ? 1 : 0;
+  if (!branch.ok || branch.lines.length === 0) markers.push("SCM_REF_PARTIAL");
+
+  const tree = runCommandLines("git", ["-C", ctx.inputPath, "ls-tree", "-r", "--name-only", "HEAD"]);
+  const treeEntryCount = tree.ok ? tree.lines.length : 0;
+  if (!tree.ok) markers.push("SCM_TREE_PARTIAL");
+
+  const branches = runCommandLines("git", ["-C", ctx.inputPath, "for-each-ref", "--format=%(refname:short)", "refs/heads"]);
+  const tags = runCommandLines("git", ["-C", ctx.inputPath, "for-each-ref", "--format=%(refname:short)", "refs/tags"]);
+  const branchRefCount = branches.ok ? branches.lines.length : 0;
+  const tagRefCount = tags.ok ? tags.lines.length : 0;
+  if (!branches.ok || !tags.ok) markers.push("SCM_REFS_PARTIAL");
+
   return {
     ok: true,
     sourceClass: "scm",
@@ -1364,8 +1389,13 @@ const analyzeScm = (ctx: AnalyzeCtx): AnalyzeResult => {
     adapterId: "scm_adapter_v1",
     counts: {
       commitResolved: 1,
+      detachedHead: headDetached,
+      treeEntryCount,
+      branchRefCount,
+      tagRefCount,
+      workingTreeEntryCount: countWorkingTreeEntries(),
     },
-    markers: [],
+    markers: stableSortUniqueStringsV0(markers),
     reasonCodes: stableSortUniqueReasonsV0(["SCM_ADAPTER_V1", "SCM_TREE_CAPTURED"]),
     findingCodes: stableSortUniqueReasonsV0(["SCM_TREE_CAPTURED"]),
   };
