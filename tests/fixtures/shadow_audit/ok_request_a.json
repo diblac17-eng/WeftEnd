@@ -1,0 +1,16 @@
+{
+  "schema": "weftend.shadowAudit.request/0",
+  "v": 0,
+  "rulesetId": "SHADOW_RULESET_V0",
+  "stream": {
+    "schema": "weftend.shadowAudit.stream/0",
+    "v": 0,
+    "events": [
+      { "seq": 1, "kind": "STATE_CHECK", "side": "expected", "data": { "code": "CHECK_A" } },
+      { "seq": 1, "kind": "STATE_CHECK", "side": "observed", "data": { "code": "CHECK_A" } },
+      { "seq": 2, "kind": "CAP_REQUEST", "data": { "capId": "cap.read" } },
+      { "seq": 3, "kind": "CAP_ALLOW", "data": { "capId": "cap.read", "evidenceOk": true, "reasonCodes": ["RC_OK"] } }
+    ]
+  }
+}
+
