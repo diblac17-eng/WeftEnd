@@ -38,7 +38,7 @@ S2 - Privacy bounded
 - No stable identifiers. No timestamps. No untrusted strings.
 
 S3 - Bounded
-- Hard caps on events, keys, and strings. Deterministic truncation drops oldest.
+- Hard caps on events, keys, and strings. Deterministic truncation drops tail events (highest `seq` after canonical ordering).
 
 S4 - Proof-only outputs
 - Outputs are counts + reason families + Tartarus kind counts only.

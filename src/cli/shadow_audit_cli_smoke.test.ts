@@ -139,6 +139,20 @@ const run = async (): Promise<void> => {
 
   {
     const dir = mkTmp();
+    const req = writeJson(
+      dir,
+      "threshold_warn.json",
+      baseRequest([{ seq: 10, kind: "STATE_CHECK", side: "expected", data: { code: "CHECK_ONLY_EXPECTED" } }])
+    );
+    const res = await runCliCapture(["shadow-audit", req]);
+    assertEq(res.status, 0, "missing without deny threshold should warn but not fail closed");
+    const parsed = JSON.parse(res.stdout);
+    assertEq(parsed.status, "WARN", "status should be WARN when mismatch exists without deny threshold");
+    assert(parsed.reasonFamilies.includes("SHADOW_AUDIT_MISSING"), "expected SHADOW_AUDIT_MISSING");
+  }
+
+  {
+    const dir = mkTmp();
     const events = [];
     for (let i = 0; i < 520; i += 1) events.push({ seq: i, kind: "STREAM_EVENT" });
     const req = writeJson(dir, "bounded.json", baseRequest(events));
@@ -147,6 +161,20 @@ const run = async (): Promise<void> => {
     const parsed = JSON.parse(res.stdout);
     assertEq(parsed.counts.events, 512, "events should be truncated to max");
     assert(parsed.reasonFamilies.includes("SHADOW_AUDIT_BOUNDS_EXCEEDED"), "expected SHADOW_AUDIT_BOUNDS_EXCEEDED");
+  }
+
+  {
+    const dir = mkTmp();
+    const events = [];
+    for (let i = 0; i < 512; i += 1) events.push({ seq: i, kind: "COMMON_EVENT" });
+    events.push({ seq: 999999, kind: "TAIL_ONLY_EVENT" });
+    const req = writeJson(dir, "tail_drop.json", baseRequest(events));
+    const res = await runCliCapture(["shadow-audit", req]);
+    assertEq(res.status, 40, "bounds-exceeded truncation request should fail closed");
+    const parsed = JSON.parse(res.stdout);
+    assertEq(parsed.counts.events, 512, "events should remain bounded at 512");
+    assertEq(Number(parsed.tartarusKindCounts?.TAIL_ONLY_EVENT || 0), 0, "highest-seq tail event must be dropped");
+    assertEq(Number(parsed.tartarusKindCounts?.COMMON_EVENT || 0), 512, "common event count should remain deterministic");
   }
 };
 
