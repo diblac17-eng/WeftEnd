@@ -72,6 +72,12 @@ const run = async (): Promise<void> => {
       expected: "bounds_event_keys_expected.json",
       status: 40,
     },
+    {
+      name: "tartarus_bounds",
+      req: "tartarus_bounds_request.json",
+      expected: "tartarus_bounds_expected.json",
+      status: 40,
+    },
     { name: "cap_warn", req: "cap_warn_request.json", expected: "cap_warn_expected.json", status: 0 },
     { name: "sequence_warn", req: "sequence_warn_request.json", expected: "sequence_warn_expected.json", status: 0 },
     {

@@ -1,0 +1,171 @@
+{
+    "schema":  "weftend.shadowAudit.request/0",
+    "v":  0,
+    "rulesetId":  "SHADOW_RULESET_V0",
+    "stream":  {
+                   "schema":  "weftend.shadowAudit.stream/0",
+                   "v":  0,
+                   "events":  [
+                                  {
+                                      "seq":  0,
+                                      "kind":  "KIND_00"
+                                  },
+                                  {
+                                      "seq":  1,
+                                      "kind":  "KIND_01"
+                                  },
+                                  {
+                                      "seq":  2,
+                                      "kind":  "KIND_02"
+                                  },
+                                  {
+                                      "seq":  3,
+                                      "kind":  "KIND_03"
+                                  },
+                                  {
+                                      "seq":  4,
+                                      "kind":  "KIND_04"
+                                  },
+                                  {
+                                      "seq":  5,
+                                      "kind":  "KIND_05"
+                                  },
+                                  {
+                                      "seq":  6,
+                                      "kind":  "KIND_06"
+                                  },
+                                  {
+                                      "seq":  7,
+                                      "kind":  "KIND_07"
+                                  },
+                                  {
+                                      "seq":  8,
+                                      "kind":  "KIND_08"
+                                  },
+                                  {
+                                      "seq":  9,
+                                      "kind":  "KIND_09"
+                                  },
+                                  {
+                                      "seq":  10,
+                                      "kind":  "KIND_10"
+                                  },
+                                  {
+                                      "seq":  11,
+                                      "kind":  "KIND_11"
+                                  },
+                                  {
+                                      "seq":  12,
+                                      "kind":  "KIND_12"
+                                  },
+                                  {
+                                      "seq":  13,
+                                      "kind":  "KIND_13"
+                                  },
+                                  {
+                                      "seq":  14,
+                                      "kind":  "KIND_14"
+                                  },
+                                  {
+                                      "seq":  15,
+                                      "kind":  "KIND_15"
+                                  },
+                                  {
+                                      "seq":  16,
+                                      "kind":  "KIND_16"
+                                  },
+                                  {
+                                      "seq":  17,
+                                      "kind":  "KIND_17"
+                                  },
+                                  {
+                                      "seq":  18,
+                                      "kind":  "KIND_18"
+                                  },
+                                  {
+                                      "seq":  19,
+                                      "kind":  "KIND_19"
+                                  },
+                                  {
+                                      "seq":  20,
+                                      "kind":  "KIND_20"
+                                  },
+                                  {
+                                      "seq":  21,
+                                      "kind":  "KIND_21"
+                                  },
+                                  {
+                                      "seq":  22,
+                                      "kind":  "KIND_22"
+                                  },
+                                  {
+                                      "seq":  23,
+                                      "kind":  "KIND_23"
+                                  },
+                                  {
+                                      "seq":  24,
+                                      "kind":  "KIND_24"
+                                  },
+                                  {
+                                      "seq":  25,
+                                      "kind":  "KIND_25"
+                                  },
+                                  {
+                                      "seq":  26,
+                                      "kind":  "KIND_26"
+                                  },
+                                  {
+                                      "seq":  27,
+                                      "kind":  "KIND_27"
+                                  },
+                                  {
+                                      "seq":  28,
+                                      "kind":  "KIND_28"
+                                  },
+                                  {
+                                      "seq":  29,
+                                      "kind":  "KIND_29"
+                                  },
+                                  {
+                                      "seq":  30,
+                                      "kind":  "KIND_30"
+                                  },
+                                  {
+                                      "seq":  31,
+                                      "kind":  "KIND_31"
+                                  },
+                                  {
+                                      "seq":  32,
+                                      "kind":  "KIND_32"
+                                  },
+                                  {
+                                      "seq":  33,
+                                      "kind":  "KIND_33"
+                                  },
+                                  {
+                                      "seq":  34,
+                                      "kind":  "KIND_34"
+                                  },
+                                  {
+                                      "seq":  35,
+                                      "kind":  "KIND_35"
+                                  },
+                                  {
+                                      "seq":  36,
+                                      "kind":  "KIND_36"
+                                  },
+                                  {
+                                      "seq":  37,
+                                      "kind":  "KIND_37"
+                                  },
+                                  {
+                                      "seq":  38,
+                                      "kind":  "KIND_38"
+                                  },
+                                  {
+                                      "seq":  39,
+                                      "kind":  "KIND_39"
+                                  }
+                              ]
+               }
+}

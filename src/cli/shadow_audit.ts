@@ -392,10 +392,9 @@ const buildResult = (requestRaw: unknown): ShadowResult => {
     exceeds(capCounts.allowedWithoutEvidence, thresholds?.allowedWithoutEvidence) ||
     exceeds(capCounts.inconsistent, thresholds?.inconsistent);
 
+  const tartarusKindCounts = buildKindCounts(events, state);
   const denyReasons = ["SHADOW_AUDIT_SCHEMA_INVALID", "SHADOW_AUDIT_BOUNDS_EXCEEDED", "SHADOW_AUDIT_PRIVACY_FORBIDDEN"];
   const hardDenied = denyReasons.some((code) => state.reasons.has(code));
-
-  const tartarusKindCounts = buildKindCounts(events, state);
   let reasonFamilies = stableSortUnique(Array.from(state.reasons.values()));
   if (reasonFamilies.length > MAX_REASON_FAMILIES) {
     reasonFamilies = reasonFamilies.slice(0, MAX_REASON_FAMILIES);

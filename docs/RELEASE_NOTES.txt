@@ -57,6 +57,7 @@ Included
 - Shadow-audit fixture suite now also pins schema-invalid `streamNonce` and bounds-exceeded behavior (event count cap and per-event key cap).
 - Shadow-audit privacy guard now treats key aliases like `user_id` / `session-id` as forbidden identifier fields (fixture-pinned).
 - Shadow-audit privacy contracts now also pin hostname-in-value blocking and time-key alias blocking (`time_ms`), while preserving `capId` dotted tags (for example `cap.read`).
+- Shadow-audit fixture suite now pins tartarus kind-count bounds behavior (`max 32 kinds`, deterministic truncation, `SHADOW_AUDIT_BOUNDS_EXCEEDED`).
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)
