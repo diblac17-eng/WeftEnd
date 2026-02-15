@@ -1,0 +1,98 @@
+﻿WeftEnd Adapter Matrix (v1)
+
+Purpose
+- Define artifact adapter coverage for deterministic, analysis-only intake.
+- Clarify built-in versus optional plugin paths.
+- Keep operator expectations explicit: no implicit execution, no implicit network.
+
+Legend
+- Built-in: works without external tools.
+- Plugin: optional local tool path; must be explicitly enabled.
+- Mode: emitted in safe_run_receipt.adapter.mode.
+
+Adapter classes
+
+1) archive
+- Formats: .zip, .tar (built-in), .tar.gz/.tgz/.tar.bz2 (tar plugin), .7z (7z plugin)
+- Key reason codes:
+  ARCHIVE_ADAPTER_V1
+  ARCHIVE_TRUNCATED
+  ARCHIVE_UNSUPPORTED_FORMAT
+  ARCHIVE_PLUGIN_REQUIRED
+  ARCHIVE_PLUGIN_UNAVAILABLE
+
+2) package
+- Formats: .msi, .msix, .exe, .nupkg, .whl, .jar, .tar.gz/.tgz
+- Key reason codes:
+  PACKAGE_ADAPTER_V1
+  PACKAGE_METADATA_PARTIAL
+  PACKAGE_SIGNING_INFO_UNAVAILABLE
+  EXECUTION_WITHHELD_INSTALLER
+
+3) extension
+- Formats: .crx, .vsix, unpacked extension folder with manifest.json
+- Key reason codes:
+  EXTENSION_ADAPTER_V1
+  EXTENSION_MANIFEST_MISSING
+  EXTENSION_MANIFEST_INVALID
+  EXTENSION_EXTERNAL_REF_PRESENT
+
+4) iac / cicd (baseline signal lane)
+- Formats: Terraform, YAML/JSON config, workflow/pipeline definitions
+- Key reason codes:
+  IAC_ADAPTER_V1
+  IAC_PRIVILEGED_PATTERN
+  IAC_SECRET_REFERENCE_PATTERN
+  IAC_REMOTE_MODULE_REFERENCE
+  CICD_UNPINNED_ACTION
+  CICD_SECRET_CONTEXT_USAGE
+  CICD_EXTERNAL_RUNNER_REF
+
+5) document (baseline signal lane)
+- Formats: .pdf, .docm, .xlsm, .rtf, .chm
+- Key reason codes:
+  DOC_ADAPTER_V1
+  DOC_ACTIVE_CONTENT_PRESENT
+  DOC_EMBEDDED_OBJECT_PRESENT
+  DOC_EXTERNAL_LINK_PRESENT
+
+6) container (baseline signal lane)
+- Formats: OCI layouts, container tarball hints, compose/SBOM hints
+- Key reason codes:
+  CONTAINER_ADAPTER_V1
+  CONTAINER_OCI_LAYOUT
+  CONTAINER_TARBALL_SCAN
+  CONTAINER_SBOM_PRESENT
+
+7) image
+- Formats: .iso, .vhd, .vhdx, .vmdk, .qcow2
+- Key reason codes:
+  IMAGE_ADAPTER_V1
+  IMAGE_TABLE_TRUNCATED
+
+8) scm (baseline signal lane)
+- Formats: local git trees
+- Key reason codes:
+  SCM_ADAPTER_V1
+  SCM_REF_UNRESOLVED
+  SCM_TREE_CAPTURED
+
+9) signature evidence (baseline signal lane)
+- Formats: .cer, .crt, .pem, .p7b, .sig
+- Key reason codes:
+  SIGNATURE_EVIDENCE_V1
+  SIGNER_PRESENT
+  CHAIN_PRESENT
+  TIMESTAMP_PRESENT
+
+Operator output artifacts
+- analysis/adapter_summary_v0.json
+- analysis/adapter_findings_v0.json
+- safe_run_receipt.json (optional adapter block)
+- contentSummary.adapterSignals (optional)
+
+CLI examples
+- npm run weftend -- adapter list
+- npm run weftend -- safe-run <input> --out <dir> --adapter auto
+- npm run weftend -- safe-run <input> --out <dir> --adapter archive
+- npm run weftend -- safe-run <input> --out <dir> --adapter archive --enable-plugin tar

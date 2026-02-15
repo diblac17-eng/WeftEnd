@@ -359,6 +359,8 @@ const MAX_CONTENT_INDICATOR = 1000;
 const MAX_CONTENT_DOMAINS = 10;
 const MAX_CONTENT_HINTS = 12;
 const MAX_CONTENT_MARKERS = 32;
+const MAX_ADAPTER_COUNTS = 64;
+const MAX_ADAPTER_SIGNAL_MARKERS = 64;
 
 function validateContentSummaryV0(v: unknown, path: string): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -382,6 +384,7 @@ function validateContentSummaryV0(v: unknown, path: string): ValidationIssue[] {
     "nestedArchiveCount",
     "manifestCount",
     "stringsIndicators",
+    "adapterSignals",
     "signingSummary",
     "policyMatch",
     "hashFamily",
@@ -583,6 +586,61 @@ function validateContentSummaryV0(v: unknown, path: string): ValidationIssue[] {
         issues.push(issue("FIELD_INVALID", `stringsIndicators.${key} must be 0..${MAX_CONTENT_INDICATOR}.`, `${path}.stringsIndicators.${key}`));
       }
     });
+  }
+
+  if (o.adapterSignals !== undefined) {
+    if (!isRecord(o.adapterSignals)) {
+      issues.push(issue("FIELD_INVALID", "adapterSignals must be an object when present.", `${path}.adapterSignals`));
+    } else {
+      if (!isBoundedTightString(o.adapterSignals.class, PRIVACY_MAX_STRING_BYTES)) {
+        issues.push(issue("FIELD_INVALID", "adapterSignals.class must be a short string.", `${path}.adapterSignals.class`));
+      } else if (containsSensitiveMarker(o.adapterSignals.class) || /[\\/]/.test(o.adapterSignals.class)) {
+        issues.push(issue("FIELD_INVALID", "adapterSignals.class must be a short label.", `${path}.adapterSignals.class`));
+      }
+      if (!isRecord(o.adapterSignals.counts)) {
+        issues.push(issue("FIELD_INVALID", "adapterSignals.counts must be an object.", `${path}.adapterSignals.counts`));
+      } else {
+        const keys = Object.keys(o.adapterSignals.counts).sort((a, b) => cmpStr(a, b));
+        if (keys.length > MAX_ADAPTER_COUNTS) {
+          issues.push(issue("FIELD_INVALID", `adapterSignals.counts exceeds ${MAX_ADAPTER_COUNTS}.`, `${path}.adapterSignals.counts`));
+        }
+        keys.forEach((key, idx) => {
+          if (!isBoundedTightString(key, PRIVACY_MAX_STRING_BYTES)) {
+            issues.push(issue("FIELD_INVALID", "adapterSignals.counts keys must be short strings.", `${path}.adapterSignals.counts[${idx}]`));
+            return;
+          }
+          if (containsSensitiveMarker(key) || /[\\/]/.test(key)) {
+            issues.push(issue("FIELD_INVALID", "adapterSignals.counts keys must be short labels.", `${path}.adapterSignals.counts[${idx}]`));
+            return;
+          }
+          const value = (o.adapterSignals.counts as any)[key];
+          if (!isNumber(value) || value < 0) {
+            issues.push(issue("FIELD_INVALID", "adapterSignals.counts values must be non-negative numbers.", `${path}.adapterSignals.counts.${key}`));
+          }
+        });
+      }
+      const markers = asStringArray(o.adapterSignals.markers);
+      if (!markers) {
+        issues.push(issue("FIELD_INVALID", "adapterSignals.markers must be string[].", `${path}.adapterSignals.markers`));
+      } else {
+        if (!isSortedUniqueStrings(markers)) {
+          issues.push(issue("FIELD_INVALID", "adapterSignals.markers must be stable-sorted and unique.", `${path}.adapterSignals.markers`));
+        }
+        if (markers.length > MAX_ADAPTER_SIGNAL_MARKERS) {
+          issues.push(issue("FIELD_INVALID", `adapterSignals.markers exceeds ${MAX_ADAPTER_SIGNAL_MARKERS}.`, `${path}.adapterSignals.markers`));
+        }
+        markers.forEach((value, i) => {
+          if (!isBoundedTightString(value, PRIVACY_MAX_STRING_BYTES)) {
+            issues.push(issue("FIELD_INVALID", "adapterSignals.markers entries must be non-empty strings.", `${path}.adapterSignals.markers[${i}]`));
+          } else if (containsSensitiveMarker(value) || /[\\/]/.test(value)) {
+            issues.push(issue("FIELD_INVALID", "adapterSignals.markers entries must be short labels.", `${path}.adapterSignals.markers[${i}]`));
+          }
+        });
+      }
+      if (!hasOnlyKeys(o.adapterSignals, ["class", "counts", "markers"])) {
+        issues.push(issue("FIELD_INVALID", "adapterSignals contains disallowed fields.", `${path}.adapterSignals`));
+      }
+    }
   }
 
   if (o.signingSummary !== undefined) {
@@ -4403,6 +4461,7 @@ export function validateSafeRunReceiptV0(v: unknown, path: string = "safeRunRece
     "hostSelfId",
     "hostSelfStatus",
     "hostSelfReasonCodes",
+    "adapter",
     "execution",
     "contentSummary",
     "subReceipts",
@@ -4479,6 +4538,30 @@ export function validateSafeRunReceiptV0(v: unknown, path: string = "safeRunRece
       issues.push(issue("FIELD_INVALID", "hostSelfReasonCodes must be string[] when present.", `${path}.hostSelfReasonCodes`));
     } else if (!isSortedUniqueStrings(reasons)) {
       issues.push(issue("FIELD_INVALID", "hostSelfReasonCodes must be stable-sorted and unique.", `${path}.hostSelfReasonCodes`));
+    }
+  }
+  if (o.adapter !== undefined) {
+    if (!isRecord(o.adapter)) {
+      issues.push(issue("FIELD_INVALID", "adapter must be an object when present.", `${path}.adapter`));
+    } else {
+      if (!isBoundedTightString(o.adapter.adapterId, PRIVACY_MAX_STRING_BYTES)) {
+        issues.push(issue("FIELD_INVALID", "adapter.adapterId must be a short string.", `${path}.adapter.adapterId`));
+      }
+      if (!isBoundedTightString(o.adapter.sourceFormat, PRIVACY_MAX_STRING_BYTES)) {
+        issues.push(issue("FIELD_INVALID", "adapter.sourceFormat must be a short string.", `${path}.adapter.sourceFormat`));
+      }
+      if (o.adapter.mode !== "built_in" && o.adapter.mode !== "plugin") {
+        issues.push(issue("ENUM_INVALID", "adapter.mode must be built_in|plugin.", `${path}.adapter.mode`));
+      }
+      const reasons = asStringArray(o.adapter.reasonCodes);
+      if (!reasons) {
+        issues.push(issue("FIELD_INVALID", "adapter.reasonCodes must be string[].", `${path}.adapter.reasonCodes`));
+      } else if (!isSortedUniqueStrings(reasons)) {
+        issues.push(issue("FIELD_INVALID", "adapter.reasonCodes must be stable-sorted and unique.", `${path}.adapter.reasonCodes`));
+      }
+      if (!hasOnlyKeys(o.adapter, ["adapterId", "sourceFormat", "mode", "reasonCodes"])) {
+        issues.push(issue("FIELD_INVALID", "adapter contains disallowed fields.", `${path}.adapter`));
+      }
     }
   }
 

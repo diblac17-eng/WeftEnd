@@ -1138,6 +1138,12 @@ export interface SafeRunReceiptV0 {
   hostSelfId?: string;
   hostSelfStatus?: "OK" | "UNVERIFIED" | "MISSING";
   hostSelfReasonCodes?: string[];
+  adapter?: {
+    adapterId: string;
+    sourceFormat: string;
+    mode: "built_in" | "plugin";
+    reasonCodes: string[];
+  };
   execution: { result: SafeRunExecutionResultV0; reasonCodes: string[] };
   subReceipts: Array<{ name: string; digest: string }>;
   receiptDigest: string;
@@ -1178,6 +1184,11 @@ export interface ContentSummaryV0 {
     ipLikeCount: number;
     powershellLikeCount: number;
     cmdExecLikeCount: number;
+  };
+  adapterSignals?: {
+    class: string;
+    counts: Record<string, number>;
+    markers: string[];
   };
   signingSummary?: {
     signaturePresent: "yes" | "no" | "unknown";

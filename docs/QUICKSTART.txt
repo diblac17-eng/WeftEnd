@@ -28,6 +28,19 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   npm run weftend -- compare <oldOut> <newOut> --out <diffOut>
 - Read compare_report.txt
 
+3.1) Universal artifact adapter lane (CLI)
+- List adapter coverage:
+  npm run weftend -- adapter list
+- Run safe-run with adapter auto-detect:
+  npm run weftend -- safe-run <input> --out <dir> --adapter auto
+- Force a specific adapter:
+  npm run weftend -- safe-run <input> --out <dir> --adapter archive
+- Enable optional local plugin explicitly when needed:
+  npm run weftend -- safe-run <input> --out <dir> --adapter archive --enable-plugin tar
+- Adapter artifacts (when adapter is applied):
+  analysis/adapter_summary_v0.json
+  analysis/adapter_findings_v0.json
+
 4) Launchpad (no CLI after install)
 - Open Start Menu -> WeftEnd Launchpad
 - Add shortcuts/apps in:

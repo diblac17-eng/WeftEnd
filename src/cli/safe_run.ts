@@ -45,6 +45,7 @@ import { buildOperatorReceiptV0, writeOperatorReceiptV0 } from "../runtime/opera
 import { classifyArtifactKindV0 } from "../runtime/classify/artifact_kind_v0";
 import { updateLibraryViewFromRunV0 } from "./library_state";
 import { validateNormalizedArtifactV0 } from "../runtime/adapters/intake_adapter_v0";
+import { runArtifactAdapterV1, type AdapterSelectionV1 } from "../runtime/adapters/artifact_adapter_v1";
 
 const fs = require("fs");
 const path = require("path");
@@ -69,6 +70,8 @@ export interface SafeRunCliOptionsV0 {
   scriptPath?: string;
   executeRequested?: boolean;
   withholdExec?: boolean;
+  adapter?: AdapterSelectionV1;
+  enablePlugins?: string[];
 }
 
 const readTextFile = (filePath: string): string => fs.readFileSync(filePath, "utf8");
@@ -480,6 +483,8 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
   const weftendBuild = computeWeftendBuildV0({ filePath: process?.argv?.[1], source: "NODE_MAIN_JS" }).build;
   const withholdExec = Boolean(options.withholdExec);
   const executeRequested = Boolean(options.executeRequested) && !withholdExec;
+  const adapterSelection: AdapterSelectionV1 = options.adapter ?? "auto";
+  const enabledPlugins = Array.isArray(options.enablePlugins) ? options.enablePlugins : [];
   const resolvedInput = path.resolve(process.cwd(), options.inputPath || "");
   if (!options.inputPath || !fs.existsSync(resolvedInput)) {
     console.error("[INPUT_INVALID] input path missing.");
@@ -728,11 +733,28 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
   const disclosureTxt = `${output.disclosure}\n`;
   const appealJson = `${canonicalJSON(output.appeal)}\n`;
 
+  const adapterResult = runArtifactAdapterV1({
+    selection: adapterSelection,
+    enabledPlugins,
+    inputPath: options.inputPath,
+    capture: result.capture,
+  });
+  if (!adapterResult.ok) {
+    const code = adapterResult.failCode || "ADAPTER_PRECONDITION_FAILED";
+    const message = adapterResult.failMessage || "adapter precondition failed.";
+    console.error(`[${code}] ${message}`);
+    return 40;
+  }
+  const adapterSummaryJson = adapterResult.summary ? `${canonicalJSON(adapterResult.summary)}\n` : "";
+  const adapterFindingsJson = adapterResult.findings ? `${canonicalJSON(adapterResult.findings)}\n` : "";
+
   writeFile(path.join(analysisDir, "weftend_mint_v1.json"), mintJson);
   writeFile(path.join(analysisDir, "weftend_mint_v1.txt"), mintTxt);
   writeFile(path.join(analysisDir, "intake_decision.json"), decisionJson);
   writeFile(path.join(analysisDir, "disclosure.txt"), disclosureTxt);
   writeFile(path.join(analysisDir, "appeal_bundle.json"), appealJson);
+  if (adapterSummaryJson) writeFile(path.join(analysisDir, "adapter_summary_v0.json"), adapterSummaryJson);
+  if (adapterFindingsJson) writeFile(path.join(analysisDir, "adapter_findings_v0.json"), adapterFindingsJson);
 
   const subReceipts: Array<{ name: string; digest: string }> = [
     { name: "analysis/appeal_bundle.json", digest: digestText(appealJson) },
@@ -741,6 +763,12 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
     { name: "analysis/weftend_mint_v1.json", digest: digestText(mintJson) },
     { name: "analysis/weftend_mint_v1.txt", digest: digestText(mintTxt) },
   ];
+  if (adapterSummaryJson) {
+    subReceipts.push({ name: "analysis/adapter_summary_v0.json", digest: digestText(adapterSummaryJson) });
+  }
+  if (adapterFindingsJson) {
+    subReceipts.push({ name: "analysis/adapter_findings_v0.json", digest: digestText(adapterFindingsJson) });
+  }
 
   let hostReceiptDigest: string | undefined;
   let hostSelfInfo: { hostSelfId?: string; hostSelfStatus?: "OK" | "UNVERIFIED" | "MISSING"; hostSelfReasonCodes?: string[] } = {};
@@ -847,6 +875,9 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
     artifactKind: classifiedRaw.artifactKind,
     policyMatch,
   });
+  if (adapterResult.adapterSignals) {
+    contentSummary.adapterSignals = adapterResult.adapterSignals;
+  }
 
   const receipt = buildSafeRunReceipt({
     schema: "weftend.safeRunReceipt/0",
@@ -858,18 +889,19 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
     entryHint: classifiedRaw.entryHint,
     analysisVerdict,
     executionVerdict,
-    topReasonCode: topReason(executionReasonCodes, output.decision.topReasonCodes, classifiedRaw.reasonCodes),
+    topReasonCode: topReason(executionReasonCodes, adapterResult.reasonCodes, output.decision.topReasonCodes, classifiedRaw.reasonCodes),
     inputDigest: result.mint.input.rootDigest,
     policyId: output.decision.policyId,
     intakeDecisionDigest: output.decision.decisionDigest,
     ...(hostReceiptDigest ? { hostReceiptDigest } : {}),
     ...hostSelfInfo,
+    ...(adapterResult.adapter ? { adapter: adapterResult.adapter } : {}),
     contentSummary,
     execution: { result: toExecutionResult(executionVerdict), reasonCodes: executionReasonCodes },
     subReceipts,
   });
 
-  const out = finalize(receipt, [...classifiedRaw.reasonCodes, ...output.decision.topReasonCodes]);
+  const out = finalize(receipt, [...classifiedRaw.reasonCodes, ...output.decision.topReasonCodes, ...adapterResult.reasonCodes]);
   if (!out.ok) return out.code;
   return 0;
 };

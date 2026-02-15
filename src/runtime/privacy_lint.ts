@@ -48,6 +48,8 @@ const allowedFile = (relPath: string): boolean => {
   if (base === "headers.json") return true;
   if (base === "body.txt") return true;
   if (base === "body.html.txt") return true;
+  if (base === "adapter_summary_v0.json") return true;
+  if (base === "adapter_findings_v0.json") return true;
   if (base === "report_card.txt") return true;
   if (base === "report_card_v0.json") return true;
   if (base === "wrapper_result.txt") return true;

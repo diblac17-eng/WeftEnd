@@ -42,6 +42,7 @@ Core behaviors
 - Baseline memory: each target compares against last accepted baseline.
 - Explicit operator control for baseline acceptance and launch gating.
 - Optional adapters for external formats (.eml, .mbox, .msg).
+- Universal artifact adapter lane for archives, packages, extensions, IaC/CICD, images, documents, SCM, and signature evidence (analysis-only).
 - Optional watch mode for automatic re-checks.
 - Host execution support exists for WeftEnd release workflows and remains explicitly gated.
 
@@ -75,6 +76,9 @@ Useful commands
 - npm run weftend -- library
 - npm run weftend -- launchpad sync
 - npm run weftend -- export-json <outRoot> --format normalized_v0
+- npm run weftend -- adapter list
+- npm run weftend -- safe-run <input> --out <dir> --adapter auto|none|archive|package|extension|iac|image
+- npm run weftend -- safe-run <input> --out <dir> --adapter archive --enable-plugin tar
 
 Release trust notes
 - Standard and portable release zips ship with .sha256 files.
@@ -100,6 +104,7 @@ Near-term roadmap
 - Integration templates for CI and downstream tooling using normalizedSummary/0.
 - Continued release hardening and verification guidance.
 - Additional operator UX polish for history, review, and ticket flows.
+- Adapter lane maturity promotion from EXPERIMENTAL to GA based on deterministic fixture coverage and privacy-lint clean outputs.
 
 Mid-term roadmap
 - Stronger signing/provenance and verification ergonomics.

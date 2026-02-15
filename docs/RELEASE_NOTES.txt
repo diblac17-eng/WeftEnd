@@ -4,6 +4,20 @@ Scope: Deterministic artifact intake, baseline/compare workflows, operator-facin
 Liability scope: WeftEnd is an evidence and change-tracking engine, not a malware oracle or compliance guarantee.
 
 Included
+- Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
+- New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|image`
+- Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)
+- New adapter discovery command: `weftend adapter list`
+- Additive receipt/summary surface:
+- `safe_run_receipt.json` optional `adapter` metadata block
+- `contentSummary.adapterSignals` optional deterministic adapter signal block
+- Optional adapter artifacts in run output:
+- `analysis/adapter_summary_v0.json`
+- `analysis/adapter_findings_v0.json`
+- Wave coverage now includes:
+- Wave 1: archives, packages/installers, extensions
+- Wave 2 baseline: IaC/CICD and document risk signal extraction
+- Wave 3 baseline: container/source/signature/image evidence lanes
 - Core/runtime trust hardening sweep applied in release scope (digest/trust/runtime path updates, host verification flow updates, and aligned fixture/contract updates).
 - Builder integration surface explicitly supported: `weftend export-json <outRoot> --format normalized_v0` emits deterministic `weftend.normalizedSummary/0` output for downstream tools (see docs/POWERED_BY_WEFTEND.md).
 - Shortcut scan accuracy fix for .lnk targets: report and compare now resolve the actual target script/program instead of effectively classifying the shell host.

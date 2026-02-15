@@ -18,6 +18,7 @@ import { runLaunchpadCli } from "./launchpad";
 import { runWatchCli } from "./watch";
 import { runExportJsonCli, runSummarizeCli } from "./summarize";
 import { runContainerCli } from "./container_scan";
+import { runAdapterCli } from "./adapter";
 import { canonicalJSON } from "../core/canon";
 import { canonicalizeWeftEndPolicyV1 } from "../core/intake_policy_v1";
 import { validateMintPackageV1, validateWeftEndPolicyV1 } from "../core/validate";
@@ -33,10 +34,11 @@ const printUsage = () => {
   console.log("  weftend examine <input> --out <dir> [--profile web|mod|generic] [--script <file>] [--emit-capture]");
   console.log("  weftend intake <input> --policy <policy.json> --out <dir> [--profile web|mod|generic] [--script <file>]");
   console.log("  weftend run <input> --policy <policy.json> --out <dir> [--profile web|mod|generic] [--mode strict|compatible|legacy] [--script <file>]");
-  console.log("  weftend safe-run <input> [--policy <policy.json>] --out <dir> [--profile web|mod|generic] [--script <file>] [--execute] [--withhold-exec|--no-exec]");
+  console.log("  weftend safe-run <input> [--policy <policy.json>] --out <dir> [--profile web|mod|generic] [--script <file>] [--execute] [--withhold-exec|--no-exec] [--adapter auto|none|archive|package|extension|iac|image] [--enable-plugin <name>]");
   console.log("  weftend email unpack <input.eml|input.mbox|input.msg> --out <dir> [--index <n>] [--message-id <id>]");
   console.log("  weftend email safe-run <input.eml|input.mbox|input.msg|email_export_dir> --out <dir> [--policy <policy.json>] [--index <n>] [--message-id <id>]");
   console.log("  weftend container scan <imageRefOrId> --out <dir> [--policy <policy.json>]");
+  console.log("  weftend adapter list");
   console.log("  weftend compare <leftOutRoot> <rightOutRoot> --out <dir>");
   console.log("  weftend summarize <outRoot>");
   console.log("  weftend export-json <outRoot> --format normalized_v0 [--out <file>]");
@@ -365,6 +367,26 @@ const runSafeRunCli = async (args: string[]): Promise<number> => {
     return 40;
   }
 
+  const pluginValues: string[] = [];
+  for (let i = 0; i < args.length; i += 1) {
+    if (args[i] !== "--enable-plugin") continue;
+    const value = i + 1 < args.length ? String(args[i + 1] || "").trim() : "";
+    if (value.length > 0) pluginValues.push(value);
+  }
+  const adapterValue = String((flags["adapter"] as string) || "auto").trim().toLowerCase();
+  const adapter = (adapterValue === "" ? "auto" : adapterValue) as
+    | "auto"
+    | "none"
+    | "archive"
+    | "package"
+    | "extension"
+    | "iac"
+    | "image";
+  if (!["auto", "none", "archive", "package", "extension", "iac", "image"].includes(adapter)) {
+    console.error("[ADAPTER_UNSUPPORTED] --adapter must be auto|none|archive|package|extension|iac|image.");
+    return 40;
+  }
+
   return runSafeRun({
     inputPath,
     outDir,
@@ -374,6 +396,8 @@ const runSafeRunCli = async (args: string[]): Promise<number> => {
     scriptPath: (flags["script"] as string) || undefined,
     executeRequested: Boolean(flags["execute"]),
     withholdExec: Boolean(flags["withhold-exec"] || flags["no-exec"]),
+    adapter,
+    enablePlugins: pluginValues,
   });
 };
 
@@ -492,6 +516,9 @@ export const runCli = async (args: string[], _ports: CliPorts): Promise<number> 
   }
   if (args[0] === "container") {
     return await runContainerCli(args.slice(1));
+  }
+  if (args[0] === "adapter") {
+    return runAdapterCli(args.slice(1));
   }
   if (args[0] === "compare") {
     return runCompareCli(args);

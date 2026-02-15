@@ -24,6 +24,11 @@ export interface NormalizedArtifactV0 {
   rootDir: string;
   requiredFiles: string[];
   markers: string[];
+  sourceClass?: string;
+  truncation?: {
+    status: "NONE" | "TRUNCATED";
+    markers: string[];
+  };
 }
 
 export interface IntakeAdapterV0 {
@@ -88,9 +93,39 @@ export const validateNormalizedArtifactV0 = (
       }
     });
   }
+  if (artifact.sourceClass !== undefined) {
+    if (
+      typeof artifact.sourceClass !== "string" ||
+      artifact.sourceClass.length === 0 ||
+      artifact.sourceClass.length > 64 ||
+      hasAbsPath(artifact.sourceClass) ||
+      hasEnvLike(artifact.sourceClass)
+    ) {
+      issues.push({ code: "ADAPTER_NORMALIZATION_INVALID", message: "invalid sourceClass", path: `${label}.sourceClass` });
+    }
+  }
+  if (artifact.truncation !== undefined) {
+    if (!artifact.truncation || typeof artifact.truncation !== "object") {
+      issues.push({ code: "ADAPTER_NORMALIZATION_INVALID", message: "invalid truncation object", path: `${label}.truncation` });
+    } else {
+      const status = (artifact.truncation as any).status;
+      const markers = (artifact.truncation as any).markers;
+      if (status !== "NONE" && status !== "TRUNCATED") {
+        issues.push({ code: "ADAPTER_NORMALIZATION_INVALID", message: "invalid truncation status", path: `${label}.truncation.status` });
+      }
+      if (!Array.isArray(markers) || markers.length > 64) {
+        issues.push({ code: "ADAPTER_NORMALIZATION_INVALID", message: "invalid truncation markers", path: `${label}.truncation.markers` });
+      } else {
+        markers.forEach((marker: unknown, idx: number) => {
+          if (typeof marker !== "string" || marker.length === 0 || marker.length > 128 || hasAbsPath(marker) || hasEnvLike(marker)) {
+            issues.push({ code: "ADAPTER_NORMALIZATION_INVALID", message: "invalid truncation marker", path: `${label}.truncation.markers[${idx}]` });
+          }
+        });
+      }
+    }
+  }
   return issues;
 };
 
 export const resolveAdapterInputPathV0 = (input: AdapterInputV0): string =>
   path.resolve(process.cwd(), input.sourcePath || "");
-
