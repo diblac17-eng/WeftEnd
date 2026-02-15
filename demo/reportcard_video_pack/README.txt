@@ -20,5 +20,5 @@ Notes
 - Keep your recording crop on the report card and target folder only.
 - Use these fixtures as-is; do not rename files/folders if you want the same target keys.
 - If you previously used these same names, baseline state may already exist in Library.
-  If needed, clear that specific target from %LOCALAPPDATA%\WeftEnd\Library before recording.
+  If needed, clear that specific target from your local WeftEnd Library before recording.
 
