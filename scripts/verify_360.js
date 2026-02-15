@@ -3,6 +3,7 @@
 // - host preconditions do not silently block analysis
 // - every run writes a receipt/report
 // - failures are explicit and bounded
+// - output finalize uses two-phase stage -> finalize
 
 const fs = require("fs");
 const os = require("os");
@@ -14,6 +15,17 @@ const root = process.cwd();
 const OUT_ROOT = path.join(root, "out", "verify_360");
 const HISTORY_ROOT = path.join(OUT_ROOT, "history");
 const MAX_STEPS = 64;
+const RUN_STATES = [
+  "INIT",
+  "PRECHECKED",
+  "COMPILE_DONE",
+  "TEST_DONE",
+  "PROOFCHECK_DONE",
+  "DETERMINISM_DONE",
+  "STAGED",
+  "FINALIZED",
+  "RECORDED",
+];
 
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
@@ -159,11 +171,30 @@ const deterministicFileList = [
   path.join("analysis", "adapter_findings_v0.json"),
 ];
 
+const collectFiles = (dir) => {
+  const out = [];
+  const walk = (cur, base) => {
+    const entries = fs.readdirSync(cur, { withFileTypes: true });
+    entries.sort((a, b) => cmp(a.name, b.name));
+    entries.forEach((entry) => {
+      const abs = path.join(cur, entry.name);
+      const relPath = path.join(base, entry.name).split(path.sep).join("/");
+      if (entry.isDirectory()) walk(abs, relPath);
+      else out.push({ abs, relPath });
+    });
+  };
+  walk(dir, "");
+  return out;
+};
+
 const writeOutputs = (runDir, payload) => {
-  ensureDir(runDir);
-  const jsonPath = path.join(runDir, "verify_360_receipt.json");
-  const txtPath = path.join(runDir, "verify_360_report.txt");
-  fs.writeFileSync(jsonPath, canonicalJSON(payload), "utf8");
+  ensureDir(HISTORY_ROOT);
+  const stageDir = `${runDir}.stage`;
+  fs.rmSync(stageDir, { recursive: true, force: true });
+  ensureDir(stageDir);
+
+  const jsonPath = path.join(stageDir, "verify_360_receipt.json");
+  const txtPath = path.join(stageDir, "verify_360_report.txt");
 
   const lines = [];
   lines.push(`VERIFY360 ${payload.verdict}`);
@@ -175,10 +206,47 @@ const writeOutputs = (runDir, payload) => {
       `${s.id} status=${s.status} exit=${typeof s.exitCode === "number" ? s.exitCode : "-"} reasons=${(s.reasonCodes || []).join("|") || "-"}`
     );
   });
-  fs.writeFileSync(txtPath, `${lines.join("\n")}\n`, "utf8");
+  const reportText = `${lines.join("\n")}\n`;
+  fs.writeFileSync(txtPath, reportText, "utf8");
+  const reportDigest = sha256Text(reportText);
+
+  const payloadWithArtifactDigests = {
+    ...payload,
+    artifacts: {
+      ...(payload.artifacts || {}),
+      reportDigest,
+    },
+  };
+  const receiptText = canonicalJSON(payloadWithArtifactDigests);
+  fs.writeFileSync(jsonPath, receiptText, "utf8");
+
+  const files = collectFiles(stageDir).map((f) => ({
+    name: f.relPath,
+    digest: sha256File(f.abs),
+  }));
+  const manifest = {
+    schema: "weftend.verify360OutputManifest/0",
+    schemaVersion: 0,
+    files,
+  };
+  const manifestPath = path.join(stageDir, "verify_360_output_manifest.json");
+  fs.writeFileSync(manifestPath, canonicalJSON(manifest), "utf8");
+  const manifestNames = new Set(files.map((f) => f.name).concat("verify_360_output_manifest.json"));
+  const orphans = collectFiles(stageDir)
+    .map((f) => f.relPath)
+    .filter((name) => !manifestNames.has(name));
+  if (orphans.length > 0) {
+    throw new Error(`VERIFY360_ORPHAN_OUTPUT:${orphans.join(",")}`);
+  }
+
+  fs.rmSync(runDir, { recursive: true, force: true });
+  fs.renameSync(stageDir, runDir);
 
   ensureDir(OUT_ROOT);
-  fs.writeFileSync(path.join(OUT_ROOT, "latest.txt"), `${rel(runDir)}\n`, "utf8");
+  const latestTmp = path.join(OUT_ROOT, "latest.txt.stage");
+  const latestFinal = path.join(OUT_ROOT, "latest.txt");
+  fs.writeFileSync(latestTmp, `${rel(runDir)}\n`, "utf8");
+  fs.renameSync(latestTmp, latestFinal);
 };
 
 const main = () => {
@@ -192,6 +260,15 @@ const main = () => {
   const releaseDirAbs = path.resolve(root, releaseDirEnv);
   const deterministicInputEnv = process.env.WEFTEND_360_INPUT || "tests/fixtures/intake/tampered_manifest/tampered.zip";
   const deterministicInputAbs = path.resolve(root, deterministicInputEnv);
+  let corridorState = "INIT";
+  const advanceState = (next) => {
+    const fromIdx = RUN_STATES.indexOf(corridorState);
+    const toIdx = RUN_STATES.indexOf(next);
+    if (fromIdx < 0 || toIdx < 0 || toIdx < fromIdx) {
+      throw new Error(`FAIL_CLOSED_AT_${corridorState}_TO_${next}`);
+    }
+    corridorState = next;
+  };
 
   const steps = [];
   const addStep = (step) => {
@@ -239,6 +316,7 @@ const main = () => {
       });
     }
   }
+  advanceState("PRECHECKED");
 
   // Git/posting etiquette check (avoid odd LLM-style communication artifacts).
   const etiquetteIssues = runPostingEtiquetteCheck();
@@ -268,6 +346,7 @@ const main = () => {
     exitCode: compile.exitCode,
     reasonCodes: compile.ok ? [] : ["VERIFY360_COMPILE_FAILED"],
   });
+  advanceState("COMPILE_DONE");
 
   // Full tests
   const tests = npmRun("test");
@@ -277,6 +356,7 @@ const main = () => {
     exitCode: tests.exitCode,
     reasonCodes: tests.ok ? [] : ["VERIFY360_TEST_FAILED"],
   });
+  advanceState("TEST_DONE");
 
   // Proofcheck: host precondition missing is evidence SKIP/PARTIAL, not silent hard block.
   let proofEnv = {};
@@ -295,6 +375,7 @@ const main = () => {
     exitCode: proof.exitCode,
     reasonCodes: proof.ok ? proofReasons : stableSortUnique(["VERIFY360_PROOFCHECK_FAILED", ...proofReasons]),
   });
+  advanceState("PROOFCHECK_DONE");
 
   // Determinism replay precondition.
   if (!fs.existsSync(deterministicInputAbs)) {
@@ -355,11 +436,11 @@ const main = () => {
         }
       });
     }
-      addStep({
-        id: "safe_run_pair",
-        status: pairOk ? "PASS" : "FAIL",
-        reasonCodes: stableSortUnique(pairReasons),
-      });
+    addStep({
+      id: "safe_run_pair",
+      status: pairOk ? "PASS" : "FAIL",
+      reasonCodes: stableSortUnique(pairReasons),
+    });
 
     if (pairOk) {
       const lintA = runCommand("privacy-lint-a", process.execPath, ["dist/src/runtime/privacy_lint.js", outA]);
@@ -418,6 +499,7 @@ const main = () => {
       });
     }
   }
+  advanceState("DETERMINISM_DONE");
 
   const statuses = steps.map((s) => s.status);
   const hasFail = statuses.includes("FAIL");
@@ -432,6 +514,8 @@ const main = () => {
     schemaVersion: 0,
     runId: path.basename(runDir),
     command: "verify:360",
+    stateAtStage: corridorState,
+    stateTarget: "RECORDED",
     verdict,
     reasonCodes,
     releaseFixture: fs.existsSync(releaseDirAbs) ? releaseDirEnv : "MISSING",
@@ -445,8 +529,14 @@ const main = () => {
       compareOutExists: fs.existsSync(outCompare) ? 1 : 0,
     },
   };
-
+  advanceState("STAGED");
   writeOutputs(runDir, payload);
+  advanceState("FINALIZED");
+  const finalPayloadPath = path.join(runDir, "verify_360_receipt.json");
+  if (!fs.existsSync(finalPayloadPath)) {
+    throw new Error("FAIL_CLOSED_AT_FINALIZED_MISSING_RECEIPT");
+  }
+  advanceState("RECORDED");
   console.log(`verify:360 ${verdict} receipt=${rel(path.join(runDir, "verify_360_receipt.json"))}`);
 
   if (verdict === "FAIL") process.exit(1);

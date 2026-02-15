@@ -5,6 +5,7 @@ Purpose
 - Prevent state advance on partial knowledge.
 - Require one full verification spin before any reusable commit.
 - Keep WeftEnd aligned to deterministic, fail-closed, privacy-clean guarantees.
+- Ensure gate outputs are committed via two-phase finalize (no half-written run artifacts).
 
 Core rule
 - Unknown state must not advance baseline, trust, or release state.
@@ -25,6 +26,11 @@ Core rule
 5. Privacy lint succeeds on generated run outputs.
 6. Compare lane succeeds on generated outputs.
 7. A gate receipt/report is always written (including PARTIAL/FAIL runs).
+8. Gate output commit is two-phase:
+   - `stage` writes receipt/report/manifest into a staging folder
+   - `finalize` atomically switches staged output into the run folder
+9. Gate state is explicit and monotonic:
+   - `INIT -> PRECHECKED -> COMPILE_DONE -> TEST_DONE -> PROOFCHECK_DONE -> DETERMINISM_DONE -> STAGED -> FINALIZED -> RECORDED`
 
 Command
 - `npm run verify:360`
@@ -32,6 +38,7 @@ Command
 Output evidence
 - `out/verify_360/history/run_<seq>/verify_360_receipt.json`
 - `out/verify_360/history/run_<seq>/verify_360_report.txt`
+- `out/verify_360/history/run_<seq>/verify_360_output_manifest.json`
 - `out/verify_360/latest.txt` (pointer to latest run folder)
 
 Expected behavior

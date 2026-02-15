@@ -27,15 +27,18 @@ Loops
   - Full spin gate for reusable commits:
     - docs/update discipline check
     - git/posting etiquette check
+    - explicit state-machine progression
     - compile
     - test
     - proofcheck with release fixture
     - deterministic replay check
     - privacy lint on generated run outputs
     - compare lane smoke
+    - two-phase stage/finalize output commit
   - Always writes run evidence:
     - out/verify_360/history/run_<seq>/verify_360_receipt.json
     - out/verify_360/history/run_<seq>/verify_360_report.txt
+    - out/verify_360/history/run_<seq>/verify_360_output_manifest.json
   - Host precondition misses are explicit PARTIAL/SKIP evidence, not silent no-output aborts.
 
 Environment

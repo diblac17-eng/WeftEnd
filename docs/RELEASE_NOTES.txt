@@ -9,6 +9,7 @@ Included
 - Gate now always writes evidence artifacts (`verify_360_receipt.json` and `verify_360_report.txt`) for PASS/PARTIAL/FAIL outcomes.
 - Host precondition misses are explicit PARTIAL/SKIP evidence, not silent no-output aborts.
 - Gate enforces docs/update discipline: code changes without operator-facing doc updates fail with `VERIFY360_DOC_SYNC_MISSING`.
+- Gate now uses explicit state progression and two-phase output finalize (`stage -> finalize`) with `verify_360_output_manifest.json`.
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)
