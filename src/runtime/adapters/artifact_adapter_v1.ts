@@ -19,8 +19,8 @@ const MAX_FINDING_CODES = 128;
 const MAX_TEXT_BYTES = 256 * 1024;
 const MAX_AR_SCAN_BYTES = 8 * 1024 * 1024;
 
-const ARCHIVE_EXTS = new Set([".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".7z"]);
-const PACKAGE_EXTS = new Set([".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"]);
+const ARCHIVE_EXTS = new Set([".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tar.xz", ".txz", ".7z"]);
+const PACKAGE_EXTS = new Set([".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".tar.xz", ".txz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"]);
 const EXTENSION_EXTS = new Set([".crx", ".vsix"]);
 const IAC_EXTS = new Set([".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep", ".template"]);
 const DOCUMENT_EXTS = new Set([".pdf", ".docm", ".xlsm", ".rtf", ".chm"]);
@@ -31,7 +31,9 @@ const normalizeExtV1 = (inputPath: string): string => {
   const base = path.basename(String(inputPath || "")).toLowerCase();
   if (base.endsWith(".tar.gz")) return ".tar.gz";
   if (base.endsWith(".tar.bz2")) return ".tar.bz2";
+  if (base.endsWith(".tar.xz")) return ".tar.xz";
   if (base.endsWith(".tgz")) return ".tgz";
+  if (base.endsWith(".txz")) return ".txz";
   return path.extname(base).toLowerCase();
 };
 
@@ -898,7 +900,7 @@ const analyzeArchive = (ctx: AnalyzeCtx): AnalyzeResult => {
     const tar = readTarEntries(ctx.inputPath);
     entries = tar.entries;
     markers.push(...tar.markers);
-  } else if (ext === ".tar.gz" || ext === ".tgz" || ext === ".tar.bz2") {
+  } else if (ext === ".tar.gz" || ext === ".tgz" || ext === ".tar.bz2" || ext === ".tar.xz" || ext === ".txz") {
     if (!ctx.enabledPlugins.has("tar")) {
       return {
         ok: false,
@@ -1064,7 +1066,7 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
       if (/\b(permission|capabilit(?:y|ies)|allowe?d?capabilities|requestedexecutionlevel)\b/i.test(text)) textPermissionHints += 1;
       extractDomains(text).forEach((domain) => manifestTextDomainSet.add(domain));
     });
-  } else if (ext === ".tar.gz" || ext === ".tgz") {
+  } else if (ext === ".tar.gz" || ext === ".tgz" || ext === ".tar.xz" || ext === ".txz") {
     if (ctx.enabledPlugins.has("tar") && commandAvailable("tar")) {
       mode = "plugin";
       const tarList = runCommandLines("tar", ["-tf", ctx.inputPath]);
@@ -2021,13 +2023,13 @@ export const listAdaptersV1 = (): AdapterListReportV1 => {
         { name: "tar", available: tarAvailable },
         { name: "7z", available: sevenAvailable },
       ],
-      formats: [".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".7z"],
+      formats: [".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tar.xz", ".txz", ".7z"],
     },
     {
       adapter: "package",
       mode: "built_in",
       plugins: [],
-      formats: [".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"],
+      formats: [".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".tar.xz", ".txz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"],
     },
     {
       adapter: "extension",

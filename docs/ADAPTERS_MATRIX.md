@@ -13,7 +13,7 @@ Legend
 Adapter classes
 
 1) archive
-- Formats: .zip, .tar (built-in), .tar.gz/.tgz/.tar.bz2 (tar plugin), .7z (7z plugin)
+- Formats: .zip, .tar (built-in), .tar.gz/.tgz/.tar.bz2/.tar.xz/.txz (tar plugin), .7z (7z plugin)
 - Key reason codes:
   ARCHIVE_ADAPTER_V1
   ARCHIVE_TRUNCATED
@@ -22,7 +22,7 @@ Adapter classes
   ARCHIVE_PLUGIN_UNAVAILABLE
 
 2) package
-- Formats: .msi, .msix, .exe, .nupkg, .whl, .jar, .tar.gz/.tgz, .deb, .rpm, .appimage, .pkg, .dmg
+- Formats: .msi, .msix, .exe, .nupkg, .whl, .jar, .tar.gz/.tgz/.tar.xz/.txz, .deb, .rpm, .appimage, .pkg, .dmg
 - Key reason codes:
   PACKAGE_ADAPTER_V1
   PACKAGE_METADATA_PARTIAL

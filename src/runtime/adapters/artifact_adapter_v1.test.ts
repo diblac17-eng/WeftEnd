@@ -195,6 +195,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const txz = path.join(tmp, "sample.txz");
+    fs.writeFileSync(txz, "not-a-real-txz", "utf8");
+    const capture = captureTreeV0(txz, limits);
+    const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: txz, capture });
+    assert(!res.ok, "archive txz without plugin should fail closed");
+    assertEq(res.failCode, "ARCHIVE_PLUGIN_REQUIRED", "expected plugin required code for txz");
+  }
+
+  {
+    const tmp = mkTmp();
     fs.writeFileSync(
       path.join(tmp, "manifest.json"),
       JSON.stringify({
