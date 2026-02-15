@@ -363,6 +363,11 @@ const runSafeRunCli = async (args: string[]): Promise<number> => {
     console.error(`[INPUT_INVALID] unsupported flag(s): ${unknownFlags.join(", ")}`);
     return 40;
   }
+  const missingValueFlags = ["policy", "out", "profile", "script", "adapter"].filter((key) => flags[key] === "");
+  if (missingValueFlags.length > 0) {
+    console.error(`[INPUT_INVALID] missing value for flag(s): ${missingValueFlags.map((k) => `--${k}`).join(", ")}`);
+    return 40;
+  }
   const inputPath = rest[0];
   if (!inputPath) {
     printUsage();
