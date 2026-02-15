@@ -31,6 +31,9 @@ Included
 - Gate receipts now include deterministic state-path evidence (`stateHistory`) for pass/fail runs.
 - Fail-closed exception path now includes explicit `VERIFY360_FAIL_CLOSED_AT_<STATE>` reason code.
 - Harness assertions now validate newly-created run folders per phase (not just pointer changes), preventing false-green replay assumptions.
+- State-path integrity now includes deterministic `stateHistoryDigest` mirrored in interpreted output.
+- Verify writer now enforces payload consistency checks (state history/order, interpreted alignment, reason-code ordering) before output finalize.
+- Fixed state-history mutation risk by snapshotting immutable state history into payloads before later stage transitions.
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)

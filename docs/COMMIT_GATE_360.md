@@ -58,6 +58,11 @@ Core rule
    - receipt includes deterministic `stateHistory` for each run
    - interpreted section includes `gateState` and `stateHistory`
    - fail-closed exceptions add `VERIFY360_FAIL_CLOSED_AT_<STATE>` reason code
+   - receipt includes `stateHistoryDigest` and interpreted mirror digest for integrity checks
+16. Payload consistency is enforced before write:
+   - state history root/tail/order checks fail closed
+   - interpreted state fields must match top-level state fields
+   - reason codes must be stable-sorted/unique at write time
 
 Command
 - `npm run verify:360`

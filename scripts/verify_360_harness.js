@@ -42,16 +42,28 @@ const listRunNames = () => {
     .sort(cmp);
 };
 
-const newestRunName = () => {
-  const runs = listRunNames();
-  return runs.length > 0 ? runs[runs.length - 1] : null;
-};
 const diffNewRuns = (beforeRuns, afterRuns) => {
   const seen = new Set(beforeRuns || []);
   return (afterRuns || []).filter((r) => !seen.has(r));
 };
 
 const readJson = (filePath) => JSON.parse(fs.readFileSync(filePath, "utf8"));
+const assertStateReceipt = (receipt, expectedVerdict) => {
+  assert(receipt && typeof receipt === "object", "VERIFY360_HARNESS_RECEIPT_INVALID");
+  assert(String(receipt.verdict || "") === expectedVerdict, `VERIFY360_HARNESS_VERDICT_MISMATCH_${expectedVerdict}`);
+  const stateHistory = Array.isArray(receipt.stateHistory) ? receipt.stateHistory : [];
+  assert(stateHistory.length > 0, "VERIFY360_HARNESS_STATE_HISTORY_MISSING");
+  assert(stateHistory[0] === "INIT", "VERIFY360_HARNESS_STATE_HISTORY_ROOT_INVALID");
+  const gateState = String(receipt.interpreted?.gateState || "");
+  assert(gateState.length > 0, "VERIFY360_HARNESS_GATE_STATE_MISSING");
+  assert(stateHistory[stateHistory.length - 1] === gateState, "VERIFY360_HARNESS_STATE_HISTORY_TAIL_MISMATCH");
+  const interpretedHistory = Array.isArray(receipt.interpreted?.stateHistory) ? receipt.interpreted.stateHistory : [];
+  assert(interpretedHistory.length === stateHistory.length, "VERIFY360_HARNESS_INTERPRETED_HISTORY_LENGTH_MISMATCH");
+  const digestA = String(receipt.stateHistoryDigest || "");
+  const digestB = String(receipt.interpreted?.stateHistoryDigest || "");
+  assert(digestA.length > 0 && digestB.length > 0, "VERIFY360_HARNESS_STATE_DIGEST_MISSING");
+  assert(digestA === digestB, "VERIFY360_HARNESS_STATE_DIGEST_MISMATCH");
+};
 
 const runVerify = (envExtra = {}) => {
   const env = { ...process.env, ...envExtra };
@@ -81,7 +93,7 @@ const main = () => {
   const receiptAPath = path.join(historyRoot, runA, "verify_360_receipt.json");
   assert(fs.existsSync(receiptAPath), "VERIFY360_HARNESS_RECEIPT_A_MISSING");
   const receiptA = readJson(receiptAPath);
-  assert(receiptA.verdict !== "FAIL", "VERIFY360_HARNESS_PASS1_VERDICT_FAIL");
+  assertStateReceipt(receiptA, "PASS");
   assert(["NEW", "REPLAY", "PARTIAL"].includes(String(receiptA.idempotence?.mode || "")), "VERIFY360_HARNESS_PASS1_IDEMPOTENCE_INVALID");
 
   const statusB = runVerify();
@@ -95,6 +107,7 @@ const main = () => {
   const receiptBPath = path.join(historyRoot, runB, "verify_360_receipt.json");
   assert(fs.existsSync(receiptBPath), "VERIFY360_HARNESS_RECEIPT_B_MISSING");
   const receiptB = readJson(receiptBPath);
+  assertStateReceipt(receiptB, "PASS");
   assert(receiptB.idempotence?.mode === "REPLAY", "VERIFY360_HARNESS_REPLAY_MODE_MISSING");
   assert(receiptB.idempotence?.pointerPolicy === "UPDATE_SUPPRESSED", "VERIFY360_HARNESS_REPLAY_POINTER_POLICY_INVALID");
 
@@ -111,10 +124,14 @@ const main = () => {
   assert(fs.existsSync(receiptCPath), "VERIFY360_HARNESS_RECEIPT_C_MISSING");
   assert(fs.existsSync(reportCPath), "VERIFY360_HARNESS_REPORT_C_MISSING");
   const receiptC = readJson(receiptCPath);
-  assert(receiptC.verdict === "FAIL", "VERIFY360_HARNESS_FORCED_EXCEPTION_VERDICT_NOT_FAIL");
+  assertStateReceipt(receiptC, "FAIL");
   const reasonCodes = Array.isArray(receiptC.reasonCodes) ? receiptC.reasonCodes : [];
   assert(reasonCodes.includes("VERIFY360_INTERNAL_EXCEPTION"), "VERIFY360_HARNESS_INTERNAL_EXCEPTION_REASON_MISSING");
   assert(reasonCodes.includes("VERIFY360_FORCED_EXCEPTION"), "VERIFY360_HARNESS_FORCED_EXCEPTION_REASON_MISSING");
+  assert(
+    reasonCodes.includes(`VERIFY360_FAIL_CLOSED_AT_${String(receiptC.interpreted?.gateState || "").toUpperCase()}`),
+    "VERIFY360_HARNESS_FAIL_CLOSED_AT_REASON_MISSING"
+  );
 
   console.log(
     `verify:360:harness PASS beforeLatest=${beforeLatest || "NONE"} passRun=${runA} replayRun=${runB} forcedRun=${runC}`

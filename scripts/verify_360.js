@@ -87,6 +87,40 @@ const exceptionReasonCodes = (error) => {
   if (match && match[0]) out.push(match[0]);
   return stableSortUnique(out);
 };
+const stateHistoryDigest = (history) => sha256Text(canonicalJSON(Array.isArray(history) ? history : []));
+const assertPayloadConsistency = (payload) => {
+  const stateHistory = Array.isArray(payload?.stateHistory) ? payload.stateHistory : [];
+  if (stateHistory.length === 0) throw new Error("VERIFY360_INCONSISTENT_STATE_HISTORY_EMPTY");
+  if (stateHistory[0] !== "INIT") throw new Error("VERIFY360_INCONSISTENT_STATE_HISTORY_ROOT");
+  const stateAtStage = String(payload?.stateAtStage || "");
+  if (stateAtStage.length === 0) throw new Error("VERIFY360_INCONSISTENT_STATE_AT_STAGE_MISSING");
+  if (stateHistory[stateHistory.length - 1] !== stateAtStage) {
+    throw new Error("VERIFY360_INCONSISTENT_STATE_HISTORY_TAIL");
+  }
+  for (let i = 1; i < stateHistory.length; i += 1) {
+    const prev = RUN_STATES.indexOf(stateHistory[i - 1]);
+    const next = RUN_STATES.indexOf(stateHistory[i]);
+    if (prev < 0 || next < 0 || next < prev) {
+      throw new Error("VERIFY360_INCONSISTENT_STATE_HISTORY_ORDER");
+    }
+  }
+  const interpretedState = String(payload?.interpreted?.gateState || "");
+  if (interpretedState !== stateAtStage) throw new Error("VERIFY360_INCONSISTENT_INTERPRETED_GATE_STATE");
+  const interpretedHistory = Array.isArray(payload?.interpreted?.stateHistory) ? payload.interpreted.stateHistory : [];
+  if (interpretedHistory.length !== stateHistory.length) {
+    throw new Error("VERIFY360_INCONSISTENT_INTERPRETED_STATE_HISTORY_LENGTH");
+  }
+  for (let i = 0; i < stateHistory.length; i += 1) {
+    if (stateHistory[i] !== interpretedHistory[i]) {
+      throw new Error("VERIFY360_INCONSISTENT_INTERPRETED_STATE_HISTORY_CONTENT");
+    }
+  }
+  const rc = Array.isArray(payload?.reasonCodes) ? payload.reasonCodes : [];
+  const expectedRc = stableSortUnique(rc);
+  if (expectedRc.length !== rc.length || expectedRc.some((v, i) => v !== rc[i])) {
+    throw new Error("VERIFY360_INCONSISTENT_REASON_CODES_ORDER");
+  }
+};
 const summarizeStepStatuses = (steps) => {
   const summary = {
     FAIL: 0,
@@ -327,6 +361,7 @@ const writeOutputs = (runDir, payload, options = {}) => {
   lines.push(`interpreted.verdict=${payload.interpreted?.verdict || payload.verdict || "-"}`);
   lines.push(`interpreted.gateState=${payload.interpreted?.gateState || "-"}`);
   lines.push(`interpreted.statePath=${(payload.interpreted?.stateHistory || []).join(">") || "-"}`);
+  lines.push(`interpreted.statePathDigest=${payload.interpreted?.stateHistoryDigest || "-"}`);
   lines.push(`explain.version=${payload.explain?.schema || VERIFY360_EXPLAIN_VERSION}`);
   lines.push(`explain.verdict=${payload.explain?.verdictMeaning || "-"}`);
   lines.push(`explain.idempotence=${payload.explain?.idempotenceMeaning || "-"}`);
@@ -805,6 +840,8 @@ const main = () => {
   const stepStatusSummary = summarizeStepStatuses(steps);
   const capabilityDecisions = buildCapabilityDecisions(capabilityMap);
   const explain = buildExplain(verdict, idempotenceMode);
+  const stateHistorySnapshot = corridorStateHistory.slice();
+  const stateHistorySnapshotDigest = stateHistoryDigest(stateHistorySnapshot);
 
   const payload = {
     schema: "weftend.verify360/0",
@@ -813,7 +850,8 @@ const main = () => {
     command: "verify:360",
     stateAtStage: corridorState,
     stateTarget: "RECORDED",
-    stateHistory: corridorStateHistory,
+    stateHistory: stateHistorySnapshot,
+    stateHistoryDigest: stateHistorySnapshotDigest,
     idempotenceKey,
     idempotenceContext,
     idempotence: {
@@ -842,7 +880,8 @@ const main = () => {
       schema: "weftend.verify360Interpreted/0",
       schemaVersion: 0,
       gateState: corridorState,
-      stateHistory: corridorStateHistory,
+      stateHistory: stateHistorySnapshot,
+      stateHistoryDigest: stateHistorySnapshotDigest,
       verdict,
       reasonCodes,
       idempotenceMode,
@@ -877,6 +916,7 @@ const main = () => {
       },
     },
   };
+  assertPayloadConsistency(payload);
   advanceState("STAGED");
   writeOutputs(runDir, payload, {
     updateLatestPointer: idempotencePointerPolicy === "UPDATE_ALLOWED",
@@ -913,6 +953,8 @@ const main = () => {
     recordCapability("output.write_receipt", true, []);
     const capabilityDecisions = buildCapabilityDecisions(capabilityMap);
     const stepStatusSummary = summarizeStepStatuses(steps);
+    const failureStateHistory = corridorStateHistory.slice();
+    const failureStateHistoryDigest = stateHistoryDigest(failureStateHistory);
     const failurePayload = {
       schema: "weftend.verify360/0",
       schemaVersion: 0,
@@ -920,7 +962,8 @@ const main = () => {
       command: "verify:360",
       stateAtStage: corridorState,
       stateTarget: "RECORDED",
-      stateHistory: corridorStateHistory,
+      stateHistory: failureStateHistory,
+      stateHistoryDigest: failureStateHistoryDigest,
       idempotenceKey,
       idempotenceContext,
       idempotence: {
@@ -949,7 +992,8 @@ const main = () => {
         schema: "weftend.verify360Interpreted/0",
         schemaVersion: 0,
         gateState: corridorState,
-        stateHistory: corridorStateHistory,
+        stateHistory: failureStateHistory,
+        stateHistoryDigest: failureStateHistoryDigest,
         verdict: "FAIL",
         reasonCodes: emergencyReasonCodes,
         idempotenceMode,
@@ -985,6 +1029,7 @@ const main = () => {
         },
       },
     };
+    assertPayloadConsistency(failurePayload);
     try {
       writeOutputs(runDir, failurePayload, { updateLatestPointer: false });
     } catch (writeError) {
