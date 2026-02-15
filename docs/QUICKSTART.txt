@@ -53,6 +53,16 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   analysis/adapter_findings_v0.json
 - Receipts include bounded counts/flags only (no timestamps or raw env values).
 
+3.3) Shadow audit (CLI, proof-only)
+- Run explicit shadow audit lane:
+  npm run weftend -- shadow-audit <request.json>
+- Output is deterministic proof-only JSON (`weftend.shadowAudit.result/0`) with:
+  - reason families
+  - sequence mismatch counts
+  - capability mismatch counts
+  - bounded tartarus kind counters
+- No storage/export side effects are performed by default.
+
 4) Launchpad (no CLI after install)
 - Open Start Menu -> WeftEnd Launchpad
 - Add shortcuts/apps in:

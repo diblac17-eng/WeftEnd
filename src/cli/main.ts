@@ -19,6 +19,7 @@ import { runWatchCli } from "./watch";
 import { runExportJsonCli, runSummarizeCli } from "./summarize";
 import { runContainerCli } from "./container_scan";
 import { runAdapterCli } from "./adapter";
+import { runShadowAuditCli } from "./shadow_audit";
 import { canonicalJSON } from "../core/canon";
 import { canonicalizeWeftEndPolicyV1 } from "../core/intake_policy_v1";
 import { validateMintPackageV1, validateWeftEndPolicyV1 } from "../core/validate";
@@ -39,6 +40,7 @@ const printUsage = () => {
   console.log("  weftend email safe-run <input.eml|input.mbox|input.msg|email_export_dir> --out <dir> [--policy <policy.json>] [--index <n>] [--message-id <id>]");
   console.log("  weftend container scan <imageRefOrId> --out <dir> [--policy <policy.json>]");
   console.log("  weftend adapter list");
+  console.log("  weftend shadow-audit <request.json>");
   console.log("  weftend compare <leftOutRoot> <rightOutRoot> --out <dir>");
   console.log("  weftend summarize <outRoot>");
   console.log("  weftend export-json <outRoot> --format normalized_v0 [--out <file>]");
@@ -524,6 +526,9 @@ export const runCli = async (args: string[], _ports: CliPorts): Promise<number> 
   }
   if (args[0] === "adapter") {
     return runAdapterCli(args.slice(1));
+  }
+  if (args[0] === "shadow-audit") {
+    return runShadowAuditCli(args.slice(1));
   }
   if (args[0] === "compare") {
     return runCompareCli(args);

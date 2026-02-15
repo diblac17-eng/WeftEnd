@@ -1,6 +1,7 @@
 # docs/shadow_audit_v0.md - Shadow Audit v0 (bounded, deterministic, non-tracking)
 
 Status: normative for Shadow Audit v0 scaffolding.
+Implementation: CLI lane available via `weftend shadow-audit <request.json>` (proof-only JSON result, no implicit storage side effects).
 This document must not conflict with:
 - docs/PROJECT_STATE.md
 - docs/weblayers-v2-spec.md

@@ -45,6 +45,8 @@ Included
 - Non-strict audit is backward-compatible and reports legacy gaps as warnings.
 - `verify:360` now runs a built-in non-strict history audit pass and fails on audit errors (`VERIFY360_HISTORY_AUDIT_FAILED`).
 - Legacy history warnings are surfaced deterministically (`VERIFY360_HISTORY_AUDIT_WARNINGS_PRESENT`) without forcing strict-mode failure by default.
+- New explicit proof-only shadow audit lane:
+- `weftend shadow-audit <request.json>` validates bounded schema/privacy constraints and emits deterministic `weftend.shadowAudit.result/0` counts + reason families (no implicit storage/export side effects).
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)
