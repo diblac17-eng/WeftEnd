@@ -147,6 +147,39 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const wfDir = path.join(tmp, ".github", "workflows");
+    fs.mkdirSync(wfDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(wfDir, "pinned.yml"),
+      "name: ci\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567\n",
+      "utf8"
+    );
+    const capture = captureTreeV0(tmp, limits);
+    const res = runArtifactAdapterV1({ selection: "cicd", enabledPlugins: [], inputPath: tmp, capture });
+    assert(res.ok, "cicd adapter should succeed for pinned workflow");
+    assertEq(res.summary?.sourceClass, "cicd", "expected cicd class for pinned workflow");
+    assertEq(res.summary?.counts.cicdUnpinnedActionCount, 0, "pinned action should not increment unpinned count");
+    assert((res.summary?.counts.cicdActionRefCount ?? 0) > 0, "action ref count should be captured");
+  }
+
+  {
+    const tmp = mkTmp();
+    const tf = path.join(tmp, "main.tf");
+    fs.writeFileSync(
+      tf,
+      "module \"vpc\" {\n  source = \"git::https://github.com/acme/terraform-vpc.git\"\n}\n",
+      "utf8"
+    );
+    const capture = captureTreeV0(tf, limits);
+    const res = runArtifactAdapterV1({ selection: "iac", enabledPlugins: [], inputPath: tf, capture });
+    assert(res.ok, "iac adapter should succeed for terraform file");
+    assertEq(res.summary?.sourceClass, "iac", "expected iac class");
+    assert((res.summary?.reasonCodes ?? []).includes("IAC_REMOTE_MODULE_REFERENCE"), "expected remote module reason");
+    assert((res.summary?.counts.remoteModulePatternCount ?? 0) > 0, "expected remote module pattern count");
+  }
+
+  {
+    const tmp = mkTmp();
     const vsix = path.join(tmp, "demo.vsix");
     writeStoredZip(vsix, [
       {

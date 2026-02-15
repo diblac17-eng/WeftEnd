@@ -19,6 +19,9 @@ Included
 - `.crx/.vsix` now parse `manifest.json` when present in ZIP payloads (permissions/content scripts/update URL domain hints).
 - Document adapter deepened for `.docm/.xlsm`:
 - ZIP structure + relationships are inspected deterministically for macro/embed/external-link indicators.
+- IaC/CI adapter extraction deepened:
+- Deterministic action reference parsing now distinguishes pinned commit/digest refs from unpinned refs.
+- Remote module/source indicators and external runner signals are counted with structured counters in adapter summary output.
 - Container scan now emits adapter metadata/signals plus adapter artifacts using the same deterministic contract as safe-run adapters.
 - Container scan evidence remains local-only inspect data and excludes unstable fields (timestamps/raw env/path values).
 - Wave coverage now includes:

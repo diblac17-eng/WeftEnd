@@ -553,6 +553,50 @@ const collectTextFiles = (inputPath: string, capture: CaptureTreeV0, exts: Set<s
   out.sort((a, b) => cmpStrV0(a, b));
   return out.slice(0, 256);
 };
+
+const countMatchesV1 = (text: string, pattern: RegExp): number => {
+  const flags = pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`;
+  const re = new RegExp(pattern.source, flags);
+  let count = 0;
+  let match: RegExpExecArray | null = null;
+  while ((match = re.exec(text)) !== null) {
+    count += 1;
+    if (match[0].length === 0) re.lastIndex += 1;
+    if (count >= 100000) break;
+  }
+  return count;
+};
+
+const extractActionUsesRefsV1 = (text: string): string[] => {
+  const refs: string[] = [];
+  const re = /\buses\s*:\s*([^\s#"'`]+|["'][^"']+["'])/gi;
+  let match: RegExpExecArray | null = null;
+  while ((match = re.exec(text)) !== null) {
+    let value = String(match[1] || "").trim();
+    if (value.startsWith("'") && value.endsWith("'")) value = value.slice(1, -1);
+    if (value.startsWith("\"") && value.endsWith("\"")) value = value.slice(1, -1);
+    value = value.trim();
+    if (!value) continue;
+    refs.push(value);
+  }
+  refs.sort((a, b) => cmpStrV0(a, b));
+  return refs;
+};
+
+const isPinnedActionRefV1 = (ref: string): boolean => {
+  const at = ref.lastIndexOf("@");
+  if (at < 0) return false;
+  const suffix = ref.slice(at + 1).trim();
+  if (/^[A-Fa-f0-9]{40}$/.test(suffix)) return true;
+  if (/^sha256:[A-Fa-f0-9]{64}$/.test(suffix)) return true;
+  return false;
+};
+
+const containsExternalRunnerV1 = (text: string): number => {
+  const runsOnMatches = countMatchesV1(text, /\bruns-on\s*:\s*(\[[^\]]*self-hosted[^\]]*\]|[^\n\r#]*self-hosted)/gi);
+  const dockerRefMatches = countMatchesV1(text, /docker:\/\//gi);
+  return runsOnMatches + dockerRefMatches;
+};
 const analyzeArchive = (ctx: AnalyzeCtx): AnalyzeResult => {
   const reasonCodes = ["ARCHIVE_ADAPTER_V1"];
   const markers: string[] = [];
@@ -934,19 +978,37 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeR
   let privileged = 0;
   let secretRefs = 0;
   let remoteModuleRefs = 0;
+  let actionRefCount = 0;
   let unpinnedActionRefs = 0;
   let cicdSecretUsage = 0;
   let externalRunnerRefs = 0;
+  const externalDomains = new Set<string>();
 
   const scanText = (text: string) => {
-    if (/\bprivileged\s*:\s*true\b/i.test(text) || /\bhostnetwork\s*:\s*true\b/i.test(text)) privileged += 1;
-    if (/\b(secret|secrets|password|token)\b/i.test(text)) secretRefs += 1;
-    if (/\b(source|module)\s*=\s*["'](?:https?:\/\/|git::)/i.test(text)) remoteModuleRefs += 1;
-    if (/uses\s*:\s*[^@\s]+@(main|master|latest)\b/i.test(text)) unpinnedActionRefs += 1;
-    if (/\$\{\{\s*secrets\./i.test(text) || /\bCI_[A-Z0-9_]+\b/.test(text)) cicdSecretUsage += 1;
-    if (/docker:\/\/|runs-on:\s*self-hosted/i.test(text)) externalRunnerRefs += 1;
+    privileged += countMatchesV1(text, /\bprivileged\s*:\s*true\b/gi);
+    privileged += countMatchesV1(text, /\ballowprivilegeescalation\s*:\s*true\b/gi);
+    privileged += countMatchesV1(text, /\bhost(network|pid|ipc)\s*:\s*true\b/gi);
+    privileged += countMatchesV1(text, /\brunasuser\s*:\s*0\b/gi);
+    privileged += countMatchesV1(text, /\b(sys_admin|net_admin)\b/gi);
+
+    secretRefs += countMatchesV1(text, /\b(secret|secrets|password|passwd|token|api[_-]?key|client[_-]?secret)\b/gi);
+    secretRefs += countMatchesV1(text, /\b(secret|password|token|api[_-]?key|client[_-]?secret)\s*[:=]/gi);
+
+    remoteModuleRefs += countMatchesV1(text, /\bsource\s*=\s*["'](?:git::|https?:\/\/|github\.com\/|git@)/gi);
+    remoteModuleRefs += countMatchesV1(text, /\b(?:chart|repository|module)\s*:\s*(?:https?:\/\/|oci:\/\/)/gi);
+
+    const actionRefs = extractActionUsesRefsV1(text).filter((ref) => !ref.startsWith("./") && !ref.startsWith("../"));
+    actionRefCount += actionRefs.length;
+    unpinnedActionRefs += actionRefs.filter((ref) => ref.includes("@") && !isPinnedActionRefV1(ref)).length;
+
+    cicdSecretUsage += countMatchesV1(text, /\$\{\{\s*secrets\./gi);
+    cicdSecretUsage += countMatchesV1(text, /\bCI_[A-Z0-9_]+\b/g);
+
+    externalRunnerRefs += containsExternalRunnerV1(text);
+    extractDomains(text).forEach((domain) => externalDomains.add(domain));
   };
 
+  const filesScanned = ctx.capture.kind === "file" ? 1 : files.length;
   if (ctx.capture.kind === "file") {
     scanText(readTextBounded(ctx.inputPath));
   } else {
@@ -989,13 +1051,15 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeR
     mode: "built_in",
     adapterId: sourceClass === "cicd" ? "cicd_adapter_v1" : "iac_adapter_v1",
     counts: {
-      filesScanned: files.length,
+      filesScanned,
       privilegedPatternCount: privileged,
       secretPatternCount: secretRefs,
       remoteModulePatternCount: remoteModuleRefs,
+      cicdActionRefCount: actionRefCount,
       cicdUnpinnedActionCount: unpinnedActionRefs,
       cicdSecretUsageCount: cicdSecretUsage,
       cicdExternalRunnerCount: externalRunnerRefs,
+      externalDomainCount: externalDomains.size,
     },
     markers: [],
     reasonCodes: stableSortUniqueReasonsV0(reasons),
