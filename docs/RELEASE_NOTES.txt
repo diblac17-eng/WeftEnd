@@ -52,6 +52,7 @@ Included
 - `streamNonce` is schema-validated but intentionally excluded from result payloads.
 - Added explicit shadow-audit contract checks for WARN-vs-DENY threshold behavior and deterministic tail truncation (highest-seq drop under bounds).
 - Added fixture-backed shadow-audit contract tests (`tests/fixtures/shadow_audit`) to pin deterministic output shape and reason ordering.
+- Shadow-audit fixture suite now includes capability anomaly coverage for WARN vs threshold-driven DENY (`attemptedWithoutRequest`, `allowedWithoutEvidence`, `inconsistent`).
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)

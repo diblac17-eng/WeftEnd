@@ -1,0 +1,20 @@
+{
+  "schema": "weftend.shadowAudit.request/0",
+  "v": 0,
+  "rulesetId": "SHADOW_RULESET_V0",
+  "policy": {
+    "denyThresholds": {
+      "attemptedWithoutRequest": 1,
+      "allowedWithoutEvidence": 0
+    }
+  },
+  "stream": {
+    "schema": "weftend.shadowAudit.stream/0",
+    "v": 0,
+    "events": [
+      { "seq": 1, "kind": "CAP_ALLOW", "data": { "capId": "cap.exec", "evidenceOk": false } },
+      { "seq": 2, "kind": "CAP_DENY", "data": { "capId": "cap.exec" } }
+    ]
+  }
+}
+

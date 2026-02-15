@@ -41,6 +41,13 @@ const run = async (): Promise<void> => {
     { name: "warn", req: "warn_request.json", expected: "warn_expected.json", status: 0 },
     { name: "deny_threshold", req: "deny_threshold_request.json", expected: "deny_threshold_expected.json", status: 40 },
     { name: "deny_privacy", req: "deny_privacy_request.json", expected: "deny_privacy_expected.json", status: 40 },
+    { name: "cap_warn", req: "cap_warn_request.json", expected: "cap_warn_expected.json", status: 0 },
+    {
+      name: "cap_deny_threshold",
+      req: "cap_deny_threshold_request.json",
+      expected: "cap_deny_threshold_expected.json",
+      status: 40,
+    },
   ];
 
   for (const tc of cases) {
@@ -75,4 +82,3 @@ run()
     console.error(error);
     process.exit(1);
   });
-
