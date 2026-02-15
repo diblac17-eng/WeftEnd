@@ -40,6 +40,12 @@ const CAPABILITY_REQUESTS = [
   "output.write_receipt",
   "runtime.privacy_lint",
 ];
+const VERIFY360_EXPLAIN_VERSION = "weftend.verify360Explain/0";
+const VERDICT_EXPLANATIONS = {
+  PASS: "All required verification checks completed successfully with deterministic evidence recorded.",
+  PARTIAL: "Verification completed with partial knowledge; evidence is recorded and reusable state advancement remains constrained.",
+  FAIL: "Verification failed closed; evidence is recorded and reusable state must not advance until issues are resolved.",
+};
 
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
@@ -260,6 +266,10 @@ const writeOutputs = (runDir, payload, options = {}) => {
   lines.push(`VERIFY360 ${payload.verdict}`);
   lines.push(`runId=${payload.runId}`);
   lines.push(`reasonCodes=${(payload.reasonCodes || []).join(",") || "-"}`);
+  lines.push(`explain.version=${payload.explain?.schema || VERIFY360_EXPLAIN_VERSION}`);
+  lines.push(`explain.verdict=${payload.explain?.verdictMeaning || "-"}`);
+  lines.push(`explain.idempotence=${payload.explain?.idempotenceMeaning || "-"}`);
+  lines.push(`explain.next=${payload.explain?.nextAction || "-"}`);
   lines.push(`steps=${payload.steps.length}`);
   payload.steps.forEach((s) => {
     lines.push(
@@ -678,6 +688,25 @@ const main = () => {
     steps.flatMap((s) => (Array.isArray(s.reasonCodes) ? s.reasonCodes : []))
   );
   recordCapability("output.write_receipt", true, []);
+  const explain = {
+    schema: VERIFY360_EXPLAIN_VERSION,
+    schemaVersion: 0,
+    verdictMeaning:
+      VERDICT_EXPLANATIONS[verdict] ||
+      "Verification result recorded with deterministic evidence and stable reason codes.",
+    idempotenceMeaning:
+      idempotenceMode === "NEW"
+        ? "This run key is new; latest pointer updates are allowed."
+        : idempotenceMode === "REPLAY"
+          ? "This run key replays prior evidence; latest pointer updates are suppressed."
+          : "Idempotence history was partially readable; latest pointer updates are suppressed fail-closed.",
+    nextAction:
+      verdict === "PASS"
+        ? "Proceed with reusable commit or release flow under normal controls."
+        : verdict === "PARTIAL"
+          ? "Review partial reason codes and resolve missing preconditions before reusable commit or release."
+          : "Resolve fail reason codes, then rerun verify:360 before reusable commit or release.",
+  };
 
   const payload = {
     schema: "weftend.verify360/0",
@@ -696,6 +725,7 @@ const main = () => {
     },
     verdict,
     reasonCodes,
+    explain,
     releaseFixture: fs.existsSync(releaseDirAbs) ? releaseDirEnv : "MISSING",
     deterministicInput: fs.existsSync(deterministicInputAbs) ? deterministicInputEnv : "MISSING",
     steps,

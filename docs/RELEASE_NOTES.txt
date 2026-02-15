@@ -17,6 +17,8 @@ Included
 - Gate receipt now includes an explicit deterministic capability ledger:
 - requested capabilities are enumerated per run, each marked `GRANTED` or `DENIED` with stable reason codes.
 - unset capabilities are fail-closed as `DENIED` with `VERIFY360_CAPABILITY_UNSET`.
+- Gate now emits a deterministic, versioned explain layer (`weftend.verify360Explain/0`) in receipt and report output.
+- explanation text is fixed-table interpretation (verdict, idempotence mode, next action), not runtime-generated prose.
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)

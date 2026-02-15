@@ -40,6 +40,10 @@ Core rule
    - receipt includes a deterministic capability ledger for requested capabilities
    - each capability records `GRANTED` or `DENIED` with stable reason codes
    - missing capability decisions are fail-closed as `DENIED` with `VERIFY360_CAPABILITY_UNSET`
+12. Explain layer is deterministic and versioned:
+   - receipt includes `explain` with fixed, versioned interpretation text
+   - report includes `explain.*` lines derived from stable receipt fields
+   - explanation text is deterministic input-to-output mapping, not model-generated content
 
 Command
 - `npm run verify:360`
