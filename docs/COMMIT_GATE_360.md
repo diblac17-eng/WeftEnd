@@ -31,6 +31,11 @@ Core rule
    - `finalize` atomically switches staged output into the run folder
 9. Gate state is explicit and monotonic:
    - `INIT -> PRECHECKED -> COMPILE_DONE -> TEST_DONE -> PROOFCHECK_DONE -> DETERMINISM_DONE -> STAGED -> FINALIZED -> RECORDED`
+10. Idempotence replay handling is explicit:
+   - key is derived from deterministic gate context
+   - duplicate key runs still write full evidence
+   - duplicate key runs suppress `latest.txt` pointer update to avoid double-apply side effects
+   - receipt includes `idempotence.mode`, `pointerPolicy`, and prior run linkage when present
 
 Command
 - `npm run verify:360`

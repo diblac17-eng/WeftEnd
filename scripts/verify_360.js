@@ -207,8 +207,34 @@ const collectFiles = (dir) => {
   return out;
 };
 
-const writeOutputs = (runDir, payload) => {
+const findPriorRunByIdempotenceKey = (idempotenceKey) => {
   ensureDir(HISTORY_ROOT);
+  const runs = fs
+    .readdirSync(HISTORY_ROOT, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && /^run_[0-9]{6}$/.test(d.name))
+    .map((d) => d.name)
+    .sort((a, b) => cmp(b, a));
+
+  const parseErrors = [];
+  for (const runName of runs) {
+    const receiptPath = path.join(HISTORY_ROOT, runName, "verify_360_receipt.json");
+    if (!fs.existsSync(receiptPath)) continue;
+    try {
+      const text = fs.readFileSync(receiptPath, "utf8");
+      const parsed = JSON.parse(text);
+      if (parsed && parsed.idempotenceKey === idempotenceKey) {
+        return { priorRunId: runName, parseErrors };
+      }
+    } catch {
+      parseErrors.push(runName);
+    }
+  }
+  return { priorRunId: null, parseErrors };
+};
+
+const writeOutputs = (runDir, payload, options = {}) => {
+  ensureDir(HISTORY_ROOT);
+  const updateLatestPointer = options.updateLatestPointer !== false;
   const stageDir = `${runDir}.stage`;
   fs.rmSync(stageDir, { recursive: true, force: true });
   ensureDir(stageDir);
@@ -279,11 +305,13 @@ const writeOutputs = (runDir, payload) => {
   fs.rmSync(runDir, { recursive: true, force: true });
   fs.renameSync(stageDir, runDir);
 
-  ensureDir(OUT_ROOT);
-  const latestTmp = path.join(OUT_ROOT, "latest.txt.stage");
-  const latestFinal = path.join(OUT_ROOT, "latest.txt");
-  fs.writeFileSync(latestTmp, `${rel(runDir)}\n`, "utf8");
-  fs.renameSync(latestTmp, latestFinal);
+  if (updateLatestPointer) {
+    ensureDir(OUT_ROOT);
+    const latestTmp = path.join(OUT_ROOT, "latest.txt.stage");
+    const latestFinal = path.join(OUT_ROOT, "latest.txt");
+    fs.writeFileSync(latestTmp, `${rel(runDir)}\n`, "utf8");
+    fs.renameSync(latestTmp, latestFinal);
+  }
 };
 
 const main = () => {
@@ -308,6 +336,16 @@ const main = () => {
     changedFiles: changedFiles || ["UNKNOWN"],
   };
   const idempotenceKey = sha256Text(canonicalJSON(idempotenceContext));
+  const idempotenceHistory = findPriorRunByIdempotenceKey(idempotenceKey);
+  const idempotencePriorRunId = idempotenceHistory.priorRunId;
+  const idempotenceParseErrors = stableSortUnique(idempotenceHistory.parseErrors);
+  const idempotenceMode =
+    idempotencePriorRunId !== null
+      ? "REPLAY"
+      : idempotenceParseErrors.length > 0
+        ? "PARTIAL"
+        : "NEW";
+  const idempotencePointerPolicy = idempotenceMode === "NEW" ? "UPDATE_ALLOWED" : "UPDATE_SUPPRESSED";
   let corridorState = "INIT";
   const advanceState = (next) => {
     const fromIdx = RUN_STATES.indexOf(corridorState);
@@ -326,6 +364,35 @@ const main = () => {
   const npm = npmExec();
   const npmRun = (name, extraArgs = [], envExtra = {}) =>
     runCommand(name, npm.cmd, [...npm.argsPrefix, "run", name, ...extraArgs], envExtra);
+
+  if (idempotenceMode === "REPLAY") {
+    addStep({
+      id: "idempotence",
+      status: "PASS",
+      reasonCodes: ["VERIFY360_IDEMPOTENT_REPLAY", "VERIFY360_POINTER_UPDATE_SUPPRESSED"],
+      details: {
+        priorRunId: idempotencePriorRunId,
+      },
+    });
+  } else if (idempotenceMode === "PARTIAL") {
+    addStep({
+      id: "idempotence",
+      status: "PARTIAL",
+      reasonCodes: ["VERIFY360_IDEMPOTENCE_HISTORY_PARTIAL", "VERIFY360_POINTER_UPDATE_SUPPRESSED"],
+      details: {
+        parseErrorRuns: idempotenceParseErrors,
+      },
+    });
+  } else {
+    addStep({
+      id: "idempotence",
+      status: "PASS",
+      reasonCodes: [],
+      details: {
+        priorRunId: "NONE",
+      },
+    });
+  }
 
   // Docs/update discipline check (catches "little misses" before commit/release).
   if (!changedFiles) {
@@ -565,6 +632,12 @@ const main = () => {
     stateTarget: "RECORDED",
     idempotenceKey,
     idempotenceContext,
+    idempotence: {
+      mode: idempotenceMode,
+      pointerPolicy: idempotencePointerPolicy,
+      priorRunId: idempotencePriorRunId || "NONE",
+      historyParseErrors: idempotenceParseErrors,
+    },
     verdict,
     reasonCodes,
     releaseFixture: fs.existsSync(releaseDirAbs) ? releaseDirEnv : "MISSING",
@@ -589,7 +662,9 @@ const main = () => {
     },
   };
   advanceState("STAGED");
-  writeOutputs(runDir, payload);
+  writeOutputs(runDir, payload, {
+    updateLatestPointer: idempotencePointerPolicy === "UPDATE_ALLOWED",
+  });
   advanceState("FINALIZED");
   const finalPayloadPath = path.join(runDir, "verify_360_receipt.json");
   if (!fs.existsSync(finalPayloadPath)) {
