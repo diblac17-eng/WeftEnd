@@ -65,6 +65,7 @@ Core rule
    - reason codes must be stable-sorted/unique at write time
 17. Verify history chain is explicit:
    - receipt includes `historyLink.priorRunId` + `historyLink.priorReceiptFileDigest`
+   - receipt includes `historyLinkDigest` over the prior-run link tuple
    - evidence chain mirrors history link fields
    - harness asserts prior-run continuity and digest match across pass/replay/fail runs
 

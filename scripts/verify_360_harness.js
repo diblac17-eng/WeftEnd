@@ -55,6 +55,16 @@ const sha256File = (filePath) => {
   h.update(fs.readFileSync(filePath));
   return `sha256:${h.digest("hex")}`;
 };
+const historyLinkDigest = (historyLink) => {
+  const canonical = {
+    priorReceiptFileDigest: String(historyLink?.priorReceiptFileDigest || "NONE"),
+    priorRunId: String(historyLink?.priorRunId || "NONE"),
+  };
+  const text = `${JSON.stringify(canonical, null, 2)}\n`;
+  const h = crypto.createHash("sha256");
+  h.update(text);
+  return `sha256:${h.digest("hex")}`;
+};
 const assertStateReceipt = (receipt, expectedVerdict) => {
   assert(receipt && typeof receipt === "object", "VERIFY360_HARNESS_RECEIPT_INVALID");
   assert(String(receipt.verdict || "") === expectedVerdict, `VERIFY360_HARNESS_VERDICT_MISMATCH_${expectedVerdict}`);
@@ -87,6 +97,14 @@ const assertHistoryLink = (receipt, expectedPrevRunId, expectedPrevReceiptPath) 
   assert(
     String(evidence.priorVerifyReceiptFileDigest || "NONE") === gotPrevDigest,
     "VERIFY360_HARNESS_HISTORY_EVIDENCE_DIGEST_MISMATCH"
+  );
+  const gotLinkDigest = String(receipt.historyLinkDigest || "");
+  assert(/^sha256:[a-f0-9]{64}$/.test(gotLinkDigest), "VERIFY360_HARNESS_HISTORY_LINK_DIGEST_SHAPE");
+  const expectedLinkDigest = historyLinkDigest({ priorRunId: gotPrevRun, priorReceiptFileDigest: gotPrevDigest });
+  assert(gotLinkDigest === expectedLinkDigest, "VERIFY360_HARNESS_HISTORY_LINK_DIGEST_VALUE_MISMATCH");
+  assert(
+    String(evidence.priorVerifyHistoryLinkDigest || "") === gotLinkDigest,
+    "VERIFY360_HARNESS_HISTORY_LINK_DIGEST_EVIDENCE_MISMATCH"
   );
 };
 

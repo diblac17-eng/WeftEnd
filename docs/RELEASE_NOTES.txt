@@ -38,6 +38,7 @@ Included
 - Evidence chain mirrors prior-run link fields and harness now validates chain continuity and digest match across pass/replay/fail runs.
 - verify:360 now supports `WEFTEND_360_OUT_ROOT` so harness and CI can run isolated history lanes.
 - harness now uses isolated output root per run and enforces first run idempotence mode `NEW`.
+- History chain now includes deterministic `historyLinkDigest`, mirrored in evidence-chain links and asserted by harness.
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)
