@@ -326,6 +326,7 @@ const writeOutputs = (runDir, payload, options = {}) => {
   lines.push(`observed.capabilities=${payload.observed?.capabilityDecisionCount ?? "-"}`);
   lines.push(`interpreted.verdict=${payload.interpreted?.verdict || payload.verdict || "-"}`);
   lines.push(`interpreted.gateState=${payload.interpreted?.gateState || "-"}`);
+  lines.push(`interpreted.statePath=${(payload.interpreted?.stateHistory || []).join(">") || "-"}`);
   lines.push(`explain.version=${payload.explain?.schema || VERIFY360_EXPLAIN_VERSION}`);
   lines.push(`explain.verdict=${payload.explain?.verdictMeaning || "-"}`);
   lines.push(`explain.idempotence=${payload.explain?.idempotenceMeaning || "-"}`);
@@ -478,6 +479,7 @@ const main = () => {
         : "NEW";
   const idempotencePointerPolicy = idempotenceMode === "NEW" ? "UPDATE_ALLOWED" : "UPDATE_SUPPRESSED";
   let corridorState = "INIT";
+  const corridorStateHistory = ["INIT"];
   const advanceState = (next) => {
     const fromIdx = RUN_STATES.indexOf(corridorState);
     const toIdx = RUN_STATES.indexOf(next);
@@ -485,6 +487,7 @@ const main = () => {
       throw new Error(`FAIL_CLOSED_AT_${corridorState}_TO_${next}`);
     }
     corridorState = next;
+    corridorStateHistory.push(next);
   };
 
   const steps = [];
@@ -810,6 +813,7 @@ const main = () => {
     command: "verify:360",
     stateAtStage: corridorState,
     stateTarget: "RECORDED",
+    stateHistory: corridorStateHistory,
     idempotenceKey,
     idempotenceContext,
     idempotence: {
@@ -838,6 +842,7 @@ const main = () => {
       schema: "weftend.verify360Interpreted/0",
       schemaVersion: 0,
       gateState: corridorState,
+      stateHistory: corridorStateHistory,
       verdict,
       reasonCodes,
       idempotenceMode,
@@ -888,8 +893,13 @@ const main = () => {
   process.exit(0);
   } catch (error) {
     const errorDigest = sha256Text(String(error?.message || error || "UNKNOWN"));
+    const failClosedAtReason = `VERIFY360_FAIL_CLOSED_AT_${String(corridorState || "UNKNOWN")
+      .toUpperCase()
+      .replace(/[^A-Z0-9_]/g, "_")
+      .slice(0, 48)}`;
     const emergencyReasonCodes = stableSortUnique([
       ...steps.flatMap((s) => (Array.isArray(s.reasonCodes) ? s.reasonCodes : [])),
+      failClosedAtReason,
       ...exceptionReasonCodes(error),
     ]);
     addStep({
@@ -910,6 +920,7 @@ const main = () => {
       command: "verify:360",
       stateAtStage: corridorState,
       stateTarget: "RECORDED",
+      stateHistory: corridorStateHistory,
       idempotenceKey,
       idempotenceContext,
       idempotence: {
@@ -938,6 +949,7 @@ const main = () => {
         schema: "weftend.verify360Interpreted/0",
         schemaVersion: 0,
         gateState: corridorState,
+        stateHistory: corridorStateHistory,
         verdict: "FAIL",
         reasonCodes: emergencyReasonCodes,
         idempotenceMode,

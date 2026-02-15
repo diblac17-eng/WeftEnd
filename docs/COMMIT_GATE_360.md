@@ -54,6 +54,10 @@ Core rule
    - `latest.txt` is never advanced on emergency/failure writes
    - exception reason codes include stable name token plus explicit `VERIFY360_*` message token when present
    - emergency write path enforces no-orphan output check
+15. State path evidence is explicit:
+   - receipt includes deterministic `stateHistory` for each run
+   - interpreted section includes `gateState` and `stateHistory`
+   - fail-closed exceptions add `VERIFY360_FAIL_CLOSED_AT_<STATE>` reason code
 
 Command
 - `npm run verify:360`

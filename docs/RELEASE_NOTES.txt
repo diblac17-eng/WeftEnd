@@ -28,6 +28,9 @@ Included
 - Exception failure receipts now include stronger deterministic reason codes (exception-name token + explicit `VERIFY360_*` message token when present).
 - Emergency write fallback now enforces no-orphan output integrity check.
 - Added deterministic corridor harness command: `npm run verify:360:harness` (pass/replay/forced-exception sequence).
+- Gate receipts now include deterministic state-path evidence (`stateHistory`) for pass/fail runs.
+- Fail-closed exception path now includes explicit `VERIFY360_FAIL_CLOSED_AT_<STATE>` reason code.
+- Harness assertions now validate newly-created run folders per phase (not just pointer changes), preventing false-green replay assumptions.
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)

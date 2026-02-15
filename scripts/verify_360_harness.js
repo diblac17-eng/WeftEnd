@@ -46,6 +46,10 @@ const newestRunName = () => {
   const runs = listRunNames();
   return runs.length > 0 ? runs[runs.length - 1] : null;
 };
+const diffNewRuns = (beforeRuns, afterRuns) => {
+  const seen = new Set(beforeRuns || []);
+  return (afterRuns || []).filter((r) => !seen.has(r));
+};
 
 const readJson = (filePath) => JSON.parse(fs.readFileSync(filePath, "utf8"));
 
@@ -64,24 +68,30 @@ const main = () => {
   ensureDir(historyRoot);
 
   const beforeLatest = readLatest();
-  const beforeNewest = newestRunName();
+  const beforeRuns = listRunNames();
 
   const statusA = runVerify();
   assert(statusA === 0, `VERIFY360_HARNESS_PASS1_FAILED status=${statusA}`);
+  const runsAfterA = listRunNames();
+  const newRunsA = diffNewRuns(beforeRuns, runsAfterA);
+  assert(newRunsA.length === 1, "VERIFY360_HARNESS_PASS1_RUN_COUNT_INVALID");
+  const runA = newRunsA[0];
   const latestA = readLatest();
   assert(latestA, "VERIFY360_HARNESS_LATEST_MISSING_AFTER_PASS1");
-  const runA = path.basename(latestA);
-  const receiptAPath = path.join(root, latestA, "verify_360_receipt.json");
+  const receiptAPath = path.join(historyRoot, runA, "verify_360_receipt.json");
   assert(fs.existsSync(receiptAPath), "VERIFY360_HARNESS_RECEIPT_A_MISSING");
   const receiptA = readJson(receiptAPath);
   assert(receiptA.verdict !== "FAIL", "VERIFY360_HARNESS_PASS1_VERDICT_FAIL");
+  assert(["NEW", "REPLAY", "PARTIAL"].includes(String(receiptA.idempotence?.mode || "")), "VERIFY360_HARNESS_PASS1_IDEMPOTENCE_INVALID");
 
   const statusB = runVerify();
   assert(statusB === 0, `VERIFY360_HARNESS_PASS2_FAILED status=${statusB}`);
+  const runsAfterB = listRunNames();
+  const newRunsB = diffNewRuns(runsAfterA, runsAfterB);
+  assert(newRunsB.length === 1, "VERIFY360_HARNESS_PASS2_RUN_COUNT_INVALID");
+  const runB = newRunsB[0];
   const latestB = readLatest();
   assert(latestB === latestA, "VERIFY360_HARNESS_REPLAY_POINTER_ADVANCED");
-  const runB = newestRunName();
-  assert(runB && runB !== beforeNewest, "VERIFY360_HARNESS_REPLAY_RUN_MISSING");
   const receiptBPath = path.join(historyRoot, runB, "verify_360_receipt.json");
   assert(fs.existsSync(receiptBPath), "VERIFY360_HARNESS_RECEIPT_B_MISSING");
   const receiptB = readJson(receiptBPath);
@@ -90,10 +100,12 @@ const main = () => {
 
   const statusC = runVerify({ WEFTEND_360_FORCE_EXCEPTION: "1" });
   assert(statusC !== 0, "VERIFY360_HARNESS_FORCED_EXCEPTION_DID_NOT_FAIL");
+  const runsAfterC = listRunNames();
+  const newRunsC = diffNewRuns(runsAfterB, runsAfterC);
+  assert(newRunsC.length === 1, "VERIFY360_HARNESS_FORCED_EXCEPTION_RUN_COUNT_INVALID");
+  const runC = newRunsC[0];
   const latestC = readLatest();
   assert(latestC === latestA, "VERIFY360_HARNESS_FORCED_EXCEPTION_POINTER_ADVANCED");
-  const runC = newestRunName();
-  assert(runC && runC !== runB, "VERIFY360_HARNESS_FORCED_EXCEPTION_RUN_MISSING");
   const receiptCPath = path.join(historyRoot, runC, "verify_360_receipt.json");
   const reportCPath = path.join(historyRoot, runC, "verify_360_report.txt");
   assert(fs.existsSync(receiptCPath), "VERIFY360_HARNESS_RECEIPT_C_MISSING");
