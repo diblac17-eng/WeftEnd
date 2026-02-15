@@ -26,6 +26,20 @@ const RUN_STATES = [
   "FINALIZED",
   "RECORDED",
 ];
+const CAPABILITY_REQUESTS = [
+  "cli.compare",
+  "cli.safe_run",
+  "fixture.deterministic_input",
+  "fixture.release",
+  "git.head",
+  "git.status",
+  "npm.compile",
+  "npm.proofcheck",
+  "npm.test",
+  "output.update_latest_pointer",
+  "output.write_receipt",
+  "runtime.privacy_lint",
+];
 
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
@@ -360,6 +374,15 @@ const main = () => {
   const addStep = (step) => {
     if (steps.length < MAX_STEPS) steps.push(step);
   };
+  const capabilityMap = new Map();
+  const recordCapability = (capability, granted, reasonCodes = []) => {
+    if (typeof capability !== "string" || capability.length === 0) return;
+    capabilityMap.set(capability, {
+      capability,
+      status: granted ? "GRANTED" : "DENIED",
+      reasonCodes: stableSortUnique(reasonCodes),
+    });
+  };
 
   const npm = npmExec();
   const npmRun = (name, extraArgs = [], envExtra = {}) =>
@@ -393,6 +416,11 @@ const main = () => {
       },
     });
   }
+  recordCapability(
+    "output.update_latest_pointer",
+    idempotencePointerPolicy === "UPDATE_ALLOWED",
+    idempotencePointerPolicy === "UPDATE_ALLOWED" ? [] : ["VERIFY360_POINTER_UPDATE_SUPPRESSED"]
+  );
 
   // Docs/update discipline check (catches "little misses" before commit/release).
   if (!changedFiles) {
@@ -431,6 +459,8 @@ const main = () => {
     }
   }
   advanceState("PRECHECKED");
+  recordCapability("git.status", changedFiles !== null, changedFiles !== null ? [] : ["VERIFY360_GIT_STATUS_UNAVAILABLE"]);
+  recordCapability("git.head", head !== "UNKNOWN", head !== "UNKNOWN" ? [] : ["VERIFY360_GIT_HEAD_UNAVAILABLE"]);
 
   // Git/posting etiquette check (avoid odd LLM-style communication artifacts).
   const etiquetteIssues = runPostingEtiquetteCheck();
@@ -461,6 +491,7 @@ const main = () => {
     reasonCodes: compile.ok ? [] : ["VERIFY360_COMPILE_FAILED"],
   });
   advanceState("COMPILE_DONE");
+  recordCapability("npm.compile", compile.ok, compile.ok ? [] : ["VERIFY360_COMPILE_FAILED"]);
 
   // Full tests
   const tests = npmRun("test");
@@ -471,6 +502,7 @@ const main = () => {
     reasonCodes: tests.ok ? [] : ["VERIFY360_TEST_FAILED"],
   });
   advanceState("TEST_DONE");
+  recordCapability("npm.test", tests.ok, tests.ok ? [] : ["VERIFY360_TEST_FAILED"]);
 
   // Proofcheck: host precondition missing is evidence SKIP/PARTIAL, not silent hard block.
   let proofEnv = {};
@@ -482,6 +514,11 @@ const main = () => {
     proofReasons.push("VERIFY360_RELEASE_FIXTURE_MISSING");
     proofReasons.push("VERIFY360_RELEASE_SMOKE_SKIPPED");
   }
+  recordCapability(
+    "fixture.release",
+    fs.existsSync(releaseDirAbs),
+    fs.existsSync(releaseDirAbs) ? [] : ["VERIFY360_RELEASE_FIXTURE_MISSING"]
+  );
   const proof = npmRun("proofcheck", [], proofEnv);
   addStep({
     id: "proofcheck",
@@ -490,6 +527,7 @@ const main = () => {
     reasonCodes: proof.ok ? proofReasons : stableSortUnique(["VERIFY360_PROOFCHECK_FAILED", ...proofReasons]),
   });
   advanceState("PROOFCHECK_DONE");
+  recordCapability("npm.proofcheck", proof.ok, proof.ok ? [] : ["VERIFY360_PROOFCHECK_FAILED"]);
 
   // Determinism replay precondition.
   if (!fs.existsSync(deterministicInputAbs)) {
@@ -513,12 +551,17 @@ const main = () => {
       status: "SKIP",
       reasonCodes: ["VERIFY360_DEPENDENCY_MISSING"],
     });
+    recordCapability("fixture.deterministic_input", false, ["VERIFY360_INPUT_FIXTURE_MISSING"]);
+    recordCapability("cli.safe_run", false, ["VERIFY360_DEPENDENCY_MISSING"]);
+    recordCapability("runtime.privacy_lint", false, ["VERIFY360_DEPENDENCY_MISSING"]);
+    recordCapability("cli.compare", false, ["VERIFY360_DEPENDENCY_MISSING"]);
   } else {
     addStep({
       id: "determinism_input",
       status: "PASS",
       reasonCodes: [],
     });
+    recordCapability("fixture.deterministic_input", true, []);
 
     const safeA = runCommand("safe-run-a", process.execPath, [
       "dist/src/cli/main.js",
@@ -555,6 +598,7 @@ const main = () => {
       status: pairOk ? "PASS" : "FAIL",
       reasonCodes: stableSortUnique(pairReasons),
     });
+    recordCapability("cli.safe_run", pairOk, pairReasons);
 
     if (pairOk) {
       const lintA = runCommand("privacy-lint-a", process.execPath, ["dist/src/runtime/privacy_lint.js", outA]);
@@ -568,6 +612,14 @@ const main = () => {
           ...(lintB.ok ? [] : ["VERIFY360_PRIVACY_LINT_B_FAILED"]),
         ]),
       });
+      recordCapability(
+        "runtime.privacy_lint",
+        lintOk,
+        stableSortUnique([
+          ...(lintA.ok ? [] : ["VERIFY360_PRIVACY_LINT_A_FAILED"]),
+          ...(lintB.ok ? [] : ["VERIFY360_PRIVACY_LINT_B_FAILED"]),
+        ])
+      );
 
       const cmp = runCommand("compare-smoke", process.execPath, [
         "dist/src/cli/main.js",
@@ -600,6 +652,7 @@ const main = () => {
         status: cmpOk ? "PASS" : "FAIL",
         reasonCodes: stableSortUnique(cmpReasons),
       });
+      recordCapability("cli.compare", cmpOk, cmpReasons);
     } else {
       addStep({
         id: "privacy_lint_pair",
@@ -611,6 +664,8 @@ const main = () => {
         status: "SKIP",
         reasonCodes: ["VERIFY360_DEPENDENCY_MISSING"],
       });
+      recordCapability("runtime.privacy_lint", false, ["VERIFY360_DEPENDENCY_MISSING"]);
+      recordCapability("cli.compare", false, ["VERIFY360_DEPENDENCY_MISSING"]);
     }
   }
   advanceState("DETERMINISM_DONE");
@@ -622,6 +677,7 @@ const main = () => {
   const reasonCodes = stableSortUnique(
     steps.flatMap((s) => (Array.isArray(s.reasonCodes) ? s.reasonCodes : []))
   );
+  recordCapability("output.write_receipt", true, []);
 
   const payload = {
     schema: "weftend.verify360/0",
@@ -649,6 +705,19 @@ const main = () => {
       runAExists: fs.existsSync(outA) ? 1 : 0,
       runBExists: fs.existsSync(outB) ? 1 : 0,
       compareOutExists: fs.existsSync(outCompare) ? 1 : 0,
+    },
+    capabilityLedger: {
+      schema: "weftend.verify360CapabilityLedger/0",
+      schemaVersion: 0,
+      requested: stableSortUnique(CAPABILITY_REQUESTS),
+      decisions: stableSortUnique(CAPABILITY_REQUESTS).map((capability) => {
+        const entry = capabilityMap.get(capability);
+        return {
+          capability,
+          status: entry?.status || "DENIED",
+          reasonCodes: stableSortUnique(entry?.reasonCodes || ["VERIFY360_CAPABILITY_UNSET"]),
+        };
+      }),
     },
     evidenceChain: {
       links: {

@@ -36,6 +36,10 @@ Core rule
    - duplicate key runs still write full evidence
    - duplicate key runs suppress `latest.txt` pointer update to avoid double-apply side effects
    - receipt includes `idempotence.mode`, `pointerPolicy`, and prior run linkage when present
+11. Capability outcomes are explicit:
+   - receipt includes a deterministic capability ledger for requested capabilities
+   - each capability records `GRANTED` or `DENIED` with stable reason codes
+   - missing capability decisions are fail-closed as `DENIED` with `VERIFY360_CAPABILITY_UNSET`
 
 Command
 - `npm run verify:360`
@@ -49,6 +53,7 @@ Output evidence
   - report/receipt chain digests
   - safe-run/compare artifact digests (when present)
   - deterministic idempotence key context
+  - deterministic capability ledger (`capabilityLedger`)
 
 Expected behavior
 - Fails fast on first invalidating condition.
