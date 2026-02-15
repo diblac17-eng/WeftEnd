@@ -437,6 +437,35 @@ const readZipTextEntriesByBaseName = (inputPath: string, baseNames: string[]): {
   return { entries: out, markers: stableSortUniqueStringsV0(outMarkers) };
 };
 
+const readZipTextEntriesByFilter = (
+  inputPath: string,
+  predicate: (entryNameLower: string) => boolean
+): { entries: Array<{ name: string; text: string }>; markers: string[] } => {
+  let archiveBytes: any;
+  try {
+    archiveBytes = fs.readFileSync(inputPath);
+  } catch {
+    return { entries: [], markers: ["ARCHIVE_METADATA_PARTIAL"] };
+  }
+  const { entries: catalog, markers } = parseZipCatalogFromBuffer(archiveBytes);
+  const out: Array<{ name: string; text: string }> = [];
+  const outMarkers = [...markers];
+  for (const entry of catalog) {
+    if (out.length >= 64) {
+      outMarkers.push("ARCHIVE_TRUNCATED");
+      break;
+    }
+    const lower = String(entry.name || "").toLowerCase();
+    if (!predicate(lower)) continue;
+    const extracted = extractZipEntryText(archiveBytes, entry);
+    outMarkers.push(...extracted.markers);
+    if (!extracted.ok || typeof extracted.text !== "string") continue;
+    out.push({ name: entry.name, text: extracted.text });
+  }
+  out.sort((a, b) => cmpStrV0(a.name, b.name));
+  return { entries: out, markers: stableSortUniqueStringsV0(outMarkers) };
+};
+
 const readTarEntries = (inputPath: string): { entries: string[]; markers: string[] } => {
   const markers: string[] = [];
   const entries: string[] = [];
@@ -985,6 +1014,7 @@ const analyzeDocument = (ctx: AnalyzeCtx): AnalyzeResult => {
   }
   const text = readTextBounded(ctx.inputPath);
   const reasons = ["DOC_ADAPTER_V1"];
+  const markers: string[] = [];
   const findings: string[] = [];
   let activeContent = 0;
   let embeddedObject = 0;
@@ -992,6 +1022,25 @@ const analyzeDocument = (ctx: AnalyzeCtx): AnalyzeResult => {
   if (/\b(vba|macro|autoopen|autorun|javascript)\b/i.test(text)) activeContent += 1;
   if (/EmbeddedFile|ObjStm|\/Object|Ole/i.test(text)) embeddedObject += 1;
   if (extractDomains(text).length > 0) externalLink += 1;
+
+  if (ctx.ext === ".docm" || ctx.ext === ".xlsm") {
+    const zip = readZipEntries(ctx.inputPath);
+    markers.push(...zip.markers);
+    const namesLower = zip.entries.map((name) => String(name || "").toLowerCase());
+    if (namesLower.some((name) => name.includes("vbaproject") || name.includes("macros"))) activeContent += 1;
+    if (namesLower.some((name) => name.includes("/embeddings/") || name.includes("oleobject"))) embeddedObject += 1;
+    if (namesLower.some((name) => name.includes("externallinks/"))) externalLink += 1;
+    const relTexts = readZipTextEntriesByFilter(
+      ctx.inputPath,
+      (name) => name.endsWith(".rels") || name.endsWith("document.xml") || name.endsWith("workbook.xml")
+    );
+    markers.push(...relTexts.markers);
+    relTexts.entries.forEach((entry) => {
+      const rel = String(entry.text || "");
+      if (/TargetMode\s*=\s*["']External["']/i.test(rel) || /https?:\/\//i.test(rel)) externalLink += 1;
+    });
+  }
+
   if (activeContent > 0) {
     reasons.push("DOC_ACTIVE_CONTENT_PRESENT");
     findings.push("DOC_ACTIVE_CONTENT_PRESENT");
@@ -1015,7 +1064,7 @@ const analyzeDocument = (ctx: AnalyzeCtx): AnalyzeResult => {
       embeddedObjectCount: embeddedObject,
       externalLinkCount: externalLink,
     },
-    markers: [],
+    markers: stableSortUniqueStringsV0(markers),
     reasonCodes: stableSortUniqueReasonsV0(reasons),
     findingCodes: stableSortUniqueReasonsV0(findings),
   };

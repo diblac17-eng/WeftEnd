@@ -190,6 +190,27 @@ const run = (): void => {
     assert((res.summary?.counts.scriptHintCount ?? 0) > 0, "msix script hint count missing");
     assert((res.summary?.counts.permissionHintCount ?? 0) > 0, "msix permission hint count missing");
   }
+
+  {
+    const tmp = mkTmp();
+    const docm = path.join(tmp, "demo.docm");
+    writeStoredZip(docm, [
+      { name: "word/document.xml", text: "<w:document/>" },
+      { name: "word/vbaProject.bin", text: "macro-data" },
+      { name: "word/embeddings/oleObject1.bin", text: "ole-data" },
+      {
+        name: "word/_rels/document.xml.rels",
+        text: "<Relationships><Relationship TargetMode=\"External\" Target=\"https://cdn.example.test/payload\"/></Relationships>",
+      },
+    ]);
+    const capture = captureTreeV0(docm, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: docm, capture });
+    assert(res.ok, "document adapter should parse docm zip signals");
+    assertEq(res.summary?.sourceClass, "document", "docm source class mismatch");
+    assert((res.summary?.counts.activeContentCount ?? 0) > 0, "docm active content count missing");
+    assert((res.summary?.counts.embeddedObjectCount ?? 0) > 0, "docm embedded object count missing");
+    assert((res.summary?.counts.externalLinkCount ?? 0) > 0, "docm external link count missing");
+  }
 };
 
 try {
