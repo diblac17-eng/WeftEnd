@@ -106,6 +106,39 @@ const gitChangedFiles = () => {
     });
 };
 
+const runPostingEtiquetteCheck = () => {
+  const targets = ["README.md", "docs/RELEASE_ANNOUNCEMENT.txt", "docs/RELEASE_NOTES.txt"];
+  const issues = [];
+  const bannedPatterns = [
+    { code: "ETIQUETTE_AI_SELF_REFERENCE", re: /\b(as an ai|language model|chatgpt|llm)\b/i },
+    { code: "ETIQUETTE_APOLOGY_TONE", re: /\b(i apologize|sorry\b|i can't|i cannot)\b/i },
+    { code: "ETIQUETTE_HYPE_LANGUAGE", re: /\b(revolutionary|game[\s-]?changer|unbeatable|world[\s-]?class)\b/i },
+  ];
+  const mojibakeRe = /�|â€™|â€œ|â€|Ã./;
+  const emojiRe = /[\u{1F300}-\u{1FAFF}]/u;
+
+  targets.forEach((relPath) => {
+    const absPath = path.join(root, relPath);
+    if (!fs.existsSync(absPath)) return;
+    const text = fs.readFileSync(absPath, "utf8");
+    if (mojibakeRe.test(text)) issues.push({ code: "ETIQUETTE_MOJIBAKE_TEXT", relPath });
+    if (emojiRe.test(text)) issues.push({ code: "ETIQUETTE_EMOJI_PRESENT", relPath });
+    bannedPatterns.forEach(({ code, re }) => {
+      if (re.test(text)) issues.push({ code, relPath });
+    });
+    if (relPath === "docs/RELEASE_ANNOUNCEMENT.txt") {
+      if (!/\bHighlights\b/i.test(text)) issues.push({ code: "ETIQUETTE_RELEASE_HIGHLIGHTS_MISSING", relPath });
+      if (!/\bValidation\b/i.test(text)) issues.push({ code: "ETIQUETTE_RELEASE_VALIDATION_MISSING", relPath });
+    }
+  });
+
+  return issues.sort((a, b) => {
+    const c0 = cmp(a.code, b.code);
+    if (c0 !== 0) return c0;
+    return cmp(a.relPath, b.relPath);
+  });
+};
+
 const compareFilesEqual = (a, b) => {
   const hasA = fs.existsSync(a);
   const hasB = fs.existsSync(b);
@@ -205,6 +238,26 @@ const main = () => {
         reasonCodes: [],
       });
     }
+  }
+
+  // Git/posting etiquette check (avoid odd LLM-style communication artifacts).
+  const etiquetteIssues = runPostingEtiquetteCheck();
+  if (etiquetteIssues.length > 0) {
+    addStep({
+      id: "git_etiquette",
+      status: "FAIL",
+      reasonCodes: stableSortUnique(["VERIFY360_GIT_ETIQUETTE_FAILED", ...etiquetteIssues.map((i) => i.code)]),
+      details: {
+        issueCount: etiquetteIssues.length,
+        issueFiles: stableSortUnique(etiquetteIssues.map((i) => i.relPath)),
+      },
+    });
+  } else {
+    addStep({
+      id: "git_etiquette",
+      status: "PASS",
+      reasonCodes: [],
+    });
   }
 
   // Compile

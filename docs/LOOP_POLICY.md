@@ -26,6 +26,7 @@ Loops
 - Commit Gate 360: npm run verify:360
   - Full spin gate for reusable commits:
     - docs/update discipline check
+    - git/posting etiquette check
     - compile
     - test
     - proofcheck with release fixture

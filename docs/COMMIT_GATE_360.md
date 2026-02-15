@@ -13,6 +13,8 @@ Core rule
 360 gate definition
 0. Docs/update discipline check:
    - If code/shell/package paths changed, at least one operator-facing doc must be updated in the same working set.
+0.1 Git/posting etiquette check:
+   - README/release docs must pass communication hygiene rules (no AI self-reference, no mojibake, no odd hype language).
 1. Compile succeeds.
 2. Full test suite succeeds.
 3. Proofcheck succeeds with release fixture coverage.
@@ -46,3 +48,4 @@ Policy
 - No merge/release should bypass `verify:360`.
 - Host precondition misses must be explicit evidence (`PARTIAL`/`SKIP`) and must not silently drop receipts.
 - Missing docs/update sync for code changes is a gate failure (`VERIFY360_DOC_SYNC_MISSING`).
+- Etiquette violations are a gate failure (`VERIFY360_GIT_ETIQUETTE_FAILED`).

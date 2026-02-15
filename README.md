@@ -11,7 +11,7 @@ Why this matters
 - Change control you can defend (SAME / CHANGED / BLOCKED).
 - Privacy-clean outputs suitable for tickets and handoffs.
 
-What’s new in the latest alpha
+What's new in the latest alpha
 - Native report viewer is now the default report experience.
 - Report viewer host console launches hidden while the report card window stays visible.
 - Notepad is no longer the primary report path (fallback only if needed).
