@@ -46,6 +46,34 @@ const VERDICT_EXPLANATIONS = {
   PARTIAL: "Verification completed with partial knowledge; evidence is recorded and reusable state advancement remains constrained.",
   FAIL: "Verification failed closed; evidence is recorded and reusable state must not advance until issues are resolved.",
 };
+const buildCapabilityDecisions = (capabilityMap) =>
+  stableSortUnique(CAPABILITY_REQUESTS).map((capability) => {
+    const entry = capabilityMap.get(capability);
+    return {
+      capability,
+      status: entry?.status || "DENIED",
+      reasonCodes: stableSortUnique(entry?.reasonCodes || ["VERIFY360_CAPABILITY_UNSET"]),
+    };
+  });
+const buildExplain = (verdict, idempotenceMode) => ({
+  schema: VERIFY360_EXPLAIN_VERSION,
+  schemaVersion: 0,
+  verdictMeaning:
+    VERDICT_EXPLANATIONS[verdict] ||
+    "Verification result recorded with deterministic evidence and stable reason codes.",
+  idempotenceMeaning:
+    idempotenceMode === "NEW"
+      ? "This run key is new; latest pointer updates are allowed."
+      : idempotenceMode === "REPLAY"
+        ? "This run key replays prior evidence; latest pointer updates are suppressed."
+        : "Idempotence history was partially readable; latest pointer updates are suppressed fail-closed.",
+  nextAction:
+    verdict === "PASS"
+      ? "Proceed with reusable commit or release flow under normal controls."
+      : verdict === "PARTIAL"
+        ? "Review partial reason codes and resolve missing preconditions before reusable commit or release."
+        : "Resolve fail reason codes, then rerun verify:360 before reusable commit or release.",
+});
 const summarizeStepStatuses = (steps) => {
   const summary = {
     FAIL: 0,
@@ -357,6 +385,44 @@ const writeOutputs = (runDir, payload, options = {}) => {
   }
 };
 
+const writeEmergencyOutputs = (runDir, payload, writeError) => {
+  ensureDir(HISTORY_ROOT);
+  const stageDir = `${runDir}.stage`;
+  fs.rmSync(stageDir, { recursive: true, force: true });
+  fs.rmSync(runDir, { recursive: true, force: true });
+  ensureDir(runDir);
+
+  const writeErrorDigest = sha256Text(String(writeError?.message || writeError || "UNKNOWN"));
+  const emergencyPayload = {
+    ...payload,
+    emergencyWrite: {
+      enabled: true,
+      reasonCodes: ["VERIFY360_EMERGENCY_WRITE_PATH"],
+      writeErrorDigest,
+    },
+  };
+  const receiptText = canonicalJSON(emergencyPayload);
+  const reportText = [
+    "VERIFY360 FAIL",
+    `runId=${payload.runId}`,
+    `reasonCodes=${(payload.reasonCodes || []).join(",") || "-"}`,
+    "emergencyWrite=1",
+    `emergencyWriteDigest=${writeErrorDigest}`,
+  ].join("\n");
+
+  fs.writeFileSync(path.join(runDir, "verify_360_receipt.json"), receiptText, "utf8");
+  fs.writeFileSync(path.join(runDir, "verify_360_report.txt"), `${reportText}\n`, "utf8");
+  const manifest = {
+    schema: "weftend.verify360OutputManifest/0",
+    schemaVersion: 0,
+    files: [
+      { name: "verify_360_receipt.json", digest: sha256File(path.join(runDir, "verify_360_receipt.json")) },
+      { name: "verify_360_report.txt", digest: sha256File(path.join(runDir, "verify_360_report.txt")) },
+    ],
+  };
+  fs.writeFileSync(path.join(runDir, "verify_360_output_manifest.json"), canonicalJSON(manifest), "utf8");
+};
+
 const main = () => {
   const runDir = nextRunDir();
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "weftend-verify-360-"));
@@ -417,6 +483,10 @@ const main = () => {
   const npmRun = (name, extraArgs = [], envExtra = {}) =>
     runCommand(name, npm.cmd, [...npm.argsPrefix, "run", name, ...extraArgs], envExtra);
 
+  try {
+  if (process.env.WEFTEND_360_FORCE_EXCEPTION === "1") {
+    throw new Error("VERIFY360_FORCED_EXCEPTION");
+  }
   if (idempotenceMode === "REPLAY") {
     addStep({
       id: "idempotence",
@@ -708,33 +778,8 @@ const main = () => {
   );
   recordCapability("output.write_receipt", true, []);
   const stepStatusSummary = summarizeStepStatuses(steps);
-  const capabilityDecisions = stableSortUnique(CAPABILITY_REQUESTS).map((capability) => {
-    const entry = capabilityMap.get(capability);
-    return {
-      capability,
-      status: entry?.status || "DENIED",
-      reasonCodes: stableSortUnique(entry?.reasonCodes || ["VERIFY360_CAPABILITY_UNSET"]),
-    };
-  });
-  const explain = {
-    schema: VERIFY360_EXPLAIN_VERSION,
-    schemaVersion: 0,
-    verdictMeaning:
-      VERDICT_EXPLANATIONS[verdict] ||
-      "Verification result recorded with deterministic evidence and stable reason codes.",
-    idempotenceMeaning:
-      idempotenceMode === "NEW"
-        ? "This run key is new; latest pointer updates are allowed."
-        : idempotenceMode === "REPLAY"
-          ? "This run key replays prior evidence; latest pointer updates are suppressed."
-          : "Idempotence history was partially readable; latest pointer updates are suppressed fail-closed.",
-    nextAction:
-      verdict === "PASS"
-        ? "Proceed with reusable commit or release flow under normal controls."
-        : verdict === "PARTIAL"
-          ? "Review partial reason codes and resolve missing preconditions before reusable commit or release."
-          : "Resolve fail reason codes, then rerun verify:360 before reusable commit or release.",
-  };
+  const capabilityDecisions = buildCapabilityDecisions(capabilityMap);
+  const explain = buildExplain(verdict, idempotenceMode);
 
   const payload = {
     schema: "weftend.verify360/0",
@@ -819,6 +864,107 @@ const main = () => {
 
   if (verdict === "FAIL") process.exit(1);
   process.exit(0);
+  } catch (error) {
+    const errorDigest = sha256Text(String(error?.message || error || "UNKNOWN"));
+    const errorToken =
+      String(error?.name || "ERROR")
+        .toUpperCase()
+        .replace(/[^A-Z0-9_]/g, "_")
+        .slice(0, 48) || "ERROR";
+    const emergencyReasonCodes = stableSortUnique([
+      ...steps.flatMap((s) => (Array.isArray(s.reasonCodes) ? s.reasonCodes : [])),
+      "VERIFY360_INTERNAL_EXCEPTION",
+      `VERIFY360_EXCEPTION_${errorToken}`,
+    ]);
+    addStep({
+      id: "internal_exception",
+      status: "FAIL",
+      reasonCodes: ["VERIFY360_INTERNAL_EXCEPTION", `VERIFY360_EXCEPTION_${errorToken}`],
+      details: {
+        messageDigest: errorDigest,
+      },
+    });
+    recordCapability("output.write_receipt", true, []);
+    const capabilityDecisions = buildCapabilityDecisions(capabilityMap);
+    const stepStatusSummary = summarizeStepStatuses(steps);
+    const failurePayload = {
+      schema: "weftend.verify360/0",
+      schemaVersion: 0,
+      runId: path.basename(runDir),
+      command: "verify:360",
+      stateAtStage: corridorState,
+      stateTarget: "RECORDED",
+      idempotenceKey,
+      idempotenceContext,
+      idempotence: {
+        mode: idempotenceMode,
+        pointerPolicy: "UPDATE_SUPPRESSED",
+        priorRunId: idempotencePriorRunId || "NONE",
+        historyParseErrors: idempotenceParseErrors,
+      },
+      verdict: "FAIL",
+      reasonCodes: emergencyReasonCodes,
+      observed: {
+        schema: "weftend.verify360Observed/0",
+        schemaVersion: 0,
+        releaseFixturePresent: fs.existsSync(releaseDirAbs),
+        deterministicInputPresent: fs.existsSync(deterministicInputAbs),
+        runArtifactPresence: {
+          runAExists: fs.existsSync(outA) ? 1 : 0,
+          runBExists: fs.existsSync(outB) ? 1 : 0,
+          compareOutExists: fs.existsSync(outCompare) ? 1 : 0,
+        },
+        stepCount: steps.length,
+        stepStatusSummary,
+        capabilityDecisionCount: capabilityDecisions.length,
+      },
+      interpreted: {
+        schema: "weftend.verify360Interpreted/0",
+        schemaVersion: 0,
+        gateState: corridorState,
+        verdict: "FAIL",
+        reasonCodes: emergencyReasonCodes,
+        idempotenceMode,
+        idempotencePointerPolicy: "UPDATE_SUPPRESSED",
+        expectedStateTarget: "RECORDED",
+      },
+      explain: buildExplain("FAIL", idempotenceMode),
+      releaseFixture: fs.existsSync(releaseDirAbs) ? releaseDirEnv : "MISSING",
+      deterministicInput: fs.existsSync(deterministicInputAbs) ? deterministicInputEnv : "MISSING",
+      steps,
+      artifacts: {
+        receiptPath: rel(path.join(runDir, "verify_360_receipt.json")),
+        reportPath: rel(path.join(runDir, "verify_360_report.txt")),
+        runAExists: fs.existsSync(outA) ? 1 : 0,
+        runBExists: fs.existsSync(outB) ? 1 : 0,
+        compareOutExists: fs.existsSync(outCompare) ? 1 : 0,
+      },
+      capabilityLedger: {
+        schema: "weftend.verify360CapabilityLedger/0",
+        schemaVersion: 0,
+        requested: stableSortUnique(CAPABILITY_REQUESTS),
+        decisions: capabilityDecisions,
+      },
+      evidenceChain: {
+        links: {
+          safeRunAReceiptDigest: digestIfExists(path.join(outA, "safe_run_receipt.json")),
+          safeRunAOperatorDigest: digestIfExists(path.join(outA, "operator_receipt.json")),
+          safeRunBReceiptDigest: digestIfExists(path.join(outB, "safe_run_receipt.json")),
+          safeRunBOperatorDigest: digestIfExists(path.join(outB, "operator_receipt.json")),
+          compareReceiptDigest: digestIfExists(path.join(outCompare, "compare_receipt.json")),
+          compareReportDigest: digestIfExists(path.join(outCompare, "compare_report.txt")),
+          exceptionDigest: errorDigest,
+        },
+      },
+    };
+    try {
+      writeOutputs(runDir, failurePayload, { updateLatestPointer: false });
+    } catch (writeError) {
+      writeEmergencyOutputs(runDir, failurePayload, writeError);
+    }
+    console.log(`verify:360 FAIL receipt=${rel(path.join(runDir, "verify_360_receipt.json"))}`);
+    process.exit(1);
+  }
 };
 
 main();

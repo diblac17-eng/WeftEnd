@@ -48,9 +48,15 @@ Core rule
    - receipt records raw observations under `observed` (presence, counts, status summaries)
    - receipt records conclusions under `interpreted` (verdict, reason set, gate state, next policy semantics)
    - report mirrors this with `observed.*` and `interpreted.*` lines for quick review
+14. Internal exception path is evidence-first:
+   - unexpected gate exceptions still produce fail-closed receipt/report artifacts
+   - normal writer failure automatically falls back to emergency writer path
+   - `latest.txt` is never advanced on emergency/failure writes
 
 Command
 - `npm run verify:360`
+- Fault-injection check (optional): `WEFTEND_360_FORCE_EXCEPTION=1 node scripts/verify_360.js`
+  - Expected: exit 1 with fail receipt/report written and no `latest.txt` advance.
 
 Output evidence
 - `out/verify_360/history/run_<seq>/verify_360_receipt.json`

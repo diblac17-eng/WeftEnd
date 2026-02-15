@@ -22,6 +22,9 @@ Included
 - Gate receipt/report now separate raw observations from conclusions:
 - `observed` captures deterministic counts/presence/status summaries.
 - `interpreted` captures verdict, reason set, and gate-state conclusions.
+- Gate now guarantees fail-closed evidence artifacts even on unexpected internal exceptions.
+- if normal gate output write fails, an emergency write path still emits receipt/report artifacts and suppresses pointer advance.
+- Added controlled fault-injection hook for gate-path validation: `WEFTEND_360_FORCE_EXCEPTION=1`.
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)
