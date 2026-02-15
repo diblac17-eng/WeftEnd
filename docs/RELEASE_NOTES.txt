@@ -60,6 +60,7 @@ Included
 - Shadow-audit fixture suite now pins tartarus kind-count bounds behavior (`max 32 kinds`, deterministic truncation, `SHADOW_AUDIT_BOUNDS_EXCEEDED`).
 - Shadow-audit policy schema is now strict for threshold keys: unknown `policy.denyThresholds` keys fail closed with fixture-pinned `SHADOW_AUDIT_SCHEMA_INVALID`.
 - Shadow-audit schema strictness expanded: unknown request/stream/event fields now fail closed (fixture-pinned contract coverage).
+- Shadow-audit fixture suite now explicitly pins unknown stream-field fail-closed behavior (`SHADOW_AUDIT_SCHEMA_INVALID`) alongside request/event unknown-field contracts.
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)
