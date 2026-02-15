@@ -368,6 +368,14 @@ const runSafeRunCli = async (args: string[]): Promise<number> => {
     printUsage();
     return 1;
   }
+  if (rest.length > 1) {
+    console.error("[INPUT_INVALID] unexpected positional argument(s) provided to safe-run.");
+    return 40;
+  }
+  if (Boolean(flags["execute"]) && Boolean(flags["withhold-exec"] || flags["no-exec"])) {
+    console.error("[INPUT_INVALID] --execute cannot be combined with --withhold-exec or --no-exec.");
+    return 40;
+  }
   const policyPath = (flags["policy"] as string) || "";
   const outDir = (flags["out"] as string) || "";
   if (!outDir) {

@@ -70,6 +70,7 @@ Included
 - Adapter plugin strictness tests now pin this behavior under both `--adapter none` and `--adapter auto` (including auto no-class-match cases).
 - `safe-run --enable-plugin` now fails closed when plugin value is missing (`INPUT_INVALID`) instead of silently ignoring malformed flags.
 - `safe-run` now rejects unsupported flags with `INPUT_INVALID` (for example typoed flags like `--adpater`) instead of silently ignoring them.
+- `safe-run` now fails closed for unexpected extra positional arguments and for conflicting `--execute` + `--withhold-exec|--no-exec` flag combinations.
 - New adapter discovery command: `weftend adapter list`
 - Additive receipt/summary surface:
 - `safe_run_receipt.json` optional `adapter` metadata block

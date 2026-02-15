@@ -123,6 +123,31 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const res = await runCliCapture(["safe-run", input, "unexpected_extra_arg", "--out", outDir, "--adapter", "archive"]);
+    assertEq(res.status, 40, "safe-run should fail closed for unexpected positional arguments");
+    assert(res.stderr.includes("INPUT_INVALID"), "expected INPUT_INVALID on stderr for positional-arg misuse");
+  }
+
+  {
+    const outDir = mkTmp();
+    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const res = await runCliCapture([
+      "safe-run",
+      input,
+      "--out",
+      outDir,
+      "--adapter",
+      "archive",
+      "--execute",
+      "--withhold-exec",
+    ]);
+    assertEq(res.status, 40, "safe-run should fail closed for conflicting execute/withhold flags");
+    assert(res.stderr.includes("INPUT_INVALID"), "expected INPUT_INVALID on stderr for conflicting execute flags");
+  }
+
+  {
+    const outDir = mkTmp();
+    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
     const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive", "--enable-plugin"]);
     assertEq(res.status, 40, "safe-run should fail closed when --enable-plugin value is missing");
     assert(res.stderr.includes("INPUT_INVALID"), "expected INPUT_INVALID on stderr");
