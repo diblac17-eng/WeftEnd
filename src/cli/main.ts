@@ -363,6 +363,16 @@ const runSafeRunCli = async (args: string[]): Promise<number> => {
     console.error(`[INPUT_INVALID] unsupported flag(s): ${unknownFlags.join(", ")}`);
     return 40;
   }
+  const countFlag = (name: string): number => args.filter((token) => token === `--${name}`).length;
+  const singletonFlags = ["policy", "out", "profile", "script", "adapter", "execute", "withhold-exec", "no-exec"];
+  const duplicateSingletons = singletonFlags
+    .filter((name) => countFlag(name) > 1)
+    .map((name) => `--${name}`)
+    .sort();
+  if (duplicateSingletons.length > 0) {
+    console.error(`[INPUT_INVALID] duplicate flag(s) are not allowed: ${duplicateSingletons.join(", ")}`);
+    return 40;
+  }
   const missingValueFlags = ["policy", "out", "profile", "script", "adapter"].filter((key) => flags[key] === "");
   if (missingValueFlags.length > 0) {
     console.error(`[INPUT_INVALID] missing value for flag(s): ${missingValueFlags.map((k) => `--${k}`).join(", ")}`);

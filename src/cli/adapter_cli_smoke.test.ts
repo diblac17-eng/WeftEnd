@@ -138,6 +138,40 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const res = await runCliCapture([
+      "safe-run",
+      input,
+      "--out",
+      outDir,
+      "--adapter",
+      "archive",
+      "--adapter",
+      "document",
+    ]);
+    assertEq(res.status, 40, "safe-run should fail closed for duplicate singleton flags");
+    assert(res.stderr.includes("INPUT_INVALID"), "expected INPUT_INVALID on stderr for duplicate adapter flag");
+  }
+
+  {
+    const outDir = mkTmp();
+    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const res = await runCliCapture([
+      "safe-run",
+      input,
+      "--out",
+      outDir,
+      "--out",
+      path.join(outDir, "second"),
+      "--adapter",
+      "archive",
+    ]);
+    assertEq(res.status, 40, "safe-run should fail closed for duplicate --out flag");
+    assert(res.stderr.includes("INPUT_INVALID"), "expected INPUT_INVALID on stderr for duplicate --out flag");
+  }
+
+  {
+    const outDir = mkTmp();
+    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
     const res = await runCliCapture(["safe-run", input, "unexpected_extra_arg", "--out", outDir, "--adapter", "archive"]);
     assertEq(res.status, 40, "safe-run should fail closed for unexpected positional arguments");
     assert(res.stderr.includes("INPUT_INVALID"), "expected INPUT_INVALID on stderr for positional-arg misuse");
