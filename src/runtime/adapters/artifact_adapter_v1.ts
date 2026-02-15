@@ -21,7 +21,7 @@ const MAX_AR_SCAN_BYTES = 8 * 1024 * 1024;
 
 const ARCHIVE_EXTS = new Set([".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tar.xz", ".txz", ".7z"]);
 const PACKAGE_EXTS = new Set([".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".tar.xz", ".txz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"]);
-const EXTENSION_EXTS = new Set([".crx", ".vsix"]);
+const EXTENSION_EXTS = new Set([".crx", ".vsix", ".xpi"]);
 const IAC_EXTS = new Set([".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep", ".template"]);
 const DOCUMENT_EXTS = new Set([".pdf", ".docm", ".xlsm", ".rtf", ".chm"]);
 const IMAGE_EXTS = new Set([".iso", ".vhd", ".vhdx", ".vmdk", ".qcow2"]);
@@ -2035,7 +2035,7 @@ export const listAdaptersV1 = (): AdapterListReportV1 => {
       adapter: "extension",
       mode: "built_in",
       plugins: [],
-      formats: [".crx", ".vsix", "manifest.json (directory)"],
+      formats: [".crx", ".vsix", ".xpi", "manifest.json (directory)"],
     },
     {
       adapter: "iac",

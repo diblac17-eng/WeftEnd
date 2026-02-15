@@ -30,7 +30,7 @@ Adapter classes
   EXECUTION_WITHHELD_INSTALLER
 
 3) extension
-- Formats: .crx, .vsix, unpacked extension folder with manifest.json
+- Formats: .crx, .vsix, .xpi, unpacked extension folder with manifest.json
 - Key reason codes:
   EXTENSION_ADAPTER_V1
   EXTENSION_MANIFEST_MISSING

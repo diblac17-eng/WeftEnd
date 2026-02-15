@@ -300,6 +300,29 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const xpi = path.join(tmp, "demo.xpi");
+    writeStoredZip(xpi, [
+      {
+        name: "manifest.json",
+        text: JSON.stringify({
+          manifest_version: 2,
+          name: "demo-xpi",
+          version: "1.0.0",
+          permissions: ["storage", "https://mozilla.example/*"],
+          content_scripts: [{ matches: ["https://mozilla.example/*"], js: ["content.js"] }],
+          update_url: "https://updates.mozilla.example/addon/update.json",
+        }),
+      },
+    ]);
+    const capture = captureTreeV0(xpi, limits);
+    const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: xpi, capture });
+    assert(res.ok, "extension adapter should parse xpi manifest");
+    assertEq(res.summary?.sourceClass, "extension", "xpi extension class mismatch");
+    assert((res.summary?.counts.permissionCount ?? 0) > 0, "xpi permission count missing");
+  }
+
+  {
+    const tmp = mkTmp();
     const msix = path.join(tmp, "demo.msix");
     writeStoredZip(msix, [
       {
