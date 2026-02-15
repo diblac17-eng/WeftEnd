@@ -340,6 +340,9 @@ const buildResult = (requestRaw: unknown): ShadowResult => {
   if (!stream || stream.schema !== "weftend.shadowAudit.stream/0" || stream.v !== 0) {
     state.reasons.add("SHADOW_AUDIT_SCHEMA_INVALID");
   }
+  if (stream && typeof stream.streamNonce !== "undefined" && !boundedTag(stream.streamNonce)) {
+    state.reasons.add("SHADOW_AUDIT_SCHEMA_INVALID");
+  }
 
   const events = parseEvents(stream?.events, state);
   state.events = events;

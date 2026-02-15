@@ -57,6 +57,53 @@ const run = async (): Promise<void> => {
     const parsed = JSON.parse(resA.stdout);
     assertEq(parsed.status, "OK", "shadow-audit expected OK status");
     assert(Array.isArray(parsed.reasonFamilies) && parsed.reasonFamilies.length === 0, "reasonFamilies should be empty");
+    assert(!("events" in parsed), "proof-only output must not include raw events");
+    assert(!("stream" in parsed), "proof-only output must not include raw stream");
+    assert(!("request" in parsed), "proof-only output must not include raw request");
+  }
+
+  {
+    const dir = mkTmp();
+    const events = [{ seq: 1, kind: "STATE_CHECK", side: "expected", data: { code: "CHECK_A" } }];
+    const reqA = writeJson(dir, "nonce_a.json", baseRequest(events, { stream: { schema: "weftend.shadowAudit.stream/0", v: 0, streamNonce: "nonce_A", events } }));
+    const reqB = writeJson(dir, "nonce_b.json", baseRequest(events, { stream: { schema: "weftend.shadowAudit.stream/0", v: 0, streamNonce: "nonce_B", events } }));
+    const resA = await runCliCapture(["shadow-audit", reqA]);
+    const resB = await runCliCapture(["shadow-audit", reqB]);
+    assertEq(resA.status, 0, "shadow-audit nonce A should pass");
+    assertEq(resB.status, 0, "shadow-audit nonce B should pass");
+    assertEq(resA.stdout, resB.stdout, "streamNonce must not affect deterministic proof output");
+  }
+
+  {
+    const dir = mkTmp();
+    const req = writeJson(
+      dir,
+      "nonce_invalid.json",
+      baseRequest([{ seq: 1, kind: "STATE_CHECK" }], {
+        stream: {
+          schema: "weftend.shadowAudit.stream/0",
+          v: 0,
+          streamNonce: "http://bad.example/nonce",
+          events: [{ seq: 1, kind: "STATE_CHECK" }],
+        },
+      })
+    );
+    const res = await runCliCapture(["shadow-audit", req]);
+    assertEq(res.status, 40, "invalid streamNonce should fail closed");
+    const parsed = JSON.parse(res.stdout);
+    assertEq(parsed.status, "DENY", "invalid streamNonce status should be DENY");
+    assert(parsed.reasonFamilies.includes("SHADOW_AUDIT_SCHEMA_INVALID"), "expected SHADOW_AUDIT_SCHEMA_INVALID");
+  }
+
+  {
+    const dir = mkTmp();
+    const badPath = path.join(dir, "bad.json");
+    fs.writeFileSync(badPath, "{ this is not json", "utf8");
+    const res = await runCliCapture(["shadow-audit", badPath]);
+    assertEq(res.status, 40, "invalid JSON should fail closed");
+    const parsed = JSON.parse(res.stdout);
+    assertEq(parsed.status, "DENY", "invalid JSON status should be DENY");
+    assert(parsed.reasonFamilies.includes("SHADOW_AUDIT_SCHEMA_INVALID"), "expected SHADOW_AUDIT_SCHEMA_INVALID");
   }
 
   {
@@ -112,4 +159,3 @@ run()
     console.error(error);
     process.exit(1);
   });
-

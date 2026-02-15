@@ -149,6 +149,7 @@ Command (explicit only):
 
 Behavior:
 - Validate request (schema + privacy + bounds).
+- `streamNonce` is schema-validated when present, but never echoed into outputs.
 - Emit proof-only ShadowAuditResultV0 (counts + reasons only).
 - No storage or export by default.
 
