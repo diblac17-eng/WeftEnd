@@ -344,6 +344,25 @@ const runSafeRunCli = async (args: string[]): Promise<number> => {
     printUsage();
     return 1;
   }
+  const allowedFlags = new Set([
+    "help",
+    "policy",
+    "out",
+    "profile",
+    "script",
+    "execute",
+    "withhold-exec",
+    "no-exec",
+    "adapter",
+    "enable-plugin",
+  ]);
+  const unknownFlags = Object.keys(flags)
+    .filter((key) => !allowedFlags.has(key))
+    .sort();
+  if (unknownFlags.length > 0) {
+    console.error(`[INPUT_INVALID] unsupported flag(s): ${unknownFlags.join(", ")}`);
+    return 40;
+  }
   const inputPath = rest[0];
   if (!inputPath) {
     printUsage();
