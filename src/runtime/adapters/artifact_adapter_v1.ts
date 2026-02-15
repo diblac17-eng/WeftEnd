@@ -564,6 +564,43 @@ const readJsonBounded = (filePath: string): unknown | null => {
   }
 };
 
+const parsePeSigningEvidenceV1 = (filePath: string): {
+  parsed: boolean;
+  isPe: boolean;
+  signaturePresent: boolean;
+  certTableSize: number;
+} => {
+  const bytes = readBytesBounded(filePath, 128 * 1024);
+  if (!bytes || bytes.length < 0x40) return { parsed: false, isPe: false, signaturePresent: false, certTableSize: 0 };
+  if (bytes[0] !== 0x4d || bytes[1] !== 0x5a) return { parsed: true, isPe: false, signaturePresent: false, certTableSize: 0 }; // MZ
+  if (bytes.length < 0x40) return { parsed: false, isPe: true, signaturePresent: false, certTableSize: 0 };
+  const peOffset = bytes.readUInt32LE(0x3c);
+  if (!Number.isFinite(peOffset) || peOffset < 0 || peOffset + 24 > bytes.length) {
+    return { parsed: false, isPe: true, signaturePresent: false, certTableSize: 0 };
+  }
+  if (bytes[peOffset] !== 0x50 || bytes[peOffset + 1] !== 0x45 || bytes[peOffset + 2] !== 0x00 || bytes[peOffset + 3] !== 0x00) {
+    return { parsed: false, isPe: true, signaturePresent: false, certTableSize: 0 };
+  }
+  const optHeaderSize = bytes.readUInt16LE(peOffset + 20);
+  const optionalStart = peOffset + 24;
+  if (optionalStart + optHeaderSize > bytes.length || optHeaderSize < 96) {
+    return { parsed: false, isPe: true, signaturePresent: false, certTableSize: 0 };
+  }
+  const magic = bytes.readUInt16LE(optionalStart);
+  const dataDirStart = magic === 0x10b ? optionalStart + 96 : magic === 0x20b ? optionalStart + 112 : 0;
+  if (dataDirStart === 0 || dataDirStart + 8 * 5 > bytes.length) {
+    return { parsed: false, isPe: true, signaturePresent: false, certTableSize: 0 };
+  }
+  const certEntryOffset = dataDirStart + 8 * 4;
+  const certTableSize = bytes.readUInt32LE(certEntryOffset + 4);
+  return {
+    parsed: true,
+    isPe: true,
+    signaturePresent: certTableSize > 0,
+    certTableSize: Math.max(0, certTableSize),
+  };
+};
+
 const readBytesBounded = (filePath: string, maxBytes: number = MAX_TEXT_BYTES): any => {
   try {
     const stat = fs.statSync(filePath);
@@ -787,11 +824,14 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
   const markers: string[] = [];
   const findingCodes: string[] = [];
   let mode: AdapterModeV1 = "built_in";
+  let signingEvidenceCount = 0;
+  let peSignaturePresent = 0;
+  let signatureEntryCount = 0;
+  let signingParsePartial = 0;
 
   const installerExt = ext === ".msi" || ext === ".msix" || ext === ".exe";
   if (installerExt) {
     reasonCodes.push("EXECUTION_WITHHELD_INSTALLER");
-    markers.push("PACKAGE_SIGNING_INFO_UNAVAILABLE");
   }
 
   let entryNames: string[] = [];
@@ -803,6 +843,16 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
     entryNames = zip.entries;
     markers.push(...zip.markers);
     if (entryNames.length === 0) reasonCodes.push("PACKAGE_METADATA_PARTIAL");
+    signatureEntryCount += entryNames.filter((entry) => {
+      const base = path.basename(String(entry || "")).toLowerCase();
+      return (
+        base.endsWith(".sig") ||
+        base.endsWith(".asc") ||
+        base.endsWith(".p7s") ||
+        base.endsWith(".p7x") ||
+        base === "appxsignature.p7x"
+      );
+    }).length;
     const zipManifestTexts = readZipTextEntriesByBaseName(ctx.inputPath, [
       "package.json",
       "manifest.json",
@@ -833,6 +883,24 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
       markers.push("PACKAGE_PLUGIN_TAR_NOT_ENABLED");
     }
+  }
+
+  if (ext === ".exe") {
+    const pe = parsePeSigningEvidenceV1(ctx.inputPath);
+    if (!pe.parsed) {
+      signingParsePartial = 1;
+    } else if (pe.isPe && pe.signaturePresent) {
+      peSignaturePresent = 1;
+      signingEvidenceCount += 1;
+    } else if (!pe.isPe) {
+      markers.push("PACKAGE_PE_HEADER_MISSING");
+    }
+  }
+  if (ext === ".msix" && signatureEntryCount > 0) {
+    signingEvidenceCount += 1;
+  }
+  if (ext === ".msi") {
+    signingParsePartial = 1;
   }
 
   const manifestNames = new Set([
@@ -866,8 +934,14 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
   if (scriptCount > 0) findingCodes.push("PACKAGE_SCRIPT_HINT_PRESENT");
   if (permissionCount > 0) findingCodes.push("PACKAGE_PERMISSION_HINT_PRESENT");
   if (externalDomainCount > 0) findingCodes.push("PACKAGE_EXTERNAL_REF_PRESENT");
+  if (signingEvidenceCount > 0 || peSignaturePresent > 0 || signatureEntryCount > 0) {
+    reasonCodes.push("PACKAGE_SIGNING_INFO_PRESENT");
+    findingCodes.push("PACKAGE_SIGNING_INFO_PRESENT");
+  } else if (installerExt || signingParsePartial > 0) {
+    reasonCodes.push("PACKAGE_SIGNING_INFO_UNAVAILABLE");
+  }
+  if (signingParsePartial > 0) markers.push("PACKAGE_SIGNING_PARSE_PARTIAL");
   if (markers.length > 0) reasonCodes.push("PACKAGE_METADATA_PARTIAL");
-  if (markers.includes("PACKAGE_SIGNING_INFO_UNAVAILABLE")) reasonCodes.push("PACKAGE_SIGNING_INFO_UNAVAILABLE");
 
   return {
     ok: true,
@@ -880,6 +954,10 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
       scriptHintCount: scriptCount,
       permissionHintCount: permissionCount,
       externalDomainCount,
+      signingEvidenceCount,
+      peSignaturePresent,
+      signatureEntryCount,
+      signingParsePartial,
       signerCountBounded: 0,
     },
     markers: stableSortUniqueStringsV0(markers),

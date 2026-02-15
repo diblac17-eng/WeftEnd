@@ -124,6 +124,28 @@ const writeSimpleTar = (outPath: string, files: Array<{ name: string; text: stri
   fs.writeFileSync(outPath, Buffer.concat(blocks));
 };
 
+const writeMinimalPe = (outPath: string, certSize: number): void => {
+  const bytes = Buffer.alloc(1024, 0);
+  bytes[0] = 0x4d; // M
+  bytes[1] = 0x5a; // Z
+  bytes.writeUInt32LE(0x80, 0x3c); // pe offset
+  bytes[0x80] = 0x50; // P
+  bytes[0x81] = 0x45; // E
+  bytes[0x82] = 0x00;
+  bytes[0x83] = 0x00;
+  bytes.writeUInt16LE(0x014c, 0x84); // machine
+  bytes.writeUInt16LE(1, 0x86); // sections
+  bytes.writeUInt16LE(0x00e0, 0x94); // size optional header
+  const opt = 0x98;
+  bytes.writeUInt16LE(0x010b, opt); // PE32
+  bytes.writeUInt32LE(16, opt + 92); // numberOfRvaAndSizes
+  const dataDir = opt + 96;
+  const certEntry = dataDir + 8 * 4;
+  bytes.writeUInt32LE(0x200, certEntry); // cert table file offset
+  bytes.writeUInt32LE(Math.max(0, certSize), certEntry + 4); // cert size
+  fs.writeFileSync(outPath, bytes);
+};
+
 const limits = {
   maxFiles: 20000,
   maxTotalBytes: 512 * 1024 * 1024,
@@ -258,6 +280,10 @@ const run = (): void => {
         text: "<Package><Capabilities><Capability Name=\"internetClient\"/></Capabilities></Package>",
       },
       {
+        name: "AppxSignature.p7x",
+        text: "sig-bytes",
+      },
+      {
         name: "scripts/install.ps1",
         text: "Write-Host install",
       },
@@ -269,6 +295,31 @@ const run = (): void => {
     assert((res.summary?.counts.manifestCount ?? 0) > 0, "msix manifest count missing");
     assert((res.summary?.counts.scriptHintCount ?? 0) > 0, "msix script hint count missing");
     assert((res.summary?.counts.permissionHintCount ?? 0) > 0, "msix permission hint count missing");
+    assert((res.summary?.counts.signingEvidenceCount ?? 0) > 0, "msix signing evidence should be present");
+    assert((res.summary?.reasonCodes ?? []).includes("PACKAGE_SIGNING_INFO_PRESENT"), "msix signing reason missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const exe = path.join(tmp, "signed.exe");
+    writeMinimalPe(exe, 256);
+    const capture = captureTreeV0(exe, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: exe, capture });
+    assert(res.ok, "package adapter should parse minimal pe signing evidence");
+    assertEq(res.summary?.sourceClass, "package", "exe package class mismatch");
+    assertEq(res.summary?.counts.peSignaturePresent, 1, "pe signature should be detected");
+    assert((res.summary?.reasonCodes ?? []).includes("PACKAGE_SIGNING_INFO_PRESENT"), "pe signing reason missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const exe = path.join(tmp, "unsigned.exe");
+    writeMinimalPe(exe, 0);
+    const capture = captureTreeV0(exe, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: exe, capture });
+    assert(res.ok, "package adapter should parse minimal pe unsigned evidence");
+    assertEq(res.summary?.counts.peSignaturePresent, 0, "pe signature should be absent");
+    assert((res.summary?.reasonCodes ?? []).includes("EXECUTION_WITHHELD_INSTALLER"), "installer withheld reason missing");
   }
 
   {
