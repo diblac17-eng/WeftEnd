@@ -16,6 +16,9 @@ const MAX_STRING_BYTES = 64;
 const MAX_REASON_FAMILIES = 32;
 const MAX_TARTARUS_KINDS = 32;
 const SAFE_TAG_RE = /^[A-Za-z0-9._:-]{1,64}$/;
+const REQUEST_KEYS = new Set<string>(["schema", "v", "rulesetId", "releaseId", "pathDigest", "policy", "stream"]);
+const STREAM_KEYS = new Set<string>(["schema", "v", "streamNonce", "events"]);
+const EVENT_KEYS = new Set<string>(["seq", "kind", "side", "data"]);
 const POLICY_KEYS = new Set<string>(["denyThresholds"]);
 const DENY_THRESHOLD_KEYS = new Set<string>([
   "missing",
@@ -212,6 +215,7 @@ const parseEvents = (eventsRaw: unknown, state: EvalState): ShadowEvent[] => {
       state.reasons.add("SHADOW_AUDIT_SCHEMA_INVALID");
       continue;
     }
+    if (hasUnknownKeys(item as JsonObject, EVENT_KEYS)) state.reasons.add("SHADOW_AUDIT_SCHEMA_INVALID");
     const keys = Object.keys(item as JsonObject);
     if (keys.length > MAX_EVENT_KEYS) state.reasons.add("SHADOW_AUDIT_BOUNDS_EXCEEDED");
     const seq = (item as JsonObject).seq;
@@ -350,6 +354,7 @@ const buildResult = (requestRaw: unknown): ShadowResult => {
     state.reasons.add("SHADOW_AUDIT_SCHEMA_INVALID");
   }
   const req = (requestRaw && typeof requestRaw === "object" ? requestRaw : {}) as JsonObject;
+  if (hasUnknownKeys(req, REQUEST_KEYS)) state.reasons.add("SHADOW_AUDIT_SCHEMA_INVALID");
   if (req.schema !== "weftend.shadowAudit.request/0" || req.v !== 0) {
     state.reasons.add("SHADOW_AUDIT_SCHEMA_INVALID");
   }
@@ -358,6 +363,7 @@ const buildResult = (requestRaw: unknown): ShadowResult => {
   if (typeof req.pathDigest !== "undefined" && !boundedTag(req.pathDigest)) state.reasons.add("SHADOW_AUDIT_SCHEMA_INVALID");
 
   const stream = req.stream as JsonObject | undefined;
+  if (stream && hasUnknownKeys(stream, STREAM_KEYS)) state.reasons.add("SHADOW_AUDIT_SCHEMA_INVALID");
   if (!stream || stream.schema !== "weftend.shadowAudit.stream/0" || stream.v !== 0) {
     state.reasons.add("SHADOW_AUDIT_SCHEMA_INVALID");
   }

@@ -1,0 +1,26 @@
+{
+  "schema": "weftend.shadowAudit.result/0",
+  "v": 0,
+  "status": "DENY",
+  "reasonFamilies": [
+    "SHADOW_AUDIT_SCHEMA_INVALID"
+  ],
+  "tartarusKindCounts": {},
+  "counts": {
+    "events": 0,
+    "warnings": 0,
+    "denies": 1,
+    "quarantines": 0
+  },
+  "sequenceCounts": {
+    "missing": 0,
+    "extra": 0,
+    "reordered": 0,
+    "duplicate": 0
+  },
+  "capCounts": {
+    "attemptedWithoutRequest": 0,
+    "allowedWithoutEvidence": 0,
+    "inconsistent": 0
+  }
+}

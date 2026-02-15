@@ -54,6 +54,18 @@ const run = async (): Promise<void> => {
       status: 40,
     },
     {
+      name: "schema_invalid_request_unknown_key",
+      req: "schema_invalid_request_unknown_key_request.json",
+      expected: "schema_invalid_request_unknown_key_expected.json",
+      status: 40,
+    },
+    {
+      name: "schema_invalid_event_unknown_key",
+      req: "schema_invalid_event_unknown_key_request.json",
+      expected: "schema_invalid_event_unknown_key_expected.json",
+      status: 40,
+    },
+    {
       name: "privacy_key_alias",
       req: "privacy_key_alias_request.json",
       expected: "privacy_key_alias_expected.json",

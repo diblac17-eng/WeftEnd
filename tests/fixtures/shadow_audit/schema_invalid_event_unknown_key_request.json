@@ -1,0 +1,16 @@
+{
+  "schema": "weftend.shadowAudit.request/0",
+  "v": 0,
+  "rulesetId": "SHADOW_RULESET_V0",
+  "stream": {
+    "schema": "weftend.shadowAudit.stream/0",
+    "v": 0,
+    "events": [
+      {
+        "seq": 0,
+        "kind": "STATE_CHECK",
+        "unknownEventField": 1
+      }
+    ]
+  }
+}
