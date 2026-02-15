@@ -173,7 +173,7 @@ const main = () => {
   if (fs.existsSync(releaseDirAbs)) {
     proofEnv = { WEFTEND_RELEASE_DIR: releaseDirEnv };
   } else {
-    proofEnv = { WEFTEND_ALLOW_SKIP_RELEASE: "1" };
+    proofEnv = { WEFTEND_ALLOW_SKIP_RELEASE: "1", WEFTEND_RELEASE_DIR: "" };
     proofReasons.push("VERIFY360_RELEASE_FIXTURE_MISSING");
     proofReasons.push("VERIFY360_RELEASE_SMOKE_SKIPPED");
   }
