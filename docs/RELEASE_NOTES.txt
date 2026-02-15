@@ -39,6 +39,7 @@ Included
 - verify:360 now supports `WEFTEND_360_OUT_ROOT` so harness and CI can run isolated history lanes.
 - harness now uses isolated output root per run and enforces first run idempotence mode `NEW`.
 - History chain now includes deterministic `historyLinkDigest`, mirrored in evidence-chain links and asserted by harness.
+- Harness now also asserts stable-sorted receipt reason codes and capability-ledger set/status integrity.
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)

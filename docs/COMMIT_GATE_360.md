@@ -68,6 +68,10 @@ Core rule
    - receipt includes `historyLinkDigest` over the prior-run link tuple
    - evidence chain mirrors history link fields
    - harness asserts prior-run continuity and digest match across pass/replay/fail runs
+18. Harness validates receipt ordering/ledger invariants:
+   - top-level `reasonCodes` must be stable-sorted/unique
+   - capability ledger requested/decisions sets must match exactly
+   - each capability decision status must be `GRANTED` or `DENIED`
 
 Command
 - `npm run verify:360`

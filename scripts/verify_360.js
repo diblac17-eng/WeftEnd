@@ -152,6 +152,42 @@ const assertPayloadConsistency = (payload) => {
   const eLinkDigest = String(payload?.evidenceChain?.links?.priorVerifyHistoryLinkDigest || "");
   if (eLinkDigest !== linkDigest) throw new Error("VERIFY360_INCONSISTENT_HISTORY_LINK_DIGEST_EVIDENCE_CHAIN");
 };
+const assertRunInvariants = ({
+  steps,
+  idempotenceMode,
+  idempotencePointerPolicy,
+  capabilityDecisions,
+  observedCapabilityDecisionCount,
+}) => {
+  if (!Array.isArray(steps) || steps.length === 0) throw new Error("VERIFY360_INVARIANT_STEPS_EMPTY");
+  if (steps.length > MAX_STEPS) throw new Error("VERIFY360_INVARIANT_STEPS_OVERFLOW");
+  const expectedCapabilities = stableSortUnique(CAPABILITY_REQUESTS);
+  const gotCapabilities = (capabilityDecisions || []).map((d) => d.capability);
+  if (expectedCapabilities.length !== gotCapabilities.length) {
+    throw new Error("VERIFY360_INVARIANT_CAPABILITY_COUNT_MISMATCH");
+  }
+  for (let i = 0; i < expectedCapabilities.length; i += 1) {
+    if (expectedCapabilities[i] !== gotCapabilities[i]) {
+      throw new Error("VERIFY360_INVARIANT_CAPABILITY_ORDER_MISMATCH");
+    }
+  }
+  if (Number(observedCapabilityDecisionCount) !== capabilityDecisions.length) {
+    throw new Error("VERIFY360_INVARIANT_OBSERVED_CAPABILITY_COUNT_MISMATCH");
+  }
+  const pointerDecision = (capabilityDecisions || []).find((d) => d.capability === "output.update_latest_pointer");
+  const pointerGranted = String(pointerDecision?.status || "DENIED") === "GRANTED";
+  if (idempotenceMode === "NEW") {
+    if (idempotencePointerPolicy !== "UPDATE_ALLOWED" || !pointerGranted) {
+      throw new Error("VERIFY360_INVARIANT_POINTER_POLICY_NEW_MISMATCH");
+    }
+  } else if (idempotenceMode === "REPLAY" || idempotenceMode === "PARTIAL") {
+    if (idempotencePointerPolicy !== "UPDATE_SUPPRESSED" || pointerGranted) {
+      throw new Error("VERIFY360_INVARIANT_POINTER_POLICY_REPLAY_MISMATCH");
+    }
+  } else {
+    throw new Error("VERIFY360_INVARIANT_IDEMPOTENCE_MODE_UNKNOWN");
+  }
+};
 const summarizeStepStatuses = (steps) => {
   const summary = {
     FAIL: 0,
@@ -981,6 +1017,13 @@ const main = () => {
       },
     },
   };
+  assertRunInvariants({
+    steps,
+    idempotenceMode,
+    idempotencePointerPolicy,
+    capabilityDecisions,
+    observedCapabilityDecisionCount: payload.observed.capabilityDecisionCount,
+  });
   assertPayloadConsistency(payload);
   advanceState("STAGED");
   writeOutputs(runDir, payload, {
@@ -1102,6 +1145,13 @@ const main = () => {
         },
       },
     };
+    assertRunInvariants({
+      steps,
+      idempotenceMode,
+      idempotencePointerPolicy: "UPDATE_SUPPRESSED",
+      capabilityDecisions,
+      observedCapabilityDecisionCount: failurePayload.observed.capabilityDecisionCount,
+    });
     assertPayloadConsistency(failurePayload);
     try {
       writeOutputs(runDir, failurePayload, { updateLatestPointer: false });

@@ -81,6 +81,30 @@ const assertStateReceipt = (receipt, expectedVerdict) => {
   assert(digestA.length > 0 && digestB.length > 0, "VERIFY360_HARNESS_STATE_DIGEST_MISSING");
   assert(digestA === digestB, "VERIFY360_HARNESS_STATE_DIGEST_MISMATCH");
 };
+const assertSortedUnique = (items, code) => {
+  const arr = Array.isArray(items) ? items.slice() : [];
+  const sorted = Array.from(new Set(arr)).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  assert(arr.length === sorted.length, `${code}_DUPLICATE`);
+  for (let i = 0; i < arr.length; i += 1) {
+    if (arr[i] !== sorted[i]) throw new Error(`${code}_ORDER`);
+  }
+};
+const assertCapabilityLedger = (receipt) => {
+  const ledger = receipt.capabilityLedger || {};
+  const requested = Array.isArray(ledger.requested) ? ledger.requested : [];
+  const decisions = Array.isArray(ledger.decisions) ? ledger.decisions : [];
+  assert(requested.length > 0, "VERIFY360_HARNESS_LEDGER_REQUESTED_EMPTY");
+  assert(decisions.length === requested.length, "VERIFY360_HARNESS_LEDGER_DECISION_COUNT_MISMATCH");
+  const requestedSet = new Set(requested);
+  const decisionsSet = new Set(decisions.map((d) => d.capability));
+  assert(requestedSet.size === requested.length, "VERIFY360_HARNESS_LEDGER_REQUESTED_DUP");
+  assert(decisionsSet.size === decisions.length, "VERIFY360_HARNESS_LEDGER_DECISION_DUP");
+  requested.forEach((cap) => assert(decisionsSet.has(cap), "VERIFY360_HARNESS_LEDGER_DECISION_MISSING"));
+  decisions.forEach((d) => {
+    assert(d.status === "GRANTED" || d.status === "DENIED", "VERIFY360_HARNESS_LEDGER_STATUS_INVALID");
+    assertSortedUnique(d.reasonCodes, "VERIFY360_HARNESS_LEDGER_REASON_CODES");
+  });
+};
 const assertHistoryLink = (receipt, expectedPrevRunId, expectedPrevReceiptPath) => {
   const link = receipt.historyLink || {};
   const evidence = receipt.evidenceChain?.links || {};
@@ -144,6 +168,8 @@ const main = () => {
   assert(fs.existsSync(receiptAPath), "VERIFY360_HARNESS_RECEIPT_A_MISSING");
   const receiptA = readJson(receiptAPath);
   assertStateReceipt(receiptA, "PASS");
+  assertSortedUnique(receiptA.reasonCodes, "VERIFY360_HARNESS_REASON_CODES");
+  assertCapabilityLedger(receiptA);
   assert(receiptA.idempotence?.mode === "NEW", "VERIFY360_HARNESS_PASS1_EXPECTED_NEW");
   assertHistoryLink(receiptA, prevRunBeforeA, prevReceiptBeforeA);
 
@@ -159,6 +185,8 @@ const main = () => {
   assert(fs.existsSync(receiptBPath), "VERIFY360_HARNESS_RECEIPT_B_MISSING");
   const receiptB = readJson(receiptBPath);
   assertStateReceipt(receiptB, "PASS");
+  assertSortedUnique(receiptB.reasonCodes, "VERIFY360_HARNESS_REASON_CODES");
+  assertCapabilityLedger(receiptB);
   assert(receiptB.idempotence?.mode === "REPLAY", "VERIFY360_HARNESS_REPLAY_MODE_MISSING");
   assert(receiptB.idempotence?.pointerPolicy === "UPDATE_SUPPRESSED", "VERIFY360_HARNESS_REPLAY_POINTER_POLICY_INVALID");
   assertHistoryLink(receiptB, runA, receiptAPath);
@@ -177,6 +205,8 @@ const main = () => {
   assert(fs.existsSync(reportCPath), "VERIFY360_HARNESS_REPORT_C_MISSING");
   const receiptC = readJson(receiptCPath);
   assertStateReceipt(receiptC, "FAIL");
+  assertSortedUnique(receiptC.reasonCodes, "VERIFY360_HARNESS_REASON_CODES");
+  assertCapabilityLedger(receiptC);
   const reasonCodes = Array.isArray(receiptC.reasonCodes) ? receiptC.reasonCodes : [];
   assert(reasonCodes.includes("VERIFY360_INTERNAL_EXCEPTION"), "VERIFY360_HARNESS_INTERNAL_EXCEPTION_REASON_MISSING");
   assert(reasonCodes.includes("VERIFY360_FORCED_EXCEPTION"), "VERIFY360_HARNESS_FORCED_EXCEPTION_REASON_MISSING");
