@@ -40,6 +40,10 @@ Output evidence
 - `out/verify_360/history/run_<seq>/verify_360_report.txt`
 - `out/verify_360/history/run_<seq>/verify_360_output_manifest.json`
 - `out/verify_360/latest.txt` (pointer to latest run folder)
+- Receipt includes evidence-chain links:
+  - report/receipt chain digests
+  - safe-run/compare artifact digests (when present)
+  - deterministic idempotence key context
 
 Expected behavior
 - Fails fast on first invalidating condition.

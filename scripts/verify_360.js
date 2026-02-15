@@ -162,6 +162,26 @@ const compareFilesEqual = (a, b) => {
   return { ok: true };
 };
 
+const digestIfExists = (filePath) => {
+  try {
+    if (!fs.existsSync(filePath)) return null;
+    return sha256File(filePath);
+  } catch {
+    return null;
+  }
+};
+
+const safeGitHead = () => {
+  const res = spawnSync("git", ["rev-parse", "HEAD"], {
+    cwd: root,
+    encoding: "utf8",
+    windowsHide: true,
+  });
+  if (typeof res.status !== "number" || res.status !== 0) return "UNKNOWN";
+  const value = String(res.stdout || "").trim();
+  return /^[a-f0-9]{40}$/i.test(value) ? value.toLowerCase() : "UNKNOWN";
+};
+
 const deterministicFileList = [
   "safe_run_receipt.json",
   "operator_receipt.json",
@@ -210,14 +230,31 @@ const writeOutputs = (runDir, payload) => {
   fs.writeFileSync(txtPath, reportText, "utf8");
   const reportDigest = sha256Text(reportText);
 
-  const payloadWithArtifactDigests = {
+  const corePayload = {
     ...payload,
-    artifacts: {
-      ...(payload.artifacts || {}),
+    evidenceChain: {
+      ...(payload.evidenceChain || {}),
       reportDigest,
     },
   };
-  const receiptText = canonicalJSON(payloadWithArtifactDigests);
+  const receiptDigest = sha256Text(canonicalJSON(corePayload));
+  const receiptPayload = {
+    ...corePayload,
+    receiptDigest,
+    evidenceChain: {
+      ...(corePayload.evidenceChain || {}),
+      reportDigest,
+      receiptDigest,
+      chainDigest: sha256Text(
+        canonicalJSON({
+          reportDigest,
+          receiptDigest,
+          links: corePayload.evidenceChain?.links || {},
+        })
+      ),
+    },
+  };
+  const receiptText = canonicalJSON(receiptPayload);
   fs.writeFileSync(jsonPath, receiptText, "utf8");
 
   const files = collectFiles(stageDir).map((f) => ({
@@ -260,6 +297,17 @@ const main = () => {
   const releaseDirAbs = path.resolve(root, releaseDirEnv);
   const deterministicInputEnv = process.env.WEFTEND_360_INPUT || "tests/fixtures/intake/tampered_manifest/tampered.zip";
   const deterministicInputAbs = path.resolve(root, deterministicInputEnv);
+  const changedFiles = gitChangedFiles();
+  const head = safeGitHead();
+  const idempotenceContext = {
+    command: "verify:360",
+    gateVersion: "v2",
+    releaseDir: fs.existsSync(releaseDirAbs) ? releaseDirEnv : "MISSING",
+    deterministicInput: fs.existsSync(deterministicInputAbs) ? deterministicInputEnv : "MISSING",
+    gitHead: head,
+    changedFiles: changedFiles || ["UNKNOWN"],
+  };
+  const idempotenceKey = sha256Text(canonicalJSON(idempotenceContext));
   let corridorState = "INIT";
   const advanceState = (next) => {
     const fromIdx = RUN_STATES.indexOf(corridorState);
@@ -280,22 +328,21 @@ const main = () => {
     runCommand(name, npm.cmd, [...npm.argsPrefix, "run", name, ...extraArgs], envExtra);
 
   // Docs/update discipline check (catches "little misses" before commit/release).
-  const changed = gitChangedFiles();
-  if (!changed) {
+  if (!changedFiles) {
     addStep({
       id: "docs_sync",
       status: "PARTIAL",
       reasonCodes: ["VERIFY360_GIT_STATUS_UNAVAILABLE"],
     });
   } else {
-    const codeTouched = changed.some(
+    const codeTouched = changedFiles.some(
       (p) =>
         p === "package.json" ||
         p.startsWith("src/") ||
         p.startsWith("scripts/") ||
         p.startsWith("tools/")
     );
-    const docsTouched = changed.some(
+    const docsTouched = changedFiles.some(
       (p) =>
         p === "README.md" ||
         p === "docs/RELEASE_NOTES.txt" ||
@@ -516,6 +563,8 @@ const main = () => {
     command: "verify:360",
     stateAtStage: corridorState,
     stateTarget: "RECORDED",
+    idempotenceKey,
+    idempotenceContext,
     verdict,
     reasonCodes,
     releaseFixture: fs.existsSync(releaseDirAbs) ? releaseDirEnv : "MISSING",
@@ -527,6 +576,16 @@ const main = () => {
       runAExists: fs.existsSync(outA) ? 1 : 0,
       runBExists: fs.existsSync(outB) ? 1 : 0,
       compareOutExists: fs.existsSync(outCompare) ? 1 : 0,
+    },
+    evidenceChain: {
+      links: {
+        safeRunAReceiptDigest: digestIfExists(path.join(outA, "safe_run_receipt.json")),
+        safeRunAOperatorDigest: digestIfExists(path.join(outA, "operator_receipt.json")),
+        safeRunBReceiptDigest: digestIfExists(path.join(outB, "safe_run_receipt.json")),
+        safeRunBOperatorDigest: digestIfExists(path.join(outB, "operator_receipt.json")),
+        compareReceiptDigest: digestIfExists(path.join(outCompare, "compare_receipt.json")),
+        compareReportDigest: digestIfExists(path.join(outCompare, "compare_report.txt")),
+      },
     },
   };
   advanceState("STAGED");
