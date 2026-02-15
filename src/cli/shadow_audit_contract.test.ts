@@ -47,6 +47,12 @@ const run = async (): Promise<void> => {
       expected: "schema_invalid_stream_nonce_expected.json",
       status: 40,
     },
+    {
+      name: "privacy_key_alias",
+      req: "privacy_key_alias_request.json",
+      expected: "privacy_key_alias_expected.json",
+      status: 40,
+    },
     { name: "bounds_events", req: "bounds_events_request.json", expected: "bounds_events_expected.json", status: 40 },
     {
       name: "bounds_event_keys",

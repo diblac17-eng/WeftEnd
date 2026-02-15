@@ -76,23 +76,26 @@ const isNonNegInt = (value: unknown): value is number =>
 
 const isForbiddenKey = (key: string): boolean => {
   const k = key.toLowerCase();
+  const norm = k.replace(/[_-]/g, "");
   return (
-    k === "userid" ||
-    k === "deviceid" ||
-    k === "accountid" ||
-    k === "sessionid" ||
-    k === "playerid" ||
-    k === "timestamp" ||
-    k === "time" ||
-    k === "duration" ||
-    k === "durationms" ||
-    k === "url" ||
-    k === "uri" ||
-    k === "hostname" ||
-    k === "host" ||
-    k === "path" ||
-    k === "filepath" ||
-    k === "absolutepath"
+    norm === "userid" ||
+    norm === "deviceid" ||
+    norm === "accountid" ||
+    norm === "sessionid" ||
+    norm === "playerid" ||
+    norm === "timestamp" ||
+    norm === "timestampms" ||
+    norm === "time" ||
+    norm === "timems" ||
+    norm === "duration" ||
+    norm === "durationms" ||
+    norm === "url" ||
+    norm === "uri" ||
+    norm === "hostname" ||
+    norm === "host" ||
+    norm === "path" ||
+    norm === "filepath" ||
+    norm === "absolutepath"
   );
 };
 
