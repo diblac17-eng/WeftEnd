@@ -44,6 +44,10 @@ Core rule
    - receipt includes `explain` with fixed, versioned interpretation text
    - report includes `explain.*` lines derived from stable receipt fields
    - explanation text is deterministic input-to-output mapping, not model-generated content
+13. Observed vs interpreted split is explicit:
+   - receipt records raw observations under `observed` (presence, counts, status summaries)
+   - receipt records conclusions under `interpreted` (verdict, reason set, gate state, next policy semantics)
+   - report mirrors this with `observed.*` and `interpreted.*` lines for quick review
 
 Command
 - `npm run verify:360`
@@ -58,6 +62,7 @@ Output evidence
   - safe-run/compare artifact digests (when present)
   - deterministic idempotence key context
   - deterministic capability ledger (`capabilityLedger`)
+  - deterministic observed/interpreted sections (`observed`, `interpreted`)
 
 Expected behavior
 - Fails fast on first invalidating condition.

@@ -19,6 +19,9 @@ Included
 - unset capabilities are fail-closed as `DENIED` with `VERIFY360_CAPABILITY_UNSET`.
 - Gate now emits a deterministic, versioned explain layer (`weftend.verify360Explain/0`) in receipt and report output.
 - explanation text is fixed-table interpretation (verdict, idempotence mode, next action), not runtime-generated prose.
+- Gate receipt/report now separate raw observations from conclusions:
+- `observed` captures deterministic counts/presence/status summaries.
+- `interpreted` captures verdict, reason set, and gate-state conclusions.
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)

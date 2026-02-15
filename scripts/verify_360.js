@@ -46,6 +46,21 @@ const VERDICT_EXPLANATIONS = {
   PARTIAL: "Verification completed with partial knowledge; evidence is recorded and reusable state advancement remains constrained.",
   FAIL: "Verification failed closed; evidence is recorded and reusable state must not advance until issues are resolved.",
 };
+const summarizeStepStatuses = (steps) => {
+  const summary = {
+    FAIL: 0,
+    PARTIAL: 0,
+    PASS: 0,
+    SKIP: 0,
+    OTHER: 0,
+  };
+  (steps || []).forEach((step) => {
+    const status = String(step?.status || "");
+    if (Object.prototype.hasOwnProperty.call(summary, status)) summary[status] += 1;
+    else summary.OTHER += 1;
+  });
+  return summary;
+};
 
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
@@ -266,6 +281,10 @@ const writeOutputs = (runDir, payload, options = {}) => {
   lines.push(`VERIFY360 ${payload.verdict}`);
   lines.push(`runId=${payload.runId}`);
   lines.push(`reasonCodes=${(payload.reasonCodes || []).join(",") || "-"}`);
+  lines.push(`observed.stepStatus=${canonicalJSON(payload.observed?.stepStatusSummary || {}).trim()}`);
+  lines.push(`observed.capabilities=${payload.observed?.capabilityDecisionCount ?? "-"}`);
+  lines.push(`interpreted.verdict=${payload.interpreted?.verdict || payload.verdict || "-"}`);
+  lines.push(`interpreted.gateState=${payload.interpreted?.gateState || "-"}`);
   lines.push(`explain.version=${payload.explain?.schema || VERIFY360_EXPLAIN_VERSION}`);
   lines.push(`explain.verdict=${payload.explain?.verdictMeaning || "-"}`);
   lines.push(`explain.idempotence=${payload.explain?.idempotenceMeaning || "-"}`);
@@ -688,6 +707,15 @@ const main = () => {
     steps.flatMap((s) => (Array.isArray(s.reasonCodes) ? s.reasonCodes : []))
   );
   recordCapability("output.write_receipt", true, []);
+  const stepStatusSummary = summarizeStepStatuses(steps);
+  const capabilityDecisions = stableSortUnique(CAPABILITY_REQUESTS).map((capability) => {
+    const entry = capabilityMap.get(capability);
+    return {
+      capability,
+      status: entry?.status || "DENIED",
+      reasonCodes: stableSortUnique(entry?.reasonCodes || ["VERIFY360_CAPABILITY_UNSET"]),
+    };
+  });
   const explain = {
     schema: VERIFY360_EXPLAIN_VERSION,
     schemaVersion: 0,
@@ -725,6 +753,30 @@ const main = () => {
     },
     verdict,
     reasonCodes,
+    observed: {
+      schema: "weftend.verify360Observed/0",
+      schemaVersion: 0,
+      releaseFixturePresent: fs.existsSync(releaseDirAbs),
+      deterministicInputPresent: fs.existsSync(deterministicInputAbs),
+      runArtifactPresence: {
+        runAExists: fs.existsSync(outA) ? 1 : 0,
+        runBExists: fs.existsSync(outB) ? 1 : 0,
+        compareOutExists: fs.existsSync(outCompare) ? 1 : 0,
+      },
+      stepCount: steps.length,
+      stepStatusSummary,
+      capabilityDecisionCount: capabilityDecisions.length,
+    },
+    interpreted: {
+      schema: "weftend.verify360Interpreted/0",
+      schemaVersion: 0,
+      gateState: corridorState,
+      verdict,
+      reasonCodes,
+      idempotenceMode,
+      idempotencePointerPolicy,
+      expectedStateTarget: "RECORDED",
+    },
     explain,
     releaseFixture: fs.existsSync(releaseDirAbs) ? releaseDirEnv : "MISSING",
     deterministicInput: fs.existsSync(deterministicInputAbs) ? deterministicInputEnv : "MISSING",
@@ -740,14 +792,7 @@ const main = () => {
       schema: "weftend.verify360CapabilityLedger/0",
       schemaVersion: 0,
       requested: stableSortUnique(CAPABILITY_REQUESTS),
-      decisions: stableSortUnique(CAPABILITY_REQUESTS).map((capability) => {
-        const entry = capabilityMap.get(capability);
-        return {
-          capability,
-          status: entry?.status || "DENIED",
-          reasonCodes: stableSortUnique(entry?.reasonCodes || ["VERIFY360_CAPABILITY_UNSET"]),
-        };
-      }),
+      decisions: capabilityDecisions,
     },
     evidenceChain: {
       links: {
