@@ -514,6 +514,18 @@ const run = (): void => {
       assert((res.summary?.counts.treeEntryCount ?? 0) >= 1, "tree entry count missing");
       assert((res.summary?.counts.branchRefCount ?? 0) >= 1, "branch ref count missing");
       assert((res.summary?.reasonCodes ?? []).includes("SCM_TREE_CAPTURED"), "missing SCM_TREE_CAPTURED reason");
+
+      // Dirty worktree evidence
+      fs.writeFileSync(path.join(repo, "a.txt"), "y", "utf8"); // unstaged
+      fs.writeFileSync(path.join(repo, "b.txt"), "z", "utf8"); // untracked then staged
+      assert(runCmd("git", ["add", "b.txt"], repo).ok, "git add b.txt failed");
+      const captureDirty = captureTreeV0(repo, limits);
+      const dirty = runArtifactAdapterV1({ selection: "scm", enabledPlugins: [], inputPath: repo, capture: captureDirty });
+      assert(dirty.ok, "scm adapter should capture dirty worktree evidence");
+      assertEq(dirty.summary?.counts.worktreeDirty, 1, "dirty worktree flag missing");
+      assert((dirty.summary?.counts.stagedPathCount ?? 0) >= 1, "staged path count missing");
+      assert((dirty.summary?.counts.unstagedPathCount ?? 0) >= 1, "unstaged path count missing");
+      assert((dirty.summary?.reasonCodes ?? []).includes("SCM_WORKTREE_DIRTY"), "missing SCM_WORKTREE_DIRTY reason");
     }
   }
 };

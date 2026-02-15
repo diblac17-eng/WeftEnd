@@ -513,6 +513,20 @@ const runCommandLines = (cmd: string, args: string[]): { ok: boolean; lines: str
   return { ok: true, lines };
 };
 
+const runCommandLinesRaw = (cmd: string, args: string[]): { ok: boolean; lines: string[] } => {
+  const res = childProcess.spawnSync(cmd, args, {
+    encoding: "utf8",
+    windowsHide: true,
+    timeout: 10000,
+  });
+  if (res?.error?.code === "ENOENT") return { ok: false, lines: [] };
+  if (typeof res.status !== "number" || res.status !== 0) return { ok: false, lines: [] };
+  const lines = String(res.stdout || "")
+    .split(/\r?\n/)
+    .filter((line: string) => line.length > 0);
+  return { ok: true, lines };
+};
+
 const summarizePaths = (paths: string[]): { entryCount: number; nestedArchiveCount: number; maxDepth: number } => {
   const nested = paths.filter((entry) => {
     const ext = normalizeExtV1(entry);
@@ -1521,6 +1535,10 @@ const analyzeScm = (ctx: AnalyzeCtx): AnalyzeResult => {
         treeEntryCount: 0,
         branchRefCount: 0,
         tagRefCount: 0,
+        worktreeDirty: 0,
+        stagedPathCount: 0,
+        unstagedPathCount: 0,
+        untrackedPathCount: 0,
         workingTreeEntryCount: countWorkingTreeEntries(),
       },
       markers,
@@ -1542,6 +1560,33 @@ const analyzeScm = (ctx: AnalyzeCtx): AnalyzeResult => {
   const tagRefCount = tags.ok ? tags.lines.length : 0;
   if (!branches.ok || !tags.ok) markers.push("SCM_REFS_PARTIAL");
 
+  const status = runCommandLinesRaw("git", ["-C", ctx.inputPath, "status", "--porcelain=1", "--untracked-files=all"]);
+  let stagedPathCount = 0;
+  let unstagedPathCount = 0;
+  let untrackedPathCount = 0;
+  if (status.ok) {
+    status.lines.forEach((line) => {
+      if (line.length < 2) return;
+      const x = line[0];
+      const y = line[1];
+      if (x === "?" && y === "?") {
+        untrackedPathCount += 1;
+        return;
+      }
+      if (x !== " " && x !== "?") stagedPathCount += 1;
+      if (y !== " " && y !== "?") unstagedPathCount += 1;
+    });
+  } else {
+    markers.push("SCM_STATUS_PARTIAL");
+  }
+  const worktreeDirty = stagedPathCount + unstagedPathCount + untrackedPathCount > 0 ? 1 : 0;
+  const reasonCodes = ["SCM_ADAPTER_V1", "SCM_TREE_CAPTURED"];
+  const findingCodes = ["SCM_TREE_CAPTURED"];
+  if (worktreeDirty > 0) {
+    reasonCodes.push("SCM_WORKTREE_DIRTY");
+    findingCodes.push("SCM_WORKTREE_DIRTY");
+  }
+
   return {
     ok: true,
     sourceClass: "scm",
@@ -1554,11 +1599,15 @@ const analyzeScm = (ctx: AnalyzeCtx): AnalyzeResult => {
       treeEntryCount,
       branchRefCount,
       tagRefCount,
+      worktreeDirty,
+      stagedPathCount,
+      unstagedPathCount,
+      untrackedPathCount,
       workingTreeEntryCount: countWorkingTreeEntries(),
     },
     markers: stableSortUniqueStringsV0(markers),
-    reasonCodes: stableSortUniqueReasonsV0(["SCM_ADAPTER_V1", "SCM_TREE_CAPTURED"]),
-    findingCodes: stableSortUniqueReasonsV0(["SCM_TREE_CAPTURED"]),
+    reasonCodes: stableSortUniqueReasonsV0(reasonCodes),
+    findingCodes: stableSortUniqueReasonsV0(findingCodes),
   };
 };
 
