@@ -86,6 +86,18 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - Use weftend_*_portable.zip for field/offline operator use.
 - Runtime is never auto-downloaded: bundled runtime/node/node.exe is preferred; local Node fallback is fail-closed.
 
+9) Commit gate (contributors)
+- Before any reusable commit:
+  npm run verify:360
+- This runs a full 360 verification pass (compile, test, proofcheck, deterministic replay, privacy lint, compare smoke).
+- It always writes a verification receipt/report, including PARTIAL/FAIL outcomes:
+  - out/verify_360/history/run_<seq>/verify_360_receipt.json
+  - out/verify_360/history/run_<seq>/verify_360_report.txt
+- Host precondition misses are recorded as explicit PARTIAL/SKIP evidence (analysis-first).
+- Optional fixture overrides:
+  - set WEFTEND_RELEASE_DIR for proofcheck release fixture path
+  - set WEFTEND_360_INPUT for deterministic replay input path
+
 Notes
 - No cloud. No telemetry. No malware scoring.
 - Host execution is optional and off by default.

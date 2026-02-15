@@ -23,8 +23,21 @@ Loops
   - Deletes dist/ before running the dev loop.
 - Release Loop: npm run release-loop
   - Requires WEFTEND_RELEASE_DIR and will fail if it is missing.
+- Commit Gate 360: npm run verify:360
+  - Full spin gate for reusable commits:
+    - compile
+    - test
+    - proofcheck with release fixture
+    - deterministic replay check
+    - privacy lint on generated run outputs
+    - compare lane smoke
+  - Always writes run evidence:
+    - out/verify_360/history/run_<seq>/verify_360_receipt.json
+    - out/verify_360/history/run_<seq>/verify_360_report.txt
+  - Host precondition misses are explicit PARTIAL/SKIP evidence, not silent no-output aborts.
 
 Environment
 
 - WEFTEND_RELEASE_DIR: required for release smoke in proofcheck.
 - WEFTEND_ALLOW_SKIP_RELEASE=1: explicitly allows release smoke to SKIP in dev loop.
+- WEFTEND_360_INPUT: optional deterministic input override for verify:360.

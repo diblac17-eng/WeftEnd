@@ -76,6 +76,9 @@ R5) Secret leakage risk
 R6) Compatibility tax without a tier/mode escape hatch
 - Breaks common code patterns without offering Compatible/Legacy modes with explicit UNGOVERNED labeling.
 
+R7) State advance on partial knowledge
+- Any flow that advances baseline/trust/release state without a full verification pass is rejected.
+
 ---
 
 ## 4) Determinism Contract (mandatory for all new logic)

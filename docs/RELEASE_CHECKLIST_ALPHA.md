@@ -6,11 +6,17 @@ Short, strict release checklist (alpha).
 - Expect no pending changes before build/tag.
 
 2) Full validation loop (no skips)
-- npm run compile --silent
-- npm test
-- In PowerShell:
-  - $env:WEFTEND_RELEASE_DIR = "tests\\fixtures\\release_demo"
-  - npm run proofcheck
+- Preferred (single full-spin gate):
+  - npm run verify:360
+  - Confirm receipt exists:
+    - out\\verify_360\\latest.txt
+    - out\\verify_360\\history\\run_<seq>\\verify_360_receipt.json
+- Equivalent manual sequence (if needed):
+  - npm run compile --silent
+  - npm test
+  - In PowerShell:
+    - $env:WEFTEND_RELEASE_DIR = "tests\\fixtures\\release_demo"
+    - npm run proofcheck
   - npm run release-loop
 
 3) Build release bundle
