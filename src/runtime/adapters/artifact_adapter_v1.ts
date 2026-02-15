@@ -527,6 +527,130 @@ const runCommandLinesRaw = (cmd: string, args: string[]): { ok: boolean; lines: 
   return { ok: true, lines };
 };
 
+const isLikelyGitHashV1 = (value: string): boolean => /^[A-Fa-f0-9]{40}$/.test(value) || /^[A-Fa-f0-9]{64}$/.test(value);
+
+const resolveGitDirV1 = (repoPath: string): string | null => {
+  const dotGit = path.join(repoPath, ".git");
+  try {
+    if (fs.statSync(dotGit).isDirectory()) return dotGit;
+  } catch {
+    // continue
+  }
+  try {
+    if (!fs.statSync(dotGit).isFile()) return null;
+    const text = readTextBounded(dotGit, 4096);
+    const match = /^gitdir:\s*(.+)\s*$/im.exec(text);
+    if (!match) return null;
+    const rel = String(match[1] || "").trim();
+    if (!rel) return null;
+    const resolved = path.resolve(repoPath, rel);
+    if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) return resolved;
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const parsePackedRefsV1 = (gitDir: string): { map: Map<string, string>; branchRefs: Set<string>; tagRefs: Set<string> } => {
+  const map = new Map<string, string>();
+  const branchRefs = new Set<string>();
+  const tagRefs = new Set<string>();
+  const packedPath = path.join(gitDir, "packed-refs");
+  const text = readTextBounded(packedPath, MAX_TEXT_BYTES);
+  if (!text) return { map, branchRefs, tagRefs };
+  text.split(/\r?\n/).forEach((line) => {
+    const trimmed = String(line || "").trim();
+    if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("^")) return;
+    const parts = trimmed.split(/\s+/);
+    if (parts.length < 2) return;
+    const hash = String(parts[0] || "").trim();
+    const ref = String(parts[1] || "").trim();
+    if (!isLikelyGitHashV1(hash) || !ref.startsWith("refs/")) return;
+    map.set(ref, hash.toLowerCase());
+    if (ref.startsWith("refs/heads/")) branchRefs.add(ref);
+    if (ref.startsWith("refs/tags/")) tagRefs.add(ref);
+  });
+  return { map, branchRefs, tagRefs };
+};
+
+const collectLooseRefsV1 = (rootPath: string, prefixRef: string): Set<string> => {
+  const out = new Set<string>();
+  const walk = (dirPath: string, refPrefix: string) => {
+    let entries: Array<{ name: string; isDirectory: () => boolean }> = [];
+    try {
+      entries = fs.readdirSync(dirPath, { withFileTypes: true }) as any;
+    } catch {
+      return;
+    }
+    entries.sort((a: any, b: any) => cmpStrV0(String(a.name), String(b.name)));
+    entries.forEach((entry) => {
+      const name = String(entry.name || "");
+      if (!name) return;
+      const full = path.join(dirPath, name);
+      const ref = `${refPrefix}/${name}`.replace(/\\/g, "/");
+      if (entry.isDirectory && entry.isDirectory()) {
+        walk(full, ref);
+        return;
+      }
+      const value = readTextBounded(full, 256).trim();
+      if (!isLikelyGitHashV1(value)) return;
+      out.add(ref);
+    });
+  };
+  walk(rootPath, prefixRef);
+  return out;
+};
+
+const readLooseRefHashV1 = (gitDir: string, refName: string): string | null => {
+  const refPath = path.join(gitDir, ...refName.split("/"));
+  const value = readTextBounded(refPath, 256).trim();
+  return isLikelyGitHashV1(value) ? value.toLowerCase() : null;
+};
+
+const readNativeScmFallbackV1 = (repoPath: string): {
+  commitResolved: number;
+  detachedHead: number;
+  branchRefCount: number;
+  tagRefCount: number;
+  partial: boolean;
+} => {
+  const gitDir = resolveGitDirV1(repoPath);
+  if (!gitDir) return { commitResolved: 0, detachedHead: 0, branchRefCount: 0, tagRefCount: 0, partial: true };
+
+  const packed = parsePackedRefsV1(gitDir);
+  const looseHeads = collectLooseRefsV1(path.join(gitDir, "refs", "heads"), "refs/heads");
+  const looseTags = collectLooseRefsV1(path.join(gitDir, "refs", "tags"), "refs/tags");
+  const allHeads = new Set<string>([...Array.from(looseHeads), ...Array.from(packed.branchRefs)]);
+  const allTags = new Set<string>([...Array.from(looseTags), ...Array.from(packed.tagRefs)]);
+
+  let partial = false;
+  const headRaw = readTextBounded(path.join(gitDir, "HEAD"), 256).trim();
+  let commitResolved = 0;
+  let detachedHead = 0;
+  if (!headRaw) {
+    partial = true;
+  } else if (/^ref:\s+/i.test(headRaw)) {
+    const refName = headRaw.replace(/^ref:\s+/i, "").trim();
+    const loose = readLooseRefHashV1(gitDir, refName);
+    const packedHash = packed.map.get(refName) ?? null;
+    if (loose || packedHash) commitResolved = 1;
+    else partial = true;
+  } else if (isLikelyGitHashV1(headRaw)) {
+    commitResolved = 1;
+    detachedHead = 1;
+  } else {
+    partial = true;
+  }
+
+  return {
+    commitResolved,
+    detachedHead,
+    branchRefCount: allHeads.size,
+    tagRefCount: allTags.size,
+    partial,
+  };
+};
+
 const summarizePaths = (paths: string[]): { entryCount: number; nestedArchiveCount: number; maxDepth: number } => {
   const nested = paths.filter((entry) => {
     const ext = normalizeExtV1(entry);
@@ -1523,6 +1647,8 @@ const analyzeScm = (ctx: AnalyzeCtx): AnalyzeResult => {
       .filter((p) => p.length > 0 && !p.startsWith(".git/"))
       .length;
   if (!rev.ok || rev.lines.length === 0) {
+    const fallback = readNativeScmFallbackV1(ctx.inputPath);
+    if (fallback.partial) markers.push("SCM_NATIVE_REF_PARTIAL");
     return {
       ok: true,
       sourceClass: "scm",
@@ -1530,20 +1656,25 @@ const analyzeScm = (ctx: AnalyzeCtx): AnalyzeResult => {
       mode: "built_in",
       adapterId: "scm_adapter_v1",
       counts: {
-        commitResolved: 0,
-        detachedHead: 0,
+        commitResolved: fallback.commitResolved,
+        detachedHead: fallback.detachedHead,
         treeEntryCount: 0,
-        branchRefCount: 0,
-        tagRefCount: 0,
+        branchRefCount: fallback.branchRefCount,
+        tagRefCount: fallback.tagRefCount,
         worktreeDirty: 0,
         stagedPathCount: 0,
         unstagedPathCount: 0,
         untrackedPathCount: 0,
         workingTreeEntryCount: countWorkingTreeEntries(),
       },
-      markers,
-      reasonCodes: stableSortUniqueReasonsV0(["SCM_ADAPTER_V1", "SCM_REF_UNRESOLVED"]),
-      findingCodes: stableSortUniqueReasonsV0(["SCM_REF_UNRESOLVED"]),
+      markers: stableSortUniqueStringsV0(markers),
+      reasonCodes: stableSortUniqueReasonsV0([
+        "SCM_ADAPTER_V1",
+        fallback.commitResolved > 0 ? "SCM_TREE_CAPTURED" : "SCM_REF_UNRESOLVED",
+      ]),
+      findingCodes: stableSortUniqueReasonsV0([
+        fallback.commitResolved > 0 ? "SCM_TREE_CAPTURED" : "SCM_REF_UNRESOLVED",
+      ]),
     };
   }
   const branch = runCommandLines("git", ["-C", ctx.inputPath, "rev-parse", "--abbrev-ref", "HEAD"]);

@@ -32,6 +32,8 @@ Included
 - SCM/source evidence adapter extraction deepened:
 - Deterministic repo counters now include tree entry count, branch/tag ref counts, detached HEAD indicator, and working-tree entry count.
 - SCM adapter now emits deterministic worktree state evidence (staged/unstaged/untracked counts) and `SCM_WORKTREE_DIRTY` when local repo state is dirty.
+- SCM fallback hardening:
+- When `git` commands are unavailable/failing, adapter now parses native `.git` reference material (`HEAD`, loose refs, packed-refs) deterministically for source evidence.
 - Image adapter extraction deepened:
 - Deterministic header evidence now includes ISO PVD, VHD footer, VHDX signature, QCOW2 magic/version, and VMDK descriptor/sparse-magic hints.
 - Package/installer signing evidence deepened:

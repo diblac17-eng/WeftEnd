@@ -528,6 +528,28 @@ const run = (): void => {
       assert((dirty.summary?.reasonCodes ?? []).includes("SCM_WORKTREE_DIRTY"), "missing SCM_WORKTREE_DIRTY reason");
     }
   }
+
+  {
+    const tmp = mkTmp();
+    const repo = path.join(tmp, "pseudo_repo");
+    const gitData = path.join(repo, ".gitdata");
+    fs.mkdirSync(path.join(gitData, "refs", "heads"), { recursive: true });
+    fs.mkdirSync(path.join(gitData, "refs", "tags"), { recursive: true });
+    fs.mkdirSync(repo, { recursive: true });
+    fs.writeFileSync(path.join(repo, ".git"), "gitdir: .gitdata\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "HEAD"), "ref: refs/heads/main\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "refs", "heads", "main"), "0123456789abcdef0123456789abcdef01234567\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "refs", "tags", "v1.0.0"), "89abcdef0123456789abcdef0123456789abcdef\n", "utf8");
+    fs.writeFileSync(path.join(repo, "a.txt"), "hello", "utf8");
+
+    const capture = captureTreeV0(repo, limits);
+    const res = runArtifactAdapterV1({ selection: "scm", enabledPlugins: [], inputPath: repo, capture });
+    assert(res.ok, "scm adapter should support native .git fallback refs");
+    assertEq(res.summary?.sourceClass, "scm", "pseudo scm source class mismatch");
+    assertEq(res.summary?.counts.commitResolved, 1, "pseudo refs should resolve commit");
+    assert((res.summary?.counts.branchRefCount ?? 0) >= 1, "pseudo branch ref count missing");
+    assert((res.summary?.counts.tagRefCount ?? 0) >= 1, "pseudo tag ref count missing");
+  }
 };
 
 try {
