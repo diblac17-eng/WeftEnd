@@ -71,6 +71,22 @@ const run = (): void => {
     assertEq(res.adapter?.adapterId, "extension_adapter_v1", "extension adapter id mismatch");
     assert((res.summary?.counts.permissionCount ?? 0) > 0, "expected permission count");
   }
+
+  {
+    const tmp = mkTmp();
+    const wfDir = path.join(tmp, ".github", "workflows");
+    fs.mkdirSync(wfDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(wfDir, "build.yml"),
+      "name: ci\non: [push]\njobs:\n  build:\n    runs-on: self-hosted\n    steps:\n      - uses: actions/checkout@main\n      - run: echo ${{ secrets.TOKEN }}\n",
+      "utf8"
+    );
+    const capture = captureTreeV0(tmp, limits);
+    const res = runArtifactAdapterV1({ selection: "cicd", enabledPlugins: [], inputPath: tmp, capture });
+    assert(res.ok, "iac/cicd adapter should succeed for workflow");
+    assertEq(res.summary?.sourceClass, "cicd", "expected cicd source class");
+    assert((res.summary?.reasonCodes ?? []).includes("CICD_ADAPTER_V1"), "expected CICD_ADAPTER_V1 reason");
+  }
 };
 
 try {

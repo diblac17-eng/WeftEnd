@@ -26,7 +26,11 @@ const run = async (): Promise<void> => {
     const parsed = JSON.parse(res.stdout);
     assertEq(parsed.schema, "weftend.adapterList/0", "adapter list schema mismatch");
     assert(Array.isArray(parsed.adapters), "adapter list adapters should be array");
-    assert(parsed.adapters.length >= 3, "adapter list should include adapters");
+    const names = (parsed.adapters as Array<{ adapter: string }>).map((item) => item.adapter).sort();
+    const required = ["archive", "package", "extension", "iac", "cicd", "document", "container", "image", "scm", "signature"];
+    for (const name of required) {
+      assert(names.includes(name), `adapter list missing ${name}`);
+    }
   }
 
   {
@@ -53,6 +57,29 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"]);
     assertEq(res.status, 40, "safe-run archive should fail closed for tgz without tar plugin");
     assert(res.stderr.includes("ARCHIVE_PLUGIN_REQUIRED"), "expected ARCHIVE_PLUGIN_REQUIRED on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "doc_with_signals.pdf");
+    fs.writeFileSync(input, "macro javascript EmbeddedFile http://example.test", "utf8");
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 0, `safe-run document should succeed\n${res.stderr}`);
+    const safe = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
+    assertEq(safe.adapter?.adapterId, "document_adapter_v1", "document adapter id mismatch");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    fs.mkdirSync(path.join(tmp, "oci_image"));
+    fs.writeFileSync(path.join(tmp, "oci_image", "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
+    fs.writeFileSync(path.join(tmp, "oci_image", "index.json"), "{\"schemaVersion\":2}\n", "utf8");
+    const res = await runCliCapture(["safe-run", path.join(tmp, "oci_image"), "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 0, `safe-run container should succeed\n${res.stderr}`);
+    const safe = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
+    assertEq(safe.adapter?.adapterId, "container_adapter_v1", "container adapter id mismatch");
   }
 };
 

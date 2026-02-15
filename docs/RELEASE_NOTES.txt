@@ -5,7 +5,7 @@ Liability scope: WeftEnd is an evidence and change-tracking engine, not a malwar
 
 Included
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
-- New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|image`
+- New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)
 - New adapter discovery command: `weftend adapter list`
 - Additive receipt/summary surface:

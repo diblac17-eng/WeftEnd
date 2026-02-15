@@ -41,6 +41,7 @@ Adapter classes
 - Formats: Terraform, YAML/JSON config, workflow/pipeline definitions
 - Key reason codes:
   IAC_ADAPTER_V1
+  CICD_ADAPTER_V1
   IAC_PRIVILEGED_PATTERN
   IAC_SECRET_REFERENCE_PATTERN
   IAC_REMOTE_MODULE_REFERENCE

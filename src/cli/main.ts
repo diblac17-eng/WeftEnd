@@ -34,7 +34,7 @@ const printUsage = () => {
   console.log("  weftend examine <input> --out <dir> [--profile web|mod|generic] [--script <file>] [--emit-capture]");
   console.log("  weftend intake <input> --policy <policy.json> --out <dir> [--profile web|mod|generic] [--script <file>]");
   console.log("  weftend run <input> --policy <policy.json> --out <dir> [--profile web|mod|generic] [--mode strict|compatible|legacy] [--script <file>]");
-  console.log("  weftend safe-run <input> [--policy <policy.json>] --out <dir> [--profile web|mod|generic] [--script <file>] [--execute] [--withhold-exec|--no-exec] [--adapter auto|none|archive|package|extension|iac|image] [--enable-plugin <name>]");
+  console.log("  weftend safe-run <input> [--policy <policy.json>] --out <dir> [--profile web|mod|generic] [--script <file>] [--execute] [--withhold-exec|--no-exec] [--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature] [--enable-plugin <name>]");
   console.log("  weftend email unpack <input.eml|input.mbox|input.msg> --out <dir> [--index <n>] [--message-id <id>]");
   console.log("  weftend email safe-run <input.eml|input.mbox|input.msg|email_export_dir> --out <dir> [--policy <policy.json>] [--index <n>] [--message-id <id>]");
   console.log("  weftend container scan <imageRefOrId> --out <dir> [--policy <policy.json>]");
@@ -381,9 +381,14 @@ const runSafeRunCli = async (args: string[]): Promise<number> => {
     | "package"
     | "extension"
     | "iac"
-    | "image";
-  if (!["auto", "none", "archive", "package", "extension", "iac", "image"].includes(adapter)) {
-    console.error("[ADAPTER_UNSUPPORTED] --adapter must be auto|none|archive|package|extension|iac|image.");
+    | "cicd"
+    | "document"
+    | "container"
+    | "image"
+    | "scm"
+    | "signature";
+  if (!["auto", "none", "archive", "package", "extension", "iac", "cicd", "document", "container", "image", "scm", "signature"].includes(adapter)) {
+    console.error("[ADAPTER_UNSUPPORTED] --adapter must be auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature.");
     return 40;
   }
 

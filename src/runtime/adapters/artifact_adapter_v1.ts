@@ -33,7 +33,19 @@ const normalizeExtV1 = (inputPath: string): string => {
   return path.extname(base).toLowerCase();
 };
 
-export type AdapterSelectionV1 = "auto" | "none" | "archive" | "package" | "extension" | "iac" | "image";
+export type AdapterSelectionV1 =
+  | "auto"
+  | "none"
+  | "archive"
+  | "package"
+  | "extension"
+  | "iac"
+  | "cicd"
+  | "document"
+  | "container"
+  | "image"
+  | "scm"
+  | "signature";
 export type AdapterClassV1 =
   | "archive"
   | "package"
@@ -719,7 +731,7 @@ const analyzeExtension = (ctx: AnalyzeCtx): AnalyzeResult => {
     findingCodes: stableSortUniqueReasonsV0(findingCodes.concat(updateDomains.length > 0 ? ["EXTENSION_EXTERNAL_REF_PRESENT"] : [])),
   };
 };
-const analyzeIacCicd = (ctx: AnalyzeCtx): AnalyzeResult => {
+const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeResult => {
   const textExts = new Set([".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep", ".template"]);
   const files = collectTextFiles(ctx.inputPath, ctx.capture, textExts);
   const inputLooksIac =
@@ -782,8 +794,9 @@ const analyzeIacCicd = (ctx: AnalyzeCtx): AnalyzeResult => {
     findings.push("CICD_EXTERNAL_RUNNER_REF");
   }
 
-  const sourceClass: AdapterClassV1 =
-    unpinnedActionRefs + cicdSecretUsage + externalRunnerRefs > 0 ? "cicd" : "iac";
+  const hasCicdSignals = unpinnedActionRefs + cicdSecretUsage + externalRunnerRefs > 0;
+  const sourceClass: AdapterClassV1 = forcedClass ?? (hasCicdSignals ? "cicd" : "iac");
+  if (sourceClass === "cicd") reasons.push("CICD_ADAPTER_V1");
 
   return {
     ok: true,
@@ -1029,7 +1042,7 @@ const analyzeByClass = (adapterClass: AdapterClassV1, ctx: AnalyzeCtx): AnalyzeR
   if (adapterClass === "archive") return analyzeArchive(ctx);
   if (adapterClass === "package") return analyzePackage(ctx);
   if (adapterClass === "extension") return analyzeExtension(ctx);
-  if (adapterClass === "iac" || adapterClass === "cicd") return analyzeIacCicd(ctx);
+  if (adapterClass === "iac" || adapterClass === "cicd") return analyzeIacCicd(ctx, adapterClass);
   if (adapterClass === "document") return analyzeDocument(ctx);
   if (adapterClass === "container") return analyzeContainer(ctx);
   if (adapterClass === "image") return analyzeImage(ctx);
@@ -1127,10 +1140,40 @@ export const listAdaptersV1 = (): AdapterListReportV1 => {
       formats: [".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep"],
     },
     {
+      adapter: "cicd",
+      mode: "built_in",
+      plugins: [],
+      formats: [".github/workflows/*.yml", ".gitlab-ci.yml", "azure-pipelines*.yml"],
+    },
+    {
+      adapter: "document",
+      mode: "built_in",
+      plugins: [],
+      formats: [".pdf", ".docm", ".xlsm", ".rtf", ".chm"],
+    },
+    {
+      adapter: "container",
+      mode: "built_in",
+      plugins: [],
+      formats: ["oci-layout dir", "compose.yml", "compose.yaml", "docker-compose.yml", "docker-compose.yaml", "sbom/spdx/cyclonedx"],
+    },
+    {
       adapter: "image",
       mode: "built_in",
       plugins: [],
       formats: [".iso", ".vhd", ".vhdx", ".vmdk", ".qcow2"],
+    },
+    {
+      adapter: "scm",
+      mode: "built_in",
+      plugins: [],
+      formats: ["git working tree (.git)"],
+    },
+    {
+      adapter: "signature",
+      mode: "built_in",
+      plugins: [],
+      formats: [".cer", ".crt", ".pem", ".p7b", ".sig"],
     },
   ];
   adapters.sort((a, b) => cmpStrV0(a.adapter, b.adapter));
