@@ -103,6 +103,11 @@ const hasForbiddenStringPattern = (value: string, key: string): boolean => {
   if (value.includes("://")) return true;
   if (value.startsWith("/") || /^[A-Za-z]:[\\/]/.test(value)) return true;
   if (value.includes("\\") || value.includes("/")) return true;
+  const keyNorm = key.toLowerCase().replace(/[_-]/g, "");
+  if (keyNorm !== "capid") {
+    const hostRe = /\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}\b/i;
+    if (hostRe.test(value)) return true;
+  }
   const keyLower = key.toLowerCase();
   const keyImpliesHost =
     keyLower.includes("host") || keyLower.includes("domain") || keyLower.includes("url") || keyLower.includes("uri");

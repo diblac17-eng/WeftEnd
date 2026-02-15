@@ -53,6 +53,18 @@ const run = async (): Promise<void> => {
       expected: "privacy_key_alias_expected.json",
       status: 40,
     },
+    {
+      name: "privacy_hostname_value",
+      req: "privacy_hostname_value_request.json",
+      expected: "privacy_hostname_value_expected.json",
+      status: 40,
+    },
+    {
+      name: "privacy_time_alias_key",
+      req: "privacy_time_alias_key_request.json",
+      expected: "privacy_time_alias_key_expected.json",
+      status: 40,
+    },
     { name: "bounds_events", req: "bounds_events_request.json", expected: "bounds_events_expected.json", status: 40 },
     {
       name: "bounds_event_keys",
