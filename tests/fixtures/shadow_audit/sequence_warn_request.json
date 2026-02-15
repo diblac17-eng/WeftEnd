@@ -1,0 +1,17 @@
+{
+  "schema": "weftend.shadowAudit.request/0",
+  "v": 0,
+  "rulesetId": "SHADOW_RULESET_V0",
+  "stream": {
+    "schema": "weftend.shadowAudit.stream/0",
+    "v": 0,
+    "events": [
+      { "seq": 1, "kind": "SEQ_KIND_A", "side": "expected" },
+      { "seq": 1, "kind": "SEQ_KIND_A", "side": "expected" },
+      { "seq": 3, "kind": "SEQ_KIND_MISS", "side": "expected" },
+      { "seq": 1, "kind": "SEQ_KIND_B", "side": "observed" },
+      { "seq": 2, "kind": "SEQ_KIND_EXTRA", "side": "observed" }
+    ]
+  }
+}
+

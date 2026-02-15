@@ -42,6 +42,13 @@ const run = async (): Promise<void> => {
     { name: "deny_threshold", req: "deny_threshold_request.json", expected: "deny_threshold_expected.json", status: 40 },
     { name: "deny_privacy", req: "deny_privacy_request.json", expected: "deny_privacy_expected.json", status: 40 },
     { name: "cap_warn", req: "cap_warn_request.json", expected: "cap_warn_expected.json", status: 0 },
+    { name: "sequence_warn", req: "sequence_warn_request.json", expected: "sequence_warn_expected.json", status: 0 },
+    {
+      name: "sequence_deny_threshold",
+      req: "sequence_deny_threshold_request.json",
+      expected: "sequence_deny_threshold_expected.json",
+      status: 40,
+    },
     {
       name: "cap_deny_threshold",
       req: "cap_deny_threshold_request.json",

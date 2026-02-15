@@ -1,0 +1,35 @@
+{
+  "schema": "weftend.shadowAudit.result/0",
+  "v": 0,
+  "status": "WARN",
+  "reasonFamilies": [
+    "SHADOW_AUDIT_DUPLICATE",
+    "SHADOW_AUDIT_EXTRA",
+    "SHADOW_AUDIT_MISSING",
+    "SHADOW_AUDIT_REORDERED"
+  ],
+  "tartarusKindCounts": {
+    "SEQ_KIND_A": 2,
+    "SEQ_KIND_B": 1,
+    "SEQ_KIND_EXTRA": 1,
+    "SEQ_KIND_MISS": 1
+  },
+  "counts": {
+    "events": 5,
+    "warnings": 4,
+    "denies": 0,
+    "quarantines": 0
+  },
+  "sequenceCounts": {
+    "missing": 1,
+    "extra": 1,
+    "reordered": 1,
+    "duplicate": 1
+  },
+  "capCounts": {
+    "attemptedWithoutRequest": 0,
+    "allowedWithoutEvidence": 0,
+    "inconsistent": 0
+  }
+}
+
