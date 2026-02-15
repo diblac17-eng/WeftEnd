@@ -81,6 +81,8 @@ function Load-ReportModel {
         baseline = Get-StringValue -Value $json.baseline
         latest = Get-StringValue -Value $json.latest
         buckets = Get-StringValue -Value $json.buckets
+        artifactFingerprint = Get-StringValue -Value $json.artifactFingerprint
+        artifactDigest = Get-StringValue -Value $json.artifactDigest
         meaning = Get-StringValue -Value $json.meaning
         next = Get-StringValue -Value $json.next
         targetKind = Get-StringValue -Value $json.targetKind
@@ -105,6 +107,8 @@ function Load-ReportModel {
     baseline = Get-StringValue -Value $map["baseline"]
     latest = Get-StringValue -Value $map["latest"]
     buckets = Get-StringValue -Value $map["buckets"]
+    artifactFingerprint = Get-StringValue -Value $map["fingerprint"]
+    artifactDigest = Get-StringValue -Value $map["artifactdigest"]
     meaning = Get-StringValue -Value $map["meaning"]
     next = Get-StringValue -Value $map["next"]
     targetKind = Get-StringValue -Value $map["classification"]
@@ -294,9 +298,9 @@ $summaryTable.Dock = "Top"
 $summaryTable.AutoSize = $true
 $summaryTable.AutoSizeMode = [System.Windows.Forms.AutoSizeMode]::GrowAndShrink
 $summaryTable.ColumnCount = 1
-$summaryTable.RowCount = 11
+$summaryTable.RowCount = 13
 $summaryTable.Margin = New-Object System.Windows.Forms.Padding(0)
-for ($i = 0; $i -lt 11; $i++) {
+for ($i = 0; $i -lt 13; $i++) {
   $summaryTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 34)))
 }
 $summaryScroll.Controls.Add($summaryTable) | Out-Null
@@ -315,6 +319,8 @@ function Add-SummaryLine {
 }
 
 Add-SummaryLine -TextValue ("Result: " + (Get-StringValue -Value $model.result))
+Add-SummaryLine -TextValue ("Fingerprint: " + (Get-StringValue -Value $model.artifactFingerprint))
+Add-SummaryLine -TextValue ("Artifact Digest: " + (Get-StringValue -Value $model.artifactDigest))
 Add-SummaryLine -TextValue ("Reason: " + (Get-StringValue -Value $model.reason))
 Add-SummaryLine -TextValue ("Baseline: " + (Get-StringValue -Value $model.baseline))
 Add-SummaryLine -TextValue ("Latest: " + (Get-StringValue -Value $model.latest))
@@ -388,6 +394,8 @@ $btnCopy.Add_Click({
   $summary = @(
     "status=" + (Get-StringValue -Value $model.status),
     "result=" + (Get-StringValue -Value $model.result),
+    "artifactFingerprint=" + (Get-StringValue -Value $model.artifactFingerprint),
+    "artifactDigest=" + (Get-StringValue -Value $model.artifactDigest),
     "reason=" + (Get-StringValue -Value $model.reason),
     "runId=" + (Get-StringValue -Value $model.runId),
     "baseline=" + (Get-StringValue -Value $model.baseline),

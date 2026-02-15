@@ -352,6 +352,64 @@ function To-Int64OrZero {
   }
 }
 
+function Normalize-ArtifactDigestValue {
+  param([object]$Value)
+  if ($null -eq $Value) { return "UNKNOWN" }
+  $text = [string]$Value
+  if (-not $text -or $text.Trim() -eq "") { return "UNKNOWN" }
+  $trimmed = $text.Trim()
+  if ($trimmed -match "^[A-Fa-f0-9]{64}$") {
+    return ("sha256:" + $trimmed.ToLowerInvariant())
+  }
+  if ($trimmed -match "^sha256:[A-Fa-f0-9]{64}$") {
+    return ("sha256:" + $trimmed.Substring(7).ToLowerInvariant())
+  }
+  return $trimmed
+}
+
+function Get-ArtifactFingerprint {
+  param([object]$Summary, [string]$LibraryKey)
+
+  $digestSource = "unknown"
+  $digestRaw = $null
+  if ($Summary) {
+    if ($Summary.hashSha256 -and [string]$Summary.hashSha256 -ne "") {
+      $digestRaw = [string]$Summary.hashSha256
+      $digestSource = "contentSummary.hashFamily.sha256"
+    } elseif ($Summary.inputDigest -and [string]$Summary.inputDigest -ne "") {
+      $digestRaw = [string]$Summary.inputDigest
+      $digestSource = "safeRun.inputDigest"
+    }
+  }
+
+  $digest = Normalize-ArtifactDigestValue -Value $digestRaw
+  if ($digest -eq "UNKNOWN") {
+    $digestSource = "unknown"
+  }
+
+  $targetToken = if ($LibraryKey -and $LibraryKey.Trim() -ne "") { $LibraryKey.Trim() } else { "unknown_target" }
+  $targetToken = $targetToken -replace "[^A-Za-z0-9._-]", "_"
+  if (-not $targetToken -or $targetToken.Trim() -eq "") {
+    $targetToken = "unknown_target"
+  }
+
+  $shortDigest = "unknown"
+  if ($digest -match "^sha256:([a-f0-9]{64})$") {
+    $shortDigest = $matches[1].Substring(0, 12)
+  } elseif ($digest -ne "UNKNOWN") {
+    $shortDigest = ($digest -replace "[^A-Za-z0-9._-]", "_")
+    if ($shortDigest.Length -gt 12) {
+      $shortDigest = $shortDigest.Substring(0, 12)
+    }
+  }
+
+  return @{
+    value = "$targetToken@$shortDigest"
+    digest = $digest
+    source = $digestSource
+  }
+}
+
 function Write-WrapperResult {
   param([string]$Result, [int]$ExitCode, [string]$Reason, [string]$Detail = "")
   $lines = @(
@@ -403,6 +461,10 @@ function Write-ReportCard {
   if ($ScanTargetName -and $ScanTargetName.Trim() -ne "") {
     $scanLabel = $ScanTargetName
   }
+  $fingerprintMeta = Get-ArtifactFingerprint -Summary $Summary -LibraryKey $LibraryKey
+  $artifactFingerprint = [string]$fingerprintMeta.value
+  $artifactDigest = [string]$fingerprintMeta.digest
+  $artifactFingerprintSource = [string]$fingerprintMeta.source
   $status = "UNKNOWN"
   $baselineId = "-"
   $latestId = "-"
@@ -472,6 +534,7 @@ function Write-ReportCard {
         "STATUS: $status (vs baseline)",
         "BASELINE: $baselineId",
         "LATEST: $latestId",
+        "FINGERPRINT: $artifactFingerprint",
         "BUCKETS: $bucketText",
         "HISTORY: $historyLine",
         "LEGEND: [ ]=same [X]=changed letters=C X R P H B D"
@@ -588,6 +651,9 @@ function Write-ReportCard {
       "input=inputType:$inputType adapter:$adapter",
       "classification=target:$targetKind artifact:$artifactKind entryHints=$entry",
       "targets=requested:$requestedLabel scan:$scanLabel",
+      "artifactFingerprint=$artifactFingerprint",
+      "artifactDigest=$artifactDigest",
+      "fingerprintSource=$artifactFingerprintSource",
       "webLane=$webLane webEntry=$webEntry",
       "observed=files:$files bytes:$bytes scripts:$hasScripts native:$hasNative externalRefs:$extRefs bounded=$bounded",
       "posture=analysis:$analysis exec:$execution reason:$Reason",
@@ -630,6 +696,8 @@ function Write-ReportCard {
     }
     if ($stateLines.Count -gt 0) {
       $lines = $stateLines + $lines
+    } else {
+      $lines = @("FINGERPRINT: $artifactFingerprint") + $lines
     }
     $path = Join-Path $outDir "report_card.txt"
     $lines -join "`n" | Set-Content -Path $path -Encoding UTF8
@@ -649,6 +717,9 @@ function Write-ReportCard {
       latest = $latestId
       buckets = $bucketText
       history = $historyLine
+      artifactFingerprint = $artifactFingerprint
+      artifactDigest = $artifactDigest
+      artifactFingerprintSource = $artifactFingerprintSource
       targetKind = $targetKind
       artifactKind = $artifactKind
       requestedTarget = $requestedLabel
@@ -704,10 +775,14 @@ function Write-ReportCard {
       "STATUS: $statusFallback (vs baseline)",
       "BASELINE: $baselineFallback",
       "LATEST: $latestFallback",
+      "FINGERPRINT: $artifactFingerprint",
       "BUCKETS: $bucketFallback",
       "HISTORY: $historyFallback",
       "LEGEND: [ ]=same [X]=changed letters=C X R P H B D",
       "targets=requested:$requestedLabel scan:$scanLabel",
+      "artifactFingerprint=$artifactFingerprint",
+      "artifactDigest=$artifactDigest",
+      "fingerprintSource=$artifactFingerprintSource",
       "runId=$RunId",
       "result=$Result",
       "reason=$Reason",
@@ -732,6 +807,9 @@ function Write-ReportCard {
       latest = $latestFallback
       buckets = $bucketFallback
       history = $historyFallback
+      artifactFingerprint = $artifactFingerprint
+      artifactDigest = $artifactDigest
+      artifactFingerprintSource = $artifactFingerprintSource
       requestedTarget = $requestedLabel
       scanTarget = $scanLabel
       lines = $fallback

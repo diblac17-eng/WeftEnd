@@ -1,0 +1,97 @@
+/* src/cli/container_scan_cli_smoke.test.ts */
+/**
+ * CLI container scan smoke tests (local-only, fail-closed preconditions).
+ */
+
+import { runCliCapture } from "./cli_test_runner";
+
+declare const require: any;
+declare const process: any;
+
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+
+type TestFn = () => void | Promise<void>;
+
+function fail(msg: string): never {
+  throw new Error(msg);
+}
+
+function assert(cond: unknown, msg: string): void {
+  if (!cond) fail(msg);
+}
+
+function assertEq<T>(actual: T, expected: T, msg: string): void {
+  if (actual !== expected) {
+    fail(`${msg}\nExpected: ${String(expected)}\nActual: ${String(actual)}`);
+  }
+}
+
+const g: any = globalThis as any;
+const hasBDD = typeof g.describe === "function" && typeof g.it === "function";
+const localTests: Array<{ name: string; fn: TestFn }> = [];
+
+function register(name: string, fn: TestFn): void {
+  if (hasBDD) g.it(name, fn);
+  else localTests.push({ name, fn });
+}
+
+function suite(name: string, define: () => void): void {
+  if (hasBDD) g.describe(name, define);
+  else define();
+}
+
+const makeTempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), "weftend-container-scan-"));
+
+suite("cli/container-scan", () => {
+  register("container scan blocks remote docker context", async () => {
+    const outDir = makeTempDir();
+    const res = await runCliCapture(["container", "scan", "ubuntu:latest", "--out", outDir], {
+      env: { DOCKER_HOST: "tcp://example.invalid:2375" },
+    });
+    assertEq(res.status, 40, `expected exit 40\n${res.stderr}`);
+    const text = `${res.stdout}\n${res.stderr}`;
+    assert(text.includes("[DOCKER_REMOTE_CONTEXT_UNSUPPORTED]"), "expected remote-context denial");
+    assert(!fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "receipt must not be written on precondition failure");
+  });
+
+  register("container scan fails closed when image is unavailable locally", async () => {
+    const outDir = makeTempDir();
+    const ref = "weftend-never-local:__definitely_missing__";
+    const res = await runCliCapture(["container", "scan", ref, "--out", outDir]);
+    assertEq(res.status, 40, `expected exit 40\n${res.stderr}`);
+    const text = `${res.stdout}\n${res.stderr}`;
+    const expected =
+      text.includes("[DOCKER_NOT_AVAILABLE]") ||
+      text.includes("[DOCKER_IMAGE_NOT_LOCAL]") ||
+      text.includes("[DOCKER_DAEMON_UNAVAILABLE]");
+    assert(expected, `expected docker precondition code\n${text}`);
+    assert(!fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "receipt must not exist when scan preconditions fail");
+  });
+
+  register("container help usage prints and exits 1", async () => {
+    const res = await runCliCapture(["container", "--help"]);
+    assertEq(res.status, 1, `expected exit 1\n${res.stderr}`);
+    const text = `${res.stdout}\n${res.stderr}`;
+    assert(text.includes("weftend container scan"), "expected container usage text");
+  });
+});
+
+if (!hasBDD) {
+  (async () => {
+    for (const t of localTests) {
+      try {
+        await t.fn();
+      } catch (e: any) {
+        const detail = e?.message ? `\n${e.message}` : "";
+        throw new Error(`container_scan_cli_smoke.test.ts: ${t.name} failed${detail}`);
+      }
+    }
+  })().catch((e) => {
+    setTimeout(() => {
+      throw e;
+    }, 0);
+  });
+}
+

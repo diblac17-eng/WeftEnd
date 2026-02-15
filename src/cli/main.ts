@@ -17,6 +17,7 @@ import { runShortcutCli } from "./shortcut";
 import { runLaunchpadCli } from "./launchpad";
 import { runWatchCli } from "./watch";
 import { runExportJsonCli, runSummarizeCli } from "./summarize";
+import { runContainerCli } from "./container_scan";
 import { canonicalJSON } from "../core/canon";
 import { canonicalizeWeftEndPolicyV1 } from "../core/intake_policy_v1";
 import { validateMintPackageV1, validateWeftEndPolicyV1 } from "../core/validate";
@@ -35,6 +36,7 @@ const printUsage = () => {
   console.log("  weftend safe-run <input> [--policy <policy.json>] --out <dir> [--profile web|mod|generic] [--script <file>] [--execute] [--withhold-exec|--no-exec]");
   console.log("  weftend email unpack <input.eml|input.mbox|input.msg> --out <dir> [--index <n>] [--message-id <id>]");
   console.log("  weftend email safe-run <input.eml|input.mbox|input.msg|email_export_dir> --out <dir> [--policy <policy.json>] [--index <n>] [--message-id <id>]");
+  console.log("  weftend container scan <imageRefOrId> --out <dir> [--policy <policy.json>]");
   console.log("  weftend compare <leftOutRoot> <rightOutRoot> --out <dir>");
   console.log("  weftend summarize <outRoot>");
   console.log("  weftend export-json <outRoot> --format normalized_v0 [--out <file>]");
@@ -487,6 +489,9 @@ export const runCli = async (args: string[], _ports: CliPorts): Promise<number> 
   }
   if (args[0] === "email") {
     return await runEmailCli(args.slice(1));
+  }
+  if (args[0] === "container") {
+    return await runContainerCli(args.slice(1));
   }
   if (args[0] === "compare") {
     return runCompareCli(args);

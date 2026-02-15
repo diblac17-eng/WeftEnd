@@ -1108,6 +1108,7 @@ export type ArtifactKindV0 =
   | "ZIP"
   | "NATIVE_EXE"
   | "NATIVE_MSI"
+  | "CONTAINER_IMAGE"
   | "SHORTCUT_LNK"
   | "SCRIPT_JS"
   | "SCRIPT_PS1"
@@ -1200,7 +1201,7 @@ export interface ContentSummaryV0 {
 // Operator receipt v0 (top-level summary)
 // -----------------------------
 
-export type OperatorCommandV0 = "host status" | "host run" | "host update" | "run" | "safe-run" | "compare";
+export type OperatorCommandV0 = "host status" | "host run" | "host update" | "run" | "safe-run" | "compare" | "container scan";
 
 export interface OperatorReceiptEntryV0 {
   kind: string;

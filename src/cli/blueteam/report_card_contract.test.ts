@@ -102,6 +102,7 @@ suite("blueteam/report-card", () => {
     assert(report.includes("STATUS:"), "expected STATUS in report card");
     assert(report.includes("BASELINE:"), "expected BASELINE in report card");
     assert(report.includes("LATEST:"), "expected LATEST in report card");
+    assert(report.includes("FINGERPRINT:"), "expected FINGERPRINT in report card");
     assert(report.includes("HISTORY:"), "expected HISTORY in report card");
     assert(!/[A-Za-z]:\\/.test(report), "report card must not include absolute Windows paths");
     assert(!/\/Users\//.test(report), "report card must not include user paths");

@@ -211,6 +211,7 @@ const isArtifactKindV0 = (v: unknown): boolean =>
   v === "ZIP" ||
   v === "NATIVE_EXE" ||
   v === "NATIVE_MSI" ||
+  v === "CONTAINER_IMAGE" ||
   v === "SHORTCUT_LNK" ||
   v === "SCRIPT_JS" ||
   v === "SCRIPT_PS1" ||
@@ -230,7 +231,13 @@ const isHostOutRootSourceV0 = (v: unknown): boolean =>
   v === "ARG_OUT" || v === "ENV_OUT_ROOT";
 
 const isOperatorCommandV0 = (v: unknown): boolean =>
-  v === "host status" || v === "host run" || v === "host update" || v === "run" || v === "safe-run" || v === "compare";
+  v === "host status" ||
+  v === "host run" ||
+  v === "host update" ||
+  v === "run" ||
+  v === "safe-run" ||
+  v === "compare" ||
+  v === "container scan";
 
 const sha256 = (input: string): string => sha256HexV0(input);
 
