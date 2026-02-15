@@ -57,6 +57,7 @@ Core rule
 
 Command
 - `npm run verify:360`
+- `npm run verify:360:harness` (replay + forced-exception corridor validation)
 - Fault-injection check (optional): `WEFTEND_360_FORCE_EXCEPTION=1 node scripts/verify_360.js`
   - Expected: exit 1 with fail receipt/report written and no `latest.txt` advance.
 

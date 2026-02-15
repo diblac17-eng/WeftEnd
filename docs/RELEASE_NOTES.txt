@@ -27,6 +27,7 @@ Included
 - Added controlled fault-injection hook for gate-path validation: `WEFTEND_360_FORCE_EXCEPTION=1`.
 - Exception failure receipts now include stronger deterministic reason codes (exception-name token + explicit `VERIFY360_*` message token when present).
 - Emergency write fallback now enforces no-orphan output integrity check.
+- Added deterministic corridor harness command: `npm run verify:360:harness` (pass/replay/forced-exception sequence).
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)
