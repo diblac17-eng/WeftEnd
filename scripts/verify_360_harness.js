@@ -5,12 +5,13 @@
 // 3) forced exception run fails but still writes receipt/report and does not advance pointer
 
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const crypto = require("crypto");
 const { spawnSync } = require("child_process");
 
 const root = process.cwd();
-const outRoot = path.join(root, "out", "verify_360");
+const outRoot = fs.mkdtempSync(path.join(os.tmpdir(), "weftend-verify360-harness-"));
 const historyRoot = path.join(outRoot, "history");
 const latestPath = path.join(outRoot, "latest.txt");
 
@@ -90,7 +91,11 @@ const assertHistoryLink = (receipt, expectedPrevRunId, expectedPrevReceiptPath) 
 };
 
 const runVerify = (envExtra = {}) => {
-  const env = { ...process.env, ...envExtra };
+  const env = {
+    ...process.env,
+    WEFTEND_360_OUT_ROOT: outRoot,
+    ...envExtra,
+  };
   const res = spawnSync(process.execPath, ["scripts/verify_360.js"], {
     cwd: root,
     env,
@@ -121,7 +126,7 @@ const main = () => {
   assert(fs.existsSync(receiptAPath), "VERIFY360_HARNESS_RECEIPT_A_MISSING");
   const receiptA = readJson(receiptAPath);
   assertStateReceipt(receiptA, "PASS");
-  assert(["NEW", "REPLAY", "PARTIAL"].includes(String(receiptA.idempotence?.mode || "")), "VERIFY360_HARNESS_PASS1_IDEMPOTENCE_INVALID");
+  assert(receiptA.idempotence?.mode === "NEW", "VERIFY360_HARNESS_PASS1_EXPECTED_NEW");
   assertHistoryLink(receiptA, prevRunBeforeA, prevReceiptBeforeA);
 
   const statusB = runVerify();
@@ -164,7 +169,7 @@ const main = () => {
   );
 
   console.log(
-    `verify:360:harness PASS beforeLatest=${beforeLatest || "NONE"} passRun=${runA} replayRun=${runB} forcedRun=${runC}`
+    `verify:360:harness PASS outRoot=${outRoot} beforeLatest=${beforeLatest || "NONE"} passRun=${runA} replayRun=${runB} forcedRun=${runC}`
   );
 };
 

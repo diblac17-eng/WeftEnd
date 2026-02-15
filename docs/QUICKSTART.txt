@@ -99,6 +99,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - Optional fixture overrides:
   - set WEFTEND_RELEASE_DIR for proofcheck release fixture path
   - set WEFTEND_360_INPUT for deterministic replay input path
+  - set WEFTEND_360_OUT_ROOT for isolated verify output root (optional)
 
 Notes
 - No cloud. No telemetry. No malware scoring.

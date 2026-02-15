@@ -12,7 +12,9 @@ const crypto = require("crypto");
 const { spawnSync } = require("child_process");
 
 const root = process.cwd();
-const OUT_ROOT = path.join(root, "out", "verify_360");
+const OUT_ROOT = process.env.WEFTEND_360_OUT_ROOT
+  ? path.resolve(root, process.env.WEFTEND_360_OUT_ROOT)
+  : path.join(root, "out", "verify_360");
 const HISTORY_ROOT = path.join(OUT_ROOT, "history");
 const MAX_STEPS = 64;
 const RUN_STATES = [
