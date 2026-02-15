@@ -19,6 +19,7 @@ Hard rules
 4) Fail-closed preconditions
 - If a plugin-required format is selected and plugin is not enabled, run fails with explicit code.
 - If plugin is enabled but unavailable, run fails with explicit code.
+- If an unknown plugin name is provided, run fails closed with `ADAPTER_PLUGIN_UNKNOWN`.
 
 5) No silent downgrade
 - Missing plugin support never silently claims full analysis coverage.

@@ -204,6 +204,19 @@ const run = (): void => {
   }
 
   {
+    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const capture = captureTreeV0(input, limits);
+    const res = runArtifactAdapterV1({
+      selection: "archive",
+      enabledPlugins: ["tar", "unknown_plugin_name"],
+      inputPath: input,
+      capture,
+    });
+    assert(!res.ok, "unknown plugin name should fail closed");
+    assertEq(res.failCode, "ADAPTER_PLUGIN_UNKNOWN", "expected unknown plugin fail code");
+  }
+
+  {
     const tmp = mkTmp();
     fs.writeFileSync(
       path.join(tmp, "manifest.json"),

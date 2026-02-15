@@ -64,6 +64,7 @@ Included
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)
+- Unknown `--enable-plugin` names now fail closed with `ADAPTER_PLUGIN_UNKNOWN` (no silent plugin-name fallback/ignore).
 - New adapter discovery command: `weftend adapter list`
 - Additive receipt/summary surface:
 - `safe_run_receipt.json` optional `adapter` metadata block

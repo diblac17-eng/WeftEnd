@@ -61,6 +61,23 @@ const run = async (): Promise<void> => {
 
   {
     const outDir = mkTmp();
+    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const res = await runCliCapture([
+      "safe-run",
+      input,
+      "--out",
+      outDir,
+      "--adapter",
+      "archive",
+      "--enable-plugin",
+      "unknown_plugin_name",
+    ]);
+    assertEq(res.status, 40, "safe-run should fail closed for unknown plugin name");
+    assert(res.stderr.includes("ADAPTER_PLUGIN_UNKNOWN"), "expected ADAPTER_PLUGIN_UNKNOWN on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
     const tmp = mkTmp();
     const input = path.join(tmp, "doc_with_signals.pdf");
     fs.writeFileSync(input, "macro javascript EmbeddedFile http://example.test", "utf8");

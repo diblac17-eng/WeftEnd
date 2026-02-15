@@ -18,6 +18,7 @@ const MAX_LIST_ITEMS = 20000;
 const MAX_FINDING_CODES = 128;
 const MAX_TEXT_BYTES = 256 * 1024;
 const MAX_AR_SCAN_BYTES = 8 * 1024 * 1024;
+const KNOWN_PLUGIN_NAMES = new Set<string>(["tar", "7z"]);
 
 const ARCHIVE_EXTS = new Set([".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tar.xz", ".txz", ".7z"]);
 const PACKAGE_EXTS = new Set([".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".tar.xz", ".txz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"]);
@@ -1963,11 +1964,21 @@ const analyzeByClass = (adapterClass: AdapterClassV1, ctx: AnalyzeCtx): AnalyzeR
 export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunResultV1 => {
   const selection = options.selection;
   if (selection === "none") return { ok: true, reasonCodes: [] };
-  const enabledPlugins = new Set(
+  const requestedPlugins = stableSortUniqueStringsV0(
     (options.enabledPlugins || [])
       .map((name) => String(name || "").trim().toLowerCase())
       .filter((name) => name.length > 0)
   );
+  const unknownPlugins = requestedPlugins.filter((name) => !KNOWN_PLUGIN_NAMES.has(name));
+  if (unknownPlugins.length > 0) {
+    return {
+      ok: false,
+      failCode: "ADAPTER_PLUGIN_UNKNOWN",
+      failMessage: `unknown plugin name(s): ${unknownPlugins.join(", ")}`,
+      reasonCodes: stableSortUniqueReasonsV0(["ADAPTER_PLUGIN_UNKNOWN"]),
+    };
+  }
+  const enabledPlugins = new Set(requestedPlugins);
   const inputPath = path.resolve(process.cwd(), options.inputPath || "");
   const ctx: AnalyzeCtx = {
     inputPath,
