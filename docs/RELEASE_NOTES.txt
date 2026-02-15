@@ -72,6 +72,7 @@ Included
 - `safe-run` now rejects unsupported flags with `INPUT_INVALID` (for example typoed flags like `--adpater`) instead of silently ignoring them.
 - `safe-run` now fails closed for unexpected extra positional arguments and for conflicting `--execute` + `--withhold-exec|--no-exec` flag combinations.
 - `safe-run` now fails closed when known value flags are provided without values (for example `--adapter` with no value) instead of silently falling back.
+- CLI flag parsing now preserves missing-value semantics when a value flag is followed by another flag token (for example `--out --adapter ...`) instead of mis-parsing the next flag as a value.
 - New adapter discovery command: `weftend adapter list`
 - Additive receipt/summary surface:
 - `safe_run_receipt.json` optional `adapter` metadata block

@@ -79,12 +79,12 @@ const parseArgs = (argv: string[]) => {
         out[key] = true;
         continue;
       }
-      const value = args.shift();
-      if (!value) {
+      const peek = args.length > 0 ? String(args[0] || "") : "";
+      if (!peek || peek.startsWith("--")) {
         out[key] = "";
         continue;
       }
-      out[key] = value;
+      out[key] = String(args.shift() || "");
       continue;
     }
     rest.push(token);

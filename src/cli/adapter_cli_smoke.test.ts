@@ -121,6 +121,13 @@ const run = async (): Promise<void> => {
   }
 
   {
+    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const res = await runCliCapture(["safe-run", input, "--out", "--adapter", "archive"]);
+    assertEq(res.status, 40, "safe-run should fail closed when --out value is missing");
+    assert(res.stderr.includes("INPUT_INVALID"), "expected INPUT_INVALID on stderr for missing --out value");
+  }
+
+  {
     const outDir = mkTmp();
     const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
     const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter"]);
