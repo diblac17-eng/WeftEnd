@@ -22,7 +22,7 @@ Adapter classes
   ARCHIVE_PLUGIN_UNAVAILABLE
 
 2) package
-- Formats: .msi, .msix, .exe, .nupkg, .whl, .jar, .tar.gz/.tgz
+- Formats: .msi, .msix, .exe, .nupkg, .whl, .jar, .tar.gz/.tgz, .deb, .rpm, .appimage
 - Key reason codes:
   PACKAGE_ADAPTER_V1
   PACKAGE_METADATA_PARTIAL

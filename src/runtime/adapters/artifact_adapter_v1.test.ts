@@ -124,6 +124,23 @@ const writeSimpleTar = (outPath: string, files: Array<{ name: string; text: stri
   fs.writeFileSync(outPath, Buffer.concat(blocks));
 };
 
+const writeSimpleAr = (outPath: string, files: Array<{ name: string; bytes: any }>): void => {
+  const parts: any[] = [Buffer.from("!<arch>\n", "ascii")];
+  files.forEach((file) => {
+    const nameRaw = String(file.name || "").replace(/\s+/g, "_");
+    const nameField = `${nameRaw}/`.slice(0, 16).padEnd(16, " ");
+    const payload = Buffer.isBuffer(file.bytes) ? file.bytes : Buffer.from(file.bytes || "");
+    const sizeField = String(payload.length).padStart(10, " ");
+    const header = Buffer.from(
+      `${nameField}${"0".padEnd(12, " ")}${"0".padEnd(6, " ")}${"0".padEnd(6, " ")}${"100644 ".padEnd(8, " ")}${sizeField}\`\n`,
+      "ascii"
+    );
+    parts.push(header, payload);
+    if (payload.length % 2 !== 0) parts.push(Buffer.from("\n", "ascii"));
+  });
+  fs.writeFileSync(outPath, Buffer.concat(parts));
+};
+
 const writeMinimalPe = (outPath: string, certSize: number): void => {
   const bytes = Buffer.alloc(1024, 0);
   bytes[0] = 0x4d; // M
@@ -320,6 +337,60 @@ const run = (): void => {
     assert(res.ok, "package adapter should parse minimal pe unsigned evidence");
     assertEq(res.summary?.counts.peSignaturePresent, 0, "pe signature should be absent");
     assert((res.summary?.reasonCodes ?? []).includes("EXECUTION_WITHHELD_INSTALLER"), "installer withheld reason missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const deb = path.join(tmp, "sample.deb");
+    writeSimpleAr(deb, [
+      { name: "debian-binary", bytes: Buffer.from("2.0\n", "utf8") },
+      { name: "control.tar.gz", bytes: Buffer.from("fake-control", "utf8") },
+      { name: "data.tar.xz", bytes: Buffer.from("fake-data", "utf8") },
+    ]);
+    const capture = captureTreeV0(deb, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: deb, capture });
+    assert(res.ok, "package adapter should parse deb ar headers");
+    assertEq(res.summary?.sourceClass, "package", "deb package class mismatch");
+    assert((res.summary?.counts.debArEntryCount ?? 0) >= 3, "deb ar entry count missing");
+    assert((res.summary?.counts.manifestCount ?? 0) > 0, "deb manifest hints missing");
+    assert((res.summary?.reasonCodes ?? []).includes("EXECUTION_WITHHELD_INSTALLER"), "deb installer withheld reason missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const rpm = path.join(tmp, "sample.rpm");
+    const bytes = Buffer.alloc(512, 0);
+    bytes[0] = 0xed;
+    bytes[1] = 0xab;
+    bytes[2] = 0xee;
+    bytes[3] = 0xdb;
+    Buffer.from("preinstall /bin/sh\npostinstall /bin/sh\ngpgsig: present\n", "ascii").copy(bytes, 96);
+    fs.writeFileSync(rpm, bytes);
+    const capture = captureTreeV0(rpm, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: rpm, capture });
+    assert(res.ok, "package adapter should parse rpm lead hints");
+    assertEq(res.summary?.sourceClass, "package", "rpm package class mismatch");
+    assertEq(res.summary?.counts.rpmLeadPresent, 1, "rpm lead should be detected");
+    assert((res.summary?.reasonCodes ?? []).includes("PACKAGE_SIGNING_INFO_PRESENT"), "rpm signing hint reason missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const appimage = path.join(tmp, "sample.appimage");
+    const bytes = Buffer.alloc(4096, 0);
+    bytes[0] = 0x7f;
+    bytes[1] = 0x45;
+    bytes[2] = 0x4c;
+    bytes[3] = 0x46;
+    Buffer.from("AppImage runtime", "ascii").copy(bytes, 128);
+    fs.writeFileSync(appimage, bytes);
+    const capture = captureTreeV0(appimage, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: appimage, capture });
+    assert(res.ok, "package adapter should parse appimage header hints");
+    assertEq(res.summary?.sourceClass, "package", "appimage package class mismatch");
+    assertEq(res.summary?.counts.appImageElfPresent, 1, "appimage elf marker missing");
+    assertEq(res.summary?.counts.appImageMarkerPresent, 1, "appimage runtime marker missing");
+    assert((res.summary?.reasonCodes ?? []).includes("EXECUTION_WITHHELD_INSTALLER"), "appimage installer withheld reason missing");
   }
 
   {

@@ -17,6 +17,10 @@ Included
 - Package/extension ZIP metadata extraction deepened for deterministic manifest signals:
 - `.msix/.nupkg/.whl/.jar` manifest text hints are now extracted from ZIP entries (bounded, analysis-only).
 - `.crx/.vsix` now parse `manifest.json` when present in ZIP payloads (permissions/content scripts/update URL domain hints).
+- Linux package coverage added to package adapter:
+- `.deb` now parses deterministic AR entry metadata (bounded, no extraction/exec).
+- `.rpm` now captures deterministic lead/header/script/signing hint counters from local bytes only.
+- `.appimage` now captures deterministic ELF/runtime header hints (analysis-only; execution withheld).
 - Document adapter deepened for `.docm/.xlsm`:
 - ZIP structure + relationships are inspected deterministically for macro/embed/external-link indicators.
 - IaC/CI adapter extraction deepened:

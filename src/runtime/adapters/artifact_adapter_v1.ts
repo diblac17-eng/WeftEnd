@@ -17,9 +17,10 @@ const zlib = require("zlib");
 const MAX_LIST_ITEMS = 20000;
 const MAX_FINDING_CODES = 128;
 const MAX_TEXT_BYTES = 256 * 1024;
+const MAX_AR_SCAN_BYTES = 8 * 1024 * 1024;
 
 const ARCHIVE_EXTS = new Set([".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".7z"]);
-const PACKAGE_EXTS = new Set([".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz"]);
+const PACKAGE_EXTS = new Set([".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".deb", ".rpm", ".appimage"]);
 const EXTENSION_EXTS = new Set([".crx", ".vsix"]);
 const IAC_EXTS = new Set([".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep", ".template"]);
 const DOCUMENT_EXTS = new Set([".pdf", ".docm", ".xlsm", ".rtf", ".chm"]);
@@ -498,6 +499,47 @@ const readTarEntries = (inputPath: string): { entries: string[]; markers: string
   return { entries: stableSortUniqueStringsV0(entries), markers: stableSortUniqueStringsV0(markers) };
 };
 
+const readArEntriesV1 = (inputPath: string): { entries: string[]; markers: string[] } => {
+  const markers: string[] = [];
+  const entries: string[] = [];
+  const buf = readBytesBounded(inputPath, MAX_AR_SCAN_BYTES);
+  if (!buf || buf.length < 8) return { entries, markers: ["PACKAGE_METADATA_PARTIAL"] };
+  if (Buffer.from(buf.subarray(0, 8)).toString("ascii") !== "!<arch>\n") {
+    return { entries, markers: ["PACKAGE_METADATA_PARTIAL"] };
+  }
+  let offset = 8;
+  while (offset + 60 <= buf.length) {
+    if (entries.length >= MAX_LIST_ITEMS) {
+      markers.push("PACKAGE_TRUNCATED");
+      break;
+    }
+    const header = Buffer.from(buf.subarray(offset, offset + 60));
+    if (header[58] !== 0x60 || header[59] !== 0x0a) {
+      markers.push("PACKAGE_METADATA_PARTIAL");
+      break;
+    }
+    const nameRaw = header.slice(0, 16).toString("utf8").trim();
+    const sizeRaw = header.slice(48, 58).toString("utf8").trim();
+    const size = Number.parseInt(sizeRaw || "0", 10);
+    const name = nameRaw.replace(/\/+$/, "");
+    if (name.length > 0) entries.push(name);
+    if (!Number.isFinite(size) || size < 0) {
+      markers.push("PACKAGE_METADATA_PARTIAL");
+      break;
+    }
+    offset += 60;
+    const fileSize = Math.max(0, Math.floor(size));
+    const padded = fileSize + (fileSize % 2 === 0 ? 0 : 1);
+    if (offset + padded > buf.length) {
+      markers.push("PACKAGE_METADATA_PARTIAL");
+      break;
+    }
+    offset += padded;
+  }
+  if (offset < buf.length && entries.length === 0) markers.push("PACKAGE_METADATA_PARTIAL");
+  return { entries: stableSortUniqueStringsV0(entries), markers: stableSortUniqueStringsV0(markers) };
+};
+
 const runCommandLines = (cmd: string, args: string[]): { ok: boolean; lines: string[] } => {
   const res = childProcess.spawnSync(cmd, args, {
     encoding: "utf8",
@@ -967,7 +1009,7 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
   let signatureEntryCount = 0;
   let signingParsePartial = 0;
 
-  const installerExt = ext === ".msi" || ext === ".msix" || ext === ".exe";
+  const installerExt = ext === ".msi" || ext === ".msix" || ext === ".exe" || ext === ".deb" || ext === ".rpm" || ext === ".appimage";
   if (installerExt) {
     reasonCodes.push("EXECUTION_WITHHELD_INSTALLER");
   }
@@ -976,6 +1018,10 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
   const manifestTextDomainSet = new Set<string>();
   let textScriptHints = 0;
   let textPermissionHints = 0;
+  let debArEntryCount = 0;
+  let rpmLeadPresent = 0;
+  let appImageElfPresent = 0;
+  let appImageMarkerPresent = 0;
   if (ext === ".nupkg" || ext === ".whl" || ext === ".jar" || ext === ".msix") {
     const zip = readZipEntries(ctx.inputPath);
     entryNames = zip.entries;
@@ -1021,6 +1067,36 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
       markers.push("PACKAGE_PLUGIN_TAR_NOT_ENABLED");
     }
+  } else if (ext === ".deb") {
+    const ar = readArEntriesV1(ctx.inputPath);
+    entryNames = ar.entries;
+    debArEntryCount = entryNames.length;
+    markers.push(...ar.markers);
+    if (entryNames.length === 0) reasonCodes.push("PACKAGE_METADATA_PARTIAL");
+  } else if (ext === ".rpm") {
+    const bytes = readBytesBounded(ctx.inputPath, 128 * 1024);
+    rpmLeadPresent = bytes.length >= 4 && bytes[0] === 0xed && bytes[1] === 0xab && bytes[2] === 0xee && bytes[3] === 0xdb ? 1 : 0;
+    const text = Buffer.from(bytes).toString("latin1");
+    if (/\b(preinstall|postinstall|%pre|%post|\/bin\/sh|bash)\b/i.test(text)) textScriptHints += 1;
+    if (/\b(capability|permission|policy|selinux)\b/i.test(text)) textPermissionHints += 1;
+    if (/\b(gpgsig|pgp[ -]?signature|rpmsig)\b/i.test(text)) {
+      signingEvidenceCount += 1;
+      signatureEntryCount += 1;
+    }
+    if (rpmLeadPresent === 0) {
+      markers.push("PACKAGE_RPM_HEADER_MISSING");
+      reasonCodes.push("PACKAGE_METADATA_PARTIAL");
+    }
+  } else if (ext === ".appimage") {
+    const bytes = readBytesBounded(ctx.inputPath, 256 * 1024);
+    appImageElfPresent = bytes.length >= 4 && bytes[0] === 0x7f && bytes[1] === 0x45 && bytes[2] === 0x4c && bytes[3] === 0x46 ? 1 : 0;
+    const headText = Buffer.from(bytes.subarray(0, Math.min(bytes.length, 4096))).toString("latin1");
+    appImageMarkerPresent = headText.includes("AppImage") || headText.includes("AI\x02") ? 1 : 0;
+    if (/AppRun|\.desktop|squashfs/i.test(headText)) textScriptHints += 1;
+    if (appImageElfPresent === 0) {
+      markers.push("PACKAGE_APPIMAGE_HEADER_MISSING");
+      reasonCodes.push("PACKAGE_METADATA_PARTIAL");
+    }
   }
 
   if (ext === ".exe") {
@@ -1050,9 +1126,20 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
     "pkg-info",
     "pom.xml",
     "setup.py",
+    "debian-binary",
+    "control.tar",
+    "control.tar.gz",
+    "control.tar.xz",
+    "control.tar.bz2",
+    "control.tar.zst",
+    "data.tar",
+    "data.tar.gz",
+    "data.tar.xz",
+    "data.tar.bz2",
+    "data.tar.zst",
   ]);
-  const scriptIndicators = new Set(["preinstall", "postinstall", "install.ps1", "setup.py", "scripts/"]);
-  const permissionIndicators = new Set(["permission", "capability", "policy"]);
+  const scriptIndicators = new Set(["preinstall", "postinstall", "install.ps1", "setup.py", "scripts/", "preinst", "postinst", "prerm", "postrm"]);
+  const permissionIndicators = new Set(["permission", "capability", "policy", "selinux", "apparmor"]);
   let manifestCount = 0;
   let scriptCount = 0;
   let permissionCount = 0;
@@ -1096,6 +1183,10 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
       peSignaturePresent,
       signatureEntryCount,
       signingParsePartial,
+      debArEntryCount,
+      rpmLeadPresent,
+      appImageElfPresent,
+      appImageMarkerPresent,
       signerCountBounded: 0,
     },
     markers: stableSortUniqueStringsV0(markers),
@@ -1906,7 +1997,7 @@ export const listAdaptersV1 = (): AdapterListReportV1 => {
       adapter: "package",
       mode: "built_in",
       plugins: [],
-      formats: [".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz"],
+      formats: [".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".deb", ".rpm", ".appimage"],
     },
     {
       adapter: "extension",
