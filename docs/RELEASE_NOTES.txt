@@ -14,6 +14,9 @@ Included
 - Optional adapter artifacts in run output:
 - `analysis/adapter_summary_v0.json`
 - `analysis/adapter_findings_v0.json`
+- Package/extension ZIP metadata extraction deepened for deterministic manifest signals:
+- `.msix/.nupkg/.whl/.jar` manifest text hints are now extracted from ZIP entries (bounded, analysis-only).
+- `.crx/.vsix` now parse `manifest.json` when present in ZIP payloads (permissions/content scripts/update URL domain hints).
 - Container scan now emits adapter metadata/signals plus adapter artifacts using the same deterministic contract as safe-run adapters.
 - Container scan evidence remains local-only inspect data and excludes unstable fields (timestamps/raw env/path values).
 - Wave coverage now includes:

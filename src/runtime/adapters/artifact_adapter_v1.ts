@@ -12,6 +12,7 @@ declare const Buffer: any;
 const fs = require("fs");
 const path = require("path");
 const childProcess = require("child_process");
+const zlib = require("zlib");
 
 const MAX_LIST_ITEMS = 20000;
 const MAX_FINDING_CODES = 128;
@@ -253,11 +254,20 @@ const extractDomains = (text: string): string[] => {
   return Array.from(out).sort((a, b) => cmpStrV0(a, b));
 };
 
-const readZipEntriesFromBuffer = (buffer: Uint8Array): { entries: string[]; markers: string[] } => {
+type ZipCatalogEntryV1 = {
+  name: string;
+  compressedSize: number;
+  uncompressedSize: number;
+  compressionMethod: number;
+  flags: number;
+  localOffset: number;
+};
+
+const parseZipCatalogFromBuffer = (buffer: Uint8Array): { entries: ZipCatalogEntryV1[]; markers: string[] } => {
   const view = Buffer.from(buffer);
   const markers: string[] = [];
-  const entries: string[] = [];
-  if (view.length < 22) return { entries, markers: ["ARCHIVE_METADATA_PARTIAL"] };
+  const catalog: ZipCatalogEntryV1[] = [];
+  if (view.length < 22) return { entries: catalog, markers: ["ARCHIVE_METADATA_PARTIAL"] };
 
   const sigEOCD = 0x06054b50;
   const sigCD = 0x02014b50;
@@ -278,7 +288,7 @@ const readZipEntriesFromBuffer = (buffer: Uint8Array): { entries: string[]; mark
       break;
     }
   }
-  if (eocdOffset < 0) return { entries, markers: ["ARCHIVE_METADATA_PARTIAL"] };
+  if (eocdOffset < 0) return { entries: catalog, markers: ["ARCHIVE_METADATA_PARTIAL"] };
 
   const cdCount = view.readUInt16LE(eocdOffset + 10);
   const cdOffsetRaw = view.readUInt32LE(eocdOffset + 16);
@@ -289,13 +299,13 @@ const readZipEntriesFromBuffer = (buffer: Uint8Array): { entries: string[]; mark
     if (cdOffsetAlt + 4 <= view.length && view.readUInt32LE(cdOffsetAlt) === sigCD) {
       cdOffset = cdOffsetAlt;
     } else {
-      return { entries, markers: ["ARCHIVE_METADATA_PARTIAL"] };
+      return { entries: catalog, markers: ["ARCHIVE_METADATA_PARTIAL"] };
     }
   }
 
   let offset = cdOffset;
   for (let i = 0; i < cdCount; i += 1) {
-    if (entries.length >= MAX_LIST_ITEMS) {
+    if (catalog.length >= MAX_LIST_ITEMS) {
       markers.push("ARCHIVE_TRUNCATED");
       break;
     }
@@ -310,6 +320,11 @@ const readZipEntriesFromBuffer = (buffer: Uint8Array): { entries: string[]; mark
     const nameLen = view.readUInt16LE(offset + 28);
     const extraLen = view.readUInt16LE(offset + 30);
     const commentLen = view.readUInt16LE(offset + 32);
+    const flags = view.readUInt16LE(offset + 8);
+    const compressionMethod = view.readUInt16LE(offset + 10);
+    const compressedSize = view.readUInt32LE(offset + 20);
+    const uncompressedSize = view.readUInt32LE(offset + 24);
+    const localOffsetRaw = view.readUInt32LE(offset + 42);
     const nameStart = offset + 46;
     const nameEnd = nameStart + nameLen;
     if (nameEnd > view.length) {
@@ -317,12 +332,45 @@ const readZipEntriesFromBuffer = (buffer: Uint8Array): { entries: string[]; mark
       break;
     }
     const name = view.slice(nameStart, nameEnd).toString("utf8").replace(/\\/g, "/").replace(/^\.\/+/, "");
-    if (name && !name.endsWith("/")) entries.push(name);
+    let localOffset = localOffsetRaw;
+    if (localOffset + 4 > view.length || view.readUInt32LE(localOffset) !== sigLFH) {
+      const alt = firstLocalOffset + localOffsetRaw;
+      if (alt + 4 <= view.length && view.readUInt32LE(alt) === sigLFH) localOffset = alt;
+      else markers.push("ARCHIVE_METADATA_PARTIAL");
+    }
+    if (name && !name.endsWith("/")) {
+      catalog.push({
+        name,
+        compressedSize,
+        uncompressedSize,
+        compressionMethod,
+        flags,
+        localOffset,
+      });
+    }
     offset = nameStart + nameLen + extraLen + commentLen;
   }
 
-  entries.sort((a, b) => cmpStrV0(a, b));
-  return { entries: stableSortUniqueStringsV0(entries), markers: stableSortUniqueStringsV0(markers) };
+  const dedup = new Map<string, ZipCatalogEntryV1>();
+  catalog
+    .slice()
+    .sort((a, b) => {
+      const c0 = cmpStrV0(a.name, b.name);
+      if (c0 !== 0) return c0;
+      return a.localOffset - b.localOffset;
+    })
+    .forEach((entry) => {
+      if (!dedup.has(entry.name)) dedup.set(entry.name, entry);
+    });
+  return { entries: Array.from(dedup.values()), markers: stableSortUniqueStringsV0(markers) };
+};
+
+const readZipEntriesFromBuffer = (buffer: Uint8Array): { entries: string[]; markers: string[] } => {
+  const catalog = parseZipCatalogFromBuffer(buffer);
+  return {
+    entries: catalog.entries.map((entry) => entry.name),
+    markers: catalog.markers,
+  };
 };
 
 const readZipEntries = (inputPath: string): { entries: string[]; markers: string[] } => {
@@ -332,6 +380,61 @@ const readZipEntries = (inputPath: string): { entries: string[]; markers: string
   } catch {
     return { entries: [], markers: ["ARCHIVE_METADATA_PARTIAL"] };
   }
+};
+
+const extractZipEntryText = (archiveBytes: any, entry: ZipCatalogEntryV1): { ok: boolean; text?: string; markers: string[] } => {
+  const markers: string[] = [];
+  if ((entry.flags & 0x0001) !== 0) return { ok: false, markers: ["ARCHIVE_METADATA_PARTIAL"] };
+  if (entry.localOffset + 30 > archiveBytes.length) return { ok: false, markers: ["ARCHIVE_METADATA_PARTIAL"] };
+  if (archiveBytes.readUInt32LE(entry.localOffset) !== 0x04034b50) return { ok: false, markers: ["ARCHIVE_METADATA_PARTIAL"] };
+  const localNameLen = archiveBytes.readUInt16LE(entry.localOffset + 26);
+  const localExtraLen = archiveBytes.readUInt16LE(entry.localOffset + 28);
+  const dataStart = entry.localOffset + 30 + localNameLen + localExtraLen;
+  const dataEnd = dataStart + Math.max(0, entry.compressedSize);
+  if (dataStart < 0 || dataEnd > archiveBytes.length || dataStart > dataEnd) return { ok: false, markers: ["ARCHIVE_METADATA_PARTIAL"] };
+  const compressed = archiveBytes.subarray(dataStart, dataEnd);
+  let decoded: any;
+  if (entry.compressionMethod === 0) decoded = Buffer.from(compressed);
+  else if (entry.compressionMethod === 8) {
+    try {
+      decoded = zlib.inflateRawSync(compressed);
+    } catch {
+      return { ok: false, markers: ["ARCHIVE_METADATA_PARTIAL"] };
+    }
+  } else {
+    return { ok: false, markers: ["ARCHIVE_METADATA_PARTIAL"] };
+  }
+  const bounded = decoded.subarray(0, MAX_TEXT_BYTES);
+  if (decoded.length > MAX_TEXT_BYTES) markers.push("ARCHIVE_TRUNCATED");
+  return { ok: true, text: bounded.toString("utf8"), markers: stableSortUniqueStringsV0(markers) };
+};
+
+const readZipTextEntriesByBaseName = (inputPath: string, baseNames: string[]): { entries: Array<{ name: string; text: string }>; markers: string[] } => {
+  const wanted = new Set(baseNames.map((name) => String(name || "").trim().toLowerCase()).filter((name) => name.length > 0));
+  if (wanted.size === 0) return { entries: [], markers: [] };
+  let archiveBytes: any;
+  try {
+    archiveBytes = fs.readFileSync(inputPath);
+  } catch {
+    return { entries: [], markers: ["ARCHIVE_METADATA_PARTIAL"] };
+  }
+  const { entries: catalog, markers } = parseZipCatalogFromBuffer(archiveBytes);
+  const out: Array<{ name: string; text: string }> = [];
+  const outMarkers = [...markers];
+  for (const entry of catalog) {
+    if (out.length >= 32) {
+      outMarkers.push("ARCHIVE_TRUNCATED");
+      break;
+    }
+    const base = path.basename(entry.name).toLowerCase();
+    if (!wanted.has(base)) continue;
+    const extracted = extractZipEntryText(archiveBytes, entry);
+    outMarkers.push(...extracted.markers);
+    if (!extracted.ok || typeof extracted.text !== "string") continue;
+    out.push({ name: entry.name, text: extracted.text });
+  }
+  out.sort((a, b) => cmpStrV0(a.name, b.name));
+  return { entries: out, markers: stableSortUniqueStringsV0(outMarkers) };
 };
 
 const readTarEntries = (inputPath: string): { entries: string[]; markers: string[] } => {
@@ -554,11 +657,31 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
   }
 
   let entryNames: string[] = [];
-  if (ext === ".nupkg" || ext === ".whl" || ext === ".jar") {
+  const manifestTextDomainSet = new Set<string>();
+  let textScriptHints = 0;
+  let textPermissionHints = 0;
+  if (ext === ".nupkg" || ext === ".whl" || ext === ".jar" || ext === ".msix") {
     const zip = readZipEntries(ctx.inputPath);
     entryNames = zip.entries;
     markers.push(...zip.markers);
     if (entryNames.length === 0) reasonCodes.push("PACKAGE_METADATA_PARTIAL");
+    const zipManifestTexts = readZipTextEntriesByBaseName(ctx.inputPath, [
+      "package.json",
+      "manifest.json",
+      "appxmanifest.xml",
+      "nuspec",
+      "metadata",
+      "pkg-info",
+      "pom.xml",
+      "setup.py",
+    ]);
+    markers.push(...zipManifestTexts.markers);
+    zipManifestTexts.entries.forEach((entry) => {
+      const text = String(entry.text || "");
+      if (/\b(preinstall|postinstall|scripts|powershell|cmd\.exe|bash|\/bin\/sh)\b/i.test(text)) textScriptHints += 1;
+      if (/\b(permission|capabilit(?:y|ies)|allowe?d?capabilities|requestedexecutionlevel)\b/i.test(text)) textPermissionHints += 1;
+      extractDomains(text).forEach((domain) => manifestTextDomainSet.add(domain));
+    });
   } else if (ext === ".tar.gz" || ext === ".tgz") {
     if (ctx.enabledPlugins.has("tar") && commandAvailable("tar")) {
       mode = "plugin";
@@ -597,10 +720,14 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
     if (Array.from(scriptIndicators).some((hint) => lower.includes(hint))) scriptCount += 1;
     if (Array.from(permissionIndicators).some((hint) => lower.includes(hint))) permissionCount += 1;
   });
+  scriptCount += textScriptHints;
+  permissionCount += textPermissionHints;
+  const externalDomainCount = manifestTextDomainSet.size;
 
   if (manifestCount > 0) findingCodes.push("PACKAGE_MANIFEST_PRESENT");
   if (scriptCount > 0) findingCodes.push("PACKAGE_SCRIPT_HINT_PRESENT");
   if (permissionCount > 0) findingCodes.push("PACKAGE_PERMISSION_HINT_PRESENT");
+  if (externalDomainCount > 0) findingCodes.push("PACKAGE_EXTERNAL_REF_PRESENT");
   if (markers.length > 0) reasonCodes.push("PACKAGE_METADATA_PARTIAL");
   if (markers.includes("PACKAGE_SIGNING_INFO_UNAVAILABLE")) reasonCodes.push("PACKAGE_SIGNING_INFO_UNAVAILABLE");
 
@@ -614,6 +741,7 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
       manifestCount,
       scriptHintCount: scriptCount,
       permissionHintCount: permissionCount,
+      externalDomainCount,
       signerCountBounded: 0,
     },
     markers: stableSortUniqueStringsV0(markers),
@@ -657,13 +785,16 @@ const analyzeExtensionDir = (inputPath: string): {
   const permissions = Array.isArray(parsed?.permissions) ? parsed.permissions : [];
   const hostPermissions = Array.isArray(parsed?.host_permissions) ? parsed.host_permissions : [];
   const contentScripts = Array.isArray(parsed?.content_scripts) ? parsed.content_scripts : [];
+  const matchCount = contentScripts
+    .map((item: any) => (Array.isArray(item?.matches) ? item.matches.length : 0))
+    .reduce((sum: number, n: number) => sum + n, 0);
   const updateDomain = parsed?.update_url ? toDomain(String(parsed.update_url)) : null;
   return {
     manifestFound: true,
     manifestInvalid: false,
     permissionCount: permissions.length + hostPermissions.length,
     contentScriptCount: contentScripts.length,
-    hostMatchCount: hostPermissions.filter((value: unknown) => typeof value === "string").length,
+    hostMatchCount: hostPermissions.filter((value: unknown) => typeof value === "string").length + matchCount,
     updateDomains: updateDomain ? [updateDomain] : [],
   };
 };
@@ -702,8 +833,32 @@ const analyzeExtension = (ctx: AnalyzeCtx): AnalyzeResult => {
   } else {
     const zip = readZipEntries(ctx.inputPath);
     manifestFound = zip.entries.some((entry) => path.basename(entry).toLowerCase() === "manifest.json");
+    markers.push(...zip.markers);
     if (!manifestFound) markers.push("EXTENSION_MANIFEST_MISSING");
-    else markers.push("EXTENSION_MANIFEST_PARTIAL");
+    else {
+      const manifestTexts = readZipTextEntriesByBaseName(ctx.inputPath, ["manifest.json"]);
+      markers.push(...manifestTexts.markers);
+      if (manifestTexts.entries.length === 0) {
+        markers.push("EXTENSION_MANIFEST_PARTIAL");
+      } else {
+        try {
+          const parsed = JSON.parse(manifestTexts.entries[0].text);
+          const permissions = Array.isArray(parsed?.permissions) ? parsed.permissions : [];
+          const hostPermissions = Array.isArray(parsed?.host_permissions) ? parsed.host_permissions : [];
+          const contentScripts = Array.isArray(parsed?.content_scripts) ? parsed.content_scripts : [];
+          const matchCount = contentScripts
+            .map((item: any) => (Array.isArray(item?.matches) ? item.matches.length : 0))
+            .reduce((sum: number, n: number) => sum + n, 0);
+          const updateDomain = parsed?.update_url ? toDomain(String(parsed.update_url)) : null;
+          permissionCount = permissions.length + hostPermissions.length;
+          contentScriptCount = contentScripts.length;
+          hostMatchCount = hostPermissions.filter((value: unknown) => typeof value === "string").length + matchCount;
+          updateDomains = updateDomain ? [updateDomain] : [];
+        } catch {
+          manifestInvalid = true;
+        }
+      }
+    }
   }
 
   if (!manifestFound) reasonCodes.push("EXTENSION_MANIFEST_MISSING");
