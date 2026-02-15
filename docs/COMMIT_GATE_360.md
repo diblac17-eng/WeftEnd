@@ -52,6 +52,8 @@ Core rule
    - unexpected gate exceptions still produce fail-closed receipt/report artifacts
    - normal writer failure automatically falls back to emergency writer path
    - `latest.txt` is never advanced on emergency/failure writes
+   - exception reason codes include stable name token plus explicit `VERIFY360_*` message token when present
+   - emergency write path enforces no-orphan output check
 
 Command
 - `npm run verify:360`

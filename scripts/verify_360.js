@@ -74,6 +74,19 @@ const buildExplain = (verdict, idempotenceMode) => ({
         ? "Review partial reason codes and resolve missing preconditions before reusable commit or release."
         : "Resolve fail reason codes, then rerun verify:360 before reusable commit or release.",
 });
+const exceptionReasonCodes = (error) => {
+  const out = ["VERIFY360_INTERNAL_EXCEPTION"];
+  const nameToken =
+    String(error?.name || "ERROR")
+      .toUpperCase()
+      .replace(/[^A-Z0-9_]/g, "_")
+      .slice(0, 48) || "ERROR";
+  out.push(`VERIFY360_EXCEPTION_NAME_${nameToken}`);
+  const msg = String(error?.message || "").toUpperCase();
+  const match = msg.match(/VERIFY360_[A-Z0-9_]+/);
+  if (match && match[0]) out.push(match[0]);
+  return stableSortUnique(out);
+};
 const summarizeStepStatuses = (steps) => {
   const summary = {
     FAIL: 0,
@@ -395,6 +408,7 @@ const writeEmergencyOutputs = (runDir, payload, writeError) => {
   const writeErrorDigest = sha256Text(String(writeError?.message || writeError || "UNKNOWN"));
   const emergencyPayload = {
     ...payload,
+    reasonCodes: stableSortUnique([...(payload.reasonCodes || []), "VERIFY360_EMERGENCY_WRITE_PATH"]),
     emergencyWrite: {
       enabled: true,
       reasonCodes: ["VERIFY360_EMERGENCY_WRITE_PATH"],
@@ -420,7 +434,15 @@ const writeEmergencyOutputs = (runDir, payload, writeError) => {
       { name: "verify_360_report.txt", digest: sha256File(path.join(runDir, "verify_360_report.txt")) },
     ],
   };
-  fs.writeFileSync(path.join(runDir, "verify_360_output_manifest.json"), canonicalJSON(manifest), "utf8");
+  const manifestPath = path.join(runDir, "verify_360_output_manifest.json");
+  fs.writeFileSync(manifestPath, canonicalJSON(manifest), "utf8");
+  const allowed = new Set(["verify_360_receipt.json", "verify_360_report.txt", "verify_360_output_manifest.json"]);
+  const orphans = collectFiles(runDir)
+    .map((f) => f.relPath)
+    .filter((name) => !allowed.has(name));
+  if (orphans.length > 0) {
+    throw new Error(`VERIFY360_ORPHAN_OUTPUT_EMERGENCY:${orphans.join(",")}`);
+  }
 };
 
 const main = () => {
@@ -866,20 +888,14 @@ const main = () => {
   process.exit(0);
   } catch (error) {
     const errorDigest = sha256Text(String(error?.message || error || "UNKNOWN"));
-    const errorToken =
-      String(error?.name || "ERROR")
-        .toUpperCase()
-        .replace(/[^A-Z0-9_]/g, "_")
-        .slice(0, 48) || "ERROR";
     const emergencyReasonCodes = stableSortUnique([
       ...steps.flatMap((s) => (Array.isArray(s.reasonCodes) ? s.reasonCodes : [])),
-      "VERIFY360_INTERNAL_EXCEPTION",
-      `VERIFY360_EXCEPTION_${errorToken}`,
+      ...exceptionReasonCodes(error),
     ]);
     addStep({
       id: "internal_exception",
       status: "FAIL",
-      reasonCodes: ["VERIFY360_INTERNAL_EXCEPTION", `VERIFY360_EXCEPTION_${errorToken}`],
+      reasonCodes: exceptionReasonCodes(error),
       details: {
         messageDigest: errorDigest,
       },
