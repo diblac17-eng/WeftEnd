@@ -16,6 +16,16 @@ const MAX_STRING_BYTES = 64;
 const MAX_REASON_FAMILIES = 32;
 const MAX_TARTARUS_KINDS = 32;
 const SAFE_TAG_RE = /^[A-Za-z0-9._:-]{1,64}$/;
+const POLICY_KEYS = new Set<string>(["denyThresholds"]);
+const DENY_THRESHOLD_KEYS = new Set<string>([
+  "missing",
+  "extra",
+  "reordered",
+  "duplicate",
+  "attemptedWithoutRequest",
+  "allowedWithoutEvidence",
+  "inconsistent",
+]);
 
 type JsonObject = Record<string, unknown>;
 
@@ -124,6 +134,9 @@ const parseThreshold = (obj: JsonObject, key: string, state: EvalState): number 
   }
   return value;
 };
+
+const hasUnknownKeys = (obj: JsonObject, allowed: Set<string>): boolean =>
+  Object.keys(obj).some((key) => !allowed.has(key));
 
 const parseEventData = (data: unknown, state: EvalState): ShadowEvent["data"] => {
   if (typeof data === "undefined") return undefined;
@@ -356,7 +369,11 @@ const buildResult = (requestRaw: unknown): ShadowResult => {
   state.events = events;
 
   const policyObj = req.policy && typeof req.policy === "object" && !Array.isArray(req.policy) ? (req.policy as JsonObject) : undefined;
+  if (policyObj && hasUnknownKeys(policyObj, POLICY_KEYS)) state.reasons.add("SHADOW_AUDIT_SCHEMA_INVALID");
   const deny = policyObj?.denyThresholds;
+  if (deny && typeof deny === "object" && !Array.isArray(deny) && hasUnknownKeys(deny as JsonObject, DENY_THRESHOLD_KEYS)) {
+    state.reasons.add("SHADOW_AUDIT_SCHEMA_INVALID");
+  }
   const thresholds =
     deny && typeof deny === "object" && !Array.isArray(deny)
       ? {

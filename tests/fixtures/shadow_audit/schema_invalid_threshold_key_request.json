@@ -1,0 +1,15 @@
+{
+  "schema": "weftend.shadowAudit.request/0",
+  "v": 0,
+  "rulesetId": "SHADOW_RULESET_V0",
+  "policy": {
+    "denyThresholds": {
+      "misssing": 0
+    }
+  },
+  "stream": {
+    "schema": "weftend.shadowAudit.stream/0",
+    "v": 0,
+    "events": []
+  }
+}
