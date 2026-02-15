@@ -95,6 +95,25 @@ const run = async (): Promise<void> => {
 
   {
     const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "plain.txt");
+    fs.writeFileSync(input, "plain text input", "utf8");
+    const res = await runCliCapture([
+      "safe-run",
+      input,
+      "--out",
+      outDir,
+      "--adapter",
+      "auto",
+      "--enable-plugin",
+      "unknown_plugin_name",
+    ]);
+    assertEq(res.status, 40, "safe-run should fail closed for unknown plugin under adapter auto");
+    assert(res.stderr.includes("ADAPTER_PLUGIN_UNKNOWN"), "expected ADAPTER_PLUGIN_UNKNOWN on stderr for adapter auto");
+  }
+
+  {
+    const outDir = mkTmp();
     const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
     const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive", "--enable-plugin"]);
     assertEq(res.status, 40, "safe-run should fail closed when --enable-plugin value is missing");
