@@ -21,6 +21,9 @@ Included
 - `.deb` now parses deterministic AR entry metadata (bounded, no extraction/exec).
 - `.rpm` now captures deterministic lead/header/script/signing hint counters from local bytes only.
 - `.appimage` now captures deterministic ELF/runtime header hints (analysis-only; execution withheld).
+- macOS installer coverage added to package adapter:
+- `.pkg` now captures deterministic XAR header and script/permission hint counters.
+- `.dmg` now captures deterministic trailer marker hints (`koly`) without mounting.
 - Document adapter deepened for `.docm/.xlsm`:
 - ZIP structure + relationships are inspected deterministically for macro/embed/external-link indicators.
 - IaC/CI adapter extraction deepened:

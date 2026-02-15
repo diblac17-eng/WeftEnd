@@ -395,6 +395,35 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const pkg = path.join(tmp, "sample.pkg");
+    const bytes = Buffer.alloc(1024, 0);
+    Buffer.from("xar!", "ascii").copy(bytes, 0);
+    Buffer.from("preinstall script payload permission", "ascii").copy(bytes, 64);
+    fs.writeFileSync(pkg, bytes);
+    const capture = captureTreeV0(pkg, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: pkg, capture });
+    assert(res.ok, "package adapter should parse pkg header hints");
+    assertEq(res.summary?.sourceClass, "package", "pkg package class mismatch");
+    assertEq(res.summary?.counts.pkgXarHeaderPresent, 1, "pkg xar header marker missing");
+    assert((res.summary?.reasonCodes ?? []).includes("EXECUTION_WITHHELD_INSTALLER"), "pkg installer withheld reason missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const dmg = path.join(tmp, "sample.dmg");
+    const bytes = Buffer.alloc(8192, 0);
+    Buffer.from("koly", "ascii").copy(bytes, bytes.length - 512);
+    fs.writeFileSync(dmg, bytes);
+    const capture = captureTreeV0(dmg, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: dmg, capture });
+    assert(res.ok, "package adapter should parse dmg trailer hints");
+    assertEq(res.summary?.sourceClass, "package", "dmg package class mismatch");
+    assertEq(res.summary?.counts.dmgKolyTrailerPresent, 1, "dmg koly trailer marker missing");
+    assert((res.summary?.reasonCodes ?? []).includes("EXECUTION_WITHHELD_INSTALLER"), "dmg installer withheld reason missing");
+  }
+
+  {
+    const tmp = mkTmp();
     const docm = path.join(tmp, "demo.docm");
     writeStoredZip(docm, [
       { name: "word/document.xml", text: "<w:document/>" },

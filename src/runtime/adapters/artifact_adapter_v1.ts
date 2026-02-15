@@ -20,7 +20,7 @@ const MAX_TEXT_BYTES = 256 * 1024;
 const MAX_AR_SCAN_BYTES = 8 * 1024 * 1024;
 
 const ARCHIVE_EXTS = new Set([".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".7z"]);
-const PACKAGE_EXTS = new Set([".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".deb", ".rpm", ".appimage"]);
+const PACKAGE_EXTS = new Set([".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"]);
 const EXTENSION_EXTS = new Set([".crx", ".vsix"]);
 const IAC_EXTS = new Set([".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep", ".template"]);
 const DOCUMENT_EXTS = new Set([".pdf", ".docm", ".xlsm", ".rtf", ".chm"]);
@@ -1009,7 +1009,15 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
   let signatureEntryCount = 0;
   let signingParsePartial = 0;
 
-  const installerExt = ext === ".msi" || ext === ".msix" || ext === ".exe" || ext === ".deb" || ext === ".rpm" || ext === ".appimage";
+  const installerExt =
+    ext === ".msi" ||
+    ext === ".msix" ||
+    ext === ".exe" ||
+    ext === ".deb" ||
+    ext === ".rpm" ||
+    ext === ".appimage" ||
+    ext === ".pkg" ||
+    ext === ".dmg";
   if (installerExt) {
     reasonCodes.push("EXECUTION_WITHHELD_INSTALLER");
   }
@@ -1022,6 +1030,8 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
   let rpmLeadPresent = 0;
   let appImageElfPresent = 0;
   let appImageMarkerPresent = 0;
+  let pkgXarHeaderPresent = 0;
+  let dmgKolyTrailerPresent = 0;
   if (ext === ".nupkg" || ext === ".whl" || ext === ".jar" || ext === ".msix") {
     const zip = readZipEntries(ctx.inputPath);
     entryNames = zip.entries;
@@ -1095,6 +1105,24 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
     if (/AppRun|\.desktop|squashfs/i.test(headText)) textScriptHints += 1;
     if (appImageElfPresent === 0) {
       markers.push("PACKAGE_APPIMAGE_HEADER_MISSING");
+      reasonCodes.push("PACKAGE_METADATA_PARTIAL");
+    }
+  } else if (ext === ".pkg") {
+    const bytes = readBytesBounded(ctx.inputPath, 256 * 1024);
+    pkgXarHeaderPresent = bytes.length >= 4 && bytes[0] === 0x78 && bytes[1] === 0x61 && bytes[2] === 0x72 && bytes[3] === 0x21 ? 1 : 0; // xar!
+    const text = Buffer.from(bytes).toString("latin1");
+    if (/\b(scripts|preinstall|postinstall|payload)\b/i.test(text)) textScriptHints += 1;
+    if (/\b(permission|authorization|entitlement)\b/i.test(text)) textPermissionHints += 1;
+    if (pkgXarHeaderPresent === 0) {
+      markers.push("PACKAGE_PKG_HEADER_MISSING");
+      reasonCodes.push("PACKAGE_METADATA_PARTIAL");
+    }
+  } else if (ext === ".dmg") {
+    const io = readFileHeadTailBounded(ctx.inputPath, 4096, 4096);
+    const tailText = Buffer.from(io.tail).toString("latin1");
+    dmgKolyTrailerPresent = tailText.includes("koly") ? 1 : 0;
+    if (dmgKolyTrailerPresent === 0) {
+      markers.push("PACKAGE_DMG_TRAILER_MISSING");
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
     }
   }
@@ -1187,6 +1215,8 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
       rpmLeadPresent,
       appImageElfPresent,
       appImageMarkerPresent,
+      pkgXarHeaderPresent,
+      dmgKolyTrailerPresent,
       signerCountBounded: 0,
     },
     markers: stableSortUniqueStringsV0(markers),
@@ -1997,7 +2027,7 @@ export const listAdaptersV1 = (): AdapterListReportV1 => {
       adapter: "package",
       mode: "built_in",
       plugins: [],
-      formats: [".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".deb", ".rpm", ".appimage"],
+      formats: [".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"],
     },
     {
       adapter: "extension",
