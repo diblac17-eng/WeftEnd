@@ -63,6 +63,10 @@ Core rule
    - state history root/tail/order checks fail closed
    - interpreted state fields must match top-level state fields
    - reason codes must be stable-sorted/unique at write time
+17. Verify history chain is explicit:
+   - receipt includes `historyLink.priorRunId` + `historyLink.priorReceiptFileDigest`
+   - evidence chain mirrors history link fields
+   - harness asserts prior-run continuity and digest match across pass/replay/fail runs
 
 Command
 - `npm run verify:360`

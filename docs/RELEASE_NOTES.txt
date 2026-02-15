@@ -34,6 +34,8 @@ Included
 - State-path integrity now includes deterministic `stateHistoryDigest` mirrored in interpreted output.
 - Verify writer now enforces payload consistency checks (state history/order, interpreted alignment, reason-code ordering) before output finalize.
 - Fixed state-history mutation risk by snapshotting immutable state history into payloads before later stage transitions.
+- Verify receipts now include explicit prior-run chain links (`historyLink`) with prior receipt file digest.
+- Evidence chain mirrors prior-run link fields and harness now validates chain continuity and digest match across pass/replay/fail runs.
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)

@@ -6,6 +6,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { spawnSync } = require("child_process");
 
 const root = process.cwd();
@@ -48,6 +49,11 @@ const diffNewRuns = (beforeRuns, afterRuns) => {
 };
 
 const readJson = (filePath) => JSON.parse(fs.readFileSync(filePath, "utf8"));
+const sha256File = (filePath) => {
+  const h = crypto.createHash("sha256");
+  h.update(fs.readFileSync(filePath));
+  return `sha256:${h.digest("hex")}`;
+};
 const assertStateReceipt = (receipt, expectedVerdict) => {
   assert(receipt && typeof receipt === "object", "VERIFY360_HARNESS_RECEIPT_INVALID");
   assert(String(receipt.verdict || "") === expectedVerdict, `VERIFY360_HARNESS_VERDICT_MISMATCH_${expectedVerdict}`);
@@ -63,6 +69,24 @@ const assertStateReceipt = (receipt, expectedVerdict) => {
   const digestB = String(receipt.interpreted?.stateHistoryDigest || "");
   assert(digestA.length > 0 && digestB.length > 0, "VERIFY360_HARNESS_STATE_DIGEST_MISSING");
   assert(digestA === digestB, "VERIFY360_HARNESS_STATE_DIGEST_MISMATCH");
+};
+const assertHistoryLink = (receipt, expectedPrevRunId, expectedPrevReceiptPath) => {
+  const link = receipt.historyLink || {};
+  const evidence = receipt.evidenceChain?.links || {};
+  const gotPrevRun = String(link.priorRunId || "NONE");
+  const gotPrevDigest = String(link.priorReceiptFileDigest || "NONE");
+  assert(gotPrevRun === expectedPrevRunId, "VERIFY360_HARNESS_HISTORY_PREV_RUN_MISMATCH");
+  if (expectedPrevRunId === "NONE") {
+    assert(gotPrevDigest === "NONE", "VERIFY360_HARNESS_HISTORY_PREV_DIGEST_NONE_MISMATCH");
+  } else {
+    const expectedDigest = sha256File(expectedPrevReceiptPath);
+    assert(gotPrevDigest === expectedDigest, "VERIFY360_HARNESS_HISTORY_PREV_DIGEST_MISMATCH");
+  }
+  assert(String(evidence.priorVerifyRunId || "NONE") === gotPrevRun, "VERIFY360_HARNESS_HISTORY_EVIDENCE_RUN_MISMATCH");
+  assert(
+    String(evidence.priorVerifyReceiptFileDigest || "NONE") === gotPrevDigest,
+    "VERIFY360_HARNESS_HISTORY_EVIDENCE_DIGEST_MISMATCH"
+  );
 };
 
 const runVerify = (envExtra = {}) => {
@@ -81,6 +105,9 @@ const main = () => {
 
   const beforeLatest = readLatest();
   const beforeRuns = listRunNames();
+  const prevRunBeforeA = beforeRuns.length > 0 ? beforeRuns[beforeRuns.length - 1] : "NONE";
+  const prevReceiptBeforeA =
+    prevRunBeforeA === "NONE" ? null : path.join(historyRoot, prevRunBeforeA, "verify_360_receipt.json");
 
   const statusA = runVerify();
   assert(statusA === 0, `VERIFY360_HARNESS_PASS1_FAILED status=${statusA}`);
@@ -95,6 +122,7 @@ const main = () => {
   const receiptA = readJson(receiptAPath);
   assertStateReceipt(receiptA, "PASS");
   assert(["NEW", "REPLAY", "PARTIAL"].includes(String(receiptA.idempotence?.mode || "")), "VERIFY360_HARNESS_PASS1_IDEMPOTENCE_INVALID");
+  assertHistoryLink(receiptA, prevRunBeforeA, prevReceiptBeforeA);
 
   const statusB = runVerify();
   assert(statusB === 0, `VERIFY360_HARNESS_PASS2_FAILED status=${statusB}`);
@@ -110,6 +138,7 @@ const main = () => {
   assertStateReceipt(receiptB, "PASS");
   assert(receiptB.idempotence?.mode === "REPLAY", "VERIFY360_HARNESS_REPLAY_MODE_MISSING");
   assert(receiptB.idempotence?.pointerPolicy === "UPDATE_SUPPRESSED", "VERIFY360_HARNESS_REPLAY_POINTER_POLICY_INVALID");
+  assertHistoryLink(receiptB, runA, receiptAPath);
 
   const statusC = runVerify({ WEFTEND_360_FORCE_EXCEPTION: "1" });
   assert(statusC !== 0, "VERIFY360_HARNESS_FORCED_EXCEPTION_DID_NOT_FAIL");
@@ -128,6 +157,7 @@ const main = () => {
   const reasonCodes = Array.isArray(receiptC.reasonCodes) ? receiptC.reasonCodes : [];
   assert(reasonCodes.includes("VERIFY360_INTERNAL_EXCEPTION"), "VERIFY360_HARNESS_INTERNAL_EXCEPTION_REASON_MISSING");
   assert(reasonCodes.includes("VERIFY360_FORCED_EXCEPTION"), "VERIFY360_HARNESS_FORCED_EXCEPTION_REASON_MISSING");
+  assertHistoryLink(receiptC, runB, receiptBPath);
   assert(
     reasonCodes.includes(`VERIFY360_FAIL_CLOSED_AT_${String(receiptC.interpreted?.gateState || "").toUpperCase()}`),
     "VERIFY360_HARNESS_FAIL_CLOSED_AT_REASON_MISSING"

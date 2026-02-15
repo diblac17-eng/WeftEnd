@@ -120,6 +120,21 @@ const assertPayloadConsistency = (payload) => {
   if (expectedRc.length !== rc.length || expectedRc.some((v, i) => v !== rc[i])) {
     throw new Error("VERIFY360_INCONSISTENT_REASON_CODES_ORDER");
   }
+  const priorRunId = String(payload?.historyLink?.priorRunId || "NONE");
+  const priorReceiptFileDigest = String(payload?.historyLink?.priorReceiptFileDigest || "NONE");
+  if (priorRunId === "NONE") {
+    if (priorReceiptFileDigest !== "NONE") throw new Error("VERIFY360_INCONSISTENT_HISTORY_LINK_NONE");
+  } else {
+    if (!/^run_[0-9]{6}$/.test(priorRunId)) throw new Error("VERIFY360_INCONSISTENT_HISTORY_LINK_RUN_ID");
+    if (!/^sha256:[a-f0-9]{64}$/.test(priorReceiptFileDigest)) {
+      throw new Error("VERIFY360_INCONSISTENT_HISTORY_LINK_DIGEST");
+    }
+  }
+  const ePrevRun = String(payload?.evidenceChain?.links?.priorVerifyRunId || "NONE");
+  const ePrevDigest = String(payload?.evidenceChain?.links?.priorVerifyReceiptFileDigest || "NONE");
+  if (ePrevRun !== priorRunId || ePrevDigest !== priorReceiptFileDigest) {
+    throw new Error("VERIFY360_INCONSISTENT_HISTORY_LINK_EVIDENCE_CHAIN");
+  }
 };
 const summarizeStepStatuses = (steps) => {
   const summary = {
@@ -341,6 +356,28 @@ const findPriorRunByIdempotenceKey = (idempotenceKey) => {
   }
   return { priorRunId: null, parseErrors };
 };
+const findLatestVerifyHistoryLink = () => {
+  ensureDir(HISTORY_ROOT);
+  const runs = fs
+    .readdirSync(HISTORY_ROOT, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && /^run_[0-9]{6}$/.test(d.name))
+    .map((d) => d.name)
+    .sort((a, b) => cmp(b, a));
+  for (const runName of runs) {
+    const receiptPath = path.join(HISTORY_ROOT, runName, "verify_360_receipt.json");
+    if (!fs.existsSync(receiptPath)) continue;
+    const digest = digestIfExists(receiptPath);
+    if (!digest) continue;
+    return {
+      priorRunId: runName,
+      priorReceiptFileDigest: digest,
+    };
+  }
+  return {
+    priorRunId: "NONE",
+    priorReceiptFileDigest: "NONE",
+  };
+};
 
 const writeOutputs = (runDir, payload, options = {}) => {
   ensureDir(HISTORY_ROOT);
@@ -355,6 +392,8 @@ const writeOutputs = (runDir, payload, options = {}) => {
   const lines = [];
   lines.push(`VERIFY360 ${payload.verdict}`);
   lines.push(`runId=${payload.runId}`);
+  lines.push(`history.prevRun=${payload.historyLink?.priorRunId || "NONE"}`);
+  lines.push(`history.prevDigest=${payload.historyLink?.priorReceiptFileDigest || "NONE"}`);
   lines.push(`reasonCodes=${(payload.reasonCodes || []).join(",") || "-"}`);
   lines.push(`observed.stepStatus=${canonicalJSON(payload.observed?.stepStatusSummary || {}).trim()}`);
   lines.push(`observed.capabilities=${payload.observed?.capabilityDecisionCount ?? "-"}`);
@@ -504,6 +543,7 @@ const main = () => {
   };
   const idempotenceKey = sha256Text(canonicalJSON(idempotenceContext));
   const idempotenceHistory = findPriorRunByIdempotenceKey(idempotenceKey);
+  const priorHistoryLink = findLatestVerifyHistoryLink();
   const idempotencePriorRunId = idempotenceHistory.priorRunId;
   const idempotenceParseErrors = stableSortUnique(idempotenceHistory.parseErrors);
   const idempotenceMode =
@@ -852,6 +892,10 @@ const main = () => {
     stateTarget: "RECORDED",
     stateHistory: stateHistorySnapshot,
     stateHistoryDigest: stateHistorySnapshotDigest,
+    historyLink: {
+      priorRunId: priorHistoryLink.priorRunId,
+      priorReceiptFileDigest: priorHistoryLink.priorReceiptFileDigest,
+    },
     idempotenceKey,
     idempotenceContext,
     idempotence: {
@@ -907,6 +951,8 @@ const main = () => {
     },
     evidenceChain: {
       links: {
+        priorVerifyRunId: priorHistoryLink.priorRunId,
+        priorVerifyReceiptFileDigest: priorHistoryLink.priorReceiptFileDigest,
         safeRunAReceiptDigest: digestIfExists(path.join(outA, "safe_run_receipt.json")),
         safeRunAOperatorDigest: digestIfExists(path.join(outA, "operator_receipt.json")),
         safeRunBReceiptDigest: digestIfExists(path.join(outB, "safe_run_receipt.json")),
@@ -964,6 +1010,10 @@ const main = () => {
       stateTarget: "RECORDED",
       stateHistory: failureStateHistory,
       stateHistoryDigest: failureStateHistoryDigest,
+      historyLink: {
+        priorRunId: priorHistoryLink.priorRunId,
+        priorReceiptFileDigest: priorHistoryLink.priorReceiptFileDigest,
+      },
       idempotenceKey,
       idempotenceContext,
       idempotence: {
@@ -1019,6 +1069,8 @@ const main = () => {
       },
       evidenceChain: {
         links: {
+          priorVerifyRunId: priorHistoryLink.priorRunId,
+          priorVerifyReceiptFileDigest: priorHistoryLink.priorReceiptFileDigest,
           safeRunAReceiptDigest: digestIfExists(path.join(outA, "safe_run_receipt.json")),
           safeRunAOperatorDigest: digestIfExists(path.join(outA, "operator_receipt.json")),
           safeRunBReceiptDigest: digestIfExists(path.join(outB, "safe_run_receipt.json")),
