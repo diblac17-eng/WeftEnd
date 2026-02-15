@@ -67,6 +67,7 @@ const tests = [
   "dist/src/runtime/adapters/intake_adapter_v0.test.js",
   "dist/src/runtime/adapters/archive_adapter_v0.test.js",
   "dist/src/runtime/adapters/artifact_adapter_v1.test.js",
+  "dist/src/runtime/container/docker_probe_v0.test.js",
   "dist/src/runtime/purpleteam/purple_baseline_block_flow.test.js",
   "dist/src/runtime/purpleteam/purple_compare_signal.test.js",
   "dist/src/runtime/purpleteam/purple_no_silent_pass.test.js",
