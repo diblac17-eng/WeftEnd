@@ -1,0 +1,51 @@
+{
+  "schema": "weftend.shadowAudit.request/0",
+  "v": 0,
+  "rulesetId": "SHADOW_RULESET_V0",
+  "stream": {
+    "schema": "weftend.shadowAudit.stream/0",
+    "v": 0,
+    "events": [
+      {
+        "seq": 1,
+        "kind": "STATE_CHECK",
+        "data": {
+          "k00": "A",
+          "k01": "A",
+          "k02": "A",
+          "k03": "A",
+          "k04": "A",
+          "k05": "A",
+          "k06": "A",
+          "k07": "A",
+          "k08": "A",
+          "k09": "A",
+          "k10": "A",
+          "k11": "A",
+          "k12": "A",
+          "k13": "A",
+          "k14": "A",
+          "k15": "A",
+          "k16": "A",
+          "k17": "A",
+          "k18": "A",
+          "k19": "A",
+          "k20": "A",
+          "k21": "A",
+          "k22": "A",
+          "k23": "A",
+          "k24": "A",
+          "k25": "A",
+          "k26": "A",
+          "k27": "A",
+          "k28": "A",
+          "k29": "A",
+          "k30": "A",
+          "k31": "A",
+          "k32": "A"
+        }
+      }
+    ]
+  }
+}
+

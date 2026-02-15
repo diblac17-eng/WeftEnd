@@ -41,6 +41,19 @@ const run = async (): Promise<void> => {
     { name: "warn", req: "warn_request.json", expected: "warn_expected.json", status: 0 },
     { name: "deny_threshold", req: "deny_threshold_request.json", expected: "deny_threshold_expected.json", status: 40 },
     { name: "deny_privacy", req: "deny_privacy_request.json", expected: "deny_privacy_expected.json", status: 40 },
+    {
+      name: "schema_invalid_stream_nonce",
+      req: "schema_invalid_stream_nonce_request.json",
+      expected: "schema_invalid_stream_nonce_expected.json",
+      status: 40,
+    },
+    { name: "bounds_events", req: "bounds_events_request.json", expected: "bounds_events_expected.json", status: 40 },
+    {
+      name: "bounds_event_keys",
+      req: "bounds_event_keys_request.json",
+      expected: "bounds_event_keys_expected.json",
+      status: 40,
+    },
     { name: "cap_warn", req: "cap_warn_request.json", expected: "cap_warn_expected.json", status: 0 },
     { name: "sequence_warn", req: "sequence_warn_request.json", expected: "sequence_warn_expected.json", status: 0 },
     {

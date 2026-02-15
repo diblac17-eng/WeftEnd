@@ -54,6 +54,7 @@ Included
 - Added fixture-backed shadow-audit contract tests (`tests/fixtures/shadow_audit`) to pin deterministic output shape and reason ordering.
 - Shadow-audit fixture suite now includes capability anomaly coverage for WARN vs threshold-driven DENY (`attemptedWithoutRequest`, `allowedWithoutEvidence`, `inconsistent`).
 - Shadow-audit fixture suite now includes sequence anomaly coverage for WARN vs threshold-driven DENY (`missing`, `extra`, `reordered`, `duplicate`).
+- Shadow-audit fixture suite now also pins schema-invalid `streamNonce` and bounds-exceeded behavior (event count cap and per-event key cap).
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)
