@@ -422,6 +422,22 @@ const runSafeRunCli = async (args: string[]): Promise<number> => {
     }
     pluginValues.push(value);
   }
+  const normalizedPlugins = pluginValues.map((value) => value.toLowerCase());
+  const duplicatePlugins = Array.from(
+    normalizedPlugins.reduce((acc, name) => {
+      acc.set(name, (acc.get(name) ?? 0) + 1);
+      return acc;
+    }, new Map<string, number>())
+  )
+    .filter(([, count]) => count > 1)
+    .map(([name]) => name)
+    .sort();
+  if (duplicatePlugins.length > 0) {
+    console.error(
+      `[INPUT_INVALID] duplicate --enable-plugin value(s) are not allowed: ${duplicatePlugins.join(", ")}`
+    );
+    return 40;
+  }
   const adapterValue = String((flags["adapter"] as string) || "auto").trim().toLowerCase();
   const adapter = (adapterValue === "" ? "auto" : adapterValue) as
     | "auto"
@@ -451,7 +467,7 @@ const runSafeRunCli = async (args: string[]): Promise<number> => {
     executeRequested: Boolean(flags["execute"]),
     withholdExec: Boolean(flags["withhold-exec"] || flags["no-exec"]),
     adapter,
-    enablePlugins: pluginValues,
+    enablePlugins: normalizedPlugins,
   });
 };
 

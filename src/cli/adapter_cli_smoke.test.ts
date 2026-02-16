@@ -259,6 +259,25 @@ const run = async (): Promise<void> => {
 
   {
     const outDir = mkTmp();
+    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const res = await runCliCapture([
+      "safe-run",
+      input,
+      "--out",
+      outDir,
+      "--adapter",
+      "archive",
+      "--enable-plugin",
+      "tar",
+      "--enable-plugin",
+      "tar",
+    ]);
+    assertEq(res.status, 40, "safe-run should fail closed when duplicate plugin names are provided");
+    assert(res.stderr.includes("INPUT_INVALID"), "expected INPUT_INVALID on stderr for duplicate plugin names");
+  }
+
+  {
+    const outDir = mkTmp();
     const tmp = mkTmp();
     const input = path.join(tmp, "doc_with_signals.pdf");
     fs.writeFileSync(input, "macro javascript EmbeddedFile http://example.test", "utf8");

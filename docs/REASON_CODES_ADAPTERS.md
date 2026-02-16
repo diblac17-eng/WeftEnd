@@ -60,6 +60,7 @@ Adapter precondition and routing
 - ADAPTER_UNSUPPORTED
 - ADAPTER_PRECONDITION_FAILED
 - ADAPTER_PLUGIN_UNKNOWN
+- ADAPTER_PLUGIN_DUPLICATE
 - ADAPTER_PLUGIN_UNUSED (plugin provided where no plugin path is valid for resolved adapter route)
 - IAC_UNSUPPORTED_FORMAT
 - DOC_UNSUPPORTED_FORMAT

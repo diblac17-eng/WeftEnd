@@ -1965,11 +1965,19 @@ const adapterSupportsPlugins = (adapterClass: AdapterClassV1): boolean => adapte
 
 export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunResultV1 => {
   const selection = options.selection;
-  const requestedPlugins = stableSortUniqueStringsV0(
-    (options.enabledPlugins || [])
-      .map((name) => String(name || "").trim().toLowerCase())
-      .filter((name) => name.length > 0)
-  );
+  const normalizedPlugins = (options.enabledPlugins || [])
+    .map((name) => String(name || "").trim().toLowerCase())
+    .filter((name) => name.length > 0);
+  const duplicatePlugins = Array.from(
+    normalizedPlugins.reduce((acc, name) => {
+      acc.set(name, (acc.get(name) ?? 0) + 1);
+      return acc;
+    }, new Map<string, number>())
+  )
+    .filter(([, count]) => count > 1)
+    .map(([name]) => name)
+    .sort((a, b) => cmpStrV0(a, b));
+  const requestedPlugins = stableSortUniqueStringsV0(normalizedPlugins);
   const unknownPlugins = requestedPlugins.filter((name) => !KNOWN_PLUGIN_NAMES.has(name));
   if (unknownPlugins.length > 0) {
     return {
@@ -1977,6 +1985,14 @@ export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunRe
       failCode: "ADAPTER_PLUGIN_UNKNOWN",
       failMessage: `unknown plugin name(s): ${unknownPlugins.join(", ")}`,
       reasonCodes: stableSortUniqueReasonsV0(["ADAPTER_PLUGIN_UNKNOWN"]),
+    };
+  }
+  if (duplicatePlugins.length > 0) {
+    return {
+      ok: false,
+      failCode: "ADAPTER_PLUGIN_DUPLICATE",
+      failMessage: `duplicate plugin name(s): ${duplicatePlugins.join(", ")}`,
+      reasonCodes: stableSortUniqueReasonsV0(["ADAPTER_PLUGIN_DUPLICATE"]),
     };
   }
   if (selection === "none") {

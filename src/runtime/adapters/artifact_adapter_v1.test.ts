@@ -220,6 +220,19 @@ const run = (): void => {
     const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
     const capture = captureTreeV0(input, limits);
     const res = runArtifactAdapterV1({
+      selection: "archive",
+      enabledPlugins: ["tar", "tar"],
+      inputPath: input,
+      capture,
+    });
+    assert(!res.ok, "duplicate plugin names should fail closed");
+    assertEq(res.failCode, "ADAPTER_PLUGIN_DUPLICATE", "expected duplicate plugin fail code");
+  }
+
+  {
+    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const capture = captureTreeV0(input, limits);
+    const res = runArtifactAdapterV1({
       selection: "none",
       enabledPlugins: ["unknown_plugin_name"],
       inputPath: input,

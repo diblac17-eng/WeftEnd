@@ -67,6 +67,7 @@ Included
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)
 - Unknown `--enable-plugin` names now fail closed with `ADAPTER_PLUGIN_UNKNOWN` (no silent plugin-name fallback/ignore).
 - Unknown plugin names are validated before adapter routing, so `ADAPTER_PLUGIN_UNKNOWN` also fails closed under `--adapter none`.
+- Duplicate plugin names now fail closed (`INPUT_INVALID` at CLI and `ADAPTER_PLUGIN_DUPLICATE` at adapter runtime) instead of being silently de-duplicated.
 - Adapter plugin strictness tests now pin this behavior under both `--adapter none` and `--adapter auto` (including auto no-class-match cases).
 - `safe-run --enable-plugin` now fails closed when plugin value is missing (`INPUT_INVALID`) instead of silently ignoring malformed flags.
 - `safe-run` now rejects unsupported flags with `INPUT_INVALID` (for example typoed flags like `--adpater`) instead of silently ignoring them.
