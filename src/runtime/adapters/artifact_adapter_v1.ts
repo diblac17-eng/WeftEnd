@@ -1318,6 +1318,7 @@ const analyzeExtension = (ctx: AnalyzeCtx): AnalyzeResult => {
       markers.push(...manifestTexts.markers);
       if (manifestTexts.entries.length === 0) {
         markers.push("EXTENSION_MANIFEST_PARTIAL");
+        manifestInvalid = true;
       } else {
         try {
           const parsed = JSON.parse(manifestTexts.entries[0].text);
@@ -1339,8 +1340,22 @@ const analyzeExtension = (ctx: AnalyzeCtx): AnalyzeResult => {
     }
   }
 
-  if (!manifestFound) reasonCodes.push("EXTENSION_MANIFEST_MISSING");
-  if (manifestInvalid) reasonCodes.push("EXTENSION_MANIFEST_INVALID");
+  if (!manifestFound) {
+    return {
+      ok: false,
+      failCode: "EXTENSION_MANIFEST_MISSING",
+      failMessage: "extension adapter requires manifest.json for explicit extension analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_MANIFEST_MISSING"]),
+    };
+  }
+  if (manifestInvalid) {
+    return {
+      ok: false,
+      failCode: "EXTENSION_MANIFEST_INVALID",
+      failMessage: "extension adapter requires a valid manifest.json for explicit extension analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_MANIFEST_INVALID"]),
+    };
+  }
   if (updateDomains.length > 0) reasonCodes.push("EXTENSION_EXTERNAL_REF_PRESENT");
   if (permissionCount > 0) findingCodes.push("EXTENSION_PERMISSION_PRESENT");
   if (contentScriptCount > 0) findingCodes.push("EXTENSION_CONTENT_SCRIPT_PRESENT");

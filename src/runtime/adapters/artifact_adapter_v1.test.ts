@@ -330,6 +330,23 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const capture = captureTreeV0(tmp, limits);
+    const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: tmp, capture });
+    assert(!res.ok, "extension adapter should fail closed for directory without manifest");
+    assertEq(res.failCode, "EXTENSION_MANIFEST_MISSING", "expected EXTENSION_MANIFEST_MISSING for extension route mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
+    fs.writeFileSync(path.join(tmp, "manifest.json"), "{ invalid-json", "utf8");
+    const capture = captureTreeV0(tmp, limits);
+    const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: tmp, capture });
+    assert(!res.ok, "extension adapter should fail closed for invalid manifest");
+    assertEq(res.failCode, "EXTENSION_MANIFEST_INVALID", "expected EXTENSION_MANIFEST_INVALID for invalid manifest");
+  }
+
+  {
+    const tmp = mkTmp();
     fs.writeFileSync(
       path.join(tmp, "manifest.json"),
       JSON.stringify({

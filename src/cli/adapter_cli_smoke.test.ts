@@ -338,6 +338,23 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const res = await runCliCapture(["safe-run", tmp, "--out", outDir, "--adapter", "extension"]);
+    assertEq(res.status, 40, "safe-run should fail closed for extension directory without manifest");
+    assert(res.stderr.includes("EXTENSION_MANIFEST_MISSING"), "expected EXTENSION_MANIFEST_MISSING on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    fs.writeFileSync(path.join(tmp, "manifest.json"), "{ invalid-json", "utf8");
+    const res = await runCliCapture(["safe-run", tmp, "--out", outDir, "--adapter", "extension"]);
+    assertEq(res.status, 40, "safe-run should fail closed for invalid extension manifest");
+    assert(res.stderr.includes("EXTENSION_MANIFEST_INVALID"), "expected EXTENSION_MANIFEST_INVALID on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     fs.mkdirSync(path.join(tmp, "oci_image"));
     fs.writeFileSync(path.join(tmp, "oci_image", "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
     fs.writeFileSync(path.join(tmp, "oci_image", "index.json"), "{\"schemaVersion\":2}\n", "utf8");

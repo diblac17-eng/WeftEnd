@@ -79,6 +79,7 @@ Included
 - `safe-run` now fails closed with `ADAPTER_PLUGIN_UNUSED` when plugin flags are provided for non-plugin routes (for example `--adapter auto` no-class-match or explicit non-plugin adapters like `document`).
 - `safe-run` archive plugin routing is now format-strict: inapplicable plugin declarations fail closed with `ADAPTER_PLUGIN_UNUSED` (for example `zip + tar`, `tgz + 7z`) instead of silently no-op.
 - Explicit `--adapter cicd` routing is now strict and fails closed on non-CI/CD inputs (`CICD_UNSUPPORTED_FORMAT`) instead of silently classifying generic IaC text as CI/CD.
+- Explicit `--adapter extension` routing is now strict and fails closed when `manifest.json` is missing or invalid (`EXTENSION_MANIFEST_MISSING` / `EXTENSION_MANIFEST_INVALID`) instead of producing partial extension summaries.
 - New adapter discovery command: `weftend adapter list`
 - Additive receipt/summary surface:
 - `safe_run_receipt.json` optional `adapter` metadata block

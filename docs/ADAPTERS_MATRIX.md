@@ -36,6 +36,8 @@ Adapter classes
   EXTENSION_MANIFEST_MISSING
   EXTENSION_MANIFEST_INVALID
   EXTENSION_EXTERNAL_REF_PRESENT
+- Route strictness:
+  explicit `--adapter extension` fails closed when manifest.json is missing or invalid.
 
 4) iac / cicd (baseline signal lane)
 - Formats: Terraform, YAML/JSON config, workflow/pipeline definitions
