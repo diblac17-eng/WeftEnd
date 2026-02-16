@@ -195,6 +195,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const badTar = path.join(tmp, "bad.tar");
+    fs.writeFileSync(badTar, "not-a-tar", "utf8");
+    const capture = captureTreeV0(badTar, limits);
+    const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: badTar, capture });
+    assert(!res.ok, "archive adapter should fail closed for explicit invalid tar structure");
+    assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for invalid tar");
+  }
+
+  {
+    const tmp = mkTmp();
     const txz = path.join(tmp, "sample.txz");
     fs.writeFileSync(txz, "not-a-real-txz", "utf8");
     const capture = captureTreeV0(txz, limits);

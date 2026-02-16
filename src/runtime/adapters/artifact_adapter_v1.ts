@@ -882,7 +882,7 @@ const containsExternalRunnerV1 = (text: string): number => {
   const dockerRefMatches = countMatchesV1(text, /docker:\/\//gi);
   return runsOnMatches + dockerRefMatches;
 };
-const analyzeArchive = (ctx: AnalyzeCtx): AnalyzeResult => {
+const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
   const reasonCodes = ["ARCHIVE_ADAPTER_V1"];
   const markers: string[] = [];
   const ext = ctx.ext;
@@ -970,6 +970,14 @@ const analyzeArchive = (ctx: AnalyzeCtx): AnalyzeResult => {
       failCode: "ARCHIVE_UNSUPPORTED_FORMAT",
       failMessage: "archive adapter does not support this input format.",
       reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_UNSUPPORTED_FORMAT"]),
+    };
+  }
+  if (strictRoute && ext === ".tar" && markers.includes("ARCHIVE_METADATA_PARTIAL") && entries.length === 0) {
+    return {
+      ok: false,
+      failCode: "ARCHIVE_FORMAT_MISMATCH",
+      failMessage: "archive adapter expected a valid archive structure for explicit route analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_FORMAT_MISMATCH"]),
     };
   }
 
@@ -2227,7 +2235,7 @@ const autoSelectClass = (ctx: AnalyzeCtx): AdapterClassV1 | null => {
 };
 
 const analyzeByClass = (adapterClass: AdapterClassV1, ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
-  if (adapterClass === "archive") return analyzeArchive(ctx);
+  if (adapterClass === "archive") return analyzeArchive(ctx, strictRoute);
   if (adapterClass === "package") return analyzePackage(ctx, strictRoute);
   if (adapterClass === "extension") return analyzeExtension(ctx);
   if (adapterClass === "iac" || adapterClass === "cicd") return analyzeIacCicd(ctx, adapterClass);

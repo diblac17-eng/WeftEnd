@@ -16,10 +16,13 @@ Adapter classes
 - Formats: .zip, .tar (built-in), .tar.gz/.tgz/.tar.bz2/.tar.xz/.txz (tar plugin), .7z (7z plugin)
 - Key reason codes:
   ARCHIVE_ADAPTER_V1
+  ARCHIVE_FORMAT_MISMATCH
   ARCHIVE_TRUNCATED
   ARCHIVE_UNSUPPORTED_FORMAT
   ARCHIVE_PLUGIN_REQUIRED
   ARCHIVE_PLUGIN_UNAVAILABLE
+- Route strictness:
+  explicit `--adapter archive` fails closed on invalid `.tar` structure/metadata (`ARCHIVE_FORMAT_MISMATCH`) rather than returning partial archive summaries.
 
 2) package
 - Formats: .msi, .msix, .exe, .nupkg, .whl, .jar, .tar.gz/.tgz/.tar.xz/.txz, .deb, .rpm, .appimage, .pkg, .dmg
