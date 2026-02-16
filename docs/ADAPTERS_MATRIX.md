@@ -26,8 +26,11 @@ Adapter classes
 - Key reason codes:
   PACKAGE_ADAPTER_V1
   PACKAGE_METADATA_PARTIAL
+  PACKAGE_FORMAT_MISMATCH
   PACKAGE_SIGNING_INFO_UNAVAILABLE
   EXECUTION_WITHHELD_INSTALLER
+- Route strictness:
+  explicit `--adapter package` on `.exe` now fails closed when PE header evidence is invalid/missing.
 
 3) extension
 - Formats: .crx, .vsix, .xpi, unpacked extension folder with manifest.json

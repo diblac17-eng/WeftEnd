@@ -993,7 +993,7 @@ const analyzeArchive = (ctx: AnalyzeCtx): AnalyzeResult => {
   };
 };
 
-const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
+const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
   const ext = ctx.ext;
   if (!PACKAGE_EXTS.has(ext)) {
     return {
@@ -1132,13 +1132,20 @@ const analyzePackage = (ctx: AnalyzeCtx): AnalyzeResult => {
 
   if (ext === ".exe") {
     const pe = parsePeSigningEvidenceV1(ctx.inputPath);
-    if (!pe.parsed) {
+    if ((!pe.parsed || !pe.isPe) && strictRoute) {
+      return {
+        ok: false,
+        failCode: "PACKAGE_FORMAT_MISMATCH",
+        failMessage: "package adapter detected extension/header mismatch for explicit package analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+      };
+    } else if (!pe.parsed) {
       signingParsePartial = 1;
-    } else if (pe.isPe && pe.signaturePresent) {
-      peSignaturePresent = 1;
-      signingEvidenceCount += 1;
     } else if (!pe.isPe) {
       markers.push("PACKAGE_PE_HEADER_MISSING");
+    } else if (pe.signaturePresent) {
+      peSignaturePresent = 1;
+      signingEvidenceCount += 1;
     }
   }
   if (ext === ".msix" && signatureEntryCount > 0) {
@@ -1985,9 +1992,9 @@ const autoSelectClass = (ctx: AnalyzeCtx): AdapterClassV1 | null => {
   return null;
 };
 
-const analyzeByClass = (adapterClass: AdapterClassV1, ctx: AnalyzeCtx): AnalyzeResult => {
+const analyzeByClass = (adapterClass: AdapterClassV1, ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
   if (adapterClass === "archive") return analyzeArchive(ctx);
-  if (adapterClass === "package") return analyzePackage(ctx);
+  if (adapterClass === "package") return analyzePackage(ctx, strictRoute);
   if (adapterClass === "extension") return analyzeExtension(ctx);
   if (adapterClass === "iac" || adapterClass === "cicd") return analyzeIacCicd(ctx, adapterClass);
   if (adapterClass === "document") return analyzeDocument(ctx);
@@ -2102,7 +2109,7 @@ export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunRe
     }
   }
 
-  const analyzed = analyzeByClass(adapterClass, ctx);
+  const analyzed = analyzeByClass(adapterClass, ctx, selection !== "auto");
   if (!analyzed.ok) {
     return {
       ok: false,

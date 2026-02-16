@@ -59,7 +59,7 @@ suite("blueteam/exit-codes", () => {
     const policyPath = path.join(process.cwd(), "policies", "web_component_default.json");
     const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "native_app_stub", "app.exe");
     const outDir = path.join(temp, "out");
-    const result = await runCliCapture(["safe-run", inputPath, "--policy", policyPath, "--out", outDir]);
+    const result = await runCliCapture(["safe-run", inputPath, "--policy", policyPath, "--out", outDir, "--adapter", "none"]);
     assertEq(result.status, 0, `expected exit 0\n${result.stderr}`);
     const receipt = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
     assertEq(receipt.analysisVerdict, "WITHHELD", "expected WITHHELD analysis verdict");

@@ -338,6 +338,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const badExe = path.join(tmp, "bad.exe");
+    fs.writeFileSync(badExe, "not-a-pe", "utf8");
+    const res = await runCliCapture(["safe-run", badExe, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for package exe header mismatch");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const res = await runCliCapture(["safe-run", tmp, "--out", outDir, "--adapter", "extension"]);
     assertEq(res.status, 40, "safe-run should fail closed for extension directory without manifest");
     assert(res.stderr.includes("EXTENSION_MANIFEST_MISSING"), "expected EXTENSION_MANIFEST_MISSING on stderr");

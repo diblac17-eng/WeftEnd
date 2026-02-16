@@ -503,6 +503,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const exe = path.join(tmp, "bad.exe");
+    fs.writeFileSync(exe, "not-a-pe", "utf8");
+    const capture = captureTreeV0(exe, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: exe, capture });
+    assert(!res.ok, "package adapter should fail closed for exe header mismatch");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for bad exe");
+  }
+
+  {
+    const tmp = mkTmp();
     const exe = path.join(tmp, "signed.exe");
     writeMinimalPe(exe, 256);
     const capture = captureTreeV0(exe, limits);
