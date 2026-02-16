@@ -1082,9 +1082,36 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       if (tarList.ok) {
         entryNames = stableSortUniqueStringsV0(tarList.lines);
       } else {
+        if (strictRoute) {
+          return {
+            ok: false,
+            failCode: "PACKAGE_PLUGIN_UNAVAILABLE",
+            failMessage: "package adapter tar plugin command failed for explicit package analysis.",
+            reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_PLUGIN_UNAVAILABLE"]),
+          };
+        }
         reasonCodes.push("PACKAGE_METADATA_PARTIAL");
       }
+    } else if (ctx.enabledPlugins.has("tar") && !commandAvailable("tar")) {
+      if (strictRoute) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_PLUGIN_UNAVAILABLE",
+          failMessage: "package adapter requires local tar command when tar plugin is enabled.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_PLUGIN_UNAVAILABLE"]),
+        };
+      }
+      reasonCodes.push("PACKAGE_METADATA_PARTIAL");
+      markers.push("PACKAGE_PLUGIN_TAR_NOT_ENABLED");
     } else {
+      if (strictRoute) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_PLUGIN_REQUIRED",
+          failMessage: "package adapter requires --enable-plugin tar for compressed tar package formats.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_PLUGIN_REQUIRED"]),
+        };
+      }
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
       markers.push("PACKAGE_PLUGIN_TAR_NOT_ENABLED");
     }
@@ -2251,8 +2278,8 @@ export const listAdaptersV1 = (): AdapterListReportV1 => {
     },
     {
       adapter: "package",
-      mode: "built_in",
-      plugins: [],
+      mode: "mixed",
+      plugins: [{ name: "tar", available: tarAvailable }],
       formats: [".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".tar.xz", ".txz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"],
     },
     {

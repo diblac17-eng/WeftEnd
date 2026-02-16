@@ -41,6 +41,10 @@ Current plugin names
 - tar: compressed tar listings (.tar.gz/.tgz/.tar.bz2)
 - 7z: .7z listings
 
+Package lane note
+- Explicit `--adapter package` on compressed tar formats (`.tgz/.tar.gz/.txz/.tar.xz`) requires `--enable-plugin tar`.
+- Missing or unavailable tar plugin in that explicit route fails closed.
+
 Operator examples
 - npm run weftend -- safe-run <input> --out <dir> --adapter archive --enable-plugin tar
 - npm run weftend -- safe-run <input> --out <dir> --adapter archive --enable-plugin 7z

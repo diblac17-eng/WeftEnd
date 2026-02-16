@@ -358,6 +358,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const badTgz = path.join(tmp, "bad.tgz");
+    fs.writeFileSync(badTgz, "not-a-real-tgz", "utf8");
+    const res = await runCliCapture(["safe-run", badTgz, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for compressed tar package without tar plugin");
+    assert(res.stderr.includes("PACKAGE_PLUGIN_REQUIRED"), "expected PACKAGE_PLUGIN_REQUIRED on stderr for bad tgz without plugin");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badMsi = path.join(tmp, "bad.msi");
     fs.writeFileSync(badMsi, "not-a-cfb-msi", "utf8");
     const res = await runCliCapture(["safe-run", badMsi, "--out", outDir, "--adapter", "package"]);

@@ -475,6 +475,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tgz = path.join(tmp, "bad.tgz");
+    fs.writeFileSync(tgz, "not-a-real-tgz", "utf8");
+    const capture = captureTreeV0(tgz, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: tgz, capture });
+    assert(!res.ok, "package adapter should fail closed for compressed tar package without tar plugin");
+    assertEq(res.failCode, "PACKAGE_PLUGIN_REQUIRED", "expected PACKAGE_PLUGIN_REQUIRED for package tgz without tar plugin");
+  }
+
+  {
+    const tmp = mkTmp();
     const msi = path.join(tmp, "bad.msi");
     fs.writeFileSync(msi, "not-a-cfb-msi", "utf8");
     const capture = captureTreeV0(msi, limits);
