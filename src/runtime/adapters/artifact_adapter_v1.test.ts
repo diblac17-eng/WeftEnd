@@ -301,6 +301,34 @@ const run = (): void => {
   }
 
   {
+    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const capture = captureTreeV0(input, limits);
+    const res = runArtifactAdapterV1({
+      selection: "archive",
+      enabledPlugins: ["tar"],
+      inputPath: input,
+      capture,
+    });
+    assert(!res.ok, "archive zip with tar plugin should fail closed as plugin-unused");
+    assertEq(res.failCode, "ADAPTER_PLUGIN_UNUSED", "expected plugin-unused fail code for zip+tar");
+  }
+
+  {
+    const tmp = mkTmp();
+    const input = path.join(tmp, "sample.tgz");
+    fs.writeFileSync(input, "not-a-real-tgz", "utf8");
+    const capture = captureTreeV0(input, limits);
+    const res = runArtifactAdapterV1({
+      selection: "archive",
+      enabledPlugins: ["tar", "7z"],
+      inputPath: input,
+      capture,
+    });
+    assert(!res.ok, "archive tgz with extra plugin should fail closed as plugin-unused");
+    assertEq(res.failCode, "ADAPTER_PLUGIN_UNUSED", "expected plugin-unused fail code for tgz+7z");
+  }
+
+  {
     const tmp = mkTmp();
     fs.writeFileSync(
       path.join(tmp, "manifest.json"),

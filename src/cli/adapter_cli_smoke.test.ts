@@ -150,6 +150,44 @@ const run = async (): Promise<void> => {
 
   {
     const outDir = mkTmp();
+    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const res = await runCliCapture([
+      "safe-run",
+      input,
+      "--out",
+      outDir,
+      "--adapter",
+      "archive",
+      "--enable-plugin",
+      "tar",
+    ]);
+    assertEq(res.status, 40, "safe-run should fail closed when archive plugins are inapplicable to format");
+    assert(res.stderr.includes("ADAPTER_PLUGIN_UNUSED"), "expected ADAPTER_PLUGIN_UNUSED on stderr for zip+tar");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "sample.tgz");
+    fs.writeFileSync(input, "not-a-real-tgz", "utf8");
+    const res = await runCliCapture([
+      "safe-run",
+      input,
+      "--out",
+      outDir,
+      "--adapter",
+      "archive",
+      "--enable-plugin",
+      "tar",
+      "--enable-plugin",
+      "7z",
+    ]);
+    assertEq(res.status, 40, "safe-run should fail closed when archive includes extra inapplicable plugin");
+    assert(res.stderr.includes("ADAPTER_PLUGIN_UNUSED"), "expected ADAPTER_PLUGIN_UNUSED on stderr for tgz+7z");
+  }
+
+  {
+    const outDir = mkTmp();
     const tmp = mkTmp();
     const input = path.join(tmp, "plain.txt");
     fs.writeFileSync(input, "plain text input", "utf8");

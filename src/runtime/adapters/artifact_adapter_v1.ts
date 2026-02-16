@@ -1963,6 +1963,15 @@ const analyzeByClass = (adapterClass: AdapterClassV1, ctx: AnalyzeCtx): AnalyzeR
 
 const adapterSupportsPlugins = (adapterClass: AdapterClassV1): boolean => adapterClass === "archive";
 
+const allowedArchivePluginsForExt = (ext: string): Set<string> | null => {
+  if (ext === ".zip" || ext === ".tar") return new Set<string>();
+  if (ext === ".tar.gz" || ext === ".tgz" || ext === ".tar.bz2" || ext === ".tar.xz" || ext === ".txz") {
+    return new Set<string>(["tar"]);
+  }
+  if (ext === ".7z") return new Set<string>(["7z"]);
+  return null;
+};
+
 export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunResultV1 => {
   const selection = options.selection;
   const normalizedPlugins = (options.enabledPlugins || [])
@@ -2035,6 +2044,20 @@ export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunRe
       failMessage: `plugins are not supported when --adapter ${adapterClass} is selected.`,
       reasonCodes: stableSortUniqueReasonsV0(["ADAPTER_PLUGIN_UNUSED"]),
     };
+  }
+  if (requestedPlugins.length > 0 && adapterClass === "archive") {
+    const allowedPlugins = allowedArchivePluginsForExt(ctx.ext);
+    if (allowedPlugins !== null) {
+      const unusedPlugins = requestedPlugins.filter((name) => !allowedPlugins.has(name));
+      if (unusedPlugins.length > 0) {
+        return {
+          ok: false,
+          failCode: "ADAPTER_PLUGIN_UNUSED",
+          failMessage: `plugin name(s) are not applicable for this archive format: ${unusedPlugins.join(", ")}`,
+          reasonCodes: stableSortUniqueReasonsV0(["ADAPTER_PLUGIN_UNUSED"]),
+        };
+      }
+    }
   }
 
   const analyzed = analyzeByClass(adapterClass, ctx);

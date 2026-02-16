@@ -27,6 +27,7 @@ Hard rules
 - If `--adapter none` is selected, any plugin flag is invalid and fails closed with `ADAPTER_PLUGIN_UNUSED`.
 - If `--adapter auto` has no class match and plugin flags were provided, run fails closed with `ADAPTER_PLUGIN_UNUSED`.
 - If a selected adapter class does not support plugins, plugin flags are invalid and fail closed with `ADAPTER_PLUGIN_UNUSED`.
+- If adapter class is plugin-capable but plugin names do not apply to the resolved format, run fails closed with `ADAPTER_PLUGIN_UNUSED` (for example `zip + tar`, `tgz + 7z`).
 
 5) No silent downgrade
 - Missing plugin support never silently claims full analysis coverage.
