@@ -4,10 +4,12 @@ import { runCliCapture } from "./cli_test_runner";
 
 declare const require: any;
 declare const process: any;
+declare const Buffer: any;
 
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const zlib = require("zlib");
 
 const assert = (cond: boolean, msg: string): void => {
   if (!cond) throw new Error(msg);
@@ -18,6 +20,73 @@ const assertEq = (actual: unknown, expected: unknown, msg: string): void => {
 };
 
 const mkTmp = (): string => fs.mkdtempSync(path.join(os.tmpdir(), "weftend-adapter-cli-"));
+
+const writeStoredZip = (outPath: string, entries: Array<{ name: string; text: string }>): void => {
+  let offset = 0;
+  const localParts: any[] = [];
+  const centralParts: any[] = [];
+  entries.forEach((entry, index) => {
+    const nameBuf = Buffer.from(entry.name, "utf8");
+    const dataRaw = Buffer.from(entry.text || "", "utf8");
+    const data = zlib.deflateRawSync(dataRaw);
+    let crc = 0 ^ -1;
+    for (let i = 0; i < dataRaw.length; i += 1) {
+      crc ^= dataRaw[i];
+      for (let j = 0; j < 8; j += 1) {
+        crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+      }
+    }
+    crc ^= -1;
+    const localHeader = Buffer.alloc(30);
+    localHeader.writeUInt32LE(0x04034b50, 0);
+    localHeader.writeUInt16LE(20, 4);
+    localHeader.writeUInt16LE(0, 6);
+    localHeader.writeUInt16LE(8, 8);
+    localHeader.writeUInt16LE(0, 10);
+    localHeader.writeUInt16LE(0, 12);
+    localHeader.writeUInt32LE(crc >>> 0, 14);
+    localHeader.writeUInt32LE(data.length, 18);
+    localHeader.writeUInt32LE(dataRaw.length, 22);
+    localHeader.writeUInt16LE(nameBuf.length, 26);
+    localHeader.writeUInt16LE(0, 28);
+    localParts.push(localHeader, nameBuf, data);
+
+    const centralHeader = Buffer.alloc(46);
+    centralHeader.writeUInt32LE(0x02014b50, 0);
+    centralHeader.writeUInt16LE(20, 4);
+    centralHeader.writeUInt16LE(20, 6);
+    centralHeader.writeUInt16LE(0, 8);
+    centralHeader.writeUInt16LE(8, 10);
+    centralHeader.writeUInt16LE(0, 12);
+    centralHeader.writeUInt16LE(0, 14);
+    centralHeader.writeUInt32LE(crc >>> 0, 16);
+    centralHeader.writeUInt32LE(data.length, 20);
+    centralHeader.writeUInt32LE(dataRaw.length, 24);
+    centralHeader.writeUInt16LE(nameBuf.length, 28);
+    centralHeader.writeUInt16LE(0, 30);
+    centralHeader.writeUInt16LE(0, 32);
+    centralHeader.writeUInt16LE(0, 34);
+    centralHeader.writeUInt16LE(0, 36);
+    centralHeader.writeUInt32LE(0, 38);
+    centralHeader.writeUInt32LE(offset, 42);
+    centralParts.push(centralHeader, nameBuf);
+
+    offset += localHeader.length + nameBuf.length + data.length;
+    if (index > 10000) throw new Error("zip fixture overflow");
+  });
+  const centralStart = offset;
+  const centralBlob = Buffer.concat(centralParts);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(0, 4);
+  eocd.writeUInt16LE(0, 6);
+  eocd.writeUInt16LE(entries.length, 8);
+  eocd.writeUInt16LE(entries.length, 10);
+  eocd.writeUInt32LE(centralBlob.length, 12);
+  eocd.writeUInt32LE(centralStart, 16);
+  eocd.writeUInt16LE(0, 20);
+  fs.writeFileSync(outPath, Buffer.concat([...localParts, centralBlob, eocd]));
+};
 
 const run = async (): Promise<void> => {
   {
@@ -373,6 +442,16 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", badDocm, "--out", outDir, "--adapter", "document"]);
     assertEq(res.status, 40, "safe-run should fail closed for invalid explicit docm container");
     assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const badStructureDocm = path.join(tmp, "bad_structure.docm");
+    writeStoredZip(badStructureDocm, [{ name: "word/document.xml", text: "<w:document/>" }]);
+    const res = await runCliCapture(["safe-run", badStructureDocm, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit docm missing OOXML structure");
+    assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr for missing OOXML structure");
   }
 
   {

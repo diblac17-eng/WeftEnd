@@ -1717,6 +1717,19 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
     }
     markers.push(...zip.markers);
     const namesLower = zip.entries.map((name) => String(name || "").toLowerCase());
+    const hasContentTypes = namesLower.includes("[content_types].xml");
+    const hasRelationshipPart =
+      namesLower.includes("_rels/.rels") ||
+      namesLower.includes("word/_rels/document.xml.rels") ||
+      namesLower.includes("xl/_rels/workbook.xml.rels");
+    if (strictRoute && (!hasContentTypes || !hasRelationshipPart)) {
+      return {
+        ok: false,
+        failCode: "DOC_FORMAT_MISMATCH",
+        failMessage: "document adapter expected OOXML document structure for explicit office-document analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+      };
+    }
     if (namesLower.some((name) => name.includes("vbaproject") || name.includes("macros"))) activeContent += 1;
     if (namesLower.some((name) => name.includes("/embeddings/") || name.includes("oleobject"))) embeddedObject += 1;
     if (namesLower.some((name) => name.includes("externallinks/"))) externalLink += 1;

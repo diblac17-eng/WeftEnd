@@ -759,6 +759,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const badStructureDocm = path.join(tmp, "bad_structure.docm");
+    writeStoredZip(badStructureDocm, [{ name: "word/document.xml", text: "<w:document/>" }]);
+    const capture = captureTreeV0(badStructureDocm, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: badStructureDocm, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit docm missing OOXML structure");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for missing OOXML structure");
+  }
+
+  {
+    const tmp = mkTmp();
     const badPdf = path.join(tmp, "bad.pdf");
     fs.writeFileSync(badPdf, "not-a-pdf", "utf8");
     const capture = captureTreeV0(badPdf, limits);
@@ -771,6 +781,8 @@ const run = (): void => {
     const tmp = mkTmp();
     const docm = path.join(tmp, "demo.docm");
     writeStoredZip(docm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "_rels/.rels", text: "<Relationships></Relationships>" },
       { name: "word/document.xml", text: "<w:document/>" },
       { name: "word/vbaProject.bin", text: "macro-data" },
       { name: "word/embeddings/oleObject1.bin", text: "ole-data" },

@@ -95,6 +95,7 @@ Included
 - Explicit `--adapter container` routing now also fails closed on tar/compose format mismatch (`CONTAINER_FORMAT_MISMATCH`) when explicit container hints are absent.
 - Explicit `--adapter document` routing for `.docm/.xlsm` now fails closed on extension/container mismatch (`DOC_FORMAT_MISMATCH`) instead of returning partial document summaries.
 - Explicit `--adapter document` routing now also fails closed for `.pdf/.rtf/.chm` extension/header mismatch (`DOC_FORMAT_MISMATCH`) instead of accepting clearly invalid document bytes.
+- Explicit `--adapter document` routing now also fails closed when `.docm/.xlsm` inputs are zip-like but missing required OOXML structure (`DOC_FORMAT_MISMATCH`) instead of treating generic zip payloads as valid office-document evidence.
 - Explicit `--adapter signature` routing now fails closed when inputs lack certificate/signature envelope evidence (`SIGNATURE_FORMAT_MISMATCH`) instead of accepting arbitrary extension-matched bytes.
 - Explicit `--adapter scm` routing now fails closed on unresolved git reference evidence (`SCM_REF_UNRESOLVED`) instead of accepting empty/malformed `.git` states as partial success.
 - New adapter discovery command: `weftend adapter list`
