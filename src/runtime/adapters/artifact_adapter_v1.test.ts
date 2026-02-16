@@ -259,6 +259,36 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const input = path.join(tmp, "plain.txt");
+    fs.writeFileSync(input, "plain text input", "utf8");
+    const capture = captureTreeV0(input, limits);
+    const res = runArtifactAdapterV1({
+      selection: "auto",
+      enabledPlugins: ["tar"],
+      inputPath: input,
+      capture,
+    });
+    assert(!res.ok, "known plugin should fail closed when auto adapter has no class match");
+    assertEq(res.failCode, "ADAPTER_PLUGIN_UNUSED", "expected plugin-unused fail code for auto unmatched");
+  }
+
+  {
+    const tmp = mkTmp();
+    const input = path.join(tmp, "sample.pdf");
+    fs.writeFileSync(input, "pdf-ish bytes", "utf8");
+    const capture = captureTreeV0(input, limits);
+    const res = runArtifactAdapterV1({
+      selection: "document",
+      enabledPlugins: ["tar"],
+      inputPath: input,
+      capture,
+    });
+    assert(!res.ok, "known plugin should fail closed for non-plugin adapter selections");
+    assertEq(res.failCode, "ADAPTER_PLUGIN_UNUSED", "expected plugin-unused fail code for non-plugin adapter");
+  }
+
+  {
+    const tmp = mkTmp();
     fs.writeFileSync(
       path.join(tmp, "manifest.json"),
       JSON.stringify({

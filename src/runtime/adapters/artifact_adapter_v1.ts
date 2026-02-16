@@ -1961,6 +1961,8 @@ const analyzeByClass = (adapterClass: AdapterClassV1, ctx: AnalyzeCtx): AnalyzeR
   };
 };
 
+const adapterSupportsPlugins = (adapterClass: AdapterClassV1): boolean => adapterClass === "archive";
+
 export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunResultV1 => {
   const selection = options.selection;
   const requestedPlugins = stableSortUniqueStringsV0(
@@ -1999,7 +2001,25 @@ export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunRe
 
   const adapterClass: AdapterClassV1 | null =
     selection === "auto" ? autoSelectClass(ctx) : (selection as AdapterClassV1);
-  if (!adapterClass) return { ok: true, reasonCodes: [] };
+  if (!adapterClass) {
+    if (requestedPlugins.length > 0) {
+      return {
+        ok: false,
+        failCode: "ADAPTER_PLUGIN_UNUSED",
+        failMessage: "plugins are not allowed when --adapter auto has no matching adapter class.",
+        reasonCodes: stableSortUniqueReasonsV0(["ADAPTER_PLUGIN_UNUSED"]),
+      };
+    }
+    return { ok: true, reasonCodes: [] };
+  }
+  if (requestedPlugins.length > 0 && !adapterSupportsPlugins(adapterClass)) {
+    return {
+      ok: false,
+      failCode: "ADAPTER_PLUGIN_UNUSED",
+      failMessage: `plugins are not supported when --adapter ${adapterClass} is selected.`,
+      reasonCodes: stableSortUniqueReasonsV0(["ADAPTER_PLUGIN_UNUSED"]),
+    };
+  }
 
   const analyzed = analyzeByClass(adapterClass, ctx);
   if (!analyzed.ok) {

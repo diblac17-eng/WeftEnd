@@ -123,6 +123,44 @@ const run = async (): Promise<void> => {
       "--adapter",
       "auto",
       "--enable-plugin",
+      "tar",
+    ]);
+    assertEq(res.status, 40, "safe-run should fail closed when adapter auto has no class match and plugin flags are provided");
+    assert(res.stderr.includes("ADAPTER_PLUGIN_UNUSED"), "expected ADAPTER_PLUGIN_UNUSED on stderr for auto unmatched");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "sample.pdf");
+    fs.writeFileSync(input, "pdf-ish bytes", "utf8");
+    const res = await runCliCapture([
+      "safe-run",
+      input,
+      "--out",
+      outDir,
+      "--adapter",
+      "document",
+      "--enable-plugin",
+      "tar",
+    ]);
+    assertEq(res.status, 40, "safe-run should fail closed when plugin flags are provided for non-plugin adapters");
+    assert(res.stderr.includes("ADAPTER_PLUGIN_UNUSED"), "expected ADAPTER_PLUGIN_UNUSED on stderr for non-plugin adapter");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "plain.txt");
+    fs.writeFileSync(input, "plain text input", "utf8");
+    const res = await runCliCapture([
+      "safe-run",
+      input,
+      "--out",
+      outDir,
+      "--adapter",
+      "auto",
+      "--enable-plugin",
       "unknown_plugin_name",
     ]);
     assertEq(res.status, 40, "safe-run should fail closed for unknown plugin under adapter auto");

@@ -23,6 +23,8 @@ Hard rules
 - If an unknown plugin name is provided, run fails closed with `ADAPTER_PLUGIN_UNKNOWN`.
 - Unknown plugin-name validation runs before adapter routing and still fails closed under `--adapter none`.
 - If `--adapter none` is selected, any plugin flag is invalid and fails closed with `ADAPTER_PLUGIN_UNUSED`.
+- If `--adapter auto` has no class match and plugin flags were provided, run fails closed with `ADAPTER_PLUGIN_UNUSED`.
+- If a selected adapter class does not support plugins, plugin flags are invalid and fail closed with `ADAPTER_PLUGIN_UNUSED`.
 
 5) No silent downgrade
 - Missing plugin support never silently claims full analysis coverage.

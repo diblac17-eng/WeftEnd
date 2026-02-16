@@ -75,6 +75,7 @@ Included
 - CLI flag parsing now preserves missing-value semantics when a value flag is followed by another flag token (for example `--out --adapter ...`) instead of mis-parsing the next flag as a value.
 - `safe-run` now fails closed on duplicate singleton flags (for example repeated `--adapter` or repeated `--out`) instead of silently using the last value.
 - `safe-run --adapter none` now fails closed when plugin flags are provided (`ADAPTER_PLUGIN_UNUSED`) instead of silently ignoring plugin config.
+- `safe-run` now fails closed with `ADAPTER_PLUGIN_UNUSED` when plugin flags are provided for non-plugin routes (for example `--adapter auto` no-class-match or explicit non-plugin adapters like `document`).
 - New adapter discovery command: `weftend adapter list`
 - Additive receipt/summary surface:
 - `safe_run_receipt.json` optional `adapter` metadata block
