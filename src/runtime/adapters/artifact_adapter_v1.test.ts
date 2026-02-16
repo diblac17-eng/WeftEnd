@@ -631,6 +631,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const appimage = path.join(tmp, "bad.appimage");
+    fs.writeFileSync(appimage, "not-an-elf-appimage", "utf8");
+    const capture = captureTreeV0(appimage, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: appimage, capture });
+    assert(!res.ok, "package adapter should fail closed for appimage header mismatch");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for bad appimage");
+  }
+
+  {
+    const tmp = mkTmp();
     const appimage = path.join(tmp, "sample.appimage");
     const bytes = Buffer.alloc(4096, 0);
     bytes[0] = 0x7f;
@@ -650,6 +660,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const pkg = path.join(tmp, "bad.pkg");
+    fs.writeFileSync(pkg, "not-a-xar", "utf8");
+    const capture = captureTreeV0(pkg, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: pkg, capture });
+    assert(!res.ok, "package adapter should fail closed for pkg header mismatch");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for bad pkg");
+  }
+
+  {
+    const tmp = mkTmp();
     const pkg = path.join(tmp, "sample.pkg");
     const bytes = Buffer.alloc(1024, 0);
     Buffer.from("xar!", "ascii").copy(bytes, 0);
@@ -661,6 +681,16 @@ const run = (): void => {
     assertEq(res.summary?.sourceClass, "package", "pkg package class mismatch");
     assertEq(res.summary?.counts.pkgXarHeaderPresent, 1, "pkg xar header marker missing");
     assert((res.summary?.reasonCodes ?? []).includes("EXECUTION_WITHHELD_INSTALLER"), "pkg installer withheld reason missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const dmg = path.join(tmp, "bad.dmg");
+    fs.writeFileSync(dmg, "not-a-dmg-trailer", "utf8");
+    const capture = captureTreeV0(dmg, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: dmg, capture });
+    assert(!res.ok, "package adapter should fail closed for dmg trailer mismatch");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for bad dmg");
   }
 
   {

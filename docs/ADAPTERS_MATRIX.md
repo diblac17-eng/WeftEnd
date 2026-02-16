@@ -30,7 +30,7 @@ Adapter classes
   PACKAGE_SIGNING_INFO_UNAVAILABLE
   EXECUTION_WITHHELD_INSTALLER
 - Route strictness:
-  explicit `--adapter package` now fails closed when package/container evidence mismatches (for example invalid `.msi` CFB header, invalid `.exe` PE header, invalid ZIP-backed package containers such as `.msix/.nupkg/.whl/.jar`, or invalid `.deb`/`.rpm` container/header evidence).
+  explicit `--adapter package` now fails closed when package/container evidence mismatches (for example invalid `.msi` CFB header, invalid `.exe` PE header, invalid ZIP-backed package containers such as `.msix/.nupkg/.whl/.jar`, invalid `.deb`/`.rpm` container/header evidence, or invalid `.appimage`/`.pkg`/`.dmg` header-trailer evidence).
 
 3) extension
 - Formats: .crx, .vsix, .xpi, unpacked extension folder with manifest.json

@@ -398,6 +398,36 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const badAppImage = path.join(tmp, "bad.appimage");
+    fs.writeFileSync(badAppImage, "not-an-elf-appimage", "utf8");
+    const res = await runCliCapture(["safe-run", badAppImage, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for package appimage header mismatch");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for bad appimage");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const badPkg = path.join(tmp, "bad.pkg");
+    fs.writeFileSync(badPkg, "not-a-xar", "utf8");
+    const res = await runCliCapture(["safe-run", badPkg, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for package pkg header mismatch");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for bad pkg");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const badDmg = path.join(tmp, "bad.dmg");
+    fs.writeFileSync(badDmg, "not-a-dmg-trailer", "utf8");
+    const res = await runCliCapture(["safe-run", badDmg, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for package dmg trailer mismatch");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for bad dmg");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const res = await runCliCapture(["safe-run", tmp, "--out", outDir, "--adapter", "extension"]);
     assertEq(res.status, 40, "safe-run should fail closed for extension directory without manifest");
     assert(res.stderr.includes("EXTENSION_MANIFEST_MISSING"), "expected EXTENSION_MANIFEST_MISSING on stderr");

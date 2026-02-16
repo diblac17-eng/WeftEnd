@@ -1131,6 +1131,14 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
     appImageMarkerPresent = headText.includes("AppImage") || headText.includes("AI\x02") ? 1 : 0;
     if (/AppRun|\.desktop|squashfs/i.test(headText)) textScriptHints += 1;
     if (appImageElfPresent === 0) {
+      if (strictRoute) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter detected extension/header mismatch for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
       markers.push("PACKAGE_APPIMAGE_HEADER_MISSING");
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
     }
@@ -1141,6 +1149,14 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
     if (/\b(scripts|preinstall|postinstall|payload)\b/i.test(text)) textScriptHints += 1;
     if (/\b(permission|authorization|entitlement)\b/i.test(text)) textPermissionHints += 1;
     if (pkgXarHeaderPresent === 0) {
+      if (strictRoute) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter detected extension/header mismatch for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
       markers.push("PACKAGE_PKG_HEADER_MISSING");
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
     }
@@ -1149,6 +1165,14 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
     const tailText = Buffer.from(io.tail).toString("latin1");
     dmgKolyTrailerPresent = tailText.includes("koly") ? 1 : 0;
     if (dmgKolyTrailerPresent === 0) {
+      if (strictRoute) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter detected extension/header mismatch for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
       markers.push("PACKAGE_DMG_TRAILER_MISSING");
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
     }
