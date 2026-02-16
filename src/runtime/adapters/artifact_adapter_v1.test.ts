@@ -820,6 +820,26 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const badTarPath = path.join(tmp, "bad_container.tar");
+    fs.writeFileSync(badTarPath, "not-a-container-tar", "utf8");
+    const capture = captureTreeV0(badTarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: badTarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit tar format mismatch");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for bad container tar");
+  }
+
+  {
+    const tmp = mkTmp();
+    const badComposePath = path.join(tmp, "compose.yaml");
+    fs.writeFileSync(badComposePath, "not compose syntax", "utf8");
+    const capture = captureTreeV0(badComposePath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: badComposePath, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit compose format mismatch");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for bad compose");
+  }
+
+  {
+    const tmp = mkTmp();
     const sbomPath = path.join(tmp, "demo.spdx.json");
     fs.writeFileSync(
       sbomPath,

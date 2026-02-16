@@ -1724,6 +1724,7 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
 
 const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
   const lower = path.basename(ctx.inputPath).toLowerCase();
+  const isTarInput = ctx.ext === ".tar";
   const isOciLayout =
     isDirectory(ctx.inputPath) && fs.existsSync(path.join(ctx.inputPath, "oci-layout")) && fs.existsSync(path.join(ctx.inputPath, "index.json"));
   const isCompose =
@@ -1733,13 +1734,21 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     lower === "compose.yaml" ||
     hasAnyPath(ctx.capture, ["docker-compose.yml", "docker-compose.yaml", "compose.yaml", "compose.yml"]);
   const isSbom = /sbom|spdx|cyclonedx|bom/i.test(lower);
-  const isContainerTarByHint = ctx.ext === ".tar" && hasAnyPath(ctx.capture, ["manifest.json", "repositories"]);
-  const tarEntries = ctx.ext === ".tar" ? readTarEntries(ctx.inputPath) : { entries: [] as string[], markers: [] as string[] };
+  const isContainerTarByHint = isTarInput && hasAnyPath(ctx.capture, ["manifest.json", "repositories"]);
+  const tarEntries = isTarInput ? readTarEntries(ctx.inputPath) : { entries: [] as string[], markers: [] as string[] };
   const isContainerTarByEntries =
-    ctx.ext === ".tar" &&
+    isTarInput &&
     tarEntries.entries.some((name) => path.basename(String(name || "")).toLowerCase() === "manifest.json") &&
     tarEntries.entries.some((name) => path.basename(String(name || "")).toLowerCase() === "repositories");
   const isContainerTar = isContainerTarByHint || isContainerTarByEntries;
+  if (strictRoute && isTarInput && !isContainerTar) {
+    return {
+      ok: false,
+      failCode: "CONTAINER_FORMAT_MISMATCH",
+      failMessage: "container adapter expected a docker/OCI tarball with manifest and repositories entries for explicit tar analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+    };
+  }
   if (!isOciLayout && !isCompose && !isSbom && !isContainerTar) {
     return {
       ok: false,
@@ -1817,6 +1826,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       composeImageRefCount += countMatchesV1(text, /\bimage\s*:\s*[^\s#]+/gi);
       composeServiceHintCount += countMatchesV1(text, /^\s{0,2}[A-Za-z0-9._-]+\s*:\s*$/gm);
     });
+    if (strictRoute && composeImageRefCount === 0 && composeServiceHintCount === 0) {
+      return {
+        ok: false,
+        failCode: "CONTAINER_FORMAT_MISMATCH",
+        failMessage: "container adapter expected compose/service hints for explicit compose analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+      };
+    }
   }
   if (isSbom) {
     const sbom = readJsonBounded(ctx.inputPath);

@@ -497,6 +497,26 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const badTar = path.join(tmp, "bad_container.tar");
+    fs.writeFileSync(badTar, "not-a-container-tar", "utf8");
+    const res = await runCliCapture(["safe-run", badTar, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit container tar mismatch");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for bad container tar");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const badCompose = path.join(tmp, "compose.yaml");
+    fs.writeFileSync(badCompose, "not compose syntax", "utf8");
+    const res = await runCliCapture(["safe-run", badCompose, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit container compose mismatch");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for bad compose");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const ociDir = path.join(tmp, "oci_bad_layout");
     fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
     fs.writeFileSync(path.join(ociDir, "oci-layout"), "{ invalid-json", "utf8");
