@@ -358,6 +358,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const badPem = path.join(tmp, "bad.pem");
+    fs.writeFileSync(badPem, "plain text not signature material", "utf8");
+    const res = await runCliCapture(["safe-run", badPem, "--out", outDir, "--adapter", "signature"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit signature format mismatch");
+    assert(res.stderr.includes("SIGNATURE_FORMAT_MISMATCH"), "expected SIGNATURE_FORMAT_MISMATCH on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badExe = path.join(tmp, "bad.exe");
     fs.writeFileSync(badExe, "not-a-pe", "utf8");
     const res = await runCliCapture(["safe-run", badExe, "--out", outDir, "--adapter", "package"]);

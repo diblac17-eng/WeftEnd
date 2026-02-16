@@ -91,6 +91,7 @@ Included
 - Explicit `--adapter container` routing now also fails closed on invalid OCI `oci-layout` metadata (`CONTAINER_LAYOUT_INVALID`) for OCI-layout inputs instead of returning partial container summaries.
 - Explicit `--adapter document` routing for `.docm/.xlsm` now fails closed on extension/container mismatch (`DOC_FORMAT_MISMATCH`) instead of returning partial document summaries.
 - Explicit `--adapter document` routing now also fails closed for `.pdf/.rtf/.chm` extension/header mismatch (`DOC_FORMAT_MISMATCH`) instead of accepting clearly invalid document bytes.
+- Explicit `--adapter signature` routing now fails closed when inputs lack certificate/signature envelope evidence (`SIGNATURE_FORMAT_MISMATCH`) instead of accepting arbitrary extension-matched bytes.
 - New adapter discovery command: `weftend adapter list`
 - Additive receipt/summary surface:
 - `safe_run_receipt.json` optional `adapter` metadata block

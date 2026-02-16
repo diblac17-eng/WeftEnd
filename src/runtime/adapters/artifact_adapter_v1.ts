@@ -2089,7 +2089,7 @@ const analyzeScm = (ctx: AnalyzeCtx): AnalyzeResult => {
   };
 };
 
-const analyzeSignature = (ctx: AnalyzeCtx): AnalyzeResult => {
+const analyzeSignature = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
   if (!SIGNATURE_EXTS.has(ctx.ext)) {
     return {
       ok: false,
@@ -2116,6 +2116,19 @@ const analyzeSignature = (ctx: AnalyzeCtx): AnalyzeResult => {
     /BEGIN CERTIFICATE|BEGIN PKCS7|BEGIN SIGNATURE/i.test(text);
   const chainPresent = pemCertificateCount >= 2 || textualChainHintCount > 0;
   const timestampPresent = textualTimestampCount > 0 || timestampOidCount > 0;
+  if (strictRoute) {
+    const hasPemEnvelope = /BEGIN [A-Z0-9 _-]+/i.test(text);
+    const looksAsn1Der = bytes.length >= 2 && bytes[0] === 0x30;
+    const strictEvidencePresent = signerPresent || chainPresent || timestampPresent || hasPemEnvelope || looksAsn1Der;
+    if (!strictEvidencePresent) {
+      return {
+        ok: false,
+        failCode: "SIGNATURE_FORMAT_MISMATCH",
+        failMessage: "signature adapter expected certificate/signature envelope or ASN.1 signature material for explicit route.",
+        reasonCodes: stableSortUniqueReasonsV0(["SIGNATURE_ADAPTER_V1", "SIGNATURE_FORMAT_MISMATCH"]),
+      };
+    }
+  }
   const reasons = ["SIGNATURE_EVIDENCE_V1"];
   const markers: string[] = [];
   if (bytes.length >= MAX_TEXT_BYTES) markers.push("SIGNATURE_BOUNDED");
@@ -2175,7 +2188,7 @@ const analyzeByClass = (adapterClass: AdapterClassV1, ctx: AnalyzeCtx, strictRou
   if (adapterClass === "container") return analyzeContainer(ctx, strictRoute);
   if (adapterClass === "image") return analyzeImage(ctx);
   if (adapterClass === "scm") return analyzeScm(ctx);
-  if (adapterClass === "signature") return analyzeSignature(ctx);
+  if (adapterClass === "signature") return analyzeSignature(ctx, strictRoute);
   return {
     ok: false,
     failCode: "ADAPTER_UNSUPPORTED",

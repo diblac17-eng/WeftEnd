@@ -945,6 +945,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const badPem = path.join(tmp, "bad.pem");
+    fs.writeFileSync(badPem, "plain text not signature material", "utf8");
+    const capture = captureTreeV0(badPem, limits);
+    const res = runArtifactAdapterV1({ selection: "signature", enabledPlugins: [], inputPath: badPem, capture });
+    assert(!res.ok, "explicit signature adapter should fail closed on invalid signature material");
+    assertEq(res.failCode, "SIGNATURE_FORMAT_MISMATCH", "signature mismatch fail code");
+  }
+
+  {
+    const tmp = mkTmp();
     const repo = path.join(tmp, "repo");
     fs.mkdirSync(repo, { recursive: true });
     const gitAvailable = runCmd("git", ["--version"]).ok;

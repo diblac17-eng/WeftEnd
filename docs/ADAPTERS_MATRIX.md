@@ -100,9 +100,12 @@ Adapter classes
 - Formats: .cer, .crt, .pem, .p7b, .sig
 - Key reason codes:
   SIGNATURE_EVIDENCE_V1
+  SIGNATURE_FORMAT_MISMATCH
   SIGNER_PRESENT
   CHAIN_PRESENT
   TIMESTAMP_PRESENT
+- Route strictness:
+  explicit `--adapter signature` fails closed when no certificate/signature envelope or ASN.1 signature evidence is present.
 
 Operator output artifacts
 - analysis/adapter_summary_v0.json
