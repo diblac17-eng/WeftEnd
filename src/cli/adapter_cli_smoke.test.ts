@@ -368,6 +368,26 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const badDeb = path.join(tmp, "bad.deb");
+    fs.writeFileSync(badDeb, "not-an-ar-deb", "utf8");
+    const res = await runCliCapture(["safe-run", badDeb, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for package deb container mismatch");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for bad deb");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const badRpm = path.join(tmp, "bad.rpm");
+    fs.writeFileSync(badRpm, "not-an-rpm", "utf8");
+    const res = await runCliCapture(["safe-run", badRpm, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for package rpm header mismatch");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for bad rpm");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const res = await runCliCapture(["safe-run", tmp, "--out", outDir, "--adapter", "extension"]);
     assertEq(res.status, 40, "safe-run should fail closed for extension directory without manifest");
     assert(res.stderr.includes("EXTENSION_MANIFEST_MISSING"), "expected EXTENSION_MANIFEST_MISSING on stderr");

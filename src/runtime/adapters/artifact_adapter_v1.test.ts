@@ -546,6 +546,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const deb = path.join(tmp, "bad.deb");
+    fs.writeFileSync(deb, "not-an-ar-deb", "utf8");
+    const capture = captureTreeV0(deb, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: deb, capture });
+    assert(!res.ok, "package adapter should fail closed for deb container mismatch");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for bad deb");
+  }
+
+  {
+    const tmp = mkTmp();
     const deb = path.join(tmp, "sample.deb");
     writeSimpleAr(deb, [
       { name: "debian-binary", bytes: Buffer.from("2.0\n", "utf8") },
@@ -559,6 +569,16 @@ const run = (): void => {
     assert((res.summary?.counts.debArEntryCount ?? 0) >= 3, "deb ar entry count missing");
     assert((res.summary?.counts.manifestCount ?? 0) > 0, "deb manifest hints missing");
     assert((res.summary?.reasonCodes ?? []).includes("EXECUTION_WITHHELD_INSTALLER"), "deb installer withheld reason missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const rpm = path.join(tmp, "bad.rpm");
+    fs.writeFileSync(rpm, "not-an-rpm", "utf8");
+    const capture = captureTreeV0(rpm, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: rpm, capture });
+    assert(!res.ok, "package adapter should fail closed for rpm header mismatch");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for bad rpm");
   }
 
   {

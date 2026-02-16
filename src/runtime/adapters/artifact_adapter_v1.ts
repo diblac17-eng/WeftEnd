@@ -1092,6 +1092,14 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
     const ar = readArEntriesV1(ctx.inputPath);
     entryNames = ar.entries;
     debArEntryCount = entryNames.length;
+    if (strictRoute && entryNames.length === 0) {
+      return {
+        ok: false,
+        failCode: "PACKAGE_FORMAT_MISMATCH",
+        failMessage: "package adapter detected extension/container mismatch for explicit package analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+      };
+    }
     markers.push(...ar.markers);
     if (entryNames.length === 0) reasonCodes.push("PACKAGE_METADATA_PARTIAL");
   } else if (ext === ".rpm") {
@@ -1105,6 +1113,14 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       signatureEntryCount += 1;
     }
     if (rpmLeadPresent === 0) {
+      if (strictRoute) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter detected extension/header mismatch for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
       markers.push("PACKAGE_RPM_HEADER_MISSING");
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
     }
