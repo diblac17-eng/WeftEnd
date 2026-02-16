@@ -619,6 +619,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const badDocm = path.join(tmp, "bad.docm");
+    fs.writeFileSync(badDocm, "not-a-zip-office-doc", "utf8");
+    const badCapture = captureTreeV0(badDocm, limits);
+    const badRes = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: badDocm, capture: badCapture });
+    assert(!badRes.ok, "document adapter should fail closed for invalid docm container");
+    assertEq(badRes.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for invalid docm");
+  }
+
+  {
+    const tmp = mkTmp();
     const docm = path.join(tmp, "demo.docm");
     writeStoredZip(docm, [
       { name: "word/document.xml", text: "<w:document/>" },

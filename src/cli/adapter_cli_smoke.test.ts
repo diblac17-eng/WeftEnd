@@ -338,6 +338,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const badDocm = path.join(tmp, "bad.docm");
+    fs.writeFileSync(badDocm, "not-a-zip-office-doc", "utf8");
+    const res = await runCliCapture(["safe-run", badDocm, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 40, "safe-run should fail closed for invalid explicit docm container");
+    assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badExe = path.join(tmp, "bad.exe");
     fs.writeFileSync(badExe, "not-a-pe", "utf8");
     const res = await runCliCapture(["safe-run", badExe, "--out", outDir, "--adapter", "package"]);

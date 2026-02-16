@@ -58,9 +58,12 @@ Adapter classes
 - Formats: .pdf, .docm, .xlsm, .rtf, .chm
 - Key reason codes:
   DOC_ADAPTER_V1
+  DOC_FORMAT_MISMATCH
   DOC_ACTIVE_CONTENT_PRESENT
   DOC_EMBEDDED_OBJECT_PRESENT
   DOC_EXTERNAL_LINK_PRESENT
+- Route strictness:
+  explicit `--adapter document` on `.docm/.xlsm` fails closed when container parsing is invalid.
 
 6) container (baseline signal lane)
 - Formats: OCI layouts, container tarball hints, compose/SBOM hints

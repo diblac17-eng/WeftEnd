@@ -1514,7 +1514,7 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeR
   };
 };
 
-const analyzeDocument = (ctx: AnalyzeCtx): AnalyzeResult => {
+const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
   if (!DOCUMENT_EXTS.has(ctx.ext)) {
     return {
       ok: false,
@@ -1536,6 +1536,14 @@ const analyzeDocument = (ctx: AnalyzeCtx): AnalyzeResult => {
 
   if (ctx.ext === ".docm" || ctx.ext === ".xlsm") {
     const zip = readZipEntries(ctx.inputPath);
+    if (strictRoute && zip.entries.length === 0) {
+      return {
+        ok: false,
+        failCode: "DOC_FORMAT_MISMATCH",
+        failMessage: "document adapter detected extension/container mismatch for explicit office-document analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+      };
+    }
     markers.push(...zip.markers);
     const namesLower = zip.entries.map((name) => String(name || "").toLowerCase());
     if (namesLower.some((name) => name.includes("vbaproject") || name.includes("macros"))) activeContent += 1;
@@ -2005,7 +2013,7 @@ const analyzeByClass = (adapterClass: AdapterClassV1, ctx: AnalyzeCtx, strictRou
   if (adapterClass === "package") return analyzePackage(ctx, strictRoute);
   if (adapterClass === "extension") return analyzeExtension(ctx);
   if (adapterClass === "iac" || adapterClass === "cicd") return analyzeIacCicd(ctx, adapterClass);
-  if (adapterClass === "document") return analyzeDocument(ctx);
+  if (adapterClass === "document") return analyzeDocument(ctx, strictRoute);
   if (adapterClass === "container") return analyzeContainer(ctx, strictRoute);
   if (adapterClass === "image") return analyzeImage(ctx);
   if (adapterClass === "scm") return analyzeScm(ctx);
