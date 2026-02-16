@@ -386,6 +386,16 @@ const run = (): void => {
   {
     const tmp = mkTmp();
     const tf = path.join(tmp, "main.tf");
+    fs.writeFileSync(tf, "resource \"null_resource\" \"x\" {}\n", "utf8");
+    const capture = captureTreeV0(tf, limits);
+    const res = runArtifactAdapterV1({ selection: "cicd", enabledPlugins: [], inputPath: tf, capture });
+    assert(!res.ok, "cicd adapter should fail closed for non-cicd terraform input");
+    assertEq(res.failCode, "CICD_UNSUPPORTED_FORMAT", "expected CICD_UNSUPPORTED_FORMAT for cicd route mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
+    const tf = path.join(tmp, "main.tf");
     fs.writeFileSync(
       tf,
       "module \"vpc\" {\n  source = \"git::https://github.com/acme/terraform-vpc.git\"\n}\n",

@@ -63,6 +63,7 @@ Adapter precondition and routing
 - ADAPTER_PLUGIN_DUPLICATE
 - ADAPTER_PLUGIN_UNUSED (plugin provided where no plugin path is valid for resolved adapter route)
 - IAC_UNSUPPORTED_FORMAT
+- CICD_UNSUPPORTED_FORMAT
 - DOC_UNSUPPORTED_FORMAT
 - IMAGE_UNSUPPORTED_FORMAT
 - SCM_UNSUPPORTED_FORMAT

@@ -150,6 +150,16 @@ const run = async (): Promise<void> => {
 
   {
     const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "main.tf");
+    fs.writeFileSync(input, "resource \"null_resource\" \"x\" {}\n", "utf8");
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "cicd"]);
+    assertEq(res.status, 40, "safe-run should fail closed for cicd route mismatch");
+    assert(res.stderr.includes("CICD_UNSUPPORTED_FORMAT"), "expected CICD_UNSUPPORTED_FORMAT on stderr for cicd mismatch");
+  }
+
+  {
+    const outDir = mkTmp();
     const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
     const res = await runCliCapture([
       "safe-run",

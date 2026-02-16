@@ -1367,6 +1367,11 @@ const analyzeExtension = (ctx: AnalyzeCtx): AnalyzeResult => {
 const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeResult => {
   const textExts = new Set([".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep", ".template"]);
   const files = collectTextFiles(ctx.inputPath, ctx.capture, textExts);
+  const baseName = path.basename(ctx.inputPath).toLowerCase();
+  const hasCicdPathHint =
+    baseName === ".gitlab-ci.yml" ||
+    baseName.startsWith("azure-pipelines") ||
+    hasAnyPath(ctx.capture, [".github/workflows/", ".gitlab-ci", "azure-pipelines"]);
   const inputLooksIac =
     IAC_EXTS.has(ctx.ext) ||
     hasAnyPath(ctx.capture, [".github/workflows/", ".gitlab-ci", "azure-pipelines", "docker-compose", "compose.yaml"]);
@@ -1443,6 +1448,21 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeR
   if (externalRunnerRefs > 0) {
     reasons.push("CICD_EXTERNAL_RUNNER_REF");
     findings.push("CICD_EXTERNAL_RUNNER_REF");
+  }
+  if (
+    forcedClass === "cicd" &&
+    !hasCicdPathHint &&
+    actionRefCount === 0 &&
+    unpinnedActionRefs === 0 &&
+    cicdSecretUsage === 0 &&
+    externalRunnerRefs === 0
+  ) {
+    return {
+      ok: false,
+      failCode: "CICD_UNSUPPORTED_FORMAT",
+      failMessage: "cicd adapter does not support this input format.",
+      reasonCodes: stableSortUniqueReasonsV0(["CICD_ADAPTER_V1", "CICD_UNSUPPORTED_FORMAT"]),
+    };
   }
 
   const hasCicdSignals = unpinnedActionRefs + cicdSecretUsage + externalRunnerRefs > 0;
