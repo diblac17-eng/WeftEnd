@@ -475,6 +475,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const msix = path.join(tmp, "bad.msix");
+    fs.writeFileSync(msix, "not-a-zip-msix", "utf8");
+    const capture = captureTreeV0(msix, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: msix, capture });
+    assert(!res.ok, "package adapter should fail closed for msix container mismatch");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for bad msix");
+  }
+
+  {
+    const tmp = mkTmp();
     const msix = path.join(tmp, "demo.msix");
     writeStoredZip(msix, [
       {

@@ -1038,6 +1038,14 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
   if (ext === ".nupkg" || ext === ".whl" || ext === ".jar" || ext === ".msix") {
     const zip = readZipEntries(ctx.inputPath);
     entryNames = zip.entries;
+    if (strictRoute && entryNames.length === 0) {
+      return {
+        ok: false,
+        failCode: "PACKAGE_FORMAT_MISMATCH",
+        failMessage: "package adapter detected extension/container mismatch for explicit package analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+      };
+    }
     markers.push(...zip.markers);
     if (entryNames.length === 0) reasonCodes.push("PACKAGE_METADATA_PARTIAL");
     signatureEntryCount += entryNames.filter((entry) => {

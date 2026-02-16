@@ -30,7 +30,7 @@ Adapter classes
   PACKAGE_SIGNING_INFO_UNAVAILABLE
   EXECUTION_WITHHELD_INSTALLER
 - Route strictness:
-  explicit `--adapter package` on `.exe` now fails closed when PE header evidence is invalid/missing.
+  explicit `--adapter package` now fails closed when package/container evidence mismatches (for example invalid `.exe` PE header or invalid ZIP-backed package containers such as `.msix/.nupkg/.whl/.jar`).
 
 3) extension
 - Formats: .crx, .vsix, .xpi, unpacked extension folder with manifest.json

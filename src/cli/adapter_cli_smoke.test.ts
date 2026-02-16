@@ -358,6 +358,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const badMsix = path.join(tmp, "bad.msix");
+    fs.writeFileSync(badMsix, "not-a-zip-msix", "utf8");
+    const res = await runCliCapture(["safe-run", badMsix, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for package msix container mismatch");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for bad msix");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const res = await runCliCapture(["safe-run", tmp, "--out", outDir, "--adapter", "extension"]);
     assertEq(res.status, 40, "safe-run should fail closed for extension directory without manifest");
     assert(res.stderr.includes("EXTENSION_MANIFEST_MISSING"), "expected EXTENSION_MANIFEST_MISSING on stderr");
