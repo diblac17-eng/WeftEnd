@@ -717,6 +717,19 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const deb = path.join(tmp, "bad_structure.deb");
+    writeSimpleAr(deb, [
+      { name: "random.txt", bytes: Buffer.from("x", "utf8") },
+      { name: "payload.bin", bytes: Buffer.from("y", "utf8") },
+    ]);
+    const capture = captureTreeV0(deb, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: deb, capture });
+    assert(!res.ok, "package adapter should fail closed for deb missing required package structure entries");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for deb missing required entries");
+  }
+
+  {
+    const tmp = mkTmp();
     const deb = path.join(tmp, "sample.deb");
     writeSimpleAr(deb, [
       { name: "debian-binary", bytes: Buffer.from("2.0\n", "utf8") },

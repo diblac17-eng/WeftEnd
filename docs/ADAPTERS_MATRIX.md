@@ -35,7 +35,7 @@ Adapter classes
   PACKAGE_SIGNING_INFO_UNAVAILABLE
   EXECUTION_WITHHELD_INSTALLER
 - Route strictness:
-  explicit `--adapter package` now fails closed when package/container evidence mismatches (for example invalid `.msi` CFB header, invalid `.exe` PE header, invalid ZIP-backed package containers, missing package-specific ZIP structure evidence for `.msix/.nupkg/.whl/.jar`, invalid `.deb`/`.rpm` container/header evidence, or invalid `.appimage`/`.pkg`/`.dmg` header-trailer evidence). Explicit compressed tar package formats (`.tgz/.tar.gz/.txz/.tar.xz`) now require `--enable-plugin tar` and fail closed when unavailable.
+  explicit `--adapter package` now fails closed when package/container evidence mismatches (for example invalid `.msi` CFB header, invalid `.exe` PE header, invalid ZIP-backed package containers, missing package-specific ZIP structure evidence for `.msix/.nupkg/.whl/.jar`, missing required Debian package entries for `.deb`, invalid `.rpm` container/header evidence, or invalid `.appimage`/`.pkg`/`.dmg` header-trailer evidence). Explicit compressed tar package formats (`.tgz/.tar.gz/.txz/.tar.xz`) now require `--enable-plugin tar` and fail closed when unavailable.
 
 3) extension
 - Formats: .crx, .vsix, .xpi, unpacked extension folder with manifest.json

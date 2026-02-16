@@ -1179,6 +1179,20 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
         reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
       };
     }
+    if (strictRoute) {
+      const namesLower = entryNames.map((entry) => String(entry || "").toLowerCase());
+      const hasDebianBinary = namesLower.includes("debian-binary");
+      const hasControl = namesLower.some((name) => name === "control.tar" || name.startsWith("control.tar."));
+      const hasData = namesLower.some((name) => name === "data.tar" || name.startsWith("data.tar."));
+      if (!hasDebianBinary || !hasControl || !hasData) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter expected Debian package structure entries for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
+    }
     markers.push(...ar.markers);
     if (entryNames.length === 0) reasonCodes.push("PACKAGE_METADATA_PARTIAL");
   } else if (ext === ".rpm") {

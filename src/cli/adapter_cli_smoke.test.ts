@@ -88,6 +88,23 @@ const writeStoredZip = (outPath: string, entries: Array<{ name: string; text: st
   fs.writeFileSync(outPath, Buffer.concat([...localParts, centralBlob, eocd]));
 };
 
+const writeSimpleAr = (outPath: string, files: Array<{ name: string; bytes: any }>): void => {
+  const parts: any[] = [Buffer.from("!<arch>\n", "ascii")];
+  files.forEach((file) => {
+    const nameRaw = String(file.name || "").replace(/\s+/g, "_");
+    const nameField = `${nameRaw}/`.slice(0, 16).padEnd(16, " ");
+    const payload = Buffer.isBuffer(file.bytes) ? file.bytes : Buffer.from(file.bytes || "");
+    const sizeField = String(payload.length).padStart(10, " ");
+    const header = Buffer.from(
+      `${nameField}${"0".padEnd(12, " ")}${"0".padEnd(6, " ")}${"0".padEnd(6, " ")}${"100644 ".padEnd(8, " ")}${sizeField}\`\n`,
+      "ascii"
+    );
+    parts.push(header, payload);
+    if (payload.length % 2 !== 0) parts.push(Buffer.from("\n", "ascii"));
+  });
+  fs.writeFileSync(outPath, Buffer.concat(parts));
+};
+
 const run = async (): Promise<void> => {
   {
     const res = await runCliCapture(["adapter", "list"]);
@@ -558,6 +575,19 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", badDeb, "--out", outDir, "--adapter", "package"]);
     assertEq(res.status, 40, "safe-run should fail closed for package deb container mismatch");
     assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for bad deb");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const badStructureDeb = path.join(tmp, "bad_structure.deb");
+    writeSimpleAr(badStructureDeb, [
+      { name: "random.txt", bytes: Buffer.from("x", "utf8") },
+      { name: "payload.bin", bytes: Buffer.from("y", "utf8") },
+    ]);
+    const res = await runCliCapture(["safe-run", badStructureDeb, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for package deb missing required structure entries");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for deb missing structure");
   }
 
   {
