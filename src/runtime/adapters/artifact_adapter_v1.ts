@@ -1977,7 +1977,17 @@ export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunRe
       reasonCodes: stableSortUniqueReasonsV0(["ADAPTER_PLUGIN_UNKNOWN"]),
     };
   }
-  if (selection === "none") return { ok: true, reasonCodes: [] };
+  if (selection === "none") {
+    if (requestedPlugins.length > 0) {
+      return {
+        ok: false,
+        failCode: "ADAPTER_PLUGIN_UNUSED",
+        failMessage: "plugins are not allowed when --adapter none is selected.",
+        reasonCodes: stableSortUniqueReasonsV0(["ADAPTER_PLUGIN_UNUSED"]),
+      };
+    }
+    return { ok: true, reasonCodes: [] };
+  }
   const enabledPlugins = new Set(requestedPlugins);
   const inputPath = path.resolve(process.cwd(), options.inputPath || "");
   const ctx: AnalyzeCtx = {

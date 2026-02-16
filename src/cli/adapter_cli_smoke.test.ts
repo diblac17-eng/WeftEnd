@@ -95,6 +95,23 @@ const run = async (): Promise<void> => {
 
   {
     const outDir = mkTmp();
+    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const res = await runCliCapture([
+      "safe-run",
+      input,
+      "--out",
+      outDir,
+      "--adapter",
+      "none",
+      "--enable-plugin",
+      "tar",
+    ]);
+    assertEq(res.status, 40, "safe-run should fail closed for plugin usage when adapter is none");
+    assert(res.stderr.includes("ADAPTER_PLUGIN_UNUSED"), "expected ADAPTER_PLUGIN_UNUSED on stderr for adapter none");
+  }
+
+  {
+    const outDir = mkTmp();
     const tmp = mkTmp();
     const input = path.join(tmp, "plain.txt");
     fs.writeFileSync(input, "plain text input", "utf8");

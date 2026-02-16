@@ -230,6 +230,19 @@ const run = (): void => {
   }
 
   {
+    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const capture = captureTreeV0(input, limits);
+    const res = runArtifactAdapterV1({
+      selection: "none",
+      enabledPlugins: ["tar"],
+      inputPath: input,
+      capture,
+    });
+    assert(!res.ok, "known plugin should fail closed when adapter none is selected");
+    assertEq(res.failCode, "ADAPTER_PLUGIN_UNUSED", "expected plugin-unused fail code for adapter none");
+  }
+
+  {
     const tmp = mkTmp();
     const input = path.join(tmp, "plain.txt");
     fs.writeFileSync(input, "plain text input", "utf8");
