@@ -85,6 +85,7 @@ Included
 - Explicit `--adapter extension` routing now also fails closed on invalid extension package structure (`EXTENSION_FORMAT_MISMATCH`) instead of collapsing malformed bundle bytes into generic manifest-missing paths.
 - Explicit `--adapter image` routing is now strict and fails closed when extension/header evidence mismatches (`IMAGE_FORMAT_MISMATCH`) instead of returning partial-success image summaries.
 - Explicit `--adapter package` routing is now strict for `.exe` and ZIP-backed package containers (`.msix/.nupkg/.whl/.jar`), failing closed on extension/container mismatch (`PACKAGE_FORMAT_MISMATCH`) instead of returning partial package summaries.
+- Explicit `--adapter package` routing now also requires package-specific ZIP structure evidence for `.msix/.nupkg/.whl/.jar` (for example manifest/metadata entries), failing closed with `PACKAGE_FORMAT_MISMATCH` on generic ZIP payloads.
 - Explicit `--adapter package` routing strictness now also covers `.deb` and `.rpm`, failing closed on invalid container/header evidence (`PACKAGE_FORMAT_MISMATCH`) instead of returning partial package summaries.
 - Explicit `--adapter package` routing strictness now also covers `.msi`, failing closed on invalid CFB header evidence (`PACKAGE_FORMAT_MISMATCH`) instead of returning partial package summaries.
 - Explicit `--adapter package` routing strictness now also covers `.appimage`, `.pkg`, and `.dmg`, failing closed on invalid header/trailer evidence (`PACKAGE_FORMAT_MISMATCH`) instead of returning partial package summaries.

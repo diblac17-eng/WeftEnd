@@ -533,6 +533,26 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const badStructureMsix = path.join(tmp, "bad_structure.msix");
+    writeStoredZip(badStructureMsix, [{ name: "file.txt", text: "x" }]);
+    const res = await runCliCapture(["safe-run", badStructureMsix, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for package msix missing structure");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for msix missing structure");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const badStructureNupkg = path.join(tmp, "bad_structure.nupkg");
+    writeStoredZip(badStructureNupkg, [{ name: "content/readme.txt", text: "x" }]);
+    const res = await runCliCapture(["safe-run", badStructureNupkg, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for package nupkg missing structure");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for nupkg missing structure");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badDeb = path.join(tmp, "bad.deb");
     fs.writeFileSync(badDeb, "not-an-ar-deb", "utf8");
     const res = await runCliCapture(["safe-run", badDeb, "--out", outDir, "--adapter", "package"]);

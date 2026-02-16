@@ -570,6 +570,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const badStructureMsix = path.join(tmp, "bad_structure.msix");
+    writeStoredZip(badStructureMsix, [{ name: "file.txt", text: "x" }]);
+    const capture = captureTreeV0(badStructureMsix, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: badStructureMsix, capture });
+    assert(!res.ok, "package adapter should fail closed for msix missing package structure");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for msix missing structure");
+  }
+
+  {
+    const tmp = mkTmp();
     const msix = path.join(tmp, "demo.msix");
     writeStoredZip(msix, [
       {
@@ -594,6 +604,72 @@ const run = (): void => {
     assert((res.summary?.counts.permissionHintCount ?? 0) > 0, "msix permission hint count missing");
     assert((res.summary?.counts.signingEvidenceCount ?? 0) > 0, "msix signing evidence should be present");
     assert((res.summary?.reasonCodes ?? []).includes("PACKAGE_SIGNING_INFO_PRESENT"), "msix signing reason missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const badStructureNupkg = path.join(tmp, "bad_structure.nupkg");
+    writeStoredZip(badStructureNupkg, [{ name: "content/readme.txt", text: "x" }]);
+    const capture = captureTreeV0(badStructureNupkg, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: badStructureNupkg, capture });
+    assert(!res.ok, "package adapter should fail closed for nupkg missing nuspec");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for nupkg missing structure");
+  }
+
+  {
+    const tmp = mkTmp();
+    const nupkg = path.join(tmp, "demo.nupkg");
+    writeStoredZip(nupkg, [{ name: "demo.nuspec", text: "<package></package>" }]);
+    const capture = captureTreeV0(nupkg, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: nupkg, capture });
+    assert(res.ok, "package adapter should parse nupkg package structure");
+    assertEq(res.summary?.sourceClass, "package", "nupkg package class mismatch");
+    assert((res.summary?.counts.manifestCount ?? 0) > 0, "nupkg manifest count missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const badStructureWhl = path.join(tmp, "bad_structure.whl");
+    writeStoredZip(badStructureWhl, [{ name: "pkg/__init__.py", text: "" }]);
+    const capture = captureTreeV0(badStructureWhl, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: badStructureWhl, capture });
+    assert(!res.ok, "package adapter should fail closed for whl missing dist-info metadata");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for whl missing structure");
+  }
+
+  {
+    const tmp = mkTmp();
+    const whl = path.join(tmp, "demo.whl");
+    writeStoredZip(whl, [
+      { name: "demo-1.0.dist-info/METADATA", text: "Name: demo\nVersion: 1.0.0\n" },
+      { name: "demo-1.0.dist-info/WHEEL", text: "Wheel-Version: 1.0\n" },
+    ]);
+    const capture = captureTreeV0(whl, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: whl, capture });
+    assert(res.ok, "package adapter should parse whl package structure");
+    assertEq(res.summary?.sourceClass, "package", "whl package class mismatch");
+    assert((res.summary?.counts.manifestCount ?? 0) > 0, "whl manifest count missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const badStructureJar = path.join(tmp, "bad_structure.jar");
+    writeStoredZip(badStructureJar, [{ name: "com/example/App.class", text: "x" }]);
+    const capture = captureTreeV0(badStructureJar, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: badStructureJar, capture });
+    assert(!res.ok, "package adapter should fail closed for jar missing manifest");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for jar missing structure");
+  }
+
+  {
+    const tmp = mkTmp();
+    const jar = path.join(tmp, "demo.jar");
+    writeStoredZip(jar, [{ name: "META-INF/MANIFEST.MF", text: "Manifest-Version: 1.0\n" }]);
+    const capture = captureTreeV0(jar, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: jar, capture });
+    assert(res.ok, "package adapter should parse jar package structure");
+    assertEq(res.summary?.sourceClass, "package", "jar package class mismatch");
+    assert((res.summary?.counts.manifestCount ?? 0) > 0, "jar manifest count missing");
   }
 
   {

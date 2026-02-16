@@ -1072,6 +1072,32 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
         reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
       };
     }
+    if (strictRoute) {
+      const namesLower = entryNames.map((entry) => String(entry || "").replace(/\\/g, "/").toLowerCase());
+      let hasPackageStructure = true;
+      if (ext === ".msix") {
+        hasPackageStructure = namesLower.some((name) => {
+          const base = path.basename(name);
+          return base === "appxmanifest.xml" || base === "appxbundlemanifest.xml";
+        });
+      } else if (ext === ".nupkg") {
+        hasPackageStructure = namesLower.some((name) => path.basename(name).endsWith(".nuspec"));
+      } else if (ext === ".whl") {
+        hasPackageStructure = namesLower.some(
+          (name) => name.includes(".dist-info/metadata") || name.includes(".dist-info/wheel")
+        );
+      } else if (ext === ".jar") {
+        hasPackageStructure = namesLower.some((name) => name === "meta-inf/manifest.mf");
+      }
+      if (!hasPackageStructure) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter expected package-specific archive structure for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
+    }
     markers.push(...zip.markers);
     if (entryNames.length === 0) reasonCodes.push("PACKAGE_METADATA_PARTIAL");
     signatureEntryCount += entryNames.filter((entry) => {
@@ -1282,6 +1308,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
     "nuspec",
     "metadata",
     "pkg-info",
+    "manifest.mf",
     "pom.xml",
     "setup.py",
     "debian-binary",
@@ -1305,7 +1332,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
   entryNames.forEach((entry) => {
     const lower = entry.toLowerCase();
     const base = path.basename(lower);
-    if (manifestNames.has(base)) manifestCount += 1;
+    if (manifestNames.has(base) || base.endsWith(".nuspec")) manifestCount += 1;
     if (Array.from(scriptIndicators).some((hint) => lower.includes(hint))) scriptCount += 1;
     if (Array.from(permissionIndicators).some((hint) => lower.includes(hint))) permissionCount += 1;
   });
