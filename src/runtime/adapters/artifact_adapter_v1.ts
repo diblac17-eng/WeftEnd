@@ -890,6 +890,24 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
   let entries: string[] = [];
 
   if (ext === ".zip") {
+    if (strictRoute) {
+      const bytes = readBytesBounded(ctx.inputPath, 4);
+      const zipMagicOk =
+        bytes.length >= 4 &&
+        bytes[0] === 0x50 &&
+        bytes[1] === 0x4b &&
+        ((bytes[2] === 0x03 && bytes[3] === 0x04) ||
+          (bytes[2] === 0x05 && bytes[3] === 0x06) ||
+          (bytes[2] === 0x07 && bytes[3] === 0x08));
+      if (!zipMagicOk) {
+        return {
+          ok: false,
+          failCode: "ARCHIVE_FORMAT_MISMATCH",
+          failMessage: "archive adapter expected ZIP signature bytes for explicit zip route analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_FORMAT_MISMATCH"]),
+        };
+      }
+    }
     if (ctx.capture.kind === "zip") {
       entries = ctx.capture.entries.map((entry) => entry.path);
     } else {

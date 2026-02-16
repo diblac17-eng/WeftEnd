@@ -172,7 +172,12 @@ const limits = {
 
 const run = (): void => {
   {
-    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const tmp = mkTmp();
+    const input = path.join(tmp, "good.zip");
+    writeStoredZip(input, [
+      { name: "a.txt", text: "alpha" },
+      { name: "b/c.txt", text: "beta" },
+    ]);
     const captureA = captureTreeV0(input, limits);
     const captureB = captureTreeV0(input, limits);
     const resA = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: input, capture: captureA });
@@ -201,6 +206,16 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: badTar, capture });
     assert(!res.ok, "archive adapter should fail closed for explicit invalid tar structure");
     assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for invalid tar");
+  }
+
+  {
+    const tmp = mkTmp();
+    const badZip = path.join(tmp, "bad.zip");
+    fs.writeFileSync(badZip, "not-a-zip", "utf8");
+    const capture = captureTreeV0(badZip, limits);
+    const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: badZip, capture });
+    assert(!res.ok, "archive adapter should fail closed for explicit invalid zip signature");
+    assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for invalid zip");
   }
 
   {

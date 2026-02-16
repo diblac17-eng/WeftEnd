@@ -104,7 +104,12 @@ const run = async (): Promise<void> => {
 
   {
     const outDir = mkTmp();
-    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const tmp = mkTmp();
+    const input = path.join(tmp, "good.zip");
+    writeStoredZip(input, [
+      { name: "a.txt", text: "alpha" },
+      { name: "b/c.txt", text: "beta" },
+    ]);
     const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"]);
     assertEq(res.status, 0, `safe-run archive should succeed\n${res.stderr}`);
     const safePath = path.join(outDir, "safe_run_receipt.json");
@@ -136,6 +141,16 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"]);
     assertEq(res.status, 40, "safe-run archive should fail closed for explicit archive format mismatch");
     assert(res.stderr.includes("ARCHIVE_FORMAT_MISMATCH"), "expected ARCHIVE_FORMAT_MISMATCH on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "bad.zip");
+    fs.writeFileSync(input, "not-a-zip", "utf8");
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"]);
+    assertEq(res.status, 40, "safe-run archive should fail closed for explicit zip signature mismatch");
+    assert(res.stderr.includes("ARCHIVE_FORMAT_MISMATCH"), "expected ARCHIVE_FORMAT_MISMATCH on stderr for bad zip");
   }
 
   {
