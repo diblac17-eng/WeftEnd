@@ -1994,7 +1994,7 @@ const analyzeImage = (ctx: AnalyzeCtx): AnalyzeResult => {
   };
 };
 
-const analyzeScm = (ctx: AnalyzeCtx): AnalyzeResult => {
+const analyzeScm = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
   if (!isDirectory(ctx.inputPath) || !fs.existsSync(path.join(ctx.inputPath, ".git"))) {
     return {
       ok: false,
@@ -2012,6 +2012,14 @@ const analyzeScm = (ctx: AnalyzeCtx): AnalyzeResult => {
       .length;
   if (!rev.ok || rev.lines.length === 0) {
     const fallback = readNativeScmFallbackV1(ctx.inputPath);
+    if (strictRoute && fallback.commitResolved === 0 && fallback.branchRefCount === 0 && fallback.tagRefCount === 0) {
+      return {
+        ok: false,
+        failCode: "SCM_REF_UNRESOLVED",
+        failMessage: "scm adapter expected resolvable git reference evidence for explicit scm analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["SCM_ADAPTER_V1", "SCM_REF_UNRESOLVED"]),
+      };
+    }
     if (fallback.partial) markers.push("SCM_NATIVE_REF_PARTIAL");
     return {
       ok: true,
@@ -2204,7 +2212,7 @@ const analyzeByClass = (adapterClass: AdapterClassV1, ctx: AnalyzeCtx, strictRou
   if (adapterClass === "document") return analyzeDocument(ctx, strictRoute);
   if (adapterClass === "container") return analyzeContainer(ctx, strictRoute);
   if (adapterClass === "image") return analyzeImage(ctx);
-  if (adapterClass === "scm") return analyzeScm(ctx);
+  if (adapterClass === "scm") return analyzeScm(ctx, strictRoute);
   if (adapterClass === "signature") return analyzeSignature(ctx, strictRoute);
   return {
     ok: false,

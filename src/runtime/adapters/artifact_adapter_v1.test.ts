@@ -983,8 +983,8 @@ const run = (): void => {
       fs.writeFileSync(path.join(repo, "a.txt"), "x", "utf8");
       const capture = captureTreeV0(repo, limits);
       const res = runArtifactAdapterV1({ selection: "scm", enabledPlugins: [], inputPath: repo, capture });
-      assert(res.ok, "scm adapter should still produce unresolved evidence without git binary");
-      assertEq(res.summary?.counts.commitResolved, 0, "commit should be unresolved without git");
+      assert(!res.ok, "explicit scm adapter should fail closed when git refs are unresolved");
+      assertEq(res.failCode, "SCM_REF_UNRESOLVED", "expected SCM_REF_UNRESOLVED without git refs");
     } else {
       assert(runCmd("git", ["init"], repo).ok, "git init failed");
       fs.writeFileSync(path.join(repo, "a.txt"), "x", "utf8");
@@ -1018,6 +1018,17 @@ const run = (): void => {
       assert((dirty.summary?.counts.unstagedPathCount ?? 0) >= 1, "unstaged path count missing");
       assert((dirty.summary?.reasonCodes ?? []).includes("SCM_WORKTREE_DIRTY"), "missing SCM_WORKTREE_DIRTY reason");
     }
+  }
+
+  {
+    const tmp = mkTmp();
+    const repo = path.join(tmp, "repo_unresolved");
+    fs.mkdirSync(path.join(repo, ".git"), { recursive: true });
+    fs.writeFileSync(path.join(repo, "file.txt"), "x", "utf8");
+    const capture = captureTreeV0(repo, limits);
+    const res = runArtifactAdapterV1({ selection: "scm", enabledPlugins: [], inputPath: repo, capture });
+    assert(!res.ok, "explicit scm adapter should fail closed for unresolved native .git refs");
+    assertEq(res.failCode, "SCM_REF_UNRESOLVED", "expected SCM_REF_UNRESOLVED for unresolved native refs");
   }
 
   {

@@ -368,6 +368,17 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const repo = path.join(tmp, "repo_unresolved");
+    fs.mkdirSync(path.join(repo, ".git"), { recursive: true });
+    fs.writeFileSync(path.join(repo, "file.txt"), "x", "utf8");
+    const res = await runCliCapture(["safe-run", repo, "--out", outDir, "--adapter", "scm"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit scm unresolved refs");
+    assert(res.stderr.includes("SCM_REF_UNRESOLVED"), "expected SCM_REF_UNRESOLVED on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badExe = path.join(tmp, "bad.exe");
     fs.writeFileSync(badExe, "not-a-pe", "utf8");
     const res = await runCliCapture(["safe-run", badExe, "--out", outDir, "--adapter", "package"]);
