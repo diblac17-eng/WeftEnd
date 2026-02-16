@@ -506,6 +506,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const badVsix = path.join(tmp, "bad.vsix");
+    fs.writeFileSync(badVsix, "not-a-zip-extension", "utf8");
+    const res = await runCliCapture(["safe-run", badVsix, "--out", outDir, "--adapter", "extension"]);
+    assertEq(res.status, 40, "safe-run should fail closed for invalid explicit extension package structure");
+    assert(res.stderr.includes("EXTENSION_FORMAT_MISMATCH"), "expected EXTENSION_FORMAT_MISMATCH on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badIso = path.join(tmp, "bad.iso");
     fs.writeFileSync(badIso, "not-an-iso", "utf8");
     const badRes = await runCliCapture(["safe-run", badIso, "--out", outDir, "--adapter", "image"]);

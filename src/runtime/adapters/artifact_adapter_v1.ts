@@ -1386,7 +1386,7 @@ const analyzeExtensionDir = (inputPath: string): {
   };
 };
 
-const analyzeExtension = (ctx: AnalyzeCtx): AnalyzeResult => {
+const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
   const ext = ctx.ext;
   const isDir = isDirectory(ctx.inputPath);
   if (!(EXTENSION_EXTS.has(ext) || isDir)) {
@@ -1421,6 +1421,14 @@ const analyzeExtension = (ctx: AnalyzeCtx): AnalyzeResult => {
     const zip = readZipEntries(ctx.inputPath);
     manifestFound = zip.entries.some((entry) => path.basename(entry).toLowerCase() === "manifest.json");
     markers.push(...zip.markers);
+    if (strictRoute && zip.markers.includes("ARCHIVE_METADATA_PARTIAL") && zip.entries.length === 0) {
+      return {
+        ok: false,
+        failCode: "EXTENSION_FORMAT_MISMATCH",
+        failMessage: "extension adapter expected a valid extension package structure for explicit route analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_FORMAT_MISMATCH"]),
+      };
+    }
     if (!manifestFound) markers.push("EXTENSION_MANIFEST_MISSING");
     else {
       const manifestTexts = readZipTextEntriesByBaseName(ctx.inputPath, ["manifest.json"]);
@@ -2237,7 +2245,7 @@ const autoSelectClass = (ctx: AnalyzeCtx): AdapterClassV1 | null => {
 const analyzeByClass = (adapterClass: AdapterClassV1, ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
   if (adapterClass === "archive") return analyzeArchive(ctx, strictRoute);
   if (adapterClass === "package") return analyzePackage(ctx, strictRoute);
-  if (adapterClass === "extension") return analyzeExtension(ctx);
+  if (adapterClass === "extension") return analyzeExtension(ctx, strictRoute);
   if (adapterClass === "iac" || adapterClass === "cicd") return analyzeIacCicd(ctx, adapterClass);
   if (adapterClass === "document") return analyzeDocument(ctx, strictRoute);
   if (adapterClass === "container") return analyzeContainer(ctx, strictRoute);

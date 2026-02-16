@@ -348,6 +348,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const badVsix = path.join(tmp, "bad.vsix");
+    fs.writeFileSync(badVsix, "not-a-zip-extension", "utf8");
+    const capture = captureTreeV0(badVsix, limits);
+    const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: badVsix, capture });
+    assert(!res.ok, "extension adapter should fail closed for invalid explicit extension package structure");
+    assertEq(res.failCode, "EXTENSION_FORMAT_MISMATCH", "expected EXTENSION_FORMAT_MISMATCH for invalid extension package");
+  }
+
+  {
+    const tmp = mkTmp();
     fs.writeFileSync(path.join(tmp, "manifest.json"), "{ invalid-json", "utf8");
     const capture = captureTreeV0(tmp, limits);
     const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: tmp, capture });
