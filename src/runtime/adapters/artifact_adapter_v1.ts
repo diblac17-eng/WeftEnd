@@ -1635,9 +1635,21 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
 
   if (isOciLayout) {
     const index = readJsonBounded(path.join(ctx.inputPath, "index.json"));
-    if (index && typeof index === "object" && Array.isArray((index as any).manifests)) {
-      ociManifestCount = (index as any).manifests.length;
+    if (index && typeof index === "object") {
+      if (Array.isArray((index as any).manifests)) {
+        ociManifestCount = (index as any).manifests.length;
+      } else {
+        markers.push("CONTAINER_INDEX_PARTIAL");
+      }
     } else {
+      if (strictRoute) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_INDEX_INVALID",
+          failMessage: "container adapter requires valid OCI index.json for explicit OCI layout analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_INDEX_INVALID"]),
+        };
+      }
       markers.push("CONTAINER_INDEX_PARTIAL");
     }
     ociBlobCount = ctx.capture.entries

@@ -397,11 +397,24 @@ const run = async (): Promise<void> => {
     const tmp = mkTmp();
     fs.mkdirSync(path.join(tmp, "oci_image"));
     fs.writeFileSync(path.join(tmp, "oci_image", "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
-    fs.writeFileSync(path.join(tmp, "oci_image", "index.json"), "{\"schemaVersion\":2}\n", "utf8");
+    fs.writeFileSync(path.join(tmp, "oci_image", "index.json"), "{\"schemaVersion\":2,\"manifests\":[]}\n", "utf8");
     const res = await runCliCapture(["safe-run", path.join(tmp, "oci_image"), "--out", outDir, "--adapter", "container"]);
     assertEq(res.status, 0, `safe-run container should succeed\n${res.stderr}`);
     const safe = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
     assertEq(safe.adapter?.adapterId, "container_adapter_v1", "container adapter id mismatch");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const ociDir = path.join(tmp, "oci_bad_index");
+    fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
+    fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
+    fs.writeFileSync(path.join(ociDir, "index.json"), "{ invalid-json", "utf8");
+    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", "a"), "x", "utf8");
+    const res = await runCliCapture(["safe-run", ociDir, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI index parse invalidity");
+    assert(res.stderr.includes("CONTAINER_INDEX_INVALID"), "expected CONTAINER_INDEX_INVALID on stderr");
   }
 
   {
