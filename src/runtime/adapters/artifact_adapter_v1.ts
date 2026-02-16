@@ -1501,6 +1501,7 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeR
   }
   const reasons = ["IAC_ADAPTER_V1"];
   const findings: string[] = [];
+  let iacStructuralPatterns = 0;
   let privileged = 0;
   let secretRefs = 0;
   let remoteModuleRefs = 0;
@@ -1511,6 +1512,12 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeR
   const externalDomains = new Set<string>();
 
   const scanText = (text: string) => {
+    iacStructuralPatterns += countMatchesV1(text, /^\s*(terraform|provider|resource|module|variable|output)\b/mgi);
+    iacStructuralPatterns += countMatchesV1(text, /^\s*(apiVersion|kind)\s*:/mgi);
+    iacStructuralPatterns += countMatchesV1(text, /\bAWSTemplateFormatVersion\b/gi);
+    iacStructuralPatterns += countMatchesV1(text, /"resources"\s*:/gi);
+    iacStructuralPatterns += countMatchesV1(text, /^\s*services\s*:\s*$/mgi);
+
     privileged += countMatchesV1(text, /\bprivileged\s*:\s*true\b/gi);
     privileged += countMatchesV1(text, /\ballowprivilegeescalation\s*:\s*true\b/gi);
     privileged += countMatchesV1(text, /\bhost(network|pid|ipc)\s*:\s*true\b/gi);
@@ -1580,6 +1587,20 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeR
       reasonCodes: stableSortUniqueReasonsV0(["CICD_ADAPTER_V1", "CICD_UNSUPPORTED_FORMAT"]),
     };
   }
+  if (
+    forcedClass === "iac" &&
+    iacStructuralPatterns === 0 &&
+    privileged === 0 &&
+    secretRefs === 0 &&
+    remoteModuleRefs === 0
+  ) {
+    return {
+      ok: false,
+      failCode: "IAC_UNSUPPORTED_FORMAT",
+      failMessage: "iac adapter does not support this input format.",
+      reasonCodes: stableSortUniqueReasonsV0(["IAC_ADAPTER_V1", "IAC_UNSUPPORTED_FORMAT"]),
+    };
+  }
 
   const hasCicdSignals = unpinnedActionRefs + cicdSecretUsage + externalRunnerRefs > 0;
   const sourceClass: AdapterClassV1 = forcedClass ?? (hasCicdSignals ? "cicd" : "iac");
@@ -1593,6 +1614,7 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeR
     adapterId: sourceClass === "cicd" ? "cicd_adapter_v1" : "iac_adapter_v1",
     counts: {
       filesScanned,
+      iacStructuralPatternCount: iacStructuralPatterns,
       privilegedPatternCount: privileged,
       secretPatternCount: secretRefs,
       remoteModulePatternCount: remoteModuleRefs,

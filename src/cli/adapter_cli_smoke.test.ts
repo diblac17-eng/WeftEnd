@@ -160,6 +160,16 @@ const run = async (): Promise<void> => {
 
   {
     const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "notes.yaml");
+    fs.writeFileSync(input, "title: hello\nmessage: plain text\n", "utf8");
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "iac"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit iac route mismatch");
+    assert(res.stderr.includes("IAC_UNSUPPORTED_FORMAT"), "expected IAC_UNSUPPORTED_FORMAT on stderr for iac mismatch");
+  }
+
+  {
+    const outDir = mkTmp();
     const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
     const res = await runCliCapture([
       "safe-run",

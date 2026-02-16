@@ -55,6 +55,8 @@ Adapter classes
   CICD_UNPINNED_ACTION
   CICD_SECRET_CONTEXT_USAGE
   CICD_EXTERNAL_RUNNER_REF
+- Route strictness:
+  explicit `--adapter iac` fails closed on non-IaC text/config inputs (`IAC_UNSUPPORTED_FORMAT`), and explicit `--adapter cicd` fails closed on non-CI/CD inputs (`CICD_UNSUPPORTED_FORMAT`).
 
 5) document (baseline signal lane)
 - Formats: .pdf, .docm, .xlsm, .rtf, .chm

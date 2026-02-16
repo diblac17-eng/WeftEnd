@@ -412,6 +412,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const yaml = path.join(tmp, "notes.yaml");
+    fs.writeFileSync(yaml, "title: hello\nmessage: plain text\n", "utf8");
+    const capture = captureTreeV0(yaml, limits);
+    const res = runArtifactAdapterV1({ selection: "iac", enabledPlugins: [], inputPath: yaml, capture });
+    assert(!res.ok, "iac adapter should fail closed for non-iac yaml under explicit iac route");
+    assertEq(res.failCode, "IAC_UNSUPPORTED_FORMAT", "expected IAC_UNSUPPORTED_FORMAT for iac route mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
     const tf = path.join(tmp, "main.tf");
     fs.writeFileSync(
       tf,
