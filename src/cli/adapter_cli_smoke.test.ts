@@ -477,6 +477,19 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const ociDir = path.join(tmp, "oci_bad_layout");
+    fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
+    fs.writeFileSync(path.join(ociDir, "oci-layout"), "{ invalid-json", "utf8");
+    fs.writeFileSync(path.join(ociDir, "index.json"), "{\"schemaVersion\":2,\"manifests\":[]}\n", "utf8");
+    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", "a"), "x", "utf8");
+    const res = await runCliCapture(["safe-run", ociDir, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI layout metadata invalidity");
+    assert(res.stderr.includes("CONTAINER_LAYOUT_INVALID"), "expected CONTAINER_LAYOUT_INVALID on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const ociDir = path.join(tmp, "oci_bad_index");
     fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
     fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");

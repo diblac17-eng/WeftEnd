@@ -72,12 +72,13 @@ Adapter classes
 - Key reason codes:
   CONTAINER_ADAPTER_V1
   CONTAINER_OCI_LAYOUT
+  CONTAINER_LAYOUT_INVALID
   CONTAINER_INDEX_INVALID
   CONTAINER_TARBALL_SCAN
   CONTAINER_SBOM_PRESENT
   CONTAINER_SBOM_INVALID
 - Route strictness:
-  explicit `--adapter container` fails closed when OCI `index.json` is invalid or SBOM-named inputs are invalid JSON.
+  explicit `--adapter container` fails closed when OCI `oci-layout` metadata or `index.json` is invalid, or when SBOM-named inputs are invalid JSON.
 
 7) image
 - Formats: .iso, .vhd, .vhdx, .vmdk, .qcow2

@@ -1720,6 +1720,19 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let sbomPackageCount = 0;
 
   if (isOciLayout) {
+    const layout = readJsonBounded(path.join(ctx.inputPath, "oci-layout"));
+    const layoutOk = layout && typeof layout === "object" && typeof (layout as any).imageLayoutVersion === "string";
+    if (!layoutOk) {
+      if (strictRoute) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_LAYOUT_INVALID",
+          failMessage: "container adapter requires valid oci-layout metadata for explicit OCI layout analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_LAYOUT_INVALID"]),
+        };
+      }
+      markers.push("CONTAINER_LAYOUT_PARTIAL");
+    }
     const index = readJsonBounded(path.join(ctx.inputPath, "index.json"));
     if (index && typeof index === "object") {
       if (Array.isArray((index as any).manifests)) {

@@ -769,6 +769,19 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const ociDir = path.join(tmp, "oci_layout_bad_layout");
+    fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
+    fs.writeFileSync(path.join(ociDir, "oci-layout"), "{ invalid-json", "utf8");
+    fs.writeFileSync(path.join(ociDir, "index.json"), JSON.stringify({ schemaVersion: 2, manifests: [] }), "utf8");
+    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", "a"), "x", "utf8");
+    const capture = captureTreeV0(ociDir, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: ociDir, capture });
+    assert(!res.ok, "container adapter should fail closed for invalid explicit oci-layout metadata");
+    assertEq(res.failCode, "CONTAINER_LAYOUT_INVALID", "expected CONTAINER_LAYOUT_INVALID for invalid oci-layout");
+  }
+
+  {
+    const tmp = mkTmp();
     const ociDir = path.join(tmp, "oci_layout_bad_index");
     fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
     fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
