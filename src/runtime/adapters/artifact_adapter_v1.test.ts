@@ -682,6 +682,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const badIso = path.join(tmp, "bad.iso");
+    fs.writeFileSync(badIso, Buffer.from("not-an-iso", "utf8"));
+    const badCapture = captureTreeV0(badIso, limits);
+    const badRes = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: badIso, capture: badCapture });
+    assert(!badRes.ok, "image adapter should fail closed for image header mismatch");
+    assertEq(badRes.failCode, "IMAGE_FORMAT_MISMATCH", "expected IMAGE_FORMAT_MISMATCH for bad iso");
+  }
+
+  {
+    const tmp = mkTmp();
     const iso = path.join(tmp, "sample.iso");
     const bytes = Buffer.alloc(16 * 2048 + 64, 0);
     bytes[16 * 2048] = 1; // primary volume descriptor

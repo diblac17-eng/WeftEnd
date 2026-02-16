@@ -72,6 +72,9 @@ Adapter classes
 - Key reason codes:
   IMAGE_ADAPTER_V1
   IMAGE_TABLE_TRUNCATED
+  IMAGE_FORMAT_MISMATCH
+- Route strictness:
+  explicit `--adapter image` fails closed when extension/header evidence does not match.
 
 8) scm (baseline signal lane)
 - Formats: local git trees

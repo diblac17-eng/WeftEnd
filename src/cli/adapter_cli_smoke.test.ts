@@ -355,6 +355,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const badIso = path.join(tmp, "bad.iso");
+    fs.writeFileSync(badIso, "not-an-iso", "utf8");
+    const badRes = await runCliCapture(["safe-run", badIso, "--out", outDir, "--adapter", "image"]);
+    assertEq(badRes.status, 40, "safe-run should fail closed for image header mismatch");
+    assert(badRes.stderr.includes("IMAGE_FORMAT_MISMATCH"), "expected IMAGE_FORMAT_MISMATCH on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     fs.mkdirSync(path.join(tmp, "oci_image"));
     fs.writeFileSync(path.join(tmp, "oci_image", "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
     fs.writeFileSync(path.join(tmp, "oci_image", "index.json"), "{\"schemaVersion\":2}\n", "utf8");

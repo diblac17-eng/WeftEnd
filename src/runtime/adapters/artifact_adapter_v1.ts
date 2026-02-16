@@ -1761,7 +1761,14 @@ const analyzeImage = (ctx: AnalyzeCtx): AnalyzeResult => {
 
   const headerMatchCount =
     isoPvdPresent + vhdFooterPresent + vhdxSignaturePresent + qcowMagicPresent + (vmdkDescriptorHintCount > 0 || vmdkSparseMagicCount > 0 ? 1 : 0);
-  if (fileBytes > 0 && headerMatchCount === 0) markers.push("IMAGE_FORMAT_MISMATCH");
+  if (fileBytes > 0 && headerMatchCount === 0) {
+    return {
+      ok: false,
+      failCode: "IMAGE_FORMAT_MISMATCH",
+      failMessage: "image adapter detected extension/header mismatch for explicit image analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["IMAGE_ADAPTER_V1", "IMAGE_FORMAT_MISMATCH"]),
+    };
+  }
   markers.push("IMAGE_TABLE_TRUNCATED");
 
   return {
