@@ -729,6 +729,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const badPdf = path.join(tmp, "bad.pdf");
+    fs.writeFileSync(badPdf, "not-a-pdf", "utf8");
+    const capture = captureTreeV0(badPdf, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: badPdf, capture });
+    assert(!res.ok, "document adapter should fail closed for invalid explicit pdf header");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for invalid pdf");
+  }
+
+  {
+    const tmp = mkTmp();
     const docm = path.join(tmp, "demo.docm");
     writeStoredZip(docm, [
       { name: "word/document.xml", text: "<w:document/>" },

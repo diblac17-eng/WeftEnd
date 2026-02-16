@@ -328,11 +328,21 @@ const run = async (): Promise<void> => {
     const outDir = mkTmp();
     const tmp = mkTmp();
     const input = path.join(tmp, "doc_with_signals.pdf");
-    fs.writeFileSync(input, "macro javascript EmbeddedFile http://example.test", "utf8");
+    fs.writeFileSync(input, "%PDF-1.7\nmacro javascript EmbeddedFile http://example.test", "utf8");
     const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "document"]);
     assertEq(res.status, 0, `safe-run document should succeed\n${res.stderr}`);
     const safe = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
     assertEq(safe.adapter?.adapterId, "document_adapter_v1", "document adapter id mismatch");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const badPdf = path.join(tmp, "bad.pdf");
+    fs.writeFileSync(badPdf, "not-a-pdf", "utf8");
+    const res = await runCliCapture(["safe-run", badPdf, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit document pdf header mismatch");
+    assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr for bad pdf");
   }
 
   {

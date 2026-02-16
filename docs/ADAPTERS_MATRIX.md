@@ -65,7 +65,7 @@ Adapter classes
   DOC_EMBEDDED_OBJECT_PRESENT
   DOC_EXTERNAL_LINK_PRESENT
 - Route strictness:
-  explicit `--adapter document` on `.docm/.xlsm` fails closed when container parsing is invalid.
+  explicit `--adapter document` fails closed on extension/header mismatch (`.pdf/.rtf/.chm`) and on invalid container parsing for `.docm/.xlsm`.
 
 6) container (baseline signal lane)
 - Formats: OCI layouts, container tarball hints, compose/SBOM hints

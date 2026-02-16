@@ -1617,6 +1617,45 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
       reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_UNSUPPORTED_FORMAT"]),
     };
   }
+  if (strictRoute) {
+    if (ctx.ext === ".pdf") {
+      const bytes = readBytesBounded(ctx.inputPath, 64);
+      const head = Buffer.from(bytes).toString("latin1");
+      const pdfIdx = head.indexOf("%PDF-");
+      const pdfHeaderOk = pdfIdx >= 0 && pdfIdx <= 8;
+      if (!pdfHeaderOk) {
+        return {
+          ok: false,
+          failCode: "DOC_FORMAT_MISMATCH",
+          failMessage: "document adapter detected extension/header mismatch for explicit document analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+        };
+      }
+    } else if (ctx.ext === ".rtf") {
+      const bytes = readBytesBounded(ctx.inputPath, 64);
+      const head = Buffer.from(bytes).toString("latin1");
+      if (!/^\s*\{\\rtf/i.test(head)) {
+        return {
+          ok: false,
+          failCode: "DOC_FORMAT_MISMATCH",
+          failMessage: "document adapter detected extension/header mismatch for explicit document analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+        };
+      }
+    } else if (ctx.ext === ".chm") {
+      const bytes = readBytesBounded(ctx.inputPath, 8);
+      const chmHeaderOk =
+        bytes.length >= 4 && bytes[0] === 0x49 && bytes[1] === 0x54 && bytes[2] === 0x53 && bytes[3] === 0x46;
+      if (!chmHeaderOk) {
+        return {
+          ok: false,
+          failCode: "DOC_FORMAT_MISMATCH",
+          failMessage: "document adapter detected extension/header mismatch for explicit document analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+        };
+      }
+    }
+  }
   const text = readTextBounded(ctx.inputPath);
   const reasons = ["DOC_ADAPTER_V1"];
   const markers: string[] = [];
