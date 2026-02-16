@@ -82,6 +82,7 @@ Included
 - Explicit `--adapter extension` routing is now strict and fails closed when `manifest.json` is missing or invalid (`EXTENSION_MANIFEST_MISSING` / `EXTENSION_MANIFEST_INVALID`) instead of producing partial extension summaries.
 - Explicit `--adapter image` routing is now strict and fails closed when extension/header evidence mismatches (`IMAGE_FORMAT_MISMATCH`) instead of returning partial-success image summaries.
 - Explicit `--adapter package` routing for `.exe` is now strict and fails closed on extension/header mismatch (`PACKAGE_FORMAT_MISMATCH`) instead of returning partial package summaries.
+- Explicit `--adapter container` routing now fails closed on invalid SBOM JSON (`CONTAINER_SBOM_INVALID`) for SBOM-named inputs instead of returning partial container summaries.
 - New adapter discovery command: `weftend adapter list`
 - Additive receipt/summary surface:
 - `safe_run_receipt.json` optional `adapter` metadata block

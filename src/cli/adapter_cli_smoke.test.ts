@@ -383,6 +383,16 @@ const run = async (): Promise<void> => {
     const safe = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
     assertEq(safe.adapter?.adapterId, "container_adapter_v1", "container adapter id mismatch");
   }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const badSbom = path.join(tmp, "bad_sbom.json");
+    fs.writeFileSync(badSbom, "{ invalid-json", "utf8");
+    const res = await runCliCapture(["safe-run", badSbom, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit container sbom parse invalidity");
+    assert(res.stderr.includes("CONTAINER_SBOM_INVALID"), "expected CONTAINER_SBOM_INVALID on stderr");
+  }
 };
 
 run()

@@ -692,6 +692,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const sbomPath = path.join(tmp, "bad_sbom.json");
+    fs.writeFileSync(sbomPath, "{ invalid-json", "utf8");
+    const capture = captureTreeV0(sbomPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: sbomPath, capture });
+    assert(!res.ok, "container adapter should fail closed for invalid explicit sbom json");
+    assertEq(res.failCode, "CONTAINER_SBOM_INVALID", "expected CONTAINER_SBOM_INVALID for invalid sbom");
+  }
+
+  {
+    const tmp = mkTmp();
     const badIso = path.join(tmp, "bad.iso");
     fs.writeFileSync(badIso, Buffer.from("not-an-iso", "utf8"));
     const badCapture = captureTreeV0(badIso, limits);

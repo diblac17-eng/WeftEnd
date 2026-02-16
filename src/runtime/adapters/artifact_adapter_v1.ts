@@ -1581,7 +1581,7 @@ const analyzeDocument = (ctx: AnalyzeCtx): AnalyzeResult => {
   };
 };
 
-const analyzeContainer = (ctx: AnalyzeCtx): AnalyzeResult => {
+const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
   const lower = path.basename(ctx.inputPath).toLowerCase();
   const isOciLayout =
     isDirectory(ctx.inputPath) && fs.existsSync(path.join(ctx.inputPath, "oci-layout")) && fs.existsSync(path.join(ctx.inputPath, "index.json"));
@@ -1660,6 +1660,14 @@ const analyzeContainer = (ctx: AnalyzeCtx): AnalyzeResult => {
       sbomPackageCount = Math.max(pkg, comps);
       if (sbomPackageCount === 0) markers.push("CONTAINER_SBOM_PARTIAL");
     } else {
+      if (strictRoute) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_SBOM_INVALID",
+          failMessage: "container adapter requires valid JSON for explicit SBOM analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_SBOM_INVALID"]),
+        };
+      }
       markers.push("CONTAINER_SBOM_PARTIAL");
     }
   }
@@ -1998,7 +2006,7 @@ const analyzeByClass = (adapterClass: AdapterClassV1, ctx: AnalyzeCtx, strictRou
   if (adapterClass === "extension") return analyzeExtension(ctx);
   if (adapterClass === "iac" || adapterClass === "cicd") return analyzeIacCicd(ctx, adapterClass);
   if (adapterClass === "document") return analyzeDocument(ctx);
-  if (adapterClass === "container") return analyzeContainer(ctx);
+  if (adapterClass === "container") return analyzeContainer(ctx, strictRoute);
   if (adapterClass === "image") return analyzeImage(ctx);
   if (adapterClass === "scm") return analyzeScm(ctx);
   if (adapterClass === "signature") return analyzeSignature(ctx);

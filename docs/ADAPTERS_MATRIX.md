@@ -69,6 +69,9 @@ Adapter classes
   CONTAINER_OCI_LAYOUT
   CONTAINER_TARBALL_SCAN
   CONTAINER_SBOM_PRESENT
+  CONTAINER_SBOM_INVALID
+- Route strictness:
+  explicit `--adapter container` on SBOM-named inputs fails closed when SBOM JSON is invalid.
 
 7) image
 - Formats: .iso, .vhd, .vhdx, .vmdk, .qcow2
