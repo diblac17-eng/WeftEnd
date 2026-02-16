@@ -83,6 +83,7 @@ Included
 - Explicit `--adapter image` routing is now strict and fails closed when extension/header evidence mismatches (`IMAGE_FORMAT_MISMATCH`) instead of returning partial-success image summaries.
 - Explicit `--adapter package` routing is now strict for `.exe` and ZIP-backed package containers (`.msix/.nupkg/.whl/.jar`), failing closed on extension/container mismatch (`PACKAGE_FORMAT_MISMATCH`) instead of returning partial package summaries.
 - Explicit `--adapter package` routing strictness now also covers `.deb` and `.rpm`, failing closed on invalid container/header evidence (`PACKAGE_FORMAT_MISMATCH`) instead of returning partial package summaries.
+- Explicit `--adapter package` routing strictness now also covers `.msi`, failing closed on invalid CFB header evidence (`PACKAGE_FORMAT_MISMATCH`) instead of returning partial package summaries.
 - Explicit `--adapter container` routing now fails closed on invalid SBOM JSON (`CONTAINER_SBOM_INVALID`) for SBOM-named inputs instead of returning partial container summaries.
 - Explicit `--adapter container` routing now also fails closed on invalid OCI `index.json` (`CONTAINER_INDEX_INVALID`) for OCI-layout inputs instead of returning partial container summaries.
 - Explicit `--adapter document` routing for `.docm/.xlsm` now fails closed on extension/container mismatch (`DOC_FORMAT_MISMATCH`) instead of returning partial document summaries.

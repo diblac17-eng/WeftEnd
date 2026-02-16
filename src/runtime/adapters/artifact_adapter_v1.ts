@@ -1176,6 +1176,25 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
     signingEvidenceCount += 1;
   }
   if (ext === ".msi") {
+    const bytes = readBytesBounded(ctx.inputPath, 8);
+    const isMsiHeader =
+      bytes.length >= 8 &&
+      bytes[0] === 0xd0 &&
+      bytes[1] === 0xcf &&
+      bytes[2] === 0x11 &&
+      bytes[3] === 0xe0 &&
+      bytes[4] === 0xa1 &&
+      bytes[5] === 0xb1 &&
+      bytes[6] === 0x1a &&
+      bytes[7] === 0xe1;
+    if (strictRoute && !isMsiHeader) {
+      return {
+        ok: false,
+        failCode: "PACKAGE_FORMAT_MISMATCH",
+        failMessage: "package adapter detected extension/header mismatch for explicit package analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+      };
+    }
     signingParsePartial = 1;
   }
 

@@ -475,6 +475,36 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const msi = path.join(tmp, "bad.msi");
+    fs.writeFileSync(msi, "not-a-cfb-msi", "utf8");
+    const capture = captureTreeV0(msi, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: msi, capture });
+    assert(!res.ok, "package adapter should fail closed for msi header mismatch");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for bad msi");
+  }
+
+  {
+    const tmp = mkTmp();
+    const msi = path.join(tmp, "sample.msi");
+    const bytes = Buffer.alloc(128, 0);
+    bytes[0] = 0xd0;
+    bytes[1] = 0xcf;
+    bytes[2] = 0x11;
+    bytes[3] = 0xe0;
+    bytes[4] = 0xa1;
+    bytes[5] = 0xb1;
+    bytes[6] = 0x1a;
+    bytes[7] = 0xe1;
+    fs.writeFileSync(msi, bytes);
+    const capture = captureTreeV0(msi, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: msi, capture });
+    assert(res.ok, "package adapter should accept msi with valid CFB header");
+    assertEq(res.summary?.sourceClass, "package", "msi package class mismatch");
+    assert((res.summary?.reasonCodes ?? []).includes("EXECUTION_WITHHELD_INSTALLER"), "msi installer withheld reason missing");
+  }
+
+  {
+    const tmp = mkTmp();
     const msix = path.join(tmp, "bad.msix");
     fs.writeFileSync(msix, "not-a-zip-msix", "utf8");
     const capture = captureTreeV0(msix, limits);
