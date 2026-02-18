@@ -85,7 +85,7 @@ Adapter classes
   CONTAINER_SBOM_PRESENT
   CONTAINER_SBOM_INVALID
 - Route strictness:
-  explicit `--adapter container` fails closed when OCI `oci-layout` metadata or `index.json` is invalid, when SBOM-named inputs are invalid JSON, and when explicit tar/compose inputs do not contain container/compose evidence.
+  explicit `--adapter container` fails closed when OCI `oci-layout` metadata is invalid, when OCI `index.json` is invalid or has empty manifests, when SBOM-named inputs are invalid JSON, and when explicit tar/compose inputs do not contain container/compose evidence.
 
 7) image
 - Formats: .iso, .vhd, .vhdx, .vmdk, .qcow2

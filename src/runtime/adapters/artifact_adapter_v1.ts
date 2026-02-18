@@ -1895,6 +1895,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     if (index && typeof index === "object") {
       if (Array.isArray((index as any).manifests)) {
         ociManifestCount = (index as any).manifests.length;
+        if (strictRoute && ociManifestCount === 0) {
+          return {
+            ok: false,
+            failCode: "CONTAINER_INDEX_INVALID",
+            failMessage: "container adapter requires non-empty OCI index manifests for explicit OCI layout analysis.",
+            reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_INDEX_INVALID"]),
+          };
+        }
       } else {
         markers.push("CONTAINER_INDEX_PARTIAL");
       }

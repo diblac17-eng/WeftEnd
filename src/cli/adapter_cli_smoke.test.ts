@@ -672,7 +672,11 @@ const run = async (): Promise<void> => {
     const tmp = mkTmp();
     fs.mkdirSync(path.join(tmp, "oci_image"));
     fs.writeFileSync(path.join(tmp, "oci_image", "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
-    fs.writeFileSync(path.join(tmp, "oci_image", "index.json"), "{\"schemaVersion\":2,\"manifests\":[]}\n", "utf8");
+    fs.writeFileSync(
+      path.join(tmp, "oci_image", "index.json"),
+      "{\"schemaVersion\":2,\"manifests\":[{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\"}]}\n",
+      "utf8"
+    );
     const res = await runCliCapture(["safe-run", path.join(tmp, "oci_image"), "--out", outDir, "--adapter", "container"]);
     assertEq(res.status, 0, `safe-run container should succeed\n${res.stderr}`);
     const safe = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
@@ -723,6 +727,18 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", ociDir, "--out", outDir, "--adapter", "container"]);
     assertEq(res.status, 40, "safe-run should fail closed for explicit OCI index parse invalidity");
     assert(res.stderr.includes("CONTAINER_INDEX_INVALID"), "expected CONTAINER_INDEX_INVALID on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const ociDir = path.join(tmp, "oci_empty_manifests");
+    fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
+    fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
+    fs.writeFileSync(path.join(ociDir, "index.json"), "{\"schemaVersion\":2,\"manifests\":[]}\n", "utf8");
+    const res = await runCliCapture(["safe-run", ociDir, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI index with empty manifests");
+    assert(res.stderr.includes("CONTAINER_INDEX_INVALID"), "expected CONTAINER_INDEX_INVALID on stderr for empty manifests");
   }
 
   {

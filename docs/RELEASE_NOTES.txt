@@ -93,6 +93,7 @@ Included
 - Explicit `--adapter package` now fails closed on compressed tar package formats (`.tgz/.tar.gz/.txz/.tar.xz`) when tar plugin preconditions are not met (`PACKAGE_PLUGIN_REQUIRED` / `PACKAGE_PLUGIN_UNAVAILABLE`) instead of silently degrading to partial metadata.
 - Explicit `--adapter container` routing now fails closed on invalid SBOM JSON (`CONTAINER_SBOM_INVALID`) for SBOM-named inputs instead of returning partial container summaries.
 - Explicit `--adapter container` routing now also fails closed on invalid OCI `index.json` (`CONTAINER_INDEX_INVALID`) for OCI-layout inputs instead of returning partial container summaries.
+- Explicit `--adapter container` routing now also fails closed when OCI `index.json` manifests are empty (`CONTAINER_INDEX_INVALID`) for explicit OCI-layout analysis.
 - Explicit `--adapter container` routing now also fails closed on invalid OCI `oci-layout` metadata (`CONTAINER_LAYOUT_INVALID`) for OCI-layout inputs instead of returning partial container summaries.
 - Explicit `--adapter container` routing now also fails closed on tar/compose format mismatch (`CONTAINER_FORMAT_MISMATCH`) when explicit container hints are absent.
 - Explicit `--adapter document` routing for `.docm/.xlsm` now fails closed on extension/container mismatch (`DOC_FORMAT_MISMATCH`) instead of returning partial document summaries.

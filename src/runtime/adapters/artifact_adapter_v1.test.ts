@@ -951,6 +951,18 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const ociDir = path.join(tmp, "oci_layout_empty_manifests");
+    fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
+    fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
+    fs.writeFileSync(path.join(ociDir, "index.json"), JSON.stringify({ schemaVersion: 2, manifests: [] }), "utf8");
+    const capture = captureTreeV0(ociDir, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: ociDir, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit OCI index with empty manifests");
+    assertEq(res.failCode, "CONTAINER_INDEX_INVALID", "expected CONTAINER_INDEX_INVALID for empty OCI manifests");
+  }
+
+  {
+    const tmp = mkTmp();
     const tarPath = path.join(tmp, "container.tar");
     writeSimpleTar(tarPath, [
       { name: "manifest.json", text: "[]" },
