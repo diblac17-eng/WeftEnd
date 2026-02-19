@@ -1165,6 +1165,12 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
   let peSignaturePresent = 0;
   let signatureEntryCount = 0;
   let signingParsePartial = 0;
+  let packageFileBytes = 0;
+  try {
+    packageFileBytes = Math.max(0, Number(fs.statSync(ctx.inputPath).size || 0));
+  } catch {
+    packageFileBytes = 0;
+  }
 
   const installerExt =
     ext === ".msi" ||
@@ -1348,6 +1354,14 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       if (rpmLeadPresent === 0) markers.push("PACKAGE_RPM_LEAD_MISSING");
       if (rpmHeaderPresent === 0) markers.push("PACKAGE_RPM_HEADER_MISSING");
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
+    }
+    if (strictRoute && rpmLeadPresent > 0 && rpmHeaderPresent > 0 && packageFileBytes < 256) {
+      return {
+        ok: false,
+        failCode: "PACKAGE_FORMAT_MISMATCH",
+        failMessage: "package adapter requires minimum rpm structural size for explicit package analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+      };
     }
   } else if (ext === ".appimage") {
     const bytes = readBytesBounded(ctx.inputPath, 256 * 1024);

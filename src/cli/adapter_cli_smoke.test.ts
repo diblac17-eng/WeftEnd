@@ -924,6 +924,24 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const tinyMagicRpm = path.join(tmp, "tiny_magic.rpm");
+    const bytes = Buffer.alloc(128, 0);
+    bytes[0] = 0xed;
+    bytes[1] = 0xab;
+    bytes[2] = 0xee;
+    bytes[3] = 0xdb;
+    bytes[96] = 0x8e;
+    bytes[97] = 0xad;
+    bytes[98] = 0xe8;
+    fs.writeFileSync(tinyMagicRpm, bytes);
+    const res = await runCliCapture(["safe-run", tinyMagicRpm, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for rpm with marker bytes but tiny structural size");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for tiny rpm structural size");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badAppImage = path.join(tmp, "bad.appimage");
     fs.writeFileSync(badAppImage, "not-an-elf-appimage", "utf8");
     const res = await runCliCapture(["safe-run", badAppImage, "--out", outDir, "--adapter", "package"]);

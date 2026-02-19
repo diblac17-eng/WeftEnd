@@ -953,6 +953,24 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const rpm = path.join(tmp, "tiny_magic.rpm");
+    const bytes = Buffer.alloc(128, 0);
+    bytes[0] = 0xed;
+    bytes[1] = 0xab;
+    bytes[2] = 0xee;
+    bytes[3] = 0xdb;
+    bytes[96] = 0x8e;
+    bytes[97] = 0xad;
+    bytes[98] = 0xe8;
+    fs.writeFileSync(rpm, bytes);
+    const capture = captureTreeV0(rpm, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: rpm, capture });
+    assert(!res.ok, "package adapter should fail closed for rpm with magic/header markers but tiny structural size");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for tiny rpm structural size");
+  }
+
+  {
+    const tmp = mkTmp();
     const rpm = path.join(tmp, "sample.rpm");
     const bytes = Buffer.alloc(768, 0);
     bytes[0] = 0xed;
