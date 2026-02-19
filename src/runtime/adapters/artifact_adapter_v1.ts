@@ -2398,6 +2398,20 @@ const analyzeImage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
       reasonCodes: stableSortUniqueReasonsV0(["IMAGE_ADAPTER_V1", "IMAGE_FORMAT_MISMATCH"]),
     };
   }
+  if (
+    strictRoute &&
+    ctx.ext === ".vmdk" &&
+    vmdkDescriptorStructuralPresent > 0 &&
+    vmdkSparseMagicCount === 0 &&
+    fileBytes < 64
+  ) {
+    return {
+      ok: false,
+      failCode: "IMAGE_FORMAT_MISMATCH",
+      failMessage: "image adapter requires minimum vmdk descriptor size for explicit image analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["IMAGE_ADAPTER_V1", "IMAGE_FORMAT_MISMATCH"]),
+    };
+  }
   markers.push("IMAGE_TABLE_TRUNCATED");
 
   return {

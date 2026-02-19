@@ -1612,6 +1612,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tinyDescriptorVmdk = path.join(tmp, "tiny_descriptor.vmdk");
+    fs.writeFileSync(tinyDescriptorVmdk, "# Disk DescriptorFile\ncreateType=\"x\"\nRW 1 SPARSE \"a\"\n", "utf8");
+    const capture = captureTreeV0(tinyDescriptorVmdk, limits);
+    const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: tinyDescriptorVmdk, capture });
+    assert(!res.ok, "image adapter should fail closed for tiny vmdk descriptor-only file below structural minimum in strict route");
+    assertEq(res.failCode, "IMAGE_FORMAT_MISMATCH", "expected IMAGE_FORMAT_MISMATCH for tiny vmdk descriptor-only file");
+  }
+
+  {
+    const tmp = mkTmp();
     const vmdk = path.join(tmp, "weak_hints.vmdk");
     fs.writeFileSync(vmdk, "createType=\"monolithicSparse\"\n", "utf8");
     const capture = captureTreeV0(vmdk, limits);

@@ -1157,6 +1157,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const tinyDescriptorVmdk = path.join(tmp, "tiny_descriptor.vmdk");
+    fs.writeFileSync(tinyDescriptorVmdk, "# Disk DescriptorFile\ncreateType=\"x\"\nRW 1 SPARSE \"a\"\n", "utf8");
+    const res = await runCliCapture(["safe-run", tinyDescriptorVmdk, "--out", outDir, "--adapter", "image"]);
+    assertEq(res.status, 40, "safe-run should fail closed for tiny vmdk descriptor-only file below structural minimum");
+    assert(res.stderr.includes("IMAGE_FORMAT_MISMATCH"), "expected IMAGE_FORMAT_MISMATCH on stderr for tiny vmdk descriptor-only file");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const textMarkerOnlyAppImage = path.join(tmp, "text_marker_only.appimage");
     const bytes = Buffer.alloc(1024, 0);
     bytes[0] = 0x7f;
