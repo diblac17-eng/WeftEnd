@@ -2382,6 +2382,14 @@ const analyzeScm = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
         reasonCodes: stableSortUniqueReasonsV0(["SCM_ADAPTER_V1", "SCM_REF_UNRESOLVED"]),
       };
     }
+    if (strictRoute && fallback.partial) {
+      return {
+        ok: false,
+        failCode: "SCM_REF_UNRESOLVED",
+        failMessage: "scm adapter expected complete git reference metadata for explicit scm analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["SCM_ADAPTER_V1", "SCM_REF_UNRESOLVED"]),
+      };
+    }
     if (fallback.partial) markers.push("SCM_NATIVE_REF_PARTIAL");
     return {
       ok: true,
@@ -2450,6 +2458,14 @@ const analyzeScm = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
   if (worktreeDirty > 0) {
     reasonCodes.push("SCM_WORKTREE_DIRTY");
     findingCodes.push("SCM_WORKTREE_DIRTY");
+  }
+  if (strictRoute && markers.length > 0) {
+    return {
+      ok: false,
+      failCode: "SCM_REF_UNRESOLVED",
+      failMessage: "scm adapter expected complete git reference and status metadata for explicit scm analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["SCM_ADAPTER_V1", "SCM_REF_UNRESOLVED"]),
+    };
   }
 
   return {

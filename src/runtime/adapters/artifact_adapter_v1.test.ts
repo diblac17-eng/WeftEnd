@@ -1600,6 +1600,24 @@ const run = (): void => {
     assert((res.summary?.counts.branchRefCount ?? 0) >= 1, "pseudo branch ref count missing");
     assert((res.summary?.counts.tagRefCount ?? 0) >= 1, "pseudo tag ref count missing");
   }
+
+  {
+    const tmp = mkTmp();
+    const repo = path.join(tmp, "pseudo_repo_partial");
+    const gitData = path.join(repo, ".gitdata");
+    fs.mkdirSync(path.join(gitData, "refs", "tags"), { recursive: true });
+    fs.mkdirSync(repo, { recursive: true });
+    fs.writeFileSync(path.join(repo, ".git"), "gitdir: .gitdata\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "HEAD"), "ref: refs/heads/main\n", "utf8");
+    // Intentionally do not create refs/heads/main to force partial native ref evidence.
+    fs.writeFileSync(path.join(gitData, "refs", "tags", "v1.0.0"), "89abcdef0123456789abcdef0123456789abcdef\n", "utf8");
+    fs.writeFileSync(path.join(repo, "a.txt"), "hello", "utf8");
+
+    const capture = captureTreeV0(repo, limits);
+    const res = runArtifactAdapterV1({ selection: "scm", enabledPlugins: [], inputPath: repo, capture });
+    assert(!res.ok, "scm adapter should fail closed for partial native .git fallback refs in explicit mode");
+    assertEq(res.failCode, "SCM_REF_UNRESOLVED", "expected SCM_REF_UNRESOLVED for partial native refs");
+  }
 };
 
 try {

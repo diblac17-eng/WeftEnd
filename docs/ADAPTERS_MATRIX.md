@@ -103,7 +103,7 @@ Adapter classes
   SCM_REF_UNRESOLVED
   SCM_TREE_CAPTURED
 - Route strictness:
-  explicit `--adapter scm` fails closed when commit/ref evidence cannot be resolved.
+  explicit `--adapter scm` fails closed when commit/ref evidence cannot be resolved and when git/native-ref/status evidence is partial.
 
 9) signature evidence (baseline signal lane)
 - Formats: .cer, .crt, .pem, .p7b, .sig
