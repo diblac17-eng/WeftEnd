@@ -1175,6 +1175,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const noStructurePdf = path.join(tmp, "no_structure.pdf");
+    fs.writeFileSync(noStructurePdf, "%PDF-1.7\nplaceholder text only\n%%EOF\n", "utf8");
+    const capture = captureTreeV0(noStructurePdf, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: noStructurePdf, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit pdf without structural markers");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for explicit pdf without structural markers");
+  }
+
+  {
+    const tmp = mkTmp();
     const badPdf = path.join(tmp, "bad.pdf");
     fs.writeFileSync(badPdf, "not-a-pdf", "utf8");
     const capture = captureTreeV0(badPdf, limits);

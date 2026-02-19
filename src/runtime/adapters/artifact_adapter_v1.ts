@@ -1925,6 +1925,16 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
           reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
         };
       }
+      const pdfWindow = `${head}\n${tail}`;
+      const pdfStructureHintOk = /\bobj\b|\/Type\s*\/Catalog\b|\bxref\b/i.test(pdfWindow);
+      if (!pdfStructureHintOk) {
+        return {
+          ok: false,
+          failCode: "DOC_FORMAT_MISMATCH",
+          failMessage: "document adapter expected PDF structural marker evidence for explicit document analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+        };
+      }
     } else if (ctx.ext === ".rtf") {
       const window = readFileHeadTailBounded(ctx.inputPath, 64, 512);
       const head = Buffer.from(window.head).toString("latin1");
