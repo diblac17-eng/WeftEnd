@@ -780,6 +780,52 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const zipPath = path.join(tmp, "payload.zip");
+    const crx = path.join(tmp, "demo.crx");
+    writeStoredZip(zipPath, [
+      {
+        name: "manifest.json",
+        text: JSON.stringify({
+          manifest_version: 3,
+          name: "demo-crx",
+          version: "1.0.0",
+          permissions: ["storage"],
+        }),
+      },
+    ]);
+    const zipBytes = fs.readFileSync(zipPath);
+    const header = Buffer.alloc(12, 0);
+    header[0] = 0x43;
+    header[1] = 0x72;
+    header[2] = 0x32;
+    header[3] = 0x34;
+    header.writeUInt32LE(3, 4);
+    header.writeUInt32LE(0, 8);
+    fs.writeFileSync(crx, Buffer.concat([header, zipBytes]));
+    const res = await runCliCapture(["safe-run", crx, "--out", outDir, "--adapter", "extension"]);
+    assertEq(res.status, 0, `safe-run should accept valid CRX wrapper with ZIP payload\n${res.stderr}`);
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const crx = path.join(tmp, "bad.crx");
+    const header = Buffer.alloc(12, 0);
+    header[0] = 0x43;
+    header[1] = 0x72;
+    header[2] = 0x32;
+    header[3] = 0x34;
+    header.writeUInt32LE(3, 4);
+    header.writeUInt32LE(0, 8);
+    fs.writeFileSync(crx, Buffer.concat([header, Buffer.from("not-a-zip", "utf8")]));
+    const res = await runCliCapture(["safe-run", crx, "--out", outDir, "--adapter", "extension"]);
+    assertEq(res.status, 40, "safe-run should fail closed for CRX wrapper with invalid ZIP payload");
+    assert(res.stderr.includes("EXTENSION_FORMAT_MISMATCH"), "expected EXTENSION_FORMAT_MISMATCH on stderr for bad crx");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badVsix = path.join(tmp, "bad.vsix");
     fs.writeFileSync(badVsix, "not-a-zip-extension", "utf8");
     const res = await runCliCapture(["safe-run", badVsix, "--out", outDir, "--adapter", "extension"]);

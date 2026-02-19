@@ -497,6 +497,55 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const zipPath = path.join(tmp, "payload.zip");
+    const crx = path.join(tmp, "demo.crx");
+    writeStoredZip(zipPath, [
+      {
+        name: "manifest.json",
+        text: JSON.stringify({
+          manifest_version: 3,
+          name: "demo-crx",
+          version: "1.0.0",
+          permissions: ["storage"],
+          host_permissions: ["https://chrome.example/*"],
+        }),
+      },
+    ]);
+    const zipBytes = fs.readFileSync(zipPath);
+    const header = Buffer.alloc(12, 0);
+    header[0] = 0x43; // C
+    header[1] = 0x72; // r
+    header[2] = 0x32; // 2
+    header[3] = 0x34; // 4
+    header.writeUInt32LE(3, 4); // crx3
+    header.writeUInt32LE(0, 8); // empty header payload
+    fs.writeFileSync(crx, Buffer.concat([header, zipBytes]));
+    const capture = captureTreeV0(crx, limits);
+    const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: crx, capture });
+    assert(res.ok, "extension adapter should parse CRX wrapper with valid ZIP payload");
+    assertEq(res.summary?.sourceClass, "extension", "crx extension class mismatch");
+    assert((res.summary?.counts.permissionCount ?? 0) > 0, "crx permission count missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const crx = path.join(tmp, "bad.crx");
+    const header = Buffer.alloc(12, 0);
+    header[0] = 0x43; // C
+    header[1] = 0x72; // r
+    header[2] = 0x32; // 2
+    header[3] = 0x34; // 4
+    header.writeUInt32LE(3, 4);
+    header.writeUInt32LE(0, 8);
+    fs.writeFileSync(crx, Buffer.concat([header, Buffer.from("not-a-zip", "utf8")]));
+    const capture = captureTreeV0(crx, limits);
+    const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: crx, capture });
+    assert(!res.ok, "extension adapter should fail closed for CRX with invalid ZIP payload");
+    assertEq(res.failCode, "EXTENSION_FORMAT_MISMATCH", "expected EXTENSION_FORMAT_MISMATCH for invalid CRX payload");
+  }
+
+  {
+    const tmp = mkTmp();
     const xpi = path.join(tmp, "demo.xpi");
     writeStoredZip(xpi, [
       {

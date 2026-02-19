@@ -441,6 +441,65 @@ const readZipTextEntriesByBaseName = (inputPath: string, baseNames: string[]): {
   return { entries: out, markers: stableSortUniqueStringsV0(outMarkers) };
 };
 
+const readZipTextEntriesByBaseNameFromBuffer = (
+  archiveBytes: Uint8Array,
+  baseNames: string[]
+): { entries: Array<{ name: string; text: string }>; markers: string[] } => {
+  const wanted = new Set(baseNames.map((name) => String(name || "").trim().toLowerCase()).filter((name) => name.length > 0));
+  if (wanted.size === 0) return { entries: [], markers: [] };
+  const { entries: catalog, markers } = parseZipCatalogFromBuffer(archiveBytes);
+  const out: Array<{ name: string; text: string }> = [];
+  const outMarkers = [...markers];
+  for (const entry of catalog) {
+    if (out.length >= 32) {
+      outMarkers.push("ARCHIVE_TRUNCATED");
+      break;
+    }
+    const base = path.basename(entry.name).toLowerCase();
+    if (!wanted.has(base)) continue;
+    const extracted = extractZipEntryText(Buffer.from(archiveBytes), entry);
+    outMarkers.push(...extracted.markers);
+    if (!extracted.ok || typeof extracted.text !== "string") continue;
+    out.push({ name: entry.name, text: extracted.text });
+  }
+  out.sort((a, b) => cmpStrV0(a.name, b.name));
+  return { entries: out, markers: stableSortUniqueStringsV0(outMarkers) };
+};
+
+const extractCrxZipPayload = (inputPath: string): { ok: boolean; payload: any; markers: string[] } => {
+  let bytes: any;
+  try {
+    bytes = fs.readFileSync(inputPath);
+  } catch {
+    return { ok: false, payload: Buffer.alloc(0), markers: ["EXTENSION_CRX_HEADER_INVALID"] };
+  }
+  if (!bytes || bytes.length < 12) return { ok: false, payload: Buffer.alloc(0), markers: ["EXTENSION_CRX_HEADER_INVALID"] };
+  if (!(bytes[0] === 0x43 && bytes[1] === 0x72 && bytes[2] === 0x32 && bytes[3] === 0x34)) {
+    return { ok: false, payload: Buffer.alloc(0), markers: ["EXTENSION_CRX_HEADER_INVALID"] };
+  }
+  const version = bytes.readUInt32LE(4);
+  let zipOffset = -1;
+  if (version === 2) {
+    if (bytes.length < 16) return { ok: false, payload: Buffer.alloc(0), markers: ["EXTENSION_CRX_HEADER_INVALID"] };
+    const pubKeyLen = bytes.readUInt32LE(8);
+    const sigLen = bytes.readUInt32LE(12);
+    zipOffset = 16 + pubKeyLen + sigLen;
+  } else if (version === 3) {
+    const headerSize = bytes.readUInt32LE(8);
+    zipOffset = 12 + headerSize;
+  } else {
+    return { ok: false, payload: Buffer.alloc(0), markers: ["EXTENSION_CRX_HEADER_INVALID"] };
+  }
+  if (!Number.isFinite(zipOffset) || zipOffset < 0 || zipOffset + 4 > bytes.length) {
+    return { ok: false, payload: Buffer.alloc(0), markers: ["EXTENSION_CRX_HEADER_INVALID"] };
+  }
+  const zipBytes = bytes.subarray(zipOffset);
+  if (!(zipBytes[0] === 0x50 && zipBytes[1] === 0x4b && zipBytes[2] === 0x03 && zipBytes[3] === 0x04)) {
+    return { ok: false, payload: Buffer.alloc(0), markers: ["EXTENSION_CRX_HEADER_INVALID"] };
+  }
+  return { ok: true, payload: Buffer.from(zipBytes), markers: [] };
+};
+
 const readZipTextEntriesByFilter = (
   inputPath: string,
   predicate: (entryNameLower: string) => boolean
@@ -1532,10 +1591,29 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     hostMatchCount = dir.hostMatchCount;
     updateDomains = dir.updateDomains;
   } else {
-    const zip = readZipEntries(ctx.inputPath);
-    manifestFound = zip.entries.some((entry) => path.basename(entry).toLowerCase() === "manifest.json");
-    markers.push(...zip.markers);
-    if (strictRoute && zip.markers.includes("ARCHIVE_METADATA_PARTIAL") && zip.entries.length === 0) {
+    const isCrx = ext === ".crx";
+    const zipEntries = isCrx ? { entries: [] as string[], markers: [] as string[] } : readZipEntries(ctx.inputPath);
+    let zipBuffer: any = null;
+    if (isCrx) {
+      const crx = extractCrxZipPayload(ctx.inputPath);
+      markers.push(...crx.markers);
+      if (crx.ok) {
+        zipBuffer = crx.payload;
+        const zip = readZipEntriesFromBuffer(zipBuffer);
+        zipEntries.entries = zip.entries;
+        zipEntries.markers = zip.markers;
+      } else if (strictRoute) {
+        return {
+          ok: false,
+          failCode: "EXTENSION_FORMAT_MISMATCH",
+          failMessage: "extension adapter expected a valid CRX header and ZIP payload for explicit route analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_FORMAT_MISMATCH"]),
+        };
+      }
+    }
+    manifestFound = zipEntries.entries.some((entry) => path.basename(entry).toLowerCase() === "manifest.json");
+    markers.push(...zipEntries.markers);
+    if (strictRoute && zipEntries.markers.includes("ARCHIVE_METADATA_PARTIAL") && zipEntries.entries.length === 0) {
       return {
         ok: false,
         failCode: "EXTENSION_FORMAT_MISMATCH",
@@ -1545,7 +1623,9 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     }
     if (!manifestFound) markers.push("EXTENSION_MANIFEST_MISSING");
     else {
-      const manifestTexts = readZipTextEntriesByBaseName(ctx.inputPath, ["manifest.json"]);
+      const manifestTexts = isCrx && zipBuffer
+        ? readZipTextEntriesByBaseNameFromBuffer(zipBuffer, ["manifest.json"])
+        : readZipTextEntriesByBaseName(ctx.inputPath, ["manifest.json"]);
       markers.push(...manifestTexts.markers);
       if (manifestTexts.entries.length === 0) {
         markers.push("EXTENSION_MANIFEST_PARTIAL");
