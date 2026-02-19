@@ -1905,12 +1905,17 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     isTarInput &&
     tarEntries.entries.some((name) => path.basename(String(name || "")).toLowerCase() === "manifest.json") &&
     tarEntries.entries.some((name) => path.basename(String(name || "")).toLowerCase() === "repositories");
-  const isContainerTar = isContainerTarByHint || isContainerTarByEntries;
+  const isOciTarByEntries =
+    isTarInput &&
+    tarEntries.entries.some((name) => path.basename(String(name || "")).toLowerCase() === "oci-layout") &&
+    tarEntries.entries.some((name) => path.basename(String(name || "")).toLowerCase() === "index.json") &&
+    tarEntries.entries.some((name) => String(name || "").replace(/\\/g, "/").toLowerCase().startsWith("blobs/sha256/"));
+  const isContainerTar = isContainerTarByHint || isContainerTarByEntries || isOciTarByEntries;
   if (strictRoute && isTarInput && !isContainerTar) {
     return {
       ok: false,
       failCode: "CONTAINER_FORMAT_MISMATCH",
-      failMessage: "container adapter expected a docker/OCI tarball with manifest and repositories entries for explicit tar analysis.",
+      failMessage: "container adapter expected docker tar markers (manifest/repositories) or OCI tar markers (oci-layout/index/blobs) for explicit tar analysis.",
       reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
     };
   }
@@ -2028,7 +2033,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     }
   }
 
-  if (isOciLayout) {
+  if (isOciLayout || isOciTarByEntries) {
     reasons.push("CONTAINER_OCI_LAYOUT");
     findings.push("CONTAINER_OCI_LAYOUT");
   }
@@ -2047,7 +2052,8 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     mode: "built_in",
     adapterId: "container_adapter_v1",
     counts: {
-      ociLayoutPresent: isOciLayout ? 1 : 0,
+      ociLayoutPresent: isOciLayout || isOciTarByEntries ? 1 : 0,
+      ociTarballPresent: isOciTarByEntries ? 1 : 0,
       tarballScanPresent: isContainerTar ? 1 : 0,
       sbomPresent: isSbom ? 1 : 0,
       composeHintPresent: isCompose ? 1 : 0,

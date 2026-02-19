@@ -105,6 +105,39 @@ const writeSimpleAr = (outPath: string, files: Array<{ name: string; bytes: any 
   fs.writeFileSync(outPath, Buffer.concat(parts));
 };
 
+const writeSimpleTar = (outPath: string, files: Array<{ name: string; text: string }>): void => {
+  const blocks: any[] = [];
+  const pushHeader = (name: string, size: number) => {
+    const header = Buffer.alloc(512, 0);
+    const nameBuf = Buffer.from(name, "utf8");
+    nameBuf.copy(header, 0, 0, Math.min(nameBuf.length, 100));
+    Buffer.from("0000777\0", "ascii").copy(header, 100);
+    Buffer.from("0000000\0", "ascii").copy(header, 108);
+    Buffer.from("0000000\0", "ascii").copy(header, 116);
+    const sizeOct = size.toString(8).padStart(11, "0");
+    Buffer.from(`${sizeOct}\0`, "ascii").copy(header, 124);
+    Buffer.from("00000000000\0", "ascii").copy(header, 136);
+    for (let i = 148; i < 156; i += 1) header[i] = 0x20;
+    header[156] = "0".charCodeAt(0);
+    Buffer.from("ustar\0", "ascii").copy(header, 257);
+    Buffer.from("00", "ascii").copy(header, 263);
+    let sum = 0;
+    for (let i = 0; i < 512; i += 1) sum += header[i];
+    const chk = sum.toString(8).padStart(6, "0");
+    Buffer.from(`${chk}\0 `, "ascii").copy(header, 148);
+    blocks.push(header);
+  };
+  files.forEach((file) => {
+    const data = Buffer.from(file.text, "utf8");
+    pushHeader(file.name.replace(/\\/g, "/"), data.length);
+    blocks.push(data);
+    const pad = (512 - (data.length % 512)) % 512;
+    if (pad > 0) blocks.push(Buffer.alloc(pad, 0));
+  });
+  blocks.push(Buffer.alloc(1024, 0));
+  fs.writeFileSync(outPath, Buffer.concat(blocks));
+};
+
 const run = async (): Promise<void> => {
   {
     const res = await runCliCapture(["adapter", "list"]);
@@ -820,6 +853,34 @@ const run = async (): Promise<void> => {
     assertEq(res.status, 0, `safe-run container should succeed\n${res.stderr}`);
     const safe = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
     assertEq(safe.adapter?.adapterId, "container_adapter_v1", "container adapter id mismatch");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const ociTar = path.join(tmp, "oci_layout.tar");
+    writeSimpleTar(ociTar, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      { name: "index.json", text: "{\"schemaVersion\":2,\"manifests\":[{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"digest\":\"sha256:abc\",\"size\":1}]}\n" },
+      { name: "blobs/sha256/abc", text: "x" },
+    ]);
+    const res = await runCliCapture(["safe-run", ociTar, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 0, `safe-run should accept explicit OCI tar markers\n${res.stderr}`);
+    const safe = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
+    assertEq(safe.adapter?.adapterId, "container_adapter_v1", "container adapter metadata missing for OCI tar");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const ociTarMissingBlobs = path.join(tmp, "oci_layout_missing_blobs.tar");
+    writeSimpleTar(ociTarMissingBlobs, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      { name: "index.json", text: "{\"schemaVersion\":2,\"manifests\":[{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\"}]}\n" },
+    ]);
+    const res = await runCliCapture(["safe-run", ociTarMissingBlobs, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for OCI tar markers without blobs");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar missing blobs");
   }
 
   {
