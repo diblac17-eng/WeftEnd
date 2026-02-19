@@ -91,6 +91,7 @@ Included
 - Explicit `--adapter package` routing for `.rpm` now requires both RPM lead magic and signature-header magic in explicit analysis, failing closed with `PACKAGE_FORMAT_MISMATCH` when either is missing.
 - Explicit `--adapter package` routing strictness now also covers `.msi`, failing closed on invalid CFB header evidence (`PACKAGE_FORMAT_MISMATCH`) instead of returning partial package summaries.
 - Explicit `--adapter package` routing strictness now also covers `.appimage`, `.pkg`, and `.dmg`, failing closed on invalid header/trailer evidence (`PACKAGE_FORMAT_MISMATCH`) instead of returning partial package summaries.
+- Explicit `--adapter package` routing for `.appimage` now requires both ELF header and AppImage marker evidence in explicit analysis, failing closed with `PACKAGE_FORMAT_MISMATCH` when either is missing.
 - Explicit `--adapter package` now fails closed on compressed tar package formats (`.tgz/.tar.gz/.txz/.tar.xz`) when tar plugin preconditions are not met (`PACKAGE_PLUGIN_REQUIRED` / `PACKAGE_PLUGIN_UNAVAILABLE`) instead of silently degrading to partial metadata.
 - Explicit `--adapter container` routing now fails closed on invalid SBOM JSON (`CONTAINER_SBOM_INVALID`) for SBOM-named inputs instead of returning partial container summaries.
 - Explicit `--adapter container` routing now also fails closed on invalid OCI `index.json` (`CONTAINER_INDEX_INVALID`) for OCI-layout inputs instead of returning partial container summaries.

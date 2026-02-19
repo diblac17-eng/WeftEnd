@@ -628,6 +628,21 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const elfOnlyAppImage = path.join(tmp, "elf_only.appimage");
+    const bytes = Buffer.alloc(512, 0);
+    bytes[0] = 0x7f;
+    bytes[1] = 0x45;
+    bytes[2] = 0x4c;
+    bytes[3] = 0x46;
+    fs.writeFileSync(elfOnlyAppImage, bytes);
+    const res = await runCliCapture(["safe-run", elfOnlyAppImage, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for appimage missing marker");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for appimage missing marker");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badPkg = path.join(tmp, "bad.pkg");
     fs.writeFileSync(badPkg, "not-a-xar", "utf8");
     const res = await runCliCapture(["safe-run", badPkg, "--out", outDir, "--adapter", "package"]);

@@ -1226,7 +1226,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
     const headText = Buffer.from(bytes.subarray(0, Math.min(bytes.length, 4096))).toString("latin1");
     appImageMarkerPresent = headText.includes("AppImage") || headText.includes("AI\x02") ? 1 : 0;
     if (/AppRun|\.desktop|squashfs/i.test(headText)) textScriptHints += 1;
-    if (appImageElfPresent === 0) {
+    if (appImageElfPresent === 0 || appImageMarkerPresent === 0) {
       if (strictRoute) {
         return {
           ok: false,
@@ -1235,7 +1235,8 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
           reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
         };
       }
-      markers.push("PACKAGE_APPIMAGE_HEADER_MISSING");
+      if (appImageElfPresent === 0) markers.push("PACKAGE_APPIMAGE_HEADER_MISSING");
+      if (appImageMarkerPresent === 0) markers.push("PACKAGE_APPIMAGE_MARKER_MISSING");
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
     }
   } else if (ext === ".pkg") {

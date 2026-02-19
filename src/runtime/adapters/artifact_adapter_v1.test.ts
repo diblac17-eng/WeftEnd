@@ -804,6 +804,21 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const appimage = path.join(tmp, "elf_only.appimage");
+    const bytes = Buffer.alloc(512, 0);
+    bytes[0] = 0x7f;
+    bytes[1] = 0x45;
+    bytes[2] = 0x4c;
+    bytes[3] = 0x46;
+    fs.writeFileSync(appimage, bytes);
+    const capture = captureTreeV0(appimage, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: appimage, capture });
+    assert(!res.ok, "package adapter should fail closed for appimage missing AppImage marker");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for appimage missing marker");
+  }
+
+  {
+    const tmp = mkTmp();
     const appimage = path.join(tmp, "sample.appimage");
     const bytes = Buffer.alloc(4096, 0);
     bytes[0] = 0x7f;
