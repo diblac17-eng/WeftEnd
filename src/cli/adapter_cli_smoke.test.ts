@@ -1143,6 +1143,16 @@ const run = async (): Promise<void> => {
     assertEq(res.status, 40, "safe-run should fail closed for explicit container sbom parse invalidity");
     assert(res.stderr.includes("CONTAINER_SBOM_INVALID"), "expected CONTAINER_SBOM_INVALID on stderr");
   }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const emptySbom = path.join(tmp, "empty_sbom.spdx.json");
+    fs.writeFileSync(emptySbom, "{\"SPDXID\":\"SPDXRef-DOCUMENT\",\"packages\":[]}\n", "utf8");
+    const res = await runCliCapture(["safe-run", emptySbom, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit empty sbom package evidence");
+    assert(res.stderr.includes("CONTAINER_SBOM_INVALID"), "expected CONTAINER_SBOM_INVALID on stderr for empty sbom evidence");
+  }
 };
 
 run()

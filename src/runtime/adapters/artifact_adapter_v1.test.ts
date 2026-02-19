@@ -1331,6 +1331,23 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const sbomPath = path.join(tmp, "empty_sbom.spdx.json");
+    fs.writeFileSync(
+      sbomPath,
+      JSON.stringify({
+        SPDXID: "SPDXRef-DOCUMENT",
+        packages: [],
+      }),
+      "utf8"
+    );
+    const capture = captureTreeV0(sbomPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: sbomPath, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit empty sbom package evidence");
+    assertEq(res.failCode, "CONTAINER_SBOM_INVALID", "expected CONTAINER_SBOM_INVALID for empty sbom evidence");
+  }
+
+  {
+    const tmp = mkTmp();
     const badIso = path.join(tmp, "bad.iso");
     fs.writeFileSync(badIso, Buffer.from("not-an-iso", "utf8"));
     const badCapture = captureTreeV0(badIso, limits);

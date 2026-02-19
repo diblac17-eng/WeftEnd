@@ -2185,7 +2185,17 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       const pkg = Array.isArray((sbom as any).packages) ? (sbom as any).packages.length : 0;
       const comps = Array.isArray((sbom as any).components) ? (sbom as any).components.length : 0;
       sbomPackageCount = Math.max(pkg, comps);
-      if (sbomPackageCount === 0) markers.push("CONTAINER_SBOM_PARTIAL");
+      if (sbomPackageCount === 0) {
+        if (strictRoute) {
+          return {
+            ok: false,
+            failCode: "CONTAINER_SBOM_INVALID",
+            failMessage: "container adapter requires non-empty SBOM package/component evidence for explicit SBOM analysis.",
+            reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_SBOM_INVALID"]),
+          };
+        }
+        markers.push("CONTAINER_SBOM_PARTIAL");
+      }
     } else {
       if (strictRoute) {
         return {
