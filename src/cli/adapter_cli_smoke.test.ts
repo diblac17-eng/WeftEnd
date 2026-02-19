@@ -951,6 +951,39 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const tinyNupkg = path.join(tmp, "tiny.nupkg");
+    writeStoredZip(tinyNupkg, [{ name: "demo.nuspec", text: "<package></package>" }]);
+    const res = await runCliCapture(["safe-run", tinyNupkg, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for nupkg with valid structure but tiny file size");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for tiny nupkg structural size");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const tinyWhl = path.join(tmp, "tiny.whl");
+    writeStoredZip(tinyWhl, [
+      { name: "demo-1.0.dist-info/METADATA", text: "Name: demo\nVersion: 1.0.0\n" },
+      { name: "demo-1.0.dist-info/WHEEL", text: "Wheel-Version: 1.0\n" },
+    ]);
+    const res = await runCliCapture(["safe-run", tinyWhl, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for whl missing required dist-info structure");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for whl missing required dist-info structure");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const tinyJar = path.join(tmp, "tiny.jar");
+    writeStoredZip(tinyJar, [{ name: "META-INF/MANIFEST.MF", text: "Manifest-Version: 1.0\n" }]);
+    const res = await runCliCapture(["safe-run", tinyJar, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for jar with valid structure but tiny file size");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for tiny jar structural size");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const partialNupkg = path.join(tmp, "partial.nupkg");
     writeStoredZip(partialNupkg, [
       { name: "demo.nuspec", text: "<package></package>" },

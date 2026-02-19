@@ -1219,9 +1219,10 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       } else if (ext === ".nupkg") {
         hasPackageStructure = namesLower.some((name) => path.basename(name).endsWith(".nuspec"));
       } else if (ext === ".whl") {
-        hasPackageStructure = namesLower.some(
-          (name) => name.includes(".dist-info/metadata") || name.includes(".dist-info/wheel")
-        );
+        const hasMetadata = namesLower.some((name) => name.includes(".dist-info/metadata"));
+        const hasWheel = namesLower.some((name) => name.includes(".dist-info/wheel"));
+        const hasRecord = namesLower.some((name) => name.includes(".dist-info/record"));
+        hasPackageStructure = hasMetadata && hasWheel && hasRecord;
       } else if (ext === ".jar") {
         hasPackageStructure = namesLower.some((name) => name === "meta-inf/manifest.mf");
       }
@@ -1238,6 +1239,22 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
           ok: false,
           failCode: "PACKAGE_FORMAT_MISMATCH",
           failMessage: "package adapter requires minimum msix structural size for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
+      if (ext === ".nupkg" && hasPackageStructure && packageFileBytes < 256) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter requires minimum nupkg structural size for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
+      if (ext === ".jar" && hasPackageStructure && packageFileBytes < 256) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter requires minimum jar structural size for explicit package analysis.",
           reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
         };
       }

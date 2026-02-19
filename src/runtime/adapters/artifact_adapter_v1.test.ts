@@ -828,12 +828,22 @@ const run = (): void => {
   {
     const tmp = mkTmp();
     const nupkg = path.join(tmp, "demo.nupkg");
-    writeStoredZip(nupkg, [{ name: "demo.nuspec", text: "<package></package>" }]);
+    writeStoredZip(nupkg, [{ name: "demo.nuspec", text: "<package>\n" + "x".repeat(384) + "\n</package>" }]);
     const capture = captureTreeV0(nupkg, limits);
     const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: nupkg, capture });
     assert(res.ok, "package adapter should parse nupkg package structure");
     assertEq(res.summary?.sourceClass, "package", "nupkg package class mismatch");
     assert((res.summary?.counts.manifestCount ?? 0) > 0, "nupkg manifest count missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const nupkg = path.join(tmp, "tiny.nupkg");
+    writeStoredZip(nupkg, [{ name: "demo.nuspec", text: "<package></package>" }]);
+    const capture = captureTreeV0(nupkg, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: nupkg, capture });
+    assert(!res.ok, "package adapter should fail closed for nupkg with valid structure but tiny file size");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for tiny nupkg structural size");
   }
 
   {
@@ -864,14 +874,28 @@ const run = (): void => {
     const tmp = mkTmp();
     const whl = path.join(tmp, "demo.whl");
     writeStoredZip(whl, [
-      { name: "demo-1.0.dist-info/METADATA", text: "Name: demo\nVersion: 1.0.0\n" },
-      { name: "demo-1.0.dist-info/WHEEL", text: "Wheel-Version: 1.0\n" },
+      { name: "demo-1.0.dist-info/METADATA", text: "Name: demo\nVersion: 1.0.0\n" + "x".repeat(320) + "\n" },
+      { name: "demo-1.0.dist-info/WHEEL", text: "Wheel-Version: 1.0\nTag: py3-none-any\n" + "y".repeat(160) + "\n" },
+      { name: "demo-1.0.dist-info/RECORD", text: "demo-1.0.dist-info/METADATA,,\n" },
     ]);
     const capture = captureTreeV0(whl, limits);
     const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: whl, capture });
     assert(res.ok, "package adapter should parse whl package structure");
     assertEq(res.summary?.sourceClass, "package", "whl package class mismatch");
     assert((res.summary?.counts.manifestCount ?? 0) > 0, "whl manifest count missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const whl = path.join(tmp, "tiny.whl");
+    writeStoredZip(whl, [
+      { name: "demo-1.0.dist-info/METADATA", text: "Name: demo\nVersion: 1.0.0\n" },
+      { name: "demo-1.0.dist-info/WHEEL", text: "Wheel-Version: 1.0\n" },
+    ]);
+    const capture = captureTreeV0(whl, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: whl, capture });
+    assert(!res.ok, "package adapter should fail closed for whl missing required dist-info structure");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for whl missing required dist-info structure");
   }
 
   {
@@ -887,12 +911,22 @@ const run = (): void => {
   {
     const tmp = mkTmp();
     const jar = path.join(tmp, "demo.jar");
-    writeStoredZip(jar, [{ name: "META-INF/MANIFEST.MF", text: "Manifest-Version: 1.0\n" }]);
+    writeStoredZip(jar, [{ name: "META-INF/MANIFEST.MF", text: "Manifest-Version: 1.0\n" + "Main-Class: demo.Main\n" + "z".repeat(256) + "\n" }]);
     const capture = captureTreeV0(jar, limits);
     const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: jar, capture });
     assert(res.ok, "package adapter should parse jar package structure");
     assertEq(res.summary?.sourceClass, "package", "jar package class mismatch");
     assert((res.summary?.counts.manifestCount ?? 0) > 0, "jar manifest count missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const jar = path.join(tmp, "tiny.jar");
+    writeStoredZip(jar, [{ name: "META-INF/MANIFEST.MF", text: "Manifest-Version: 1.0\n" }]);
+    const capture = captureTreeV0(jar, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: jar, capture });
+    assert(!res.ok, "package adapter should fail closed for jar with valid structure but tiny file size");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for tiny jar structural size");
   }
 
   {
