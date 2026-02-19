@@ -44,6 +44,7 @@ Included
 - IaC/CI adapter extraction deepened:
 - Deterministic action reference parsing now distinguishes pinned commit/digest refs from unpinned refs.
 - Remote module/source indicators and external runner signals are counted with structured counters in adapter summary output.
+- Explicit `cicd` route now requires CI structure/signals (not filename/path hints alone), failing closed on path-hint-only placeholders.
 - Container adapter extraction deepened:
 - OCI layout counts now include manifest and blob counts.
 - Container tarball detection now recognizes Docker-style markers (`manifest.json` + `repositories`) and OCI tar markers (`oci-layout` + `index.json` + `blobs/sha256/*`) for local tar inputs.

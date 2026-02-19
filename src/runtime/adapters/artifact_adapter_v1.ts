@@ -1747,11 +1747,6 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
 const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeResult => {
   const textExts = new Set([".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep", ".template"]);
   const files = collectTextFiles(ctx.inputPath, ctx.capture, textExts);
-  const baseName = path.basename(ctx.inputPath).toLowerCase();
-  const hasCicdPathHint =
-    baseName === ".gitlab-ci.yml" ||
-    baseName.startsWith("azure-pipelines") ||
-    hasAnyPath(ctx.capture, [".github/workflows/", ".gitlab-ci", "azure-pipelines"]);
   const inputLooksIac =
     IAC_EXTS.has(ctx.ext) ||
     hasAnyPath(ctx.capture, [".github/workflows/", ".gitlab-ci", "azure-pipelines", "docker-compose", "compose.yaml"]);
@@ -1770,6 +1765,7 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeR
   let secretRefs = 0;
   let remoteModuleRefs = 0;
   let actionRefCount = 0;
+  let cicdStructuralPatterns = 0;
   let unpinnedActionRefs = 0;
   let cicdSecretUsage = 0;
   let externalRunnerRefs = 0;
@@ -1793,6 +1789,8 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeR
 
     remoteModuleRefs += countMatchesV1(text, /\bsource\s*=\s*["'](?:git::|https?:\/\/|github\.com\/|git@)/gi);
     remoteModuleRefs += countMatchesV1(text, /\b(?:chart|repository|module)\s*:\s*(?:https?:\/\/|oci:\/\/)/gi);
+    cicdStructuralPatterns += countMatchesV1(text, /^\s*(on|jobs|steps|runs-on|stages|script)\s*:/mgi);
+    cicdStructuralPatterns += countMatchesV1(text, /^\s*-\s*(uses|run)\s*:/mgi);
 
     const actionRefs = extractActionUsesRefsV1(text).filter((ref) => !ref.startsWith("./") && !ref.startsWith("../"));
     actionRefCount += actionRefs.length;
@@ -1838,7 +1836,7 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeR
   }
   if (
     forcedClass === "cicd" &&
-    !hasCicdPathHint &&
+    cicdStructuralPatterns === 0 &&
     actionRefCount === 0 &&
     unpinnedActionRefs === 0 &&
     cicdSecretUsage === 0 &&
@@ -1883,6 +1881,7 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeR
       secretPatternCount: secretRefs,
       remoteModulePatternCount: remoteModuleRefs,
       cicdActionRefCount: actionRefCount,
+      cicdStructuralPatternCount: cicdStructuralPatterns,
       cicdUnpinnedActionCount: unpinnedActionRefs,
       cicdSecretUsageCount: cicdSecretUsage,
       cicdExternalRunnerCount: externalRunnerRefs,

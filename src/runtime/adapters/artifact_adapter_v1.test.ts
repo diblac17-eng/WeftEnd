@@ -487,6 +487,17 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const wfDir = path.join(tmp, ".github", "workflows");
+    fs.mkdirSync(wfDir, { recursive: true });
+    fs.writeFileSync(path.join(wfDir, "placeholder.yml"), "title: hello\nmessage: plain text\n", "utf8");
+    const capture = captureTreeV0(tmp, limits);
+    const res = runArtifactAdapterV1({ selection: "cicd", enabledPlugins: [], inputPath: tmp, capture });
+    assert(!res.ok, "cicd adapter should fail closed for path-hint-only workflow without ci structure/signals");
+    assertEq(res.failCode, "CICD_UNSUPPORTED_FORMAT", "expected CICD_UNSUPPORTED_FORMAT for path-hint-only workflow");
+  }
+
+  {
+    const tmp = mkTmp();
     const tf = path.join(tmp, "main.tf");
     fs.writeFileSync(tf, "resource \"null_resource\" \"x\" {}\n", "utf8");
     const capture = captureTreeV0(tf, limits);

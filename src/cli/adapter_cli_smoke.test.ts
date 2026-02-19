@@ -341,6 +341,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const input = path.join(tmp, "azure-pipelines.yml");
+    fs.writeFileSync(input, "title: placeholder\nmessage: plain text\n", "utf8");
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "cicd"]);
+    assertEq(res.status, 40, "safe-run should fail closed for cicd path-hint-only input without ci structure/signals");
+    assert(res.stderr.includes("CICD_UNSUPPORTED_FORMAT"), "expected CICD_UNSUPPORTED_FORMAT on stderr for path-hint-only cicd input");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const input = path.join(tmp, "notes.yaml");
     fs.writeFileSync(input, "title: hello\nmessage: plain text\n", "utf8");
     const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "iac"]);
