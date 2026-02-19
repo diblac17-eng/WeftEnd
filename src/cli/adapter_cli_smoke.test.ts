@@ -692,6 +692,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const partialNupkg = path.join(tmp, "partial.nupkg");
+    writeStoredZip(partialNupkg, [
+      { name: "demo.nuspec", text: "<package></package>" },
+      { name: "content/readme.txt", text: "x" },
+    ]);
+    corruptSecondZipCentralSignature(partialNupkg);
+    const res = await runCliCapture(["safe-run", partialNupkg, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed when package ZIP metadata is partial after parsed entries");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for partial package zip metadata");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badDeb = path.join(tmp, "bad.deb");
     fs.writeFileSync(badDeb, "not-an-ar-deb", "utf8");
     const res = await runCliCapture(["safe-run", badDeb, "--out", outDir, "--adapter", "package"]);

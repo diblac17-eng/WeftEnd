@@ -1472,6 +1472,14 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
     }
     signingParsePartial = 1;
   }
+  if (strictRoute && (markers.includes("ARCHIVE_METADATA_PARTIAL") || markers.includes("PACKAGE_METADATA_PARTIAL"))) {
+    return {
+      ok: false,
+      failCode: "PACKAGE_FORMAT_MISMATCH",
+      failMessage: "package adapter expected complete package metadata for explicit package analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+    };
+  }
 
   const manifestNames = new Set([
     "package.json",

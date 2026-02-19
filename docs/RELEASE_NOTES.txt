@@ -30,6 +30,7 @@ Included
 - `.deb` now parses deterministic AR entry metadata (bounded, no extraction/exec).
 - `.rpm` now captures deterministic lead/header/script/signing hint counters from local bytes only.
 - `.appimage` now captures deterministic ELF/runtime header hints (analysis-only; execution withheld).
+- Package strict route now fails closed on partial ZIP/AR metadata even when required structure markers are present, preventing mixed valid/corrupt package acceptance.
 - Archive/package tar coverage expanded:
 - `.tar.xz/.txz` now follow explicit tar-plugin, fail-closed handling in archive/package lanes.
 - Explicit `.tar` archive analysis now validates header checksum and octal size fields and fails closed on partial metadata even when earlier entries parsed, preventing mixed valid/corrupt tar acceptance.

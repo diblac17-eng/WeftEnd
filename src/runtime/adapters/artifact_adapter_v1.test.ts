@@ -755,6 +755,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const partialNupkg = path.join(tmp, "partial.nupkg");
+    writeStoredZip(partialNupkg, [
+      { name: "demo.nuspec", text: "<package></package>" },
+      { name: "content/readme.txt", text: "x" },
+    ]);
+    corruptSecondZipCentralSignature(partialNupkg);
+    const capture = captureTreeV0(partialNupkg, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: partialNupkg, capture });
+    assert(!res.ok, "package adapter should fail closed when package ZIP metadata is partial after parsed entries");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for partial package zip metadata");
+  }
+
+  {
+    const tmp = mkTmp();
     const badStructureWhl = path.join(tmp, "bad_structure.whl");
     writeStoredZip(badStructureWhl, [{ name: "pkg/__init__.py", text: "" }]);
     const capture = captureTreeV0(badStructureWhl, limits);
