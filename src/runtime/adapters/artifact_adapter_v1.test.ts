@@ -1150,6 +1150,31 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const pdf = path.join(tmp, "demo.pdf");
+    fs.writeFileSync(
+      pdf,
+      "%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\nmacro javascript EmbeddedFile http://example.test\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n",
+      "utf8"
+    );
+    const capture = captureTreeV0(pdf, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: pdf, capture });
+    assert(res.ok, "document adapter should parse explicit pdf with header and EOF markers");
+    assertEq(res.summary?.sourceClass, "document", "pdf source class mismatch");
+    assert((res.summary?.counts.activeContentCount ?? 0) > 0, "pdf active content count missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const noEofPdf = path.join(tmp, "no_eof.pdf");
+    fs.writeFileSync(noEofPdf, "%PDF-1.7\nmacro javascript EmbeddedFile http://example.test\n", "utf8");
+    const capture = captureTreeV0(noEofPdf, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: noEofPdf, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit pdf missing EOF marker");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for explicit pdf missing EOF marker");
+  }
+
+  {
+    const tmp = mkTmp();
     const badPdf = path.join(tmp, "bad.pdf");
     fs.writeFileSync(badPdf, "not-a-pdf", "utf8");
     const capture = captureTreeV0(badPdf, limits);

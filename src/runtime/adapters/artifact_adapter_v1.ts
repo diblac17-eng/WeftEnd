@@ -1903,8 +1903,8 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
   }
   if (strictRoute) {
     if (ctx.ext === ".pdf") {
-      const bytes = readBytesBounded(ctx.inputPath, 64);
-      const head = Buffer.from(bytes).toString("latin1");
+      const window = readFileHeadTailBounded(ctx.inputPath, 64, 2048);
+      const head = Buffer.from(window.head).toString("latin1");
       const pdfIdx = head.indexOf("%PDF-");
       const pdfHeaderOk = pdfIdx >= 0 && pdfIdx <= 8;
       if (!pdfHeaderOk) {
@@ -1912,6 +1912,16 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
           ok: false,
           failCode: "DOC_FORMAT_MISMATCH",
           failMessage: "document adapter detected extension/header mismatch for explicit document analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+        };
+      }
+      const tail = Buffer.from(window.tail).toString("latin1");
+      const pdfEofOk = /%%EOF(?:\s|$)/.test(tail);
+      if (!pdfEofOk) {
+        return {
+          ok: false,
+          failCode: "DOC_FORMAT_MISMATCH",
+          failMessage: "document adapter expected PDF EOF marker for explicit document analysis.",
           reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
         };
       }
