@@ -558,6 +558,21 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const partialDocm = path.join(tmp, "partial.docm");
+    writeStoredZip(partialDocm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "_rels/.rels", text: "<Relationships></Relationships>" },
+      { name: "word/document.xml", text: "<w:document/>" },
+    ]);
+    corruptSecondZipCentralSignature(partialDocm);
+    const res = await runCliCapture(["safe-run", partialDocm, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 40, "safe-run should fail closed when OOXML ZIP metadata is partial after parsed entries");
+    assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr for partial docm metadata");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badPem = path.join(tmp, "bad.pem");
     fs.writeFileSync(badPem, "plain text not signature material", "utf8");
     const res = await runCliCapture(["safe-run", badPem, "--out", outDir, "--adapter", "signature"]);

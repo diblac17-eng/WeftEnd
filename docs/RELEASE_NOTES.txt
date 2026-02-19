@@ -40,6 +40,7 @@ Included
 - `.dmg` now captures deterministic trailer marker hints (`koly`) without mounting.
 - Document adapter deepened for `.docm/.xlsm`:
 - ZIP structure + relationships are inspected deterministically for macro/embed/external-link indicators.
+- Document strict route now fails closed on partial OOXML ZIP metadata even when structural markers are present, preventing mixed valid/corrupt office-document acceptance.
 - IaC/CI adapter extraction deepened:
 - Deterministic action reference parsing now distinguishes pinned commit/digest refs from unpinned refs.
 - Remote module/source indicators and external runner signals are counted with structured counters in adapter summary output.

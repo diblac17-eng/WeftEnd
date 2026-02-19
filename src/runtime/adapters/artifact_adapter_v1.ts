@@ -1990,6 +1990,14 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
       const rel = String(entry.text || "");
       if (/TargetMode\s*=\s*["']External["']/i.test(rel) || /https?:\/\//i.test(rel)) externalLink += 1;
     });
+    if (strictRoute && markers.includes("ARCHIVE_METADATA_PARTIAL")) {
+      return {
+        ok: false,
+        failCode: "DOC_FORMAT_MISMATCH",
+        failMessage: "document adapter expected complete OOXML ZIP metadata for explicit office-document analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+      };
+    }
   }
 
   if (activeContent > 0) {

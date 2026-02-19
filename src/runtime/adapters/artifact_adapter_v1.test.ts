@@ -1094,6 +1094,21 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const partialDocm = path.join(tmp, "partial.docm");
+    writeStoredZip(partialDocm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "_rels/.rels", text: "<Relationships></Relationships>" },
+      { name: "word/document.xml", text: "<w:document/>" },
+    ]);
+    corruptSecondZipCentralSignature(partialDocm);
+    const capture = captureTreeV0(partialDocm, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: partialDocm, capture });
+    assert(!res.ok, "document adapter should fail closed when OOXML ZIP metadata is partial after parsed entries");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for partial docm metadata");
+  }
+
+  {
+    const tmp = mkTmp();
     const badPdf = path.join(tmp, "bad.pdf");
     fs.writeFileSync(badPdf, "not-a-pdf", "utf8");
     const capture = captureTreeV0(badPdf, limits);
