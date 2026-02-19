@@ -1217,6 +1217,26 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const rtf = path.join(tmp, "sample.rtf");
+    fs.writeFileSync(rtf, "{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Arial;}}\\f0\\fs20 sample text}", "utf8");
+    const capture = captureTreeV0(rtf, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: rtf, capture });
+    assert(res.ok, "document adapter should parse explicit RTF with structural prolog/closing brace");
+    assertEq(res.summary?.sourceClass, "document", "rtf source class mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
+    const noCloseRtf = path.join(tmp, "no_close.rtf");
+    fs.writeFileSync(noCloseRtf, "{\\rtf1\\ansi sample text", "utf8");
+    const capture = captureTreeV0(noCloseRtf, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: noCloseRtf, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit RTF missing closing brace");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for explicit RTF missing closing brace");
+  }
+
+  {
+    const tmp = mkTmp();
     const docm = path.join(tmp, "demo.docm");
     writeStoredZip(docm, [
       { name: "[Content_Types].xml", text: "<Types></Types>" },

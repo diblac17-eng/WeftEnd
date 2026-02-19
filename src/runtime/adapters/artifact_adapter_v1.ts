@@ -1926,13 +1926,22 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
         };
       }
     } else if (ctx.ext === ".rtf") {
-      const bytes = readBytesBounded(ctx.inputPath, 64);
-      const head = Buffer.from(bytes).toString("latin1");
-      if (!/^\s*\{\\rtf/i.test(head)) {
+      const window = readFileHeadTailBounded(ctx.inputPath, 64, 512);
+      const head = Buffer.from(window.head).toString("latin1");
+      if (!/^\s*\{\\rtf1\b/i.test(head)) {
         return {
           ok: false,
           failCode: "DOC_FORMAT_MISMATCH",
           failMessage: "document adapter detected extension/header mismatch for explicit document analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+        };
+      }
+      const tail = Buffer.from(window.tail).toString("latin1");
+      if (!/\}\s*$/.test(tail)) {
+        return {
+          ok: false,
+          failCode: "DOC_FORMAT_MISMATCH",
+          failMessage: "document adapter expected RTF closing brace for explicit document analysis.",
           reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
         };
       }

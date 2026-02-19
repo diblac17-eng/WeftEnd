@@ -624,6 +624,25 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const rtf = path.join(tmp, "sample.rtf");
+    fs.writeFileSync(rtf, "{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Arial;}}\\f0\\fs20 sample text}", "utf8");
+    const res = await runCliCapture(["safe-run", rtf, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 0, "safe-run document should accept explicit RTF with structural prolog/closing brace");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const noCloseRtf = path.join(tmp, "no_close.rtf");
+    fs.writeFileSync(noCloseRtf, "{\\rtf1\\ansi sample text", "utf8");
+    const res = await runCliCapture(["safe-run", noCloseRtf, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit RTF missing closing brace");
+    assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr for RTF missing closing brace");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badDocm = path.join(tmp, "bad.docm");
     fs.writeFileSync(badDocm, "not-a-zip-office-doc", "utf8");
     const res = await runCliCapture(["safe-run", badDocm, "--out", outDir, "--adapter", "document"]);
