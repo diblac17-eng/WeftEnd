@@ -2106,6 +2106,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
           };
         }
       } else {
+        if (strictRoute) {
+          return {
+            ok: false,
+            failCode: "CONTAINER_INDEX_INVALID",
+            failMessage: "container adapter requires OCI index manifests array for explicit OCI layout analysis.",
+            reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_INDEX_INVALID"]),
+          };
+        }
         markers.push("CONTAINER_INDEX_PARTIAL");
       }
     } else {
@@ -2135,6 +2143,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   if (isContainerTar) {
     tarEntryCount = tarEntries.entries.length;
     markers.push(...tarEntries.markers);
+    if (strictRoute && tarEntries.markers.includes("ARCHIVE_METADATA_PARTIAL")) {
+      return {
+        ok: false,
+        failCode: "CONTAINER_FORMAT_MISMATCH",
+        failMessage: "container adapter expected complete tar metadata for explicit container tar analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+      };
+    }
   }
   if (isCompose) {
     const composeTexts: string[] = [];

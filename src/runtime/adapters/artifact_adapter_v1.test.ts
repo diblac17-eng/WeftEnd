@@ -1187,6 +1187,19 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const ociDir = path.join(tmp, "oci_layout_bad_index_shape");
+    fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
+    fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
+    fs.writeFileSync(path.join(ociDir, "index.json"), JSON.stringify({ schemaVersion: 2, manifests: {} }), "utf8");
+    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", "a"), "x", "utf8");
+    const capture = captureTreeV0(ociDir, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: ociDir, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit OCI index manifests shape mismatch");
+    assertEq(res.failCode, "CONTAINER_INDEX_INVALID", "expected CONTAINER_INDEX_INVALID for OCI index manifests shape mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
     const ociDir = path.join(tmp, "oci_layout_empty_manifests");
     fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
     fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
@@ -1222,6 +1235,21 @@ const run = (): void => {
     assert(res.ok, "container adapter should parse container tar entries");
     assert((res.summary?.counts.tarballScanPresent ?? 0) === 1, "container tar flag mismatch");
     assert((res.summary?.counts.tarEntryCount ?? 0) >= 3, "container tar entry count missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const tarPath = path.join(tmp, "container_partial.tar");
+    writeSimpleTar(tarPath, [
+      { name: "manifest.json", text: "[]" },
+      { name: "repositories", text: "{}" },
+      { name: "layer.tar", text: "layer-bytes" },
+    ]);
+    fs.appendFileSync(tarPath, Buffer.alloc(512, 0x41));
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit container tar with partial metadata");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for partial container tar metadata");
   }
 
   {

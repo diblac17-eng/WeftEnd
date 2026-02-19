@@ -1045,6 +1045,21 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const partialTar = path.join(tmp, "partial_container.tar");
+    writeSimpleTar(partialTar, [
+      { name: "manifest.json", text: "[]" },
+      { name: "repositories", text: "{}" },
+      { name: "layer.tar", text: "layer-bytes" },
+    ]);
+    fs.appendFileSync(partialTar, Buffer.alloc(512, 0x41));
+    const res = await runCliCapture(["safe-run", partialTar, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit container tar with partial metadata");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for partial container tar metadata");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badCompose = path.join(tmp, "compose.yaml");
     fs.writeFileSync(badCompose, "not compose syntax", "utf8");
     const res = await runCliCapture(["safe-run", badCompose, "--out", outDir, "--adapter", "container"]);
@@ -1088,6 +1103,19 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", ociDir, "--out", outDir, "--adapter", "container"]);
     assertEq(res.status, 40, "safe-run should fail closed for explicit OCI index with empty manifests");
     assert(res.stderr.includes("CONTAINER_INDEX_INVALID"), "expected CONTAINER_INDEX_INVALID on stderr for empty manifests");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const ociDir = path.join(tmp, "oci_bad_manifest_shape");
+    fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
+    fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
+    fs.writeFileSync(path.join(ociDir, "index.json"), "{\"schemaVersion\":2,\"manifests\":{}}\n", "utf8");
+    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", "a"), "x", "utf8");
+    const res = await runCliCapture(["safe-run", ociDir, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI index manifests shape mismatch");
+    assert(res.stderr.includes("CONTAINER_INDEX_INVALID"), "expected CONTAINER_INDEX_INVALID on stderr for OCI index manifests shape mismatch");
   }
 
   {

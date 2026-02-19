@@ -48,6 +48,7 @@ Included
 - OCI layout counts now include manifest and blob counts.
 - Container tarball detection now recognizes Docker-style markers (`manifest.json` + `repositories`) and OCI tar markers (`oci-layout` + `index.json` + `blobs/sha256/*`) for local tar inputs.
 - Explicit OCI layout route now fails closed when manifests exist but blob evidence is missing (`CONTAINER_LAYOUT_INVALID`), preventing partial container identity acceptance.
+- Explicit container route now fails closed when OCI index manifests shape is invalid and when container tar metadata is partial, preventing mixed valid/corrupt container acceptance.
 - SBOM JSON parsing now emits bounded package/component counts when present.
 - Signature/cert adapter extraction deepened:
 - Deterministic PEM block counting for certificate/PKCS7/signature material.
