@@ -360,6 +360,22 @@ const run = async (): Promise<void> => {
 
   {
     const outDir = mkTmp();
+    const tmp = mkTmp();
+    const wfDir = path.join(tmp, ".github", "workflows");
+    fs.mkdirSync(wfDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(wfDir, "auto_class.yml"),
+      "name: ci\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567\n",
+      "utf8"
+    );
+    const res = await runCliCapture(["safe-run", tmp, "--out", outDir, "--adapter", "auto"]);
+    assertEq(res.status, 0, `safe-run should classify workflow under adapter auto\n${res.stderr}`);
+    const safe = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
+    assertEq(safe.contentSummary?.adapterSignals?.class, "cicd", "adapter auto should classify workflow as cicd");
+  }
+
+  {
+    const outDir = mkTmp();
     const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
     const res = await runCliCapture([
       "safe-run",

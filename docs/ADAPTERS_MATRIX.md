@@ -61,6 +61,8 @@ Adapter classes
   CICD_EXTERNAL_RUNNER_REF
 - Route strictness:
   explicit `--adapter iac` fails closed on non-IaC text/config inputs (`IAC_UNSUPPORTED_FORMAT`), and explicit `--adapter cicd` fails closed on non-CI/CD inputs (`CICD_UNSUPPORTED_FORMAT`). CI/CD path/filename hints alone do not satisfy strict CI/CD route requirements without CI structure/signals.
+- Auto classification:
+  adapter `auto` classifies CI/CD when CI structure/action references are present, including pinned-only workflows that do not emit risk-only CI reason codes.
 
 5) document (baseline signal lane)
 - Formats: .pdf, .docm, .xlsm, .rtf, .chm

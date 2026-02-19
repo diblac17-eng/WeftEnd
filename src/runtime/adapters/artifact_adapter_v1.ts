@@ -1864,7 +1864,7 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeR
     };
   }
 
-  const hasCicdSignals = unpinnedActionRefs + cicdSecretUsage + externalRunnerRefs > 0;
+  const hasCicdSignals = cicdStructuralPatterns + actionRefCount + unpinnedActionRefs + cicdSecretUsage + externalRunnerRefs > 0;
   const sourceClass: AdapterClassV1 = forcedClass ?? (hasCicdSignals ? "cicd" : "iac");
   if (sourceClass === "cicd") reasons.push("CICD_ADAPTER_V1");
 
@@ -2576,14 +2576,19 @@ const analyzeSignature = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
 
 const autoSelectClass = (ctx: AnalyzeCtx): AdapterClassV1 | null => {
   const ext = ctx.ext;
+  const base = path.basename(ctx.inputPath).toLowerCase();
+  const hasCicdPathHint =
+    base === ".gitlab-ci.yml" ||
+    base.startsWith("azure-pipelines") ||
+    hasAnyPath(ctx.capture, [".github/workflows/", ".gitlab-ci", "azure-pipelines"]);
   if (EXTENSION_EXTS.has(ext) || (isDirectory(ctx.inputPath) && fs.existsSync(path.join(ctx.inputPath, "manifest.json")))) return "extension";
   if (PACKAGE_EXTS.has(ext)) return "package";
   if (ARCHIVE_EXTS.has(ext)) return "archive";
-  if (IAC_EXTS.has(ext) || hasAnyPath(ctx.capture, [".github/workflows/", ".gitlab-ci", "azure-pipelines"])) return "iac";
+  if (hasCicdPathHint) return "cicd";
+  if (IAC_EXTS.has(ext)) return "iac";
   if (DOCUMENT_EXTS.has(ext)) return "document";
   if (SIGNATURE_EXTS.has(ext)) return "signature";
   if (isDirectory(ctx.inputPath) && fs.existsSync(path.join(ctx.inputPath, ".git"))) return "scm";
-  const base = path.basename(ctx.inputPath).toLowerCase();
   if (/sbom|spdx|cyclonedx|bom/.test(base) || hasAnyPath(ctx.capture, ["oci-layout", "docker-compose", "compose.yaml"])) return "container";
   if (IMAGE_EXTS.has(ext)) return "image";
   return null;

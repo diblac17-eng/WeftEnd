@@ -489,6 +489,21 @@ const run = (): void => {
     const tmp = mkTmp();
     const wfDir = path.join(tmp, ".github", "workflows");
     fs.mkdirSync(wfDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(wfDir, "auto_class.yml"),
+      "name: ci\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567\n",
+      "utf8"
+    );
+    const capture = captureTreeV0(tmp, limits);
+    const res = runArtifactAdapterV1({ selection: "auto", enabledPlugins: [], inputPath: tmp, capture });
+    assert(res.ok, "adapter auto should succeed for workflow");
+    assertEq(res.summary?.sourceClass, "cicd", "adapter auto should classify workflow as cicd");
+  }
+
+  {
+    const tmp = mkTmp();
+    const wfDir = path.join(tmp, ".github", "workflows");
+    fs.mkdirSync(wfDir, { recursive: true });
     fs.writeFileSync(path.join(wfDir, "placeholder.yml"), "title: hello\nmessage: plain text\n", "utf8");
     const capture = captureTreeV0(tmp, limits);
     const res = runArtifactAdapterV1({ selection: "cicd", enabledPlugins: [], inputPath: tmp, capture });
