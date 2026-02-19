@@ -1212,10 +1212,12 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       const namesLower = entryNames.map((entry) => String(entry || "").replace(/\\/g, "/").toLowerCase());
       let hasPackageStructure = true;
       if (ext === ".msix") {
-        hasPackageStructure = namesLower.some((name) => {
+        const hasManifest = namesLower.some((name) => {
           const base = path.basename(name);
           return base === "appxmanifest.xml" || base === "appxbundlemanifest.xml";
         });
+        const hasContentTypes = namesLower.some((name) => path.basename(name) === "[content_types].xml");
+        hasPackageStructure = hasManifest && hasContentTypes;
       } else if (ext === ".nupkg") {
         hasPackageStructure = namesLower.some((name) => path.basename(name).endsWith(".nuspec"));
       } else if (ext === ".whl") {

@@ -777,6 +777,10 @@ const run = (): void => {
     const msix = path.join(tmp, "demo.msix");
     writeStoredZip(msix, [
       {
+        name: "[Content_Types].xml",
+        text: "<Types><Default Extension=\"xml\" ContentType=\"application/xml\"/></Types>",
+      },
+      {
         name: "AppxManifest.xml",
         text: "<Package><Capabilities><Capability Name=\"internetClient\"/></Capabilities></Package>\n" + "manifest-padding-".repeat(24),
       },
