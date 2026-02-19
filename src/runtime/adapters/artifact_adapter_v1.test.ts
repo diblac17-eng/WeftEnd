@@ -1548,6 +1548,27 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const placeholderComposePath = path.join(tmp, "compose.yaml");
+    fs.writeFileSync(placeholderComposePath, "services:\n  web:\n    restart: always\n", "utf8");
+    const capture = captureTreeV0(placeholderComposePath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: placeholderComposePath, capture });
+    assert(!res.ok, "container adapter should fail closed for compose placeholder without image/build hints");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for compose placeholder without image/build hints");
+  }
+
+  {
+    const tmp = mkTmp();
+    const buildComposePath = path.join(tmp, "compose.yaml");
+    fs.writeFileSync(buildComposePath, "services:\n  web:\n    build: .\n", "utf8");
+    const capture = captureTreeV0(buildComposePath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: buildComposePath, capture });
+    assert(res.ok, "container adapter should accept compose with services and build hint");
+    assert((res.summary?.counts.composeBuildHintCount ?? 0) > 0, "compose build hint count mismatch");
+    assert((res.summary?.counts.composeServicesBlockCount ?? 0) > 0, "compose services block count mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
     const sbomPath = path.join(tmp, "demo.spdx.json");
     fs.writeFileSync(
       sbomPath,

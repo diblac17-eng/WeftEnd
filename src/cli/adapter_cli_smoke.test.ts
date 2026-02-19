@@ -1399,6 +1399,25 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const placeholderCompose = path.join(tmp, "compose.yaml");
+    fs.writeFileSync(placeholderCompose, "services:\n  web:\n    restart: always\n", "utf8");
+    const res = await runCliCapture(["safe-run", placeholderCompose, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for compose placeholder without image/build hints");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for compose placeholder");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const buildCompose = path.join(tmp, "compose.yaml");
+    fs.writeFileSync(buildCompose, "services:\n  web:\n    build: .\n", "utf8");
+    const res = await runCliCapture(["safe-run", buildCompose, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 0, "safe-run should accept compose with services and build hint");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const ociDir = path.join(tmp, "oci_bad_layout");
     fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
     fs.writeFileSync(path.join(ociDir, "oci-layout"), "{ invalid-json", "utf8");
