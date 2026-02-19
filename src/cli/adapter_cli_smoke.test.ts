@@ -653,6 +653,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const largeDerSig = path.join(tmp, "large_der.sig");
+    const bytes = Buffer.alloc(130, 0);
+    bytes[0] = 0x30;
+    bytes[1] = 0x81;
+    bytes[2] = 0x7f;
+    fs.writeFileSync(largeDerSig, bytes);
+    const res = await runCliCapture(["safe-run", largeDerSig, "--out", outDir, "--adapter", "signature"]);
+    assertEq(res.status, 40, "safe-run should fail closed for large generic DER .sig without signature envelope evidence");
+    assert(res.stderr.includes("SIGNATURE_FORMAT_MISMATCH"), "expected SIGNATURE_FORMAT_MISMATCH on stderr for large generic DER .sig");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const repo = path.join(tmp, "repo_unresolved");
     fs.mkdirSync(path.join(repo, ".git"), { recursive: true });
     fs.writeFileSync(path.join(repo, "file.txt"), "x", "utf8");

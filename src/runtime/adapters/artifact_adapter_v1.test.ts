@@ -1576,6 +1576,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const largeDerSig = path.join(tmp, "large_der.sig");
+    const bytes = Buffer.alloc(130, 0);
+    bytes[0] = 0x30;
+    bytes[1] = 0x81;
+    bytes[2] = 0x7f;
+    fs.writeFileSync(largeDerSig, bytes);
+    const capture = captureTreeV0(largeDerSig, limits);
+    const res = runArtifactAdapterV1({ selection: "signature", enabledPlugins: [], inputPath: largeDerSig, capture });
+    assert(!res.ok, "explicit signature adapter should fail closed for large generic DER .sig without signature envelope evidence");
+    assertEq(res.failCode, "SIGNATURE_FORMAT_MISMATCH", "expected SIGNATURE_FORMAT_MISMATCH for large generic DER .sig input");
+  }
+
+  {
+    const tmp = mkTmp();
     const repo = path.join(tmp, "repo");
     fs.mkdirSync(repo, { recursive: true });
     const gitAvailable = runCmd("git", ["--version"]).ok;

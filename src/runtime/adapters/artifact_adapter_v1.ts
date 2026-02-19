@@ -2529,7 +2529,9 @@ const analyzeSignature = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   const timestampPresent = textualTimestampCount > 0 || timestampOidCount > 0;
   if (strictRoute) {
     const looksAsn1Der = isLikelyDerSequenceV1(bytes);
-    const derEvidenceStrong = looksAsn1Der && (cmsSignedDataOidCount > 0 || bytes.length >= 128);
+    const derEvidenceStrong =
+      looksAsn1Der &&
+      (cmsSignedDataOidCount > 0 || ((ctx.ext === ".cer" || ctx.ext === ".crt") && bytes.length >= 128));
     const strictEvidencePresent = strongEnvelopeEvidence || derEvidenceStrong;
     if (!strictEvidencePresent) {
       return {
