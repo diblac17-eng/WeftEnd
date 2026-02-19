@@ -53,7 +53,7 @@ Included
 - Document strict route now fails closed on partial OOXML ZIP metadata even when structural markers are present, preventing mixed valid/corrupt office-document acceptance.
 - Document strict route now requires both PDF header and EOF marker evidence for explicit `.pdf` analysis, preventing header-only placeholder inputs from passing strict document routing.
 - Document strict route now requires PDF structural marker evidence (`obj`/`xref`/catalog hints) for explicit `.pdf` analysis, preventing header+EOF placeholder inputs from passing strict document routing.
-- Document strict route now requires a strict RTF prolog (`{\\rtf1`) and closing-brace evidence for explicit `.rtf` analysis, preventing partial/plaintext placeholders from passing strict document routing.
+- Document strict route now requires a strict RTF prolog (`{\\rtf1`), baseline control-word evidence (`\\ansi`/`\\deff`), and closing-brace evidence for explicit `.rtf` analysis, preventing partial/plaintext placeholders from passing strict document routing.
 - Document strict route now requires minimum CHM structural header evidence (including header-length sanity) for explicit `.chm` analysis, preventing tiny header-only placeholders from passing strict document routing.
 - IaC/CI adapter extraction deepened:
 - Deterministic action reference parsing now distinguishes pinned commit/digest refs from unpinned refs.

@@ -73,7 +73,7 @@ Adapter classes
   DOC_EMBEDDED_OBJECT_PRESENT
   DOC_EXTERNAL_LINK_PRESENT
 - Route strictness:
-  explicit `--adapter document` fails closed on extension/header mismatch (`.pdf/.rtf/.chm`), requires PDF EOF and structural marker evidence for explicit `.pdf` analysis, requires strict RTF prolog/closing-brace evidence for explicit `.rtf` analysis, requires minimum CHM structural header evidence for explicit `.chm` analysis, and fails closed on invalid/missing or partial OOXML ZIP metadata for `.docm/.xlsm`.
+  explicit `--adapter document` fails closed on extension/header mismatch (`.pdf/.rtf/.chm`), requires PDF EOF and structural marker evidence for explicit `.pdf` analysis, requires strict RTF prolog plus baseline control-word and closing-brace evidence for explicit `.rtf` analysis, requires minimum CHM structural header evidence for explicit `.chm` analysis, and fails closed on invalid/missing or partial OOXML ZIP metadata for `.docm/.xlsm`.
 
 6) container (baseline signal lane)
 - Formats: OCI layouts, container tarball hints, compose/SBOM hints

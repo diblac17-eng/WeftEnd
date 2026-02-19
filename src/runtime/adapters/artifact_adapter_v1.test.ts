@@ -1421,6 +1421,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tinyRtf = path.join(tmp, "tiny.rtf");
+    fs.writeFileSync(tinyRtf, "{\\rtf1}", "utf8");
+    const capture = captureTreeV0(tinyRtf, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: tinyRtf, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit RTF missing baseline control-word evidence");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for explicit RTF missing baseline control-word evidence");
+  }
+
+  {
+    const tmp = mkTmp();
     const noCloseRtf = path.join(tmp, "no_close.rtf");
     fs.writeFileSync(noCloseRtf, "{\\rtf1\\ansi sample text", "utf8");
     const capture = captureTreeV0(noCloseRtf, limits);

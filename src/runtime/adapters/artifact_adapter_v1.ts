@@ -2036,6 +2036,15 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
           reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
         };
       }
+      const rtfControlWordOk = /\\ansi\b|\\deff\d+\b/i.test(head);
+      if (!rtfControlWordOk) {
+        return {
+          ok: false,
+          failCode: "DOC_FORMAT_MISMATCH",
+          failMessage: "document adapter expected baseline RTF control-word evidence for explicit document analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+        };
+      }
       const tail = Buffer.from(window.tail).toString("latin1");
       if (!/\}\s*$/.test(tail)) {
         return {

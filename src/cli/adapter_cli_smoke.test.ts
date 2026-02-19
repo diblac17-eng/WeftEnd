@@ -643,6 +643,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const tinyRtf = path.join(tmp, "tiny.rtf");
+    fs.writeFileSync(tinyRtf, "{\\rtf1}", "utf8");
+    const res = await runCliCapture(["safe-run", tinyRtf, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit RTF missing baseline control-word evidence");
+    assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr for RTF missing baseline control-word evidence");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const noCloseRtf = path.join(tmp, "no_close.rtf");
     fs.writeFileSync(noCloseRtf, "{\\rtf1\\ansi sample text", "utf8");
     const res = await runCliCapture(["safe-run", noCloseRtf, "--out", outDir, "--adapter", "document"]);
