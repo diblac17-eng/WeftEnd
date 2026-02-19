@@ -852,6 +852,29 @@ const countMatchesV1 = (text: string, pattern: RegExp): number => {
   return count;
 };
 
+const isLikelyDerSequenceV1 = (bytes: any): boolean => {
+  if (!bytes || bytes.length < 4) return false;
+  if (bytes[0] !== 0x30) return false;
+  const lenByte = bytes[1];
+  let contentLen = 0;
+  let lengthOfLength = 0;
+  if ((lenByte & 0x80) === 0) {
+    contentLen = lenByte;
+  } else {
+    lengthOfLength = lenByte & 0x7f;
+    if (lengthOfLength === 0 || lengthOfLength > 4) return false;
+    if (bytes.length < 2 + lengthOfLength) return false;
+    for (let i = 0; i < lengthOfLength; i += 1) {
+      contentLen = (contentLen << 8) | bytes[2 + i];
+    }
+    // DER long-form length must not encode values that fit in short form.
+    if (contentLen < 128) return false;
+  }
+  const headerLen = 2 + lengthOfLength;
+  if (contentLen <= 0) return false;
+  return headerLen + contentLen <= bytes.length;
+};
+
 const extractActionUsesRefsV1 = (text: string): string[] => {
   const refs: string[] = [];
   const re = /\buses\s*:\s*([^\s#"'`]+|["'][^"']+["'])/gi;
@@ -1313,8 +1336,8 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
     signingEvidenceCount += 1;
   }
   if (ext === ".msi") {
-    const bytes = readBytesBounded(ctx.inputPath, 8);
-    const isMsiHeader =
+    const bytes = readBytesBounded(ctx.inputPath, 64);
+    const hasCfbMagic =
       bytes.length >= 8 &&
       bytes[0] === 0xd0 &&
       bytes[1] === 0xcf &&
@@ -1324,6 +1347,16 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       bytes[5] === 0xb1 &&
       bytes[6] === 0x1a &&
       bytes[7] === 0xe1;
+    const majorVersion = bytes.length >= 28 ? Buffer.from(bytes).readUInt16LE(26) : 0;
+    const byteOrder = bytes.length >= 30 ? Buffer.from(bytes).readUInt16LE(28) : 0;
+    const sectorShift = bytes.length >= 32 ? Buffer.from(bytes).readUInt16LE(30) : 0;
+    const miniSectorShift = bytes.length >= 34 ? Buffer.from(bytes).readUInt16LE(32) : 0;
+    const cfbStructureValid =
+      byteOrder === 0xfffe &&
+      (majorVersion === 3 || majorVersion === 4) &&
+      ((majorVersion === 3 && sectorShift === 9) || (majorVersion === 4 && sectorShift === 12)) &&
+      miniSectorShift === 6;
+    const isMsiHeader = hasCfbMagic && cfbStructureValid;
     if (strictRoute && !isMsiHeader) {
       return {
         ok: false,
@@ -2299,7 +2332,7 @@ const analyzeSignature = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   const chainPresent = pemCertificateCount >= 2 || textualChainHintCount > 0;
   const timestampPresent = textualTimestampCount > 0 || timestampOidCount > 0;
   if (strictRoute) {
-    const looksAsn1Der = bytes.length >= 2 && bytes[0] === 0x30;
+    const looksAsn1Der = isLikelyDerSequenceV1(bytes);
     const strictEvidencePresent = signerPresent || chainPresent || timestampPresent || looksAsn1Der;
     if (!strictEvidencePresent) {
       return {

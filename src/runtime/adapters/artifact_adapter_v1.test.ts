@@ -550,12 +550,39 @@ const run = (): void => {
     bytes[5] = 0xb1;
     bytes[6] = 0x1a;
     bytes[7] = 0xe1;
+    bytes[26] = 0x03; // major version = 3
+    bytes[27] = 0x00;
+    bytes[28] = 0xfe; // byte order = 0xFFFE
+    bytes[29] = 0xff;
+    bytes[30] = 0x09; // sector shift = 9
+    bytes[31] = 0x00;
+    bytes[32] = 0x06; // mini sector shift = 6
+    bytes[33] = 0x00;
     fs.writeFileSync(msi, bytes);
     const capture = captureTreeV0(msi, limits);
     const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: msi, capture });
     assert(res.ok, "package adapter should accept msi with valid CFB header");
     assertEq(res.summary?.sourceClass, "package", "msi package class mismatch");
     assert((res.summary?.reasonCodes ?? []).includes("EXECUTION_WITHHELD_INSTALLER"), "msi installer withheld reason missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const msi = path.join(tmp, "magic_only.msi");
+    const bytes = Buffer.alloc(64, 0);
+    bytes[0] = 0xd0;
+    bytes[1] = 0xcf;
+    bytes[2] = 0x11;
+    bytes[3] = 0xe0;
+    bytes[4] = 0xa1;
+    bytes[5] = 0xb1;
+    bytes[6] = 0x1a;
+    bytes[7] = 0xe1;
+    fs.writeFileSync(msi, bytes);
+    const capture = captureTreeV0(msi, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: msi, capture });
+    assert(!res.ok, "package adapter should fail closed for msi with magic only and invalid CFB structure");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for msi with invalid CFB structure");
   }
 
   {
@@ -1250,6 +1277,17 @@ const run = (): void => {
     assert((res.summary?.counts.cmsSignedDataOidCount ?? 0) > 0, "cms signedData oid count missing");
     assert((res.summary?.counts.timestampOidCount ?? 0) > 0, "timestamp oid count missing");
     assert((res.summary?.counts.signerPresent ?? 0) === 1, "signer presence should be set");
+  }
+
+  {
+    const tmp = mkTmp();
+    const p7b = path.join(tmp, "bad_der_len.p7b");
+    const bytes = Buffer.from([0x30, 0x82, 0xff, 0xff, 0x01, 0x02, 0x03]);
+    fs.writeFileSync(p7b, bytes);
+    const capture = captureTreeV0(p7b, limits);
+    const res = runArtifactAdapterV1({ selection: "signature", enabledPlugins: [], inputPath: p7b, capture });
+    assert(!res.ok, "explicit signature adapter should fail closed for malformed DER envelope length");
+    assertEq(res.failCode, "SIGNATURE_FORMAT_MISMATCH", "expected SIGNATURE_FORMAT_MISMATCH for malformed DER envelope length");
   }
 
   {

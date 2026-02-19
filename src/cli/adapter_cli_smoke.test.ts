@@ -513,6 +513,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const badDerLen = path.join(tmp, "bad_der_len.p7b");
+    fs.writeFileSync(badDerLen, Buffer.from([0x30, 0x82, 0xff, 0xff, 0x01, 0x02, 0x03]));
+    const res = await runCliCapture(["safe-run", badDerLen, "--out", outDir, "--adapter", "signature"]);
+    assertEq(res.status, 40, "safe-run should fail closed for malformed DER envelope length");
+    assert(res.stderr.includes("SIGNATURE_FORMAT_MISMATCH"), "expected SIGNATURE_FORMAT_MISMATCH on stderr for malformed DER envelope");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const repo = path.join(tmp, "repo_unresolved");
     fs.mkdirSync(path.join(repo, ".git"), { recursive: true });
     fs.writeFileSync(path.join(repo, "file.txt"), "x", "utf8");
@@ -549,6 +559,25 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", badMsi, "--out", outDir, "--adapter", "package"]);
     assertEq(res.status, 40, "safe-run should fail closed for package msi header mismatch");
     assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for bad msi");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const magicOnlyMsi = path.join(tmp, "magic_only.msi");
+    const bytes = Buffer.alloc(64, 0);
+    bytes[0] = 0xd0;
+    bytes[1] = 0xcf;
+    bytes[2] = 0x11;
+    bytes[3] = 0xe0;
+    bytes[4] = 0xa1;
+    bytes[5] = 0xb1;
+    bytes[6] = 0x1a;
+    bytes[7] = 0xe1;
+    fs.writeFileSync(magicOnlyMsi, bytes);
+    const res = await runCliCapture(["safe-run", magicOnlyMsi, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for msi with magic only and invalid CFB structure");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for msi invalid CFB structure");
   }
 
   {
