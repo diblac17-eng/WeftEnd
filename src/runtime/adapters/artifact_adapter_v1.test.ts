@@ -409,6 +409,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const partialVsix = path.join(tmp, "partial_extension.vsix");
+    writeStoredZip(partialVsix, [
+      { name: "extension/manifest.json", text: JSON.stringify({ manifest_version: 3, name: "demo", version: "1.0.0" }) },
+      { name: "extension/background.js", text: "console.log('x');" },
+    ]);
+    corruptSecondZipCentralSignature(partialVsix);
+    const capture = captureTreeV0(partialVsix, limits);
+    const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: partialVsix, capture });
+    assert(!res.ok, "extension adapter should fail closed when ZIP metadata is partial after parsed entries");
+    assertEq(res.failCode, "EXTENSION_FORMAT_MISMATCH", "expected EXTENSION_FORMAT_MISMATCH for partial extension package metadata");
+  }
+
+  {
+    const tmp = mkTmp();
     fs.writeFileSync(path.join(tmp, "manifest.json"), "{ invalid-json", "utf8");
     const capture = captureTreeV0(tmp, limits);
     const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: tmp, capture });

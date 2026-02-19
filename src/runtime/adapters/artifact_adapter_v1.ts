@@ -1659,7 +1659,7 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     }
     manifestFound = zipEntries.entries.some((entry) => path.basename(entry).toLowerCase() === "manifest.json");
     markers.push(...zipEntries.markers);
-    if (strictRoute && zipEntries.markers.includes("ARCHIVE_METADATA_PARTIAL") && zipEntries.entries.length === 0) {
+    if (strictRoute && zipEntries.markers.includes("ARCHIVE_METADATA_PARTIAL")) {
       return {
         ok: false,
         failCode: "EXTENSION_FORMAT_MISMATCH",
