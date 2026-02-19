@@ -2420,14 +2420,13 @@ const analyzeSignature = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   const cmsSignedDataOidCount = countBufferPatternV1(bytes, OID_CMS_SIGNED_DATA);
   const timestampOidCount = countBufferPatternV1(bytes, OID_TIMESTAMP_EKU);
 
-  const signerPresent =
-    pemCertificateCount + pemPkcs7Count + pemSignatureCount + cmsSignedDataOidCount > 0 ||
-    /BEGIN CERTIFICATE|BEGIN PKCS7|BEGIN SIGNATURE/i.test(text);
+  const strongEnvelopeEvidence = pemCertificateCount + pemPkcs7Count + pemSignatureCount + cmsSignedDataOidCount > 0;
+  const signerPresent = strongEnvelopeEvidence || /BEGIN CERTIFICATE|BEGIN PKCS7|BEGIN SIGNATURE/i.test(text);
   const chainPresent = pemCertificateCount >= 2 || textualChainHintCount > 0;
   const timestampPresent = textualTimestampCount > 0 || timestampOidCount > 0;
   if (strictRoute) {
     const looksAsn1Der = isLikelyDerSequenceV1(bytes);
-    const strictEvidencePresent = signerPresent || chainPresent || timestampPresent || looksAsn1Der;
+    const strictEvidencePresent = strongEnvelopeEvidence || looksAsn1Der;
     if (!strictEvidencePresent) {
       return {
         ok: false,

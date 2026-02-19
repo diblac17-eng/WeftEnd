@@ -556,6 +556,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const textHintsOnlySig = path.join(tmp, "text_hints_only.sig");
+    fs.writeFileSync(textHintsOnlySig, "timestamp certificate-chain intermediate root-ca", "utf8");
+    const res = await runCliCapture(["safe-run", textHintsOnlySig, "--out", outDir, "--adapter", "signature"]);
+    assertEq(res.status, 40, "safe-run should fail closed for text-only signature hints without real signature envelope evidence");
+    assert(res.stderr.includes("SIGNATURE_FORMAT_MISMATCH"), "expected SIGNATURE_FORMAT_MISMATCH on stderr for text-only signature hints");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const repo = path.join(tmp, "repo_unresolved");
     fs.mkdirSync(path.join(repo, ".git"), { recursive: true });
     fs.writeFileSync(path.join(repo, "file.txt"), "x", "utf8");

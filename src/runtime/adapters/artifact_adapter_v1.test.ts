@@ -1406,6 +1406,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const textHintsOnlySig = path.join(tmp, "text_hints_only.sig");
+    fs.writeFileSync(textHintsOnlySig, "timestamp certificate-chain intermediate root-ca", "utf8");
+    const capture = captureTreeV0(textHintsOnlySig, limits);
+    const res = runArtifactAdapterV1({ selection: "signature", enabledPlugins: [], inputPath: textHintsOnlySig, capture });
+    assert(!res.ok, "explicit signature adapter should fail closed for text-only signature hints without real signature envelope evidence");
+    assertEq(res.failCode, "SIGNATURE_FORMAT_MISMATCH", "expected SIGNATURE_FORMAT_MISMATCH for text-only signature hints");
+  }
+
+  {
+    const tmp = mkTmp();
     const repo = path.join(tmp, "repo");
     fs.mkdirSync(repo, { recursive: true });
     const gitAvailable = runCmd("git", ["--version"]).ok;

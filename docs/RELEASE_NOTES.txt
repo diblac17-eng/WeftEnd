@@ -47,6 +47,7 @@ Included
 - Signature/cert adapter extraction deepened:
 - Deterministic PEM block counting for certificate/PKCS7/signature material.
 - Binary OID hint counts added for CMS signedData and timestamp EKU indicators.
+- Explicit signature route now requires real envelope/OID/DER evidence; text-only timestamp/chain hints no longer satisfy strict signature validity checks.
 - SCM/source evidence adapter extraction deepened:
 - Deterministic repo counters now include tree entry count, branch/tag ref counts, detached HEAD indicator, and working-tree entry count.
 - SCM adapter now emits deterministic worktree state evidence (staged/unstaged/untracked counts) and `SCM_WORKTREE_DIRTY` when local repo state is dirty.
