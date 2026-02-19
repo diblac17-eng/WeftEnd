@@ -1079,6 +1079,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const pkg = path.join(tmp, "tiny_valid_header.pkg");
+    const bytes = Buffer.alloc(64, 0);
+    Buffer.from("xar!", "ascii").copy(bytes, 0);
+    bytes.writeUInt16BE(28, 4); // header size
+    bytes.writeUInt16BE(1, 6); // version
+    fs.writeFileSync(pkg, bytes);
+    const capture = captureTreeV0(pkg, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: pkg, capture });
+    assert(!res.ok, "package adapter should fail closed for pkg with valid header but tiny structural size");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for tiny pkg structural size");
+  }
+
+  {
+    const tmp = mkTmp();
     const dmg = path.join(tmp, "bad.dmg");
     fs.writeFileSync(dmg, "not-a-dmg-trailer", "utf8");
     const capture = captureTreeV0(dmg, limits);
@@ -1097,6 +1111,18 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: dmg, capture });
     assert(!res.ok, "package adapter should fail closed when dmg koly marker is not at trailer offset");
     assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for misplaced dmg koly marker");
+  }
+
+  {
+    const tmp = mkTmp();
+    const dmg = path.join(tmp, "tiny_koly.dmg");
+    const bytes = Buffer.alloc(512, 0);
+    Buffer.from("koly", "ascii").copy(bytes, 0); // canonical trailer offset for 512-byte file
+    fs.writeFileSync(dmg, bytes);
+    const capture = captureTreeV0(dmg, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: dmg, capture });
+    assert(!res.ok, "package adapter should fail closed for dmg with trailer marker but tiny structural size");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for tiny dmg structural size");
   }
 
   {

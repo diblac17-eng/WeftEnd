@@ -38,6 +38,7 @@ Included
 - macOS installer coverage added to package adapter:
 - `.pkg` now captures deterministic XAR header and script/permission hint counters.
 - `.dmg` now captures deterministic trailer marker hints (`koly`) without mounting.
+- Package strict route now requires minimum structural byte-size evidence for `.pkg` and `.dmg` beyond valid header/trailer markers, preventing tiny synthetic placeholders from passing explicit package routing.
 - Document adapter deepened for `.docm/.xlsm`:
 - ZIP structure + relationships are inspected deterministically for macro/embed/external-link indicators.
 - Document strict route now fails closed on partial OOXML ZIP metadata even when structural markers are present, preventing mixed valid/corrupt office-document acceptance.

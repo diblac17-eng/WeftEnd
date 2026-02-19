@@ -971,6 +971,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const tinyValidHeaderPkg = path.join(tmp, "tiny_valid_header.pkg");
+    const bytes = Buffer.alloc(64, 0);
+    Buffer.from("xar!", "ascii").copy(bytes, 0);
+    bytes.writeUInt16BE(28, 4);
+    bytes.writeUInt16BE(1, 6);
+    fs.writeFileSync(tinyValidHeaderPkg, bytes);
+    const res = await runCliCapture(["safe-run", tinyValidHeaderPkg, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for pkg with valid header but tiny structural size");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for tiny pkg structural size");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badDmg = path.join(tmp, "bad.dmg");
     fs.writeFileSync(badDmg, "not-a-dmg-trailer", "utf8");
     const res = await runCliCapture(["safe-run", badDmg, "--out", outDir, "--adapter", "package"]);
@@ -988,6 +1002,18 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", misplacedKolyDmg, "--out", outDir, "--adapter", "package"]);
     assertEq(res.status, 40, "safe-run should fail closed when dmg koly marker is misplaced");
     assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for misplaced dmg koly");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const tinyKolyDmg = path.join(tmp, "tiny_koly.dmg");
+    const bytes = Buffer.alloc(512, 0);
+    Buffer.from("koly", "ascii").copy(bytes, 0);
+    fs.writeFileSync(tinyKolyDmg, bytes);
+    const res = await runCliCapture(["safe-run", tinyKolyDmg, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for dmg trailer marker with tiny structural size");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for tiny dmg structural size");
   }
 
   {

@@ -1371,7 +1371,8 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
     }
   } else if (ext === ".pkg") {
-    const bytes = readBytesBounded(ctx.inputPath, 256 * 1024);
+    const io = readFileHeadTailBounded(ctx.inputPath, 256 * 1024, 0);
+    const bytes = Buffer.from(io.head);
     const hasXarMagic = bytes.length >= 4 && bytes[0] === 0x78 && bytes[1] === 0x61 && bytes[2] === 0x72 && bytes[3] === 0x21; // xar!
     const bytesBuf = Buffer.from(bytes);
     const xarHeaderSize = bytes.length >= 6 ? bytesBuf.readUInt16BE(4) : 0;
@@ -1392,6 +1393,14 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       }
       markers.push("PACKAGE_PKG_HEADER_MISSING");
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
+    }
+    if (strictRoute && xarHeaderValid && io.size < 512) {
+      return {
+        ok: false,
+        failCode: "PACKAGE_FORMAT_MISMATCH",
+        failMessage: "package adapter requires minimum pkg structural size for explicit package analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+      };
     }
   } else if (ext === ".dmg") {
     const io = readFileHeadTailBounded(ctx.inputPath, 4096, 4096);
@@ -1416,6 +1425,14 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       }
       markers.push(kolyLoose ? "PACKAGE_DMG_TRAILER_PARTIAL" : "PACKAGE_DMG_TRAILER_MISSING");
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
+    }
+    if (strictRoute && dmgKolyTrailerPresent > 0 && io.size < 4096) {
+      return {
+        ok: false,
+        failCode: "PACKAGE_FORMAT_MISMATCH",
+        failMessage: "package adapter requires minimum dmg structural size for explicit package analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+      };
     }
   }
 
