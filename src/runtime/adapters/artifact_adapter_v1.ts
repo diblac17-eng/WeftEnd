@@ -1057,6 +1057,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
   let textPermissionHints = 0;
   let debArEntryCount = 0;
   let rpmLeadPresent = 0;
+  let rpmHeaderPresent = 0;
   let appImageElfPresent = 0;
   let appImageMarkerPresent = 0;
   let pkgXarHeaderPresent = 0;
@@ -1198,6 +1199,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
   } else if (ext === ".rpm") {
     const bytes = readBytesBounded(ctx.inputPath, 128 * 1024);
     rpmLeadPresent = bytes.length >= 4 && bytes[0] === 0xed && bytes[1] === 0xab && bytes[2] === 0xee && bytes[3] === 0xdb ? 1 : 0;
+    rpmHeaderPresent = bytes.length >= 99 && bytes[96] === 0x8e && bytes[97] === 0xad && bytes[98] === 0xe8 ? 1 : 0;
     const text = Buffer.from(bytes).toString("latin1");
     if (/\b(preinstall|postinstall|%pre|%post|\/bin\/sh|bash)\b/i.test(text)) textScriptHints += 1;
     if (/\b(capability|permission|policy|selinux)\b/i.test(text)) textPermissionHints += 1;
@@ -1205,7 +1207,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       signingEvidenceCount += 1;
       signatureEntryCount += 1;
     }
-    if (rpmLeadPresent === 0) {
+    if (rpmLeadPresent === 0 || rpmHeaderPresent === 0) {
       if (strictRoute) {
         return {
           ok: false,
@@ -1214,7 +1216,8 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
           reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
         };
       }
-      markers.push("PACKAGE_RPM_HEADER_MISSING");
+      if (rpmLeadPresent === 0) markers.push("PACKAGE_RPM_LEAD_MISSING");
+      if (rpmHeaderPresent === 0) markers.push("PACKAGE_RPM_HEADER_MISSING");
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
     }
   } else if (ext === ".appimage") {
@@ -1384,6 +1387,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       signingParsePartial,
       debArEntryCount,
       rpmLeadPresent,
+      rpmHeaderPresent,
       appImageElfPresent,
       appImageMarkerPresent,
       pkgXarHeaderPresent,

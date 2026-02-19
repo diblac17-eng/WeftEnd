@@ -603,6 +603,21 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const leadOnlyRpm = path.join(tmp, "lead_only.rpm");
+    const bytes = Buffer.alloc(128, 0);
+    bytes[0] = 0xed;
+    bytes[1] = 0xab;
+    bytes[2] = 0xee;
+    bytes[3] = 0xdb;
+    fs.writeFileSync(leadOnlyRpm, bytes);
+    const res = await runCliCapture(["safe-run", leadOnlyRpm, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for rpm missing signature header magic");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for rpm missing header magic");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badAppImage = path.join(tmp, "bad.appimage");
     fs.writeFileSync(badAppImage, "not-an-elf-appimage", "utf8");
     const res = await runCliCapture(["safe-run", badAppImage, "--out", outDir, "--adapter", "package"]);

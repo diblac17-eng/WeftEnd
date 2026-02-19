@@ -757,19 +757,38 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
-    const rpm = path.join(tmp, "sample.rpm");
-    const bytes = Buffer.alloc(512, 0);
+    const rpm = path.join(tmp, "lead_only.rpm");
+    const bytes = Buffer.alloc(128, 0);
     bytes[0] = 0xed;
     bytes[1] = 0xab;
     bytes[2] = 0xee;
     bytes[3] = 0xdb;
-    Buffer.from("preinstall /bin/sh\npostinstall /bin/sh\ngpgsig: present\n", "ascii").copy(bytes, 96);
+    fs.writeFileSync(rpm, bytes);
+    const capture = captureTreeV0(rpm, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: rpm, capture });
+    assert(!res.ok, "package adapter should fail closed for rpm missing signature header magic");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for rpm missing header magic");
+  }
+
+  {
+    const tmp = mkTmp();
+    const rpm = path.join(tmp, "sample.rpm");
+    const bytes = Buffer.alloc(768, 0);
+    bytes[0] = 0xed;
+    bytes[1] = 0xab;
+    bytes[2] = 0xee;
+    bytes[3] = 0xdb;
+    bytes[96] = 0x8e;
+    bytes[97] = 0xad;
+    bytes[98] = 0xe8;
+    Buffer.from("preinstall /bin/sh\npostinstall /bin/sh\ngpgsig: present\n", "ascii").copy(bytes, 128);
     fs.writeFileSync(rpm, bytes);
     const capture = captureTreeV0(rpm, limits);
     const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: rpm, capture });
     assert(res.ok, "package adapter should parse rpm lead hints");
     assertEq(res.summary?.sourceClass, "package", "rpm package class mismatch");
     assertEq(res.summary?.counts.rpmLeadPresent, 1, "rpm lead should be detected");
+    assertEq(res.summary?.counts.rpmHeaderPresent, 1, "rpm header magic should be detected");
     assert((res.summary?.reasonCodes ?? []).includes("PACKAGE_SIGNING_INFO_PRESENT"), "rpm signing hint reason missing");
   }
 
