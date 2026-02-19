@@ -1475,6 +1475,14 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       peSignaturePresent = 1;
       signingEvidenceCount += 1;
     }
+    if (strictRoute && pe.parsed && pe.isPe && packageFileBytes < 512) {
+      return {
+        ok: false,
+        failCode: "PACKAGE_FORMAT_MISMATCH",
+        failMessage: "package adapter requires minimum exe structural size for explicit package analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+      };
+    }
   }
   if (ext === ".msix" && signatureEntryCount > 0) {
     signingEvidenceCount += 1;

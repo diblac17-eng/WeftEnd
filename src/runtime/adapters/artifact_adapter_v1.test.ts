@@ -892,6 +892,34 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const exe = path.join(tmp, "tiny_valid_header.exe");
+    const bytes = Buffer.alloc(400, 0);
+    bytes[0] = 0x4d; // M
+    bytes[1] = 0x5a; // Z
+    bytes.writeUInt32LE(0x80, 0x3c); // pe offset
+    bytes[0x80] = 0x50; // P
+    bytes[0x81] = 0x45; // E
+    bytes[0x82] = 0x00;
+    bytes[0x83] = 0x00;
+    bytes.writeUInt16LE(0x014c, 0x84); // machine
+    bytes.writeUInt16LE(1, 0x86); // sections
+    bytes.writeUInt16LE(0x00e0, 0x94); // size optional header
+    const opt = 0x98;
+    bytes.writeUInt16LE(0x010b, opt); // PE32
+    bytes.writeUInt32LE(16, opt + 92); // numberOfRvaAndSizes
+    const dataDir = opt + 96;
+    const certEntry = dataDir + 8 * 4;
+    bytes.writeUInt32LE(0x180, certEntry); // cert table file offset
+    bytes.writeUInt32LE(0, certEntry + 4); // cert size
+    fs.writeFileSync(exe, bytes);
+    const capture = captureTreeV0(exe, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: exe, capture });
+    assert(!res.ok, "package adapter should fail closed for exe with valid PE header but tiny structural size");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for tiny exe structural size");
+  }
+
+  {
+    const tmp = mkTmp();
     const exe = path.join(tmp, "signed.exe");
     writeMinimalPe(exe, 256);
     const capture = captureTreeV0(exe, limits);

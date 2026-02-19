@@ -793,6 +793,34 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const tinyValidHeaderExe = path.join(tmp, "tiny_valid_header.exe");
+    const bytes = Buffer.alloc(400, 0);
+    bytes[0] = 0x4d;
+    bytes[1] = 0x5a;
+    bytes.writeUInt32LE(0x80, 0x3c);
+    bytes[0x80] = 0x50;
+    bytes[0x81] = 0x45;
+    bytes[0x82] = 0x00;
+    bytes[0x83] = 0x00;
+    bytes.writeUInt16LE(0x014c, 0x84);
+    bytes.writeUInt16LE(1, 0x86);
+    bytes.writeUInt16LE(0x00e0, 0x94);
+    const opt = 0x98;
+    bytes.writeUInt16LE(0x010b, opt);
+    bytes.writeUInt32LE(16, opt + 92);
+    const dataDir = opt + 96;
+    const certEntry = dataDir + 8 * 4;
+    bytes.writeUInt32LE(0x180, certEntry);
+    bytes.writeUInt32LE(0, certEntry + 4);
+    fs.writeFileSync(tinyValidHeaderExe, bytes);
+    const res = await runCliCapture(["safe-run", tinyValidHeaderExe, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for exe with valid PE header but tiny structural size");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for tiny exe structural size");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badTgz = path.join(tmp, "bad.tgz");
     fs.writeFileSync(badTgz, "not-a-real-tgz", "utf8");
     const res = await runCliCapture(["safe-run", badTgz, "--out", outDir, "--adapter", "package"]);
