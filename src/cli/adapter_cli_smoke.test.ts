@@ -931,6 +931,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const tinyMsix = path.join(tmp, "tiny.msix");
+    writeStoredZip(tinyMsix, [{ name: "AppxManifest.xml", text: "<Package></Package>" }]);
+    const res = await runCliCapture(["safe-run", tinyMsix, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for msix with valid structure but tiny file size");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for tiny msix structural size");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badStructureNupkg = path.join(tmp, "bad_structure.nupkg");
     writeStoredZip(badStructureNupkg, [{ name: "content/readme.txt", text: "x" }]);
     const res = await runCliCapture(["safe-run", badStructureNupkg, "--out", outDir, "--adapter", "package"]);

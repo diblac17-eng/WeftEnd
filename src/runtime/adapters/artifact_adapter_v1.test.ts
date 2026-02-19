@@ -778,15 +778,15 @@ const run = (): void => {
     writeStoredZip(msix, [
       {
         name: "AppxManifest.xml",
-        text: "<Package><Capabilities><Capability Name=\"internetClient\"/></Capabilities></Package>",
+        text: "<Package><Capabilities><Capability Name=\"internetClient\"/></Capabilities></Package>\n" + "manifest-padding-".repeat(24),
       },
       {
         name: "AppxSignature.p7x",
-        text: "sig-bytes",
+        text: "sig-bytes-" + "A".repeat(256),
       },
       {
         name: "scripts/install.ps1",
-        text: "Write-Host install",
+        text: "Write-Host install\n" + "Write-Host extra\n".repeat(16),
       },
     ]);
     const capture = captureTreeV0(msix, limits);
@@ -798,6 +798,21 @@ const run = (): void => {
     assert((res.summary?.counts.permissionHintCount ?? 0) > 0, "msix permission hint count missing");
     assert((res.summary?.counts.signingEvidenceCount ?? 0) > 0, "msix signing evidence should be present");
     assert((res.summary?.reasonCodes ?? []).includes("PACKAGE_SIGNING_INFO_PRESENT"), "msix signing reason missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const msix = path.join(tmp, "tiny.msix");
+    writeStoredZip(msix, [
+      {
+        name: "AppxManifest.xml",
+        text: "<Package></Package>",
+      },
+    ]);
+    const capture = captureTreeV0(msix, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: msix, capture });
+    assert(!res.ok, "package adapter should fail closed for msix with valid structure but tiny file size");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for tiny msix structural size");
   }
 
   {

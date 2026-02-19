@@ -1233,6 +1233,14 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
           reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
         };
       }
+      if (ext === ".msix" && hasPackageStructure && packageFileBytes < 512) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter requires minimum msix structural size for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
     }
     markers.push(...zip.markers);
     if (entryNames.length === 0) reasonCodes.push("PACKAGE_METADATA_PARTIAL");
