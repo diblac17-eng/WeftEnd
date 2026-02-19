@@ -1509,6 +1509,14 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
         reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
       };
     }
+    if (strictRoute && isMsiHeader && packageFileBytes < 512) {
+      return {
+        ok: false,
+        failCode: "PACKAGE_FORMAT_MISMATCH",
+        failMessage: "package adapter requires minimum msi structural size for explicit package analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+      };
+    }
     signingParsePartial = 1;
   }
   if (strictRoute && (markers.includes("ARCHIVE_METADATA_PARTIAL") || markers.includes("PACKAGE_METADATA_PARTIAL"))) {

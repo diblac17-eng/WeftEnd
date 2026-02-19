@@ -681,7 +681,7 @@ const run = (): void => {
   {
     const tmp = mkTmp();
     const msi = path.join(tmp, "sample.msi");
-    const bytes = Buffer.alloc(128, 0);
+    const bytes = Buffer.alloc(1024, 0);
     bytes[0] = 0xd0;
     bytes[1] = 0xcf;
     bytes[2] = 0x11;
@@ -704,6 +704,33 @@ const run = (): void => {
     assert(res.ok, "package adapter should accept msi with valid CFB header");
     assertEq(res.summary?.sourceClass, "package", "msi package class mismatch");
     assert((res.summary?.reasonCodes ?? []).includes("EXECUTION_WITHHELD_INSTALLER"), "msi installer withheld reason missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const msi = path.join(tmp, "tiny_valid_header.msi");
+    const bytes = Buffer.alloc(128, 0);
+    bytes[0] = 0xd0;
+    bytes[1] = 0xcf;
+    bytes[2] = 0x11;
+    bytes[3] = 0xe0;
+    bytes[4] = 0xa1;
+    bytes[5] = 0xb1;
+    bytes[6] = 0x1a;
+    bytes[7] = 0xe1;
+    bytes[26] = 0x03; // major version = 3
+    bytes[27] = 0x00;
+    bytes[28] = 0xfe; // byte order = 0xFFFE
+    bytes[29] = 0xff;
+    bytes[30] = 0x09; // sector shift = 9
+    bytes[31] = 0x00;
+    bytes[32] = 0x06; // mini sector shift = 6
+    bytes[33] = 0x00;
+    fs.writeFileSync(msi, bytes);
+    const capture = captureTreeV0(msi, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: msi, capture });
+    assert(!res.ok, "package adapter should fail closed for msi with valid header but tiny structural size");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for tiny msi structural size");
   }
 
   {

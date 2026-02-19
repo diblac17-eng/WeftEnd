@@ -832,6 +832,29 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const tinyValidHeaderMsi = path.join(tmp, "tiny_valid_header.msi");
+    const bytes = Buffer.alloc(128, 0);
+    bytes[0] = 0xd0;
+    bytes[1] = 0xcf;
+    bytes[2] = 0x11;
+    bytes[3] = 0xe0;
+    bytes[4] = 0xa1;
+    bytes[5] = 0xb1;
+    bytes[6] = 0x1a;
+    bytes[7] = 0xe1;
+    bytes.writeUInt16LE(3, 26);
+    bytes.writeUInt16LE(0xfffe, 28);
+    bytes.writeUInt16LE(9, 30);
+    bytes.writeUInt16LE(6, 32);
+    fs.writeFileSync(tinyValidHeaderMsi, bytes);
+    const res = await runCliCapture(["safe-run", tinyValidHeaderMsi, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for msi with valid header but tiny structural size");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for tiny msi structural size");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badMsix = path.join(tmp, "bad.msix");
     fs.writeFileSync(badMsix, "not-a-zip-msix", "utf8");
     const res = await runCliCapture(["safe-run", badMsix, "--out", outDir, "--adapter", "package"]);
