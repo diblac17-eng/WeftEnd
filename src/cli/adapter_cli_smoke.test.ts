@@ -967,6 +967,24 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const tinyValidAppImage = path.join(tmp, "tiny_valid.appimage");
+    const bytes = Buffer.alloc(64, 0);
+    bytes[0] = 0x7f;
+    bytes[1] = 0x45;
+    bytes[2] = 0x4c;
+    bytes[3] = 0x46;
+    bytes[8] = 0x41;
+    bytes[9] = 0x49;
+    bytes[10] = 0x02;
+    fs.writeFileSync(tinyValidAppImage, bytes);
+    const res = await runCliCapture(["safe-run", tinyValidAppImage, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for appimage with valid markers but tiny structural size");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for tiny appimage structural size");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badPkg = path.join(tmp, "bad.pkg");
     fs.writeFileSync(badPkg, "not-a-xar", "utf8");
     const res = await runCliCapture(["safe-run", badPkg, "--out", outDir, "--adapter", "package"]);

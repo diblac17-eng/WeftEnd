@@ -30,6 +30,7 @@ Included
 - `.deb` now parses deterministic AR entry metadata (bounded, no extraction/exec).
 - `.rpm` now captures deterministic lead/header/script/signing hint counters from local bytes only.
 - `.appimage` now captures deterministic ELF/runtime header hints (analysis-only; execution withheld).
+- Package strict route now requires minimum structural byte-size evidence for `.appimage` beyond valid runtime marker bytes, preventing tiny synthetic placeholders from passing explicit package routing.
 - Package strict route now requires minimum structural byte-size evidence for `.rpm` beyond lead/header marker bytes, preventing tiny synthetic placeholders from passing explicit package routing.
 - Package strict route now fails closed on partial ZIP/AR metadata even when required structure markers are present, preventing mixed valid/corrupt package acceptance.
 - Archive/package tar coverage expanded:

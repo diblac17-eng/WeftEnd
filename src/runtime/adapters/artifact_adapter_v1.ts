@@ -1384,6 +1384,14 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       if (appImageMarkerPresent === 0) markers.push(headText.includes("AppImage") ? "PACKAGE_APPIMAGE_MARKER_PARTIAL" : "PACKAGE_APPIMAGE_MARKER_MISSING");
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
     }
+    if (strictRoute && appImageElfPresent > 0 && appImageMarkerPresent > 0 && packageFileBytes < 512) {
+      return {
+        ok: false,
+        failCode: "PACKAGE_FORMAT_MISMATCH",
+        failMessage: "package adapter requires minimum appimage structural size for explicit package analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+      };
+    }
   } else if (ext === ".pkg") {
     const io = readFileHeadTailBounded(ctx.inputPath, 256 * 1024, 0);
     const bytes = Buffer.from(io.head);

@@ -1057,6 +1057,24 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const appimage = path.join(tmp, "tiny_valid.appimage");
+    const bytes = Buffer.alloc(64, 0);
+    bytes[0] = 0x7f;
+    bytes[1] = 0x45;
+    bytes[2] = 0x4c;
+    bytes[3] = 0x46;
+    bytes[8] = 0x41; // A
+    bytes[9] = 0x49; // I
+    bytes[10] = 0x02; // AppImage type 2
+    fs.writeFileSync(appimage, bytes);
+    const capture = captureTreeV0(appimage, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: appimage, capture });
+    assert(!res.ok, "package adapter should fail closed for appimage with valid markers but tiny structural size");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for tiny appimage structural size");
+  }
+
+  {
+    const tmp = mkTmp();
     const pkg = path.join(tmp, "bad.pkg");
     fs.writeFileSync(pkg, "not-a-xar", "utf8");
     const capture = captureTreeV0(pkg, limits);
