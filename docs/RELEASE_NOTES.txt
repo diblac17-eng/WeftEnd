@@ -32,6 +32,7 @@ Included
 - Archive/package tar coverage expanded:
 - `.tar.xz/.txz` now follow explicit tar-plugin, fail-closed handling in archive/package lanes.
 - Explicit `.tar` archive analysis now validates header checksum and octal size fields and fails closed on partial metadata even when earlier entries parsed, preventing mixed valid/corrupt tar acceptance.
+- Explicit `.zip` archive analysis now validates central-directory integrity in strict route and fails closed on partial metadata even when earlier entries parsed, preventing mixed valid/corrupt ZIP acceptance.
 - macOS installer coverage added to package adapter:
 - `.pkg` now captures deterministic XAR header and script/permission hint counters.
 - `.dmg` now captures deterministic trailer marker hints (`koly`) without mounting.

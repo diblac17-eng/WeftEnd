@@ -1024,7 +1024,11 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
         };
       }
     }
-    if (ctx.capture.kind === "zip") {
+    if (strictRoute) {
+      const zip = readZipEntries(ctx.inputPath);
+      entries = zip.entries;
+      markers.push(...zip.markers);
+    } else if (ctx.capture.kind === "zip") {
       entries = ctx.capture.entries.map((entry) => entry.path);
     } else {
       const zip = readZipEntries(ctx.inputPath);
@@ -1104,6 +1108,14 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       failCode: "ARCHIVE_UNSUPPORTED_FORMAT",
       failMessage: "archive adapter does not support this input format.",
       reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_UNSUPPORTED_FORMAT"]),
+    };
+  }
+  if (strictRoute && ext === ".zip" && markers.includes("ARCHIVE_METADATA_PARTIAL")) {
+    return {
+      ok: false,
+      failCode: "ARCHIVE_FORMAT_MISMATCH",
+      failMessage: "archive adapter expected a valid ZIP central directory for explicit route analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_FORMAT_MISMATCH"]),
     };
   }
   if (strictRoute && ext === ".tar" && markers.includes("ARCHIVE_METADATA_PARTIAL")) {

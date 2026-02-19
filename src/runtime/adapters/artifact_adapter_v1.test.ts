@@ -91,6 +91,17 @@ const writeStoredZip = (outPath: string, files: Array<{ name: string; text: stri
   fs.writeFileSync(outPath, Buffer.concat([...localParts, ...centralParts, eocd]));
 };
 
+const corruptSecondZipCentralSignature = (zipPath: string): void => {
+  const bytes = fs.readFileSync(zipPath);
+  const centralOffsets: number[] = [];
+  for (let i = 0; i <= Math.max(0, bytes.length - 4); i += 1) {
+    if (bytes.readUInt32LE(i) === 0x02014b50) centralOffsets.push(i);
+  }
+  if (centralOffsets.length < 2) throw new Error("test setup failed: missing second central directory entry");
+  bytes.writeUInt32LE(0x41414141, centralOffsets[1]);
+  fs.writeFileSync(zipPath, bytes);
+};
+
 const writeSimpleTar = (outPath: string, files: Array<{ name: string; text: string }>): void => {
   const blocks: any[] = [];
   const pushHeader = (name: string, size: number) => {
@@ -227,6 +238,20 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: badZip, capture });
     assert(!res.ok, "archive adapter should fail closed for explicit invalid zip signature");
     assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for invalid zip");
+  }
+
+  {
+    const tmp = mkTmp();
+    const partialZip = path.join(tmp, "partial_after_entries.zip");
+    writeStoredZip(partialZip, [
+      { name: "a.txt", text: "alpha" },
+      { name: "b.txt", text: "beta" },
+    ]);
+    corruptSecondZipCentralSignature(partialZip);
+    const capture = captureTreeV0(partialZip, limits);
+    const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: partialZip, capture });
+    assert(!res.ok, "archive adapter should fail closed when zip central metadata is partial after parsed entries");
+    assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for partial zip metadata");
   }
 
   {

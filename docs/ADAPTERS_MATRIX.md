@@ -22,7 +22,7 @@ Adapter classes
   ARCHIVE_PLUGIN_REQUIRED
   ARCHIVE_PLUGIN_UNAVAILABLE
 - Route strictness:
-  explicit `--adapter archive` fails closed on invalid `.zip` signature bytes and invalid `.tar` structure/metadata (`ARCHIVE_FORMAT_MISMATCH`) rather than returning partial archive summaries. `.tar` strict mode validates header checksum and octal size fields and rejects partial metadata even when some entries parsed.
+  explicit `--adapter archive` fails closed on invalid `.zip` signature bytes and invalid `.tar` structure/metadata (`ARCHIVE_FORMAT_MISMATCH`) rather than returning partial archive summaries. `.zip` strict mode validates central-directory integrity and rejects partial metadata even when some entries parsed. `.tar` strict mode validates header checksum and octal size fields and rejects partial metadata even when some entries parsed.
 
 2) package
 - Formats: .msi, .msix, .exe, .nupkg, .whl, .jar, .tar.gz/.tgz/.tar.xz/.txz, .deb, .rpm, .appimage, .pkg, .dmg

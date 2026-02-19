@@ -88,6 +88,17 @@ const writeStoredZip = (outPath: string, entries: Array<{ name: string; text: st
   fs.writeFileSync(outPath, Buffer.concat([...localParts, centralBlob, eocd]));
 };
 
+const corruptSecondZipCentralSignature = (zipPath: string): void => {
+  const bytes = fs.readFileSync(zipPath);
+  const centralOffsets: number[] = [];
+  for (let i = 0; i <= Math.max(0, bytes.length - 4); i += 1) {
+    if (bytes.readUInt32LE(i) === 0x02014b50) centralOffsets.push(i);
+  }
+  if (centralOffsets.length < 2) throw new Error("zip fixture missing second central directory entry");
+  bytes.writeUInt32LE(0x41414141, centralOffsets[1]);
+  fs.writeFileSync(zipPath, bytes);
+};
+
 const writeSimpleAr = (outPath: string, files: Array<{ name: string; bytes: any }>): void => {
   const parts: any[] = [Buffer.from("!<arch>\n", "ascii")];
   files.forEach((file) => {
@@ -212,6 +223,20 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"]);
     assertEq(res.status, 40, "safe-run archive should fail closed for explicit zip signature mismatch");
     assert(res.stderr.includes("ARCHIVE_FORMAT_MISMATCH"), "expected ARCHIVE_FORMAT_MISMATCH on stderr for bad zip");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "partial_after_entries.zip");
+    writeStoredZip(input, [
+      { name: "a.txt", text: "alpha" },
+      { name: "b.txt", text: "beta" },
+    ]);
+    corruptSecondZipCentralSignature(input);
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"]);
+    assertEq(res.status, 40, "safe-run archive should fail closed when zip metadata is partial after parsed entries");
+    assert(res.stderr.includes("ARCHIVE_FORMAT_MISMATCH"), "expected ARCHIVE_FORMAT_MISMATCH on stderr for partial zip metadata");
   }
 
   {
