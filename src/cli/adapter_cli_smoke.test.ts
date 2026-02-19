@@ -643,6 +643,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const tinyDerSig = path.join(tmp, "tiny_der.sig");
+    fs.writeFileSync(tinyDerSig, Buffer.from([0x30, 0x02, 0x01, 0x00]));
+    const res = await runCliCapture(["safe-run", tinyDerSig, "--out", outDir, "--adapter", "signature"]);
+    assertEq(res.status, 40, "safe-run should fail closed for tiny generic DER without signature envelope evidence");
+    assert(res.stderr.includes("SIGNATURE_FORMAT_MISMATCH"), "expected SIGNATURE_FORMAT_MISMATCH on stderr for tiny DER signature input");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const repo = path.join(tmp, "repo_unresolved");
     fs.mkdirSync(path.join(repo, ".git"), { recursive: true });
     fs.writeFileSync(path.join(repo, "file.txt"), "x", "utf8");

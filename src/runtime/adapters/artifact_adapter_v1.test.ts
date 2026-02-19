@@ -1566,6 +1566,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tinyDerSig = path.join(tmp, "tiny_der.sig");
+    fs.writeFileSync(tinyDerSig, Buffer.from([0x30, 0x02, 0x01, 0x00]));
+    const capture = captureTreeV0(tinyDerSig, limits);
+    const res = runArtifactAdapterV1({ selection: "signature", enabledPlugins: [], inputPath: tinyDerSig, capture });
+    assert(!res.ok, "explicit signature adapter should fail closed for tiny generic DER without signature envelope evidence");
+    assertEq(res.failCode, "SIGNATURE_FORMAT_MISMATCH", "expected SIGNATURE_FORMAT_MISMATCH for tiny DER signature input");
+  }
+
+  {
+    const tmp = mkTmp();
     const repo = path.join(tmp, "repo");
     fs.mkdirSync(repo, { recursive: true });
     const gitAvailable = runCmd("git", ["--version"]).ok;
