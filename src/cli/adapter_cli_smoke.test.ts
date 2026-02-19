@@ -499,6 +499,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const unknownEnvelopePem = path.join(tmp, "unknown_envelope.pem");
+    fs.writeFileSync(
+      unknownEnvelopePem,
+      ["-----BEGIN FOO-----", "abcd", "-----END FOO-----"].join("\n"),
+      "utf8"
+    );
+    const res = await runCliCapture(["safe-run", unknownEnvelopePem, "--out", outDir, "--adapter", "signature"]);
+    assertEq(res.status, 40, "safe-run should fail closed for unknown PEM envelope");
+    assert(res.stderr.includes("SIGNATURE_FORMAT_MISMATCH"), "expected SIGNATURE_FORMAT_MISMATCH on stderr for unknown envelope");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const repo = path.join(tmp, "repo_unresolved");
     fs.mkdirSync(path.join(repo, ".git"), { recursive: true });
     fs.writeFileSync(path.join(repo, "file.txt"), "x", "utf8");
@@ -653,11 +667,35 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const badHeaderPkg = path.join(tmp, "bad_header.pkg");
+    const bytes = Buffer.alloc(32, 0);
+    Buffer.from("xar!", "ascii").copy(bytes, 0);
+    fs.writeFileSync(badHeaderPkg, bytes);
+    const res = await runCliCapture(["safe-run", badHeaderPkg, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for package pkg invalid xar header fields");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for invalid pkg header");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badDmg = path.join(tmp, "bad.dmg");
     fs.writeFileSync(badDmg, "not-a-dmg-trailer", "utf8");
     const res = await runCliCapture(["safe-run", badDmg, "--out", outDir, "--adapter", "package"]);
     assertEq(res.status, 40, "safe-run should fail closed for package dmg trailer mismatch");
     assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for bad dmg");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const misplacedKolyDmg = path.join(tmp, "misplaced_koly.dmg");
+    const bytes = Buffer.alloc(8192, 0);
+    Buffer.from("koly", "ascii").copy(bytes, bytes.length - 128);
+    fs.writeFileSync(misplacedKolyDmg, bytes);
+    const res = await runCliCapture(["safe-run", misplacedKolyDmg, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed when dmg koly marker is misplaced");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for misplaced dmg koly");
   }
 
   {

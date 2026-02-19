@@ -1241,11 +1241,16 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
     }
   } else if (ext === ".pkg") {
     const bytes = readBytesBounded(ctx.inputPath, 256 * 1024);
-    pkgXarHeaderPresent = bytes.length >= 4 && bytes[0] === 0x78 && bytes[1] === 0x61 && bytes[2] === 0x72 && bytes[3] === 0x21 ? 1 : 0; // xar!
+    const hasXarMagic = bytes.length >= 4 && bytes[0] === 0x78 && bytes[1] === 0x61 && bytes[2] === 0x72 && bytes[3] === 0x21; // xar!
+    const bytesBuf = Buffer.from(bytes);
+    const xarHeaderSize = bytes.length >= 6 ? bytesBuf.readUInt16BE(4) : 0;
+    const xarVersion = bytes.length >= 8 ? bytesBuf.readUInt16BE(6) : 0;
+    const xarHeaderValid = hasXarMagic && bytes.length >= 28 && xarHeaderSize >= 28 && xarHeaderSize <= 4096 && xarVersion >= 1 && xarVersion <= 2;
+    pkgXarHeaderPresent = xarHeaderValid ? 1 : 0;
     const text = Buffer.from(bytes).toString("latin1");
     if (/\b(scripts|preinstall|postinstall|payload)\b/i.test(text)) textScriptHints += 1;
     if (/\b(permission|authorization|entitlement)\b/i.test(text)) textPermissionHints += 1;
-    if (pkgXarHeaderPresent === 0) {
+    if (!xarHeaderValid) {
       if (strictRoute) {
         return {
           ok: false,
@@ -1259,8 +1264,16 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
     }
   } else if (ext === ".dmg") {
     const io = readFileHeadTailBounded(ctx.inputPath, 4096, 4096);
-    const tailText = Buffer.from(io.tail).toString("latin1");
-    dmgKolyTrailerPresent = tailText.includes("koly") ? 1 : 0;
+    const tail = Buffer.from(io.tail);
+    const kolyOffset = tail.length - 512;
+    const kolyAtTrailer =
+      kolyOffset >= 0 &&
+      tail[kolyOffset] === 0x6b &&
+      tail[kolyOffset + 1] === 0x6f &&
+      tail[kolyOffset + 2] === 0x6c &&
+      tail[kolyOffset + 3] === 0x79;
+    const kolyLoose = tail.includes(Buffer.from("koly", "ascii"));
+    dmgKolyTrailerPresent = kolyAtTrailer ? 1 : 0;
     if (dmgKolyTrailerPresent === 0) {
       if (strictRoute) {
         return {
@@ -1270,7 +1283,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
           reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
         };
       }
-      markers.push("PACKAGE_DMG_TRAILER_MISSING");
+      markers.push(kolyLoose ? "PACKAGE_DMG_TRAILER_PARTIAL" : "PACKAGE_DMG_TRAILER_MISSING");
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
     }
   }
@@ -2265,9 +2278,8 @@ const analyzeSignature = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   const chainPresent = pemCertificateCount >= 2 || textualChainHintCount > 0;
   const timestampPresent = textualTimestampCount > 0 || timestampOidCount > 0;
   if (strictRoute) {
-    const hasPemEnvelope = /BEGIN [A-Z0-9 _-]+/i.test(text);
     const looksAsn1Der = bytes.length >= 2 && bytes[0] === 0x30;
-    const strictEvidencePresent = signerPresent || chainPresent || timestampPresent || hasPemEnvelope || looksAsn1Der;
+    const strictEvidencePresent = signerPresent || chainPresent || timestampPresent || looksAsn1Der;
     if (!strictEvidencePresent) {
       return {
         ok: false,

@@ -91,6 +91,8 @@ Included
 - Explicit `--adapter package` routing for `.rpm` now requires both RPM lead magic and signature-header magic in explicit analysis, failing closed with `PACKAGE_FORMAT_MISMATCH` when either is missing.
 - Explicit `--adapter package` routing strictness now also covers `.msi`, failing closed on invalid CFB header evidence (`PACKAGE_FORMAT_MISMATCH`) instead of returning partial package summaries.
 - Explicit `--adapter package` routing strictness now also covers `.appimage`, `.pkg`, and `.dmg`, failing closed on invalid header/trailer evidence (`PACKAGE_FORMAT_MISMATCH`) instead of returning partial package summaries.
+- Explicit `--adapter package` routing for `.dmg` now requires `koly` at canonical trailer offset (file-end minus 512) in explicit analysis, failing closed with `PACKAGE_FORMAT_MISMATCH` when marker placement is invalid.
+- Explicit `--adapter package` routing for `.pkg` now requires minimally valid XAR header fields (not only `xar!` magic) in explicit analysis, failing closed with `PACKAGE_FORMAT_MISMATCH` when header fields are invalid.
 - Explicit `--adapter package` routing for `.appimage` now requires both ELF header and AppImage marker evidence in explicit analysis, failing closed with `PACKAGE_FORMAT_MISMATCH` when either is missing.
 - Explicit `--adapter package` now fails closed on compressed tar package formats (`.tgz/.tar.gz/.txz/.tar.xz`) when tar plugin preconditions are not met (`PACKAGE_PLUGIN_REQUIRED` / `PACKAGE_PLUGIN_UNAVAILABLE`) instead of silently degrading to partial metadata.
 - Explicit `--adapter container` routing now fails closed on invalid SBOM JSON (`CONTAINER_SBOM_INVALID`) for SBOM-named inputs instead of returning partial container summaries.
@@ -102,6 +104,7 @@ Included
 - Explicit `--adapter document` routing now also fails closed for `.pdf/.rtf/.chm` extension/header mismatch (`DOC_FORMAT_MISMATCH`) instead of accepting clearly invalid document bytes.
 - Explicit `--adapter document` routing now also fails closed when `.docm/.xlsm` inputs are zip-like but missing required OOXML structure (`DOC_FORMAT_MISMATCH`) instead of treating generic zip payloads as valid office-document evidence.
 - Explicit `--adapter signature` routing now fails closed when inputs lack certificate/signature envelope evidence (`SIGNATURE_FORMAT_MISMATCH`) instead of accepting arbitrary extension-matched bytes.
+- Explicit `--adapter signature` routing now also rejects unknown PEM envelope labels in explicit analysis, failing closed with `SIGNATURE_FORMAT_MISMATCH` instead of accepting generic `BEGIN ...` text blocks.
 - Explicit `--adapter scm` routing now fails closed on unresolved git reference evidence (`SCM_REF_UNRESOLVED`) instead of accepting empty/malformed `.git` states as partial success.
 - New adapter discovery command: `weftend adapter list`
 - Additive receipt/summary surface:

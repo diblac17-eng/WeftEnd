@@ -848,9 +848,24 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const pkg = path.join(tmp, "bad_header.pkg");
+    const bytes = Buffer.alloc(32, 0);
+    Buffer.from("xar!", "ascii").copy(bytes, 0);
+    // invalid header size/version keeps this structurally invalid in strict mode
+    fs.writeFileSync(pkg, bytes);
+    const capture = captureTreeV0(pkg, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: pkg, capture });
+    assert(!res.ok, "package adapter should fail closed for pkg with invalid xar header fields");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for invalid pkg header");
+  }
+
+  {
+    const tmp = mkTmp();
     const pkg = path.join(tmp, "sample.pkg");
     const bytes = Buffer.alloc(1024, 0);
     Buffer.from("xar!", "ascii").copy(bytes, 0);
+    bytes.writeUInt16BE(28, 4); // header size
+    bytes.writeUInt16BE(1, 6); // version
     Buffer.from("preinstall script payload permission", "ascii").copy(bytes, 64);
     fs.writeFileSync(pkg, bytes);
     const capture = captureTreeV0(pkg, limits);
@@ -869,6 +884,18 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: dmg, capture });
     assert(!res.ok, "package adapter should fail closed for dmg trailer mismatch");
     assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for bad dmg");
+  }
+
+  {
+    const tmp = mkTmp();
+    const dmg = path.join(tmp, "misplaced_koly.dmg");
+    const bytes = Buffer.alloc(8192, 0);
+    Buffer.from("koly", "ascii").copy(bytes, bytes.length - 128);
+    fs.writeFileSync(dmg, bytes);
+    const capture = captureTreeV0(dmg, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: dmg, capture });
+    assert(!res.ok, "package adapter should fail closed when dmg koly marker is not at trailer offset");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for misplaced dmg koly marker");
   }
 
   {
@@ -1163,6 +1190,20 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "signature", enabledPlugins: [], inputPath: badPem, capture });
     assert(!res.ok, "explicit signature adapter should fail closed on invalid signature material");
     assertEq(res.failCode, "SIGNATURE_FORMAT_MISMATCH", "signature mismatch fail code");
+  }
+
+  {
+    const tmp = mkTmp();
+    const unknownEnvelopePem = path.join(tmp, "unknown_envelope.pem");
+    fs.writeFileSync(
+      unknownEnvelopePem,
+      ["-----BEGIN FOO-----", "abcd", "-----END FOO-----"].join("\n"),
+      "utf8"
+    );
+    const capture = captureTreeV0(unknownEnvelopePem, limits);
+    const res = runArtifactAdapterV1({ selection: "signature", enabledPlugins: [], inputPath: unknownEnvelopePem, capture });
+    assert(!res.ok, "explicit signature adapter should fail closed on unknown PEM envelope");
+    assertEq(res.failCode, "SIGNATURE_FORMAT_MISMATCH", "expected SIGNATURE_FORMAT_MISMATCH for unknown PEM envelope");
   }
 
   {
