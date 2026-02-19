@@ -1032,6 +1032,34 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const tinyQcow = path.join(tmp, "tiny_valid_header.qcow2");
+    const bytes = Buffer.alloc(16, 0);
+    bytes[0] = 0x51;
+    bytes[1] = 0x46;
+    bytes[2] = 0x49;
+    bytes[3] = 0xfb;
+    bytes.writeUInt32BE(3, 4);
+    fs.writeFileSync(tinyQcow, bytes);
+    const res = await runCliCapture(["safe-run", tinyQcow, "--out", outDir, "--adapter", "image"]);
+    assertEq(res.status, 40, "safe-run should fail closed for qcow2 header that is structurally too small");
+    assert(res.stderr.includes("IMAGE_FORMAT_MISMATCH"), "expected IMAGE_FORMAT_MISMATCH on stderr for tiny qcow2");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const tinyVhdx = path.join(tmp, "tiny.vhdx");
+    const bytes = Buffer.alloc(256, 0);
+    Buffer.from("vhdxfile", "ascii").copy(bytes, 0);
+    fs.writeFileSync(tinyVhdx, bytes);
+    const res = await runCliCapture(["safe-run", tinyVhdx, "--out", outDir, "--adapter", "image"]);
+    assertEq(res.status, 40, "safe-run should fail closed for vhdx signature-only file below structural minimum");
+    assert(res.stderr.includes("IMAGE_FORMAT_MISMATCH"), "expected IMAGE_FORMAT_MISMATCH on stderr for tiny vhdx");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const weakVmdk = path.join(tmp, "weak_hints.vmdk");
     fs.writeFileSync(weakVmdk, "createType=\"monolithicSparse\"\n", "utf8");
     const res = await runCliCapture(["safe-run", weakVmdk, "--out", outDir, "--adapter", "image"]);

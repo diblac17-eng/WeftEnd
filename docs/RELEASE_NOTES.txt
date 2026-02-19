@@ -68,6 +68,7 @@ Included
 - SCM strict route now fails closed on partial git/native-ref/status metadata, preventing partial SCM evidence from being treated as complete explicit SCM analysis.
 - Image adapter extraction deepened:
 - Deterministic header evidence now includes ISO PVD, VHD footer, VHDX signature, QCOW2 magic/version, and VMDK descriptor/sparse-magic hints.
+- Explicit image route now requires minimum structural byte-size evidence for `qcow2` and `vhdx` beyond magic/signature bytes, preventing tiny signature-only files from passing strict image analysis.
 - Package/installer signing evidence deepened:
 - Deterministic local signing hints now include PE cert-table presence for `.exe` and signature-entry hints for `.msix/.nupkg/.whl/.jar`.
 - New package reason code support: `PACKAGE_SIGNING_INFO_PRESENT` alongside existing unavailable paths.

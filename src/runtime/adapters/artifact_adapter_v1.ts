@@ -2244,7 +2244,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   };
 };
 
-const analyzeImage = (ctx: AnalyzeCtx): AnalyzeResult => {
+const analyzeImage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
   if (!IMAGE_EXTS.has(ctx.ext)) {
     return {
       ok: false,
@@ -2331,6 +2331,22 @@ const analyzeImage = (ctx: AnalyzeCtx): AnalyzeResult => {
       ok: false,
       failCode: "IMAGE_FORMAT_MISMATCH",
       failMessage: "image adapter detected extension/header mismatch for explicit image analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["IMAGE_ADAPTER_V1", "IMAGE_FORMAT_MISMATCH"]),
+    };
+  }
+  if (strictRoute && ctx.ext === ".qcow2" && qcowMagicPresent > 0 && qcowVersionSupported > 0 && fileBytes < 72) {
+    return {
+      ok: false,
+      failCode: "IMAGE_FORMAT_MISMATCH",
+      failMessage: "image adapter requires minimum qcow2 header size for explicit image analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["IMAGE_ADAPTER_V1", "IMAGE_FORMAT_MISMATCH"]),
+    };
+  }
+  if (strictRoute && ctx.ext === ".vhdx" && vhdxSignaturePresent > 0 && fileBytes < 64 * 1024) {
+    return {
+      ok: false,
+      failCode: "IMAGE_FORMAT_MISMATCH",
+      failMessage: "image adapter requires minimum vhdx structural size for explicit image analysis.",
       reasonCodes: stableSortUniqueReasonsV0(["IMAGE_ADAPTER_V1", "IMAGE_FORMAT_MISMATCH"]),
     };
   }
@@ -2603,7 +2619,7 @@ const analyzeByClass = (adapterClass: AdapterClassV1, ctx: AnalyzeCtx, strictRou
   if (adapterClass === "iac" || adapterClass === "cicd") return analyzeIacCicd(ctx, adapterClass);
   if (adapterClass === "document") return analyzeDocument(ctx, strictRoute);
   if (adapterClass === "container") return analyzeContainer(ctx, strictRoute);
-  if (adapterClass === "image") return analyzeImage(ctx);
+  if (adapterClass === "image") return analyzeImage(ctx, strictRoute);
   if (adapterClass === "scm") return analyzeScm(ctx, strictRoute);
   if (adapterClass === "signature") return analyzeSignature(ctx, strictRoute);
   return {

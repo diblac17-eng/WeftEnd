@@ -1417,7 +1417,7 @@ const run = (): void => {
   {
     const tmp = mkTmp();
     const qcow = path.join(tmp, "sample.qcow2");
-    const bytes = Buffer.alloc(32, 0);
+    const bytes = Buffer.alloc(96, 0);
     bytes[0] = 0x51; // Q
     bytes[1] = 0x46; // F
     bytes[2] = 0x49; // I
@@ -1430,6 +1430,22 @@ const run = (): void => {
     assertEq(res.summary?.counts.qcowMagicPresent, 1, "qcow2 magic should be detected");
     assertEq(res.summary?.counts.qcowVersion, 3, "qcow2 version mismatch");
     assertEq(res.summary?.counts.qcowVersionSupported, 1, "qcow2 version support flag mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
+    const qcow = path.join(tmp, "tiny_valid_header.qcow2");
+    const bytes = Buffer.alloc(16, 0);
+    bytes[0] = 0x51; // Q
+    bytes[1] = 0x46; // F
+    bytes[2] = 0x49; // I
+    bytes[3] = 0xfb;
+    bytes.writeUInt32BE(3, 4);
+    fs.writeFileSync(qcow, bytes);
+    const capture = captureTreeV0(qcow, limits);
+    const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: qcow, capture });
+    assert(!res.ok, "image adapter should fail closed for qcow2 header that is structurally too small in strict route");
+    assertEq(res.failCode, "IMAGE_FORMAT_MISMATCH", "expected IMAGE_FORMAT_MISMATCH for tiny qcow2 header");
   }
 
   {
@@ -1451,13 +1467,25 @@ const run = (): void => {
   {
     const tmp = mkTmp();
     const vhdx = path.join(tmp, "sample.vhdx");
-    const bytes = Buffer.alloc(64, 0);
+    const bytes = Buffer.alloc(64 * 1024, 0);
     Buffer.from("vhdxfile", "ascii").copy(bytes, 0);
     fs.writeFileSync(vhdx, bytes);
     const capture = captureTreeV0(vhdx, limits);
     const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: vhdx, capture });
     assert(res.ok, "image adapter should parse vhdx signature");
     assertEq(res.summary?.counts.vhdxSignaturePresent, 1, "vhdx signature should be detected");
+  }
+
+  {
+    const tmp = mkTmp();
+    const vhdx = path.join(tmp, "tiny.vhdx");
+    const bytes = Buffer.alloc(256, 0);
+    Buffer.from("vhdxfile", "ascii").copy(bytes, 0);
+    fs.writeFileSync(vhdx, bytes);
+    const capture = captureTreeV0(vhdx, limits);
+    const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: vhdx, capture });
+    assert(!res.ok, "image adapter should fail closed for vhdx signature-only file below structural minimum in strict route");
+    assertEq(res.failCode, "IMAGE_FORMAT_MISMATCH", "expected IMAGE_FORMAT_MISMATCH for tiny vhdx header-only file");
   }
 
   {
