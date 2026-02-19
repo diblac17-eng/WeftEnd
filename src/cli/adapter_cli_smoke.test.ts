@@ -593,6 +593,37 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const chm = path.join(tmp, "sample.chm");
+    const bytes = Buffer.alloc(0x60, 0);
+    bytes[0] = 0x49;
+    bytes[1] = 0x54;
+    bytes[2] = 0x53;
+    bytes[3] = 0x46;
+    bytes.writeUInt32LE(3, 4);
+    bytes.writeUInt32LE(0x60, 8);
+    fs.writeFileSync(chm, bytes);
+    const res = await runCliCapture(["safe-run", chm, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 0, "safe-run document should accept explicit CHM with minimum structural header evidence");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const tinyChm = path.join(tmp, "tiny.chm");
+    const bytes = Buffer.alloc(8, 0);
+    bytes[0] = 0x49;
+    bytes[1] = 0x54;
+    bytes[2] = 0x53;
+    bytes[3] = 0x46;
+    fs.writeFileSync(tinyChm, bytes);
+    const res = await runCliCapture(["safe-run", tinyChm, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit CHM with header-only tiny input");
+    assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr for tiny CHM");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badDocm = path.join(tmp, "bad.docm");
     fs.writeFileSync(badDocm, "not-a-zip-office-doc", "utf8");
     const res = await runCliCapture(["safe-run", badDocm, "--out", outDir, "--adapter", "document"]);

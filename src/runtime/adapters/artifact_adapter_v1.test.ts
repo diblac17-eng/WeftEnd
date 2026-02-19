@@ -1185,6 +1185,38 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const chm = path.join(tmp, "sample.chm");
+    const bytes = Buffer.alloc(0x60, 0);
+    bytes[0] = 0x49;
+    bytes[1] = 0x54;
+    bytes[2] = 0x53;
+    bytes[3] = 0x46;
+    bytes.writeUInt32LE(3, 4);
+    bytes.writeUInt32LE(0x60, 8);
+    fs.writeFileSync(chm, bytes);
+    const capture = captureTreeV0(chm, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: chm, capture });
+    assert(res.ok, "document adapter should parse explicit CHM with minimum structural header evidence");
+    assertEq(res.summary?.sourceClass, "document", "chm source class mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
+    const tinyChm = path.join(tmp, "tiny.chm");
+    const bytes = Buffer.alloc(8, 0);
+    bytes[0] = 0x49;
+    bytes[1] = 0x54;
+    bytes[2] = 0x53;
+    bytes[3] = 0x46;
+    fs.writeFileSync(tinyChm, bytes);
+    const capture = captureTreeV0(tinyChm, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: tinyChm, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit CHM with tiny header-only input");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for tiny explicit CHM");
+  }
+
+  {
+    const tmp = mkTmp();
     const docm = path.join(tmp, "demo.docm");
     writeStoredZip(docm, [
       { name: "[Content_Types].xml", text: "<Types></Types>" },

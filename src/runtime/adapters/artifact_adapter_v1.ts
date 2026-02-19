@@ -1937,7 +1937,8 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
         };
       }
     } else if (ctx.ext === ".chm") {
-      const bytes = readBytesBounded(ctx.inputPath, 8);
+      const window = readFileHeadTailBounded(ctx.inputPath, 96, 0);
+      const bytes = Buffer.from(window.head);
       const chmHeaderOk =
         bytes.length >= 4 && bytes[0] === 0x49 && bytes[1] === 0x54 && bytes[2] === 0x53 && bytes[3] === 0x46;
       if (!chmHeaderOk) {
@@ -1947,6 +1948,26 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
           failMessage: "document adapter detected extension/header mismatch for explicit document analysis.",
           reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
         };
+      }
+      const minChmHeaderBytes = 0x60;
+      if (window.size < minChmHeaderBytes) {
+        return {
+          ok: false,
+          failCode: "DOC_FORMAT_MISMATCH",
+          failMessage: "document adapter expected minimum CHM header bytes for explicit document analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+        };
+      }
+      if (bytes.length >= 12) {
+        const declaredHeaderBytes = bytes.readUInt32LE(8);
+        if (declaredHeaderBytes > 0 && (declaredHeaderBytes < minChmHeaderBytes || declaredHeaderBytes > window.size)) {
+          return {
+            ok: false,
+            failCode: "DOC_FORMAT_MISMATCH",
+            failMessage: "document adapter detected invalid CHM header length for explicit document analysis.",
+            reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+          };
+        }
       }
     }
   }
