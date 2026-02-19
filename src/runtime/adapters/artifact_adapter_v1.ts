@@ -2061,6 +2061,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       .map((entry) => String(entry.path || "").replace(/\\/g, "/").toLowerCase())
       .filter((name) => name.startsWith("blobs/sha256/"))
       .length;
+    if (strictRoute && ociManifestCount > 0 && ociBlobCount === 0) {
+      return {
+        ok: false,
+        failCode: "CONTAINER_LAYOUT_INVALID",
+        failMessage: "container adapter requires OCI blob evidence for explicit OCI layout analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_LAYOUT_INVALID"]),
+      };
+    }
   }
   if (isContainerTar) {
     tarEntryCount = tarEntries.entries.length;
