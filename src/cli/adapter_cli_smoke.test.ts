@@ -196,6 +196,17 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const input = path.join(tmp, "partial_after_entries.tar");
+    writeSimpleTar(input, [{ name: "a.txt", text: "alpha" }]);
+    fs.appendFileSync(input, Buffer.alloc(512, 0x41));
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"]);
+    assertEq(res.status, 40, "safe-run archive should fail closed when tar metadata is partial after parsed entries");
+    assert(res.stderr.includes("ARCHIVE_FORMAT_MISMATCH"), "expected ARCHIVE_FORMAT_MISMATCH on stderr for partial tar metadata");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const input = path.join(tmp, "bad.zip");
     fs.writeFileSync(input, "not-a-zip", "utf8");
     const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"]);

@@ -210,6 +210,17 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const partialTar = path.join(tmp, "partial_after_entries.tar");
+    writeSimpleTar(partialTar, [{ name: "a.txt", text: "alpha" }]);
+    fs.appendFileSync(partialTar, Buffer.alloc(512, 0x41));
+    const capture = captureTreeV0(partialTar, limits);
+    const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: partialTar, capture });
+    assert(!res.ok, "archive adapter should fail closed when tar metadata is partial after parsed entries");
+    assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for partial tar metadata");
+  }
+
+  {
+    const tmp = mkTmp();
     const badZip = path.join(tmp, "bad.zip");
     fs.writeFileSync(badZip, "not-a-zip", "utf8");
     const capture = captureTreeV0(badZip, limits);

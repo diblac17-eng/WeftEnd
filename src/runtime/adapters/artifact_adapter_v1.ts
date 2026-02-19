@@ -530,6 +530,20 @@ const readZipTextEntriesByFilter = (
 };
 
 const readTarEntries = (inputPath: string): { entries: string[]; markers: string[] } => {
+  const parseTarOctal = (raw: string): number | null => {
+    const text = raw.replace(/\0.*$/, "").trim();
+    if (text.length === 0) return 0;
+    if (!/^[0-7]+$/.test(text)) return null;
+    const parsed = Number.parseInt(text, 8);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  };
+  const tarHeaderChecksum = (block: any): number => {
+    let sum = 0;
+    for (let i = 0; i < 512; i += 1) {
+      sum += i >= 148 && i < 156 ? 0x20 : block[i] ?? 0;
+    }
+    return sum;
+  };
   const markers: string[] = [];
   const entries: string[] = [];
   let buf: Uint8Array;
@@ -539,6 +553,7 @@ const readTarEntries = (inputPath: string): { entries: string[]; markers: string
     return { entries, markers: ["ARCHIVE_METADATA_PARTIAL"] };
   }
   let offset = 0;
+  let terminatedByZeroBlock = false;
   while (offset + 512 <= buf.length) {
     if (entries.length >= MAX_LIST_ITEMS) {
       markers.push("ARCHIVE_TRUNCATED");
@@ -546,18 +561,37 @@ const readTarEntries = (inputPath: string): { entries: string[]; markers: string
     }
     const block = Buffer.from(buf.subarray(offset, offset + 512));
     const empty = block.every((b: number) => b === 0);
-    if (empty) break;
+    if (empty) {
+      terminatedByZeroBlock = true;
+      break;
+    }
+    const recordedChecksum = parseTarOctal(block.slice(148, 156).toString("ascii"));
+    if (recordedChecksum === null || tarHeaderChecksum(block) !== recordedChecksum) {
+      markers.push("ARCHIVE_METADATA_PARTIAL");
+      break;
+    }
     const nameRaw = block.slice(0, 100).toString("utf8").replace(/\0.*$/, "");
     const prefixRaw = block.slice(345, 500).toString("utf8").replace(/\0.*$/, "");
-    const sizeRaw = block.slice(124, 136).toString("utf8").replace(/\0.*$/, "").trim();
-    const size = Number.parseInt(sizeRaw || "0", 8);
+    const size = parseTarOctal(block.slice(124, 136).toString("ascii"));
+    if (size === null) {
+      markers.push("ARCHIVE_METADATA_PARTIAL");
+      break;
+    }
     const fullName = `${prefixRaw ? `${prefixRaw}/` : ""}${nameRaw}`.replace(/\\/g, "/").replace(/^\.\/+/, "");
     if (fullName && !fullName.endsWith("/")) entries.push(fullName);
-    const dataSize = Number.isFinite(size) && size > 0 ? size : 0;
+    const dataSize = size > 0 ? size : 0;
     const advance = 512 + Math.ceil(dataSize / 512) * 512;
+    if (!Number.isFinite(advance) || advance <= 0 || offset + advance > buf.length) {
+      markers.push("ARCHIVE_METADATA_PARTIAL");
+      break;
+    }
     offset += advance;
   }
-  if (offset < buf.length && entries.length === 0) markers.push("ARCHIVE_METADATA_PARTIAL");
+  if (offset < buf.length && !markers.includes("ARCHIVE_TRUNCATED")) {
+    const remaining = Buffer.from(buf.subarray(offset));
+    const allRemainingZero = remaining.every((b: number) => b === 0);
+    if (!(terminatedByZeroBlock && allRemainingZero)) markers.push("ARCHIVE_METADATA_PARTIAL");
+  }
   return { entries: stableSortUniqueStringsV0(entries), markers: stableSortUniqueStringsV0(markers) };
 };
 
@@ -1072,7 +1106,7 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_UNSUPPORTED_FORMAT"]),
     };
   }
-  if (strictRoute && ext === ".tar" && markers.includes("ARCHIVE_METADATA_PARTIAL") && entries.length === 0) {
+  if (strictRoute && ext === ".tar" && markers.includes("ARCHIVE_METADATA_PARTIAL")) {
     return {
       ok: false,
       failCode: "ARCHIVE_FORMAT_MISMATCH",
