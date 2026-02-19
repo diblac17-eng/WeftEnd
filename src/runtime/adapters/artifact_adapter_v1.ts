@@ -1853,7 +1853,6 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeR
     forcedClass === "iac" &&
     iacStructuralPatterns === 0 &&
     privileged === 0 &&
-    secretRefs === 0 &&
     remoteModuleRefs === 0
   ) {
     return {

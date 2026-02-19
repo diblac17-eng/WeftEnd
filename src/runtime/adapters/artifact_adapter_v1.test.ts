@@ -533,6 +533,21 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const wfDir = path.join(tmp, ".github", "workflows");
+    fs.mkdirSync(wfDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(wfDir, "build.yml"),
+      "name: ci\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo ${{ secrets.TOKEN }}\n",
+      "utf8"
+    );
+    const capture = captureTreeV0(tmp, limits);
+    const res = runArtifactAdapterV1({ selection: "iac", enabledPlugins: [], inputPath: tmp, capture });
+    assert(!res.ok, "iac adapter should fail closed for ci workflow content under explicit iac route");
+    assertEq(res.failCode, "IAC_UNSUPPORTED_FORMAT", "expected IAC_UNSUPPORTED_FORMAT for ci workflow under iac route");
+  }
+
+  {
+    const tmp = mkTmp();
     const tf = path.join(tmp, "main.tf");
     fs.writeFileSync(
       tf,

@@ -364,6 +364,21 @@ const run = async (): Promise<void> => {
     const wfDir = path.join(tmp, ".github", "workflows");
     fs.mkdirSync(wfDir, { recursive: true });
     fs.writeFileSync(
+      path.join(wfDir, "build.yml"),
+      "name: ci\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo ${{ secrets.TOKEN }}\n",
+      "utf8"
+    );
+    const res = await runCliCapture(["safe-run", tmp, "--out", outDir, "--adapter", "iac"]);
+    assertEq(res.status, 40, "safe-run should fail closed for ci workflow under explicit iac route");
+    assert(res.stderr.includes("IAC_UNSUPPORTED_FORMAT"), "expected IAC_UNSUPPORTED_FORMAT on stderr for ci workflow under iac route");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const wfDir = path.join(tmp, ".github", "workflows");
+    fs.mkdirSync(wfDir, { recursive: true });
+    fs.writeFileSync(
       path.join(wfDir, "auto_class.yml"),
       "name: ci\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567\n",
       "utf8"
