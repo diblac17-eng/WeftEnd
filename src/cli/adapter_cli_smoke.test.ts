@@ -1080,6 +1080,29 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const vhd = path.join(tmp, "sample.vhd");
+    const bytes = Buffer.alloc(1024, 0);
+    Buffer.from("conectix", "ascii").copy(bytes, bytes.length - 512);
+    fs.writeFileSync(vhd, bytes);
+    const res = await runCliCapture(["safe-run", vhd, "--out", outDir, "--adapter", "image"]);
+    assertEq(res.status, 0, "safe-run should accept explicit vhd with minimum structural footer evidence");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const tinyVhd = path.join(tmp, "tiny.vhd");
+    const bytes = Buffer.alloc(512, 0);
+    Buffer.from("conectix", "ascii").copy(bytes, 0);
+    fs.writeFileSync(tinyVhd, bytes);
+    const res = await runCliCapture(["safe-run", tinyVhd, "--out", outDir, "--adapter", "image"]);
+    assertEq(res.status, 40, "safe-run should fail closed for vhd footer-only file below structural minimum");
+    assert(res.stderr.includes("IMAGE_FORMAT_MISMATCH"), "expected IMAGE_FORMAT_MISMATCH on stderr for tiny vhd");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badQcow = path.join(tmp, "bad_version.qcow2");
     const bytes = Buffer.alloc(32, 0);
     bytes[0] = 0x51;

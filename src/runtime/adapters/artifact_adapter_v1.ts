@@ -2390,6 +2390,14 @@ const analyzeImage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
       reasonCodes: stableSortUniqueReasonsV0(["IMAGE_ADAPTER_V1", "IMAGE_FORMAT_MISMATCH"]),
     };
   }
+  if (strictRoute && ctx.ext === ".vhd" && vhdFooterPresent > 0 && fileBytes < 1024) {
+    return {
+      ok: false,
+      failCode: "IMAGE_FORMAT_MISMATCH",
+      failMessage: "image adapter requires minimum vhd structural size for explicit image analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["IMAGE_ADAPTER_V1", "IMAGE_FORMAT_MISMATCH"]),
+    };
+  }
   markers.push("IMAGE_TABLE_TRUNCATED");
 
   return {

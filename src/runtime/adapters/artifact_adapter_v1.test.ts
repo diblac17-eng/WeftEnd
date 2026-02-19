@@ -1493,6 +1493,30 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const vhd = path.join(tmp, "sample.vhd");
+    const bytes = Buffer.alloc(1024, 0);
+    Buffer.from("conectix", "ascii").copy(bytes, bytes.length - 512);
+    fs.writeFileSync(vhd, bytes);
+    const capture = captureTreeV0(vhd, limits);
+    const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: vhd, capture });
+    assert(res.ok, "image adapter should parse vhd footer evidence with minimum structural size");
+    assertEq(res.summary?.counts.vhdFooterPresent, 1, "vhd footer should be detected");
+  }
+
+  {
+    const tmp = mkTmp();
+    const tinyVhd = path.join(tmp, "tiny.vhd");
+    const bytes = Buffer.alloc(512, 0);
+    Buffer.from("conectix", "ascii").copy(bytes, 0);
+    fs.writeFileSync(tinyVhd, bytes);
+    const capture = captureTreeV0(tinyVhd, limits);
+    const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: tinyVhd, capture });
+    assert(!res.ok, "image adapter should fail closed for vhd footer-only file below structural minimum in strict route");
+    assertEq(res.failCode, "IMAGE_FORMAT_MISMATCH", "expected IMAGE_FORMAT_MISMATCH for tiny vhd footer-only file");
+  }
+
+  {
+    const tmp = mkTmp();
     const qcow = path.join(tmp, "sample.qcow2");
     const bytes = Buffer.alloc(96, 0);
     bytes[0] = 0x51; // Q
