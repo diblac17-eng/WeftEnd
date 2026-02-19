@@ -966,11 +966,25 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const deb = path.join(tmp, "tiny_stub.deb");
+    writeSimpleAr(deb, [
+      { name: "debian-binary", bytes: Buffer.from("2.0\n", "utf8") },
+      { name: "control.tar.gz", bytes: Buffer.from("x", "utf8") },
+      { name: "data.tar.xz", bytes: Buffer.from("y", "utf8") },
+    ]);
+    const capture = captureTreeV0(deb, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: deb, capture });
+    assert(!res.ok, "package adapter should fail closed for deb with required entries but tiny structural size");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for tiny deb structural size");
+  }
+
+  {
+    const tmp = mkTmp();
     const deb = path.join(tmp, "sample.deb");
     writeSimpleAr(deb, [
       { name: "debian-binary", bytes: Buffer.from("2.0\n", "utf8") },
-      { name: "control.tar.gz", bytes: Buffer.from("fake-control", "utf8") },
-      { name: "data.tar.xz", bytes: Buffer.from("fake-data", "utf8") },
+      { name: "control.tar.gz", bytes: Buffer.from("fake-control-".repeat(24), "utf8") },
+      { name: "data.tar.xz", bytes: Buffer.from("fake-data-".repeat(24), "utf8") },
     ]);
     const capture = captureTreeV0(deb, limits);
     const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: deb, capture });

@@ -1328,6 +1328,14 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
           reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
         };
       }
+      if (hasDebianBinary && hasControl && hasData && packageFileBytes < 256) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter requires minimum deb structural size for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
     }
     markers.push(...ar.markers);
     if (entryNames.length === 0) reasonCodes.push("PACKAGE_METADATA_PARTIAL");

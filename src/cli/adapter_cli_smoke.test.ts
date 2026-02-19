@@ -950,6 +950,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const tinyStubDeb = path.join(tmp, "tiny_stub.deb");
+    writeSimpleAr(tinyStubDeb, [
+      { name: "debian-binary", bytes: Buffer.from("2.0\n", "utf8") },
+      { name: "control.tar.gz", bytes: Buffer.from("x", "utf8") },
+      { name: "data.tar.xz", bytes: Buffer.from("y", "utf8") },
+    ]);
+    const res = await runCliCapture(["safe-run", tinyStubDeb, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for deb with required entries but tiny structural size");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for tiny deb structural size");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badRpm = path.join(tmp, "bad.rpm");
     fs.writeFileSync(badRpm, "not-an-rpm", "utf8");
     const res = await runCliCapture(["safe-run", badRpm, "--out", outDir, "--adapter", "package"]);
