@@ -756,6 +756,34 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const cer = path.join(tmp, "sample.cer");
+    const bytes = Buffer.alloc(143, 0);
+    bytes[0] = 0x30;
+    bytes[1] = 0x81;
+    bytes[2] = 0x8c;
+    Buffer.from([0x06, 0x03, 0x55, 0x04, 0x03]).copy(bytes, 20);
+    fs.writeFileSync(cer, bytes);
+    const res = await runCliCapture(["safe-run", cer, "--out", outDir, "--adapter", "signature"]);
+    assertEq(res.status, 0, "safe-run should accept DER cert evidence with x509 name OID markers");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const cer = path.join(tmp, "no_x509.cer");
+    const bytes = Buffer.alloc(143, 0);
+    bytes[0] = 0x30;
+    bytes[1] = 0x81;
+    bytes[2] = 0x8c;
+    fs.writeFileSync(cer, bytes);
+    const res = await runCliCapture(["safe-run", cer, "--out", outDir, "--adapter", "signature"]);
+    assertEq(res.status, 40, "safe-run should fail closed for DER cert input without x509 name OID evidence");
+    assert(res.stderr.includes("SIGNATURE_FORMAT_MISMATCH"), "expected SIGNATURE_FORMAT_MISMATCH on stderr for DER cert input without x509 name OID");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const repo = path.join(tmp, "repo_unresolved");
     fs.mkdirSync(path.join(repo, ".git"), { recursive: true });
     fs.writeFileSync(path.join(repo, "file.txt"), "x", "utf8");

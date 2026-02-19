@@ -1837,6 +1837,35 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const cer = path.join(tmp, "sample.cer");
+    const bytes = Buffer.alloc(143, 0);
+    bytes[0] = 0x30;
+    bytes[1] = 0x81;
+    bytes[2] = 0x8c;
+    Buffer.from([0x06, 0x03, 0x55, 0x04, 0x03]).copy(bytes, 20); // 2.5.4.3 (commonName)
+    fs.writeFileSync(cer, bytes);
+    const capture = captureTreeV0(cer, limits);
+    const res = runArtifactAdapterV1({ selection: "signature", enabledPlugins: [], inputPath: cer, capture });
+    assert(res.ok, "explicit signature adapter should accept DER cert evidence with x509 name OID markers");
+    assert((res.summary?.counts.x509NameOidCount ?? 0) > 0, "x509 name oid count should be present");
+  }
+
+  {
+    const tmp = mkTmp();
+    const cer = path.join(tmp, "no_x509.cer");
+    const bytes = Buffer.alloc(143, 0);
+    bytes[0] = 0x30;
+    bytes[1] = 0x81;
+    bytes[2] = 0x8c;
+    fs.writeFileSync(cer, bytes);
+    const capture = captureTreeV0(cer, limits);
+    const res = runArtifactAdapterV1({ selection: "signature", enabledPlugins: [], inputPath: cer, capture });
+    assert(!res.ok, "explicit signature adapter should fail closed for DER cert input without x509 name OID evidence");
+    assertEq(res.failCode, "SIGNATURE_FORMAT_MISMATCH", "expected SIGNATURE_FORMAT_MISMATCH for DER cert input without x509 name OID");
+  }
+
+  {
+    const tmp = mkTmp();
     const p7b = path.join(tmp, "bad_der_len.p7b");
     const bytes = Buffer.from([0x30, 0x82, 0xff, 0xff, 0x01, 0x02, 0x03]);
     fs.writeFileSync(p7b, bytes);

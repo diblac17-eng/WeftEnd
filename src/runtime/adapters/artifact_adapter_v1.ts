@@ -2680,8 +2680,10 @@ const analyzeSignature = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
 
   const OID_CMS_SIGNED_DATA = Buffer.from([0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x07, 0x02]); // 1.2.840.113549.1.7.2
   const OID_TIMESTAMP_EKU = Buffer.from([0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x08]); // 1.3.6.1.5.5.7.3.8
+  const OID_X509_NAME_ATTR = Buffer.from([0x06, 0x03, 0x55, 0x04]); // 2.5.4.*
   const cmsSignedDataOidCount = countBufferPatternV1(bytes, OID_CMS_SIGNED_DATA);
   const timestampOidCount = countBufferPatternV1(bytes, OID_TIMESTAMP_EKU);
+  const x509NameOidCount = countBufferPatternV1(bytes, OID_X509_NAME_ATTR);
 
   const strongEnvelopeEvidence = pemCertificateCount + pemPkcs7Count + pemSignatureCount + cmsSignedDataOidCount > 0;
   const signerPresent = strongEnvelopeEvidence || /BEGIN CERTIFICATE|BEGIN PKCS7|BEGIN SIGNATURE/i.test(text);
@@ -2691,7 +2693,7 @@ const analyzeSignature = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     const looksAsn1Der = isLikelyDerSequenceV1(bytes);
     const derEvidenceStrong =
       looksAsn1Der &&
-      (cmsSignedDataOidCount > 0 || ((ctx.ext === ".cer" || ctx.ext === ".crt") && bytes.length >= 128));
+      (cmsSignedDataOidCount > 0 || ((ctx.ext === ".cer" || ctx.ext === ".crt") && bytes.length >= 128 && x509NameOidCount > 0));
     const strictEvidencePresent = strongEnvelopeEvidence || derEvidenceStrong;
     if (!strictEvidencePresent) {
       return {
@@ -2727,6 +2729,7 @@ const analyzeSignature = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       pemPkcs7Count,
       pemSignatureCount,
       cmsSignedDataOidCount,
+      x509NameOidCount,
       timestampTokenCount: textualTimestampCount,
       timestampOidCount,
       chainHintCount: textualChainHintCount,
