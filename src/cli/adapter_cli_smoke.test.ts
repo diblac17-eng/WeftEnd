@@ -738,6 +738,48 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const badQcow = path.join(tmp, "bad_version.qcow2");
+    const bytes = Buffer.alloc(32, 0);
+    bytes[0] = 0x51;
+    bytes[1] = 0x46;
+    bytes[2] = 0x49;
+    bytes[3] = 0xfb;
+    bytes.writeUInt32BE(1, 4); // unsupported qcow2 version
+    fs.writeFileSync(badQcow, bytes);
+    const res = await runCliCapture(["safe-run", badQcow, "--out", outDir, "--adapter", "image"]);
+    assertEq(res.status, 40, "safe-run should fail closed for unsupported qcow2 version");
+    assert(res.stderr.includes("IMAGE_FORMAT_MISMATCH"), "expected IMAGE_FORMAT_MISMATCH on stderr for unsupported qcow2 version");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const weakVmdk = path.join(tmp, "weak_hints.vmdk");
+    fs.writeFileSync(weakVmdk, "createType=\"monolithicSparse\"\n", "utf8");
+    const res = await runCliCapture(["safe-run", weakVmdk, "--out", outDir, "--adapter", "image"]);
+    assertEq(res.status, 40, "safe-run should fail closed for weak vmdk descriptor hints");
+    assert(res.stderr.includes("IMAGE_FORMAT_MISMATCH"), "expected IMAGE_FORMAT_MISMATCH on stderr for weak vmdk descriptor hints");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const textMarkerOnlyAppImage = path.join(tmp, "text_marker_only.appimage");
+    const bytes = Buffer.alloc(1024, 0);
+    bytes[0] = 0x7f;
+    bytes[1] = 0x45;
+    bytes[2] = 0x4c;
+    bytes[3] = 0x46;
+    Buffer.from("AppImage runtime", "ascii").copy(bytes, 128); // non-canonical location
+    fs.writeFileSync(textMarkerOnlyAppImage, bytes);
+    const res = await runCliCapture(["safe-run", textMarkerOnlyAppImage, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for loose AppImage text marker without runtime magic");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for loose AppImage text marker");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     fs.mkdirSync(path.join(tmp, "oci_image"));
     fs.writeFileSync(path.join(tmp, "oci_image", "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
     fs.writeFileSync(

@@ -1060,6 +1060,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
   let rpmHeaderPresent = 0;
   let appImageElfPresent = 0;
   let appImageMarkerPresent = 0;
+  let appImageType = 0;
   let pkgXarHeaderPresent = 0;
   let dmgKolyTrailerPresent = 0;
   if (ext === ".nupkg" || ext === ".whl" || ext === ".jar" || ext === ".msix") {
@@ -1223,8 +1224,10 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
   } else if (ext === ".appimage") {
     const bytes = readBytesBounded(ctx.inputPath, 256 * 1024);
     appImageElfPresent = bytes.length >= 4 && bytes[0] === 0x7f && bytes[1] === 0x45 && bytes[2] === 0x4c && bytes[3] === 0x46 ? 1 : 0;
+    const hasRuntimeMagic = bytes.length >= 11 && bytes[8] === 0x41 && bytes[9] === 0x49 && (bytes[10] === 0x01 || bytes[10] === 0x02);
+    appImageMarkerPresent = hasRuntimeMagic ? 1 : 0;
+    appImageType = hasRuntimeMagic ? bytes[10] : 0;
     const headText = Buffer.from(bytes.subarray(0, Math.min(bytes.length, 4096))).toString("latin1");
-    appImageMarkerPresent = headText.includes("AppImage") || headText.includes("AI\x02") ? 1 : 0;
     if (/AppRun|\.desktop|squashfs/i.test(headText)) textScriptHints += 1;
     if (appImageElfPresent === 0 || appImageMarkerPresent === 0) {
       if (strictRoute) {
@@ -1236,7 +1239,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
         };
       }
       if (appImageElfPresent === 0) markers.push("PACKAGE_APPIMAGE_HEADER_MISSING");
-      if (appImageMarkerPresent === 0) markers.push("PACKAGE_APPIMAGE_MARKER_MISSING");
+      if (appImageMarkerPresent === 0) markers.push(headText.includes("AppImage") ? "PACKAGE_APPIMAGE_MARKER_PARTIAL" : "PACKAGE_APPIMAGE_MARKER_MISSING");
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
     }
   } else if (ext === ".pkg") {
@@ -1404,6 +1407,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       rpmHeaderPresent,
       appImageElfPresent,
       appImageMarkerPresent,
+      appImageType,
       pkgXarHeaderPresent,
       dmgKolyTrailerPresent,
       signerCountBounded: 0,
@@ -2048,19 +2052,24 @@ const analyzeImage = (ctx: AnalyzeCtx): AnalyzeResult => {
   if (headerBytesRead === 0 && fileBytes > 0) markers.push("IMAGE_HEADER_PARTIAL");
 
   let isoPvdPresent = 0;
+  let isoPvdVersionPresent = 0;
   let vhdFooterPresent = 0;
   let vhdxSignaturePresent = 0;
   let qcowMagicPresent = 0;
   let qcowVersion = 0;
+  let qcowVersionSupported = 0;
   let vmdkDescriptorHintCount = 0;
+  let vmdkDescriptorStructuralPresent = 0;
   let vmdkSparseMagicCount = 0;
 
   if (ctx.ext === ".iso") {
     const pvdOffset = 16 * 2048;
-    if (head.length >= pvdOffset + 6) {
+    if (head.length >= pvdOffset + 7) {
       const sig = head.subarray(pvdOffset + 1, pvdOffset + 6).toString("ascii");
       const type = head[pvdOffset];
-      if (sig === "CD001" && (type === 1 || type === 2)) isoPvdPresent = 1;
+      const version = head[pvdOffset + 6];
+      if (version === 1) isoPvdVersionPresent = 1;
+      if (sig === "CD001" && (type === 1 || type === 2) && version === 1) isoPvdPresent = 1;
     } else {
       markers.push("IMAGE_HEADER_PARTIAL");
     }
@@ -2082,19 +2091,28 @@ const analyzeImage = (ctx: AnalyzeCtx): AnalyzeResult => {
       const magic = head.subarray(0, 4);
       if (magic[0] === 0x51 && magic[1] === 0x46 && magic[2] === 0x49 && magic[3] === 0xfb) qcowMagicPresent = 1;
       qcowVersion = head.readUInt32BE(4);
+      if (qcowVersion === 2 || qcowVersion === 3) qcowVersionSupported = 1;
     } else {
       markers.push("IMAGE_HEADER_PARTIAL");
     }
   } else if (ctx.ext === ".vmdk") {
     const text = head.toString("utf8");
-    vmdkDescriptorHintCount = countMatchesV1(text, /disk descriptorfile|createType|RW\s+\d+\s+/gi);
+    const hasDescriptorBanner = /#\s*disk\s+descriptorfile/i.test(text);
+    const hasCreateType = /createType\s*=/i.test(text);
+    const hasExtentLine = /\b(RW|RDONLY|NOACCESS)\s+\d+\s+[A-Z0-9_]+\s+/i.test(text);
+    vmdkDescriptorHintCount = (hasDescriptorBanner ? 1 : 0) + (hasCreateType ? 1 : 0) + (hasExtentLine ? 1 : 0);
+    if (hasDescriptorBanner && hasCreateType && hasExtentLine) vmdkDescriptorStructuralPresent = 1;
     const sparseMagic = Buffer.from("KDMV", "ascii");
     vmdkSparseMagicCount = countBufferPatternV1(head, sparseMagic);
-    if (vmdkDescriptorHintCount === 0 && vmdkSparseMagicCount === 0 && fileBytes > 0) markers.push("IMAGE_HEADER_PARTIAL");
+    if (vmdkDescriptorStructuralPresent === 0 && vmdkSparseMagicCount === 0 && fileBytes > 0) markers.push("IMAGE_HEADER_PARTIAL");
   }
 
   const headerMatchCount =
-    isoPvdPresent + vhdFooterPresent + vhdxSignaturePresent + qcowMagicPresent + (vmdkDescriptorHintCount > 0 || vmdkSparseMagicCount > 0 ? 1 : 0);
+    isoPvdPresent +
+    vhdFooterPresent +
+    vhdxSignaturePresent +
+    (qcowMagicPresent > 0 && qcowVersionSupported > 0 ? 1 : 0) +
+    (vmdkDescriptorStructuralPresent > 0 || vmdkSparseMagicCount > 0 ? 1 : 0);
   if (fileBytes > 0 && headerMatchCount === 0) {
     return {
       ok: false,
@@ -2116,11 +2134,14 @@ const analyzeImage = (ctx: AnalyzeCtx): AnalyzeResult => {
       headerBytesRead,
       headerMatchCount,
       isoPvdPresent,
+      isoPvdVersionPresent,
       vhdFooterPresent,
       vhdxSignaturePresent,
       qcowMagicPresent,
       qcowVersion,
+      qcowVersionSupported,
       vmdkDescriptorHintCount,
+      vmdkDescriptorStructuralPresent,
       vmdkSparseMagicCount,
       imageTableEntries: 0,
     },

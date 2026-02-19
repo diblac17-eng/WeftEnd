@@ -84,6 +84,8 @@ Included
 - Explicit `--adapter extension` routing is now strict and fails closed when `manifest.json` is missing or invalid (`EXTENSION_MANIFEST_MISSING` / `EXTENSION_MANIFEST_INVALID`) instead of producing partial extension summaries.
 - Explicit `--adapter extension` routing now also fails closed on invalid extension package structure (`EXTENSION_FORMAT_MISMATCH`) instead of collapsing malformed bundle bytes into generic manifest-missing paths.
 - Explicit `--adapter image` routing is now strict and fails closed when extension/header evidence mismatches (`IMAGE_FORMAT_MISMATCH`) instead of returning partial-success image summaries.
+- Explicit `--adapter image` routing for `.qcow2` now requires supported qcow2 header versions (2 or 3) in explicit analysis, failing closed with `IMAGE_FORMAT_MISMATCH` on unsupported versions.
+- Explicit `--adapter image` routing for `.vmdk` now requires structural descriptor evidence (descriptor banner + createType + extent line) or sparse magic, failing closed with `IMAGE_FORMAT_MISMATCH` on weak hint-only inputs.
 - Explicit `--adapter package` routing is now strict for `.exe` and ZIP-backed package containers (`.msix/.nupkg/.whl/.jar`), failing closed on extension/container mismatch (`PACKAGE_FORMAT_MISMATCH`) instead of returning partial package summaries.
 - Explicit `--adapter package` routing now also requires package-specific ZIP structure evidence for `.msix/.nupkg/.whl/.jar` (for example manifest/metadata entries), failing closed with `PACKAGE_FORMAT_MISMATCH` on generic ZIP payloads.
 - Explicit `--adapter package` routing strictness now also covers `.deb` and `.rpm`, failing closed on invalid container/header evidence (`PACKAGE_FORMAT_MISMATCH`) instead of returning partial package summaries.
@@ -93,7 +95,7 @@ Included
 - Explicit `--adapter package` routing strictness now also covers `.appimage`, `.pkg`, and `.dmg`, failing closed on invalid header/trailer evidence (`PACKAGE_FORMAT_MISMATCH`) instead of returning partial package summaries.
 - Explicit `--adapter package` routing for `.dmg` now requires `koly` at canonical trailer offset (file-end minus 512) in explicit analysis, failing closed with `PACKAGE_FORMAT_MISMATCH` when marker placement is invalid.
 - Explicit `--adapter package` routing for `.pkg` now requires minimally valid XAR header fields (not only `xar!` magic) in explicit analysis, failing closed with `PACKAGE_FORMAT_MISMATCH` when header fields are invalid.
-- Explicit `--adapter package` routing for `.appimage` now requires both ELF header and AppImage marker evidence in explicit analysis, failing closed with `PACKAGE_FORMAT_MISMATCH` when either is missing.
+- Explicit `--adapter package` routing for `.appimage` now requires both ELF header and AppImage runtime marker at canonical offset in explicit analysis, failing closed with `PACKAGE_FORMAT_MISMATCH` when marker evidence is missing or misplaced.
 - Explicit `--adapter package` now fails closed on compressed tar package formats (`.tgz/.tar.gz/.txz/.tar.xz`) when tar plugin preconditions are not met (`PACKAGE_PLUGIN_REQUIRED` / `PACKAGE_PLUGIN_UNAVAILABLE`) instead of silently degrading to partial metadata.
 - Explicit `--adapter container` routing now fails closed on invalid SBOM JSON (`CONTAINER_SBOM_INVALID`) for SBOM-named inputs instead of returning partial container summaries.
 - Explicit `--adapter container` routing now also fails closed on invalid OCI `index.json` (`CONTAINER_INDEX_INVALID`) for OCI-layout inputs instead of returning partial container summaries.

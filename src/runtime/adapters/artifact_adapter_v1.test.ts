@@ -819,12 +819,31 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const appimage = path.join(tmp, "text_marker_only.appimage");
+    const bytes = Buffer.alloc(1024, 0);
+    bytes[0] = 0x7f;
+    bytes[1] = 0x45;
+    bytes[2] = 0x4c;
+    bytes[3] = 0x46;
+    Buffer.from("AppImage runtime", "ascii").copy(bytes, 128); // non-canonical location
+    fs.writeFileSync(appimage, bytes);
+    const capture = captureTreeV0(appimage, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: appimage, capture });
+    assert(!res.ok, "package adapter should fail closed when only loose AppImage text marker is present");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for loose AppImage text marker");
+  }
+
+  {
+    const tmp = mkTmp();
     const appimage = path.join(tmp, "sample.appimage");
     const bytes = Buffer.alloc(4096, 0);
     bytes[0] = 0x7f;
     bytes[1] = 0x45;
     bytes[2] = 0x4c;
     bytes[3] = 0x46;
+    bytes[8] = 0x41; // A
+    bytes[9] = 0x49; // I
+    bytes[10] = 0x02; // AppImage type 2
     Buffer.from("AppImage runtime", "ascii").copy(bytes, 128);
     fs.writeFileSync(appimage, bytes);
     const capture = captureTreeV0(appimage, limits);
@@ -833,6 +852,7 @@ const run = (): void => {
     assertEq(res.summary?.sourceClass, "package", "appimage package class mismatch");
     assertEq(res.summary?.counts.appImageElfPresent, 1, "appimage elf marker missing");
     assertEq(res.summary?.counts.appImageMarkerPresent, 1, "appimage runtime marker missing");
+    assertEq(res.summary?.counts.appImageType, 2, "appimage runtime type mismatch");
     assert((res.summary?.reasonCodes ?? []).includes("EXECUTION_WITHHELD_INSTALLER"), "appimage installer withheld reason missing");
   }
 
@@ -1101,12 +1121,14 @@ const run = (): void => {
     const bytes = Buffer.alloc(16 * 2048 + 64, 0);
     bytes[16 * 2048] = 1; // primary volume descriptor
     Buffer.from("CD001", "ascii").copy(bytes, 16 * 2048 + 1);
+    bytes[16 * 2048 + 6] = 1; // descriptor version
     fs.writeFileSync(iso, bytes);
     const capture = captureTreeV0(iso, limits);
     const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: iso, capture });
     assert(res.ok, "image adapter should parse iso pvd");
     assertEq(res.summary?.sourceClass, "image", "iso image class mismatch");
     assertEq(res.summary?.counts.isoPvdPresent, 1, "iso pvd should be detected");
+    assertEq(res.summary?.counts.isoPvdVersionPresent, 1, "iso pvd version should be detected");
     assert((res.summary?.counts.headerMatchCount ?? 0) > 0, "iso header match count missing");
   }
 
@@ -1125,6 +1147,23 @@ const run = (): void => {
     assert(res.ok, "image adapter should parse qcow2 header");
     assertEq(res.summary?.counts.qcowMagicPresent, 1, "qcow2 magic should be detected");
     assertEq(res.summary?.counts.qcowVersion, 3, "qcow2 version mismatch");
+    assertEq(res.summary?.counts.qcowVersionSupported, 1, "qcow2 version support flag mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
+    const qcow = path.join(tmp, "bad_version.qcow2");
+    const bytes = Buffer.alloc(32, 0);
+    bytes[0] = 0x51; // Q
+    bytes[1] = 0x46; // F
+    bytes[2] = 0x49; // I
+    bytes[3] = 0xfb;
+    bytes.writeUInt32BE(1, 4); // unsupported qcow2 version
+    fs.writeFileSync(qcow, bytes);
+    const capture = captureTreeV0(qcow, limits);
+    const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: qcow, capture });
+    assert(!res.ok, "image adapter should fail closed for unsupported qcow2 version");
+    assertEq(res.failCode, "IMAGE_FORMAT_MISMATCH", "expected IMAGE_FORMAT_MISMATCH for unsupported qcow2 version");
   }
 
   {
@@ -1137,6 +1176,37 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: vhdx, capture });
     assert(res.ok, "image adapter should parse vhdx signature");
     assertEq(res.summary?.counts.vhdxSignaturePresent, 1, "vhdx signature should be detected");
+  }
+
+  {
+    const tmp = mkTmp();
+    const vmdk = path.join(tmp, "sample.vmdk");
+    fs.writeFileSync(
+      vmdk,
+      [
+        "# Disk DescriptorFile",
+        "version=1",
+        "CID=fffffffe",
+        "parentCID=ffffffff",
+        "createType=\"monolithicSparse\"",
+        "RW 204800 SPARSE \"disk-s001.vmdk\"",
+      ].join("\n"),
+      "utf8"
+    );
+    const capture = captureTreeV0(vmdk, limits);
+    const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: vmdk, capture });
+    assert(res.ok, "image adapter should parse structural vmdk descriptor evidence");
+    assertEq(res.summary?.counts.vmdkDescriptorStructuralPresent, 1, "vmdk structural descriptor flag should be detected");
+  }
+
+  {
+    const tmp = mkTmp();
+    const vmdk = path.join(tmp, "weak_hints.vmdk");
+    fs.writeFileSync(vmdk, "createType=\"monolithicSparse\"\n", "utf8");
+    const capture = captureTreeV0(vmdk, limits);
+    const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: vmdk, capture });
+    assert(!res.ok, "image adapter should fail closed for weak vmdk descriptor hints");
+    assertEq(res.failCode, "IMAGE_FORMAT_MISMATCH", "expected IMAGE_FORMAT_MISMATCH for weak vmdk descriptor hints");
   }
 
   {
