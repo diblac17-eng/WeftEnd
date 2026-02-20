@@ -225,6 +225,17 @@ const run = async (): Promise<void> => {
   }
 
   {
+    const res = await runCliCapture(["adapter", "doctor", "--strict"], {
+      env: { WEFTEND_ADAPTER_DISABLE: "all", WEFTEND_ADAPTER_DISABLE_FILE: undefined },
+    });
+    assertEq(res.status, 0, "adapter doctor --strict should pass when adapters are intentionally disabled");
+    const parsed = JSON.parse(res.stdout);
+    assertEq(parsed.strict?.status, "PASS", "strict JSON status should be PASS");
+    const reasonCodes = Array.isArray(parsed.strict?.reasonCodes) ? parsed.strict.reasonCodes : [];
+    assertEq(reasonCodes.length, 0, "strict PASS should have empty reason codes");
+  }
+
+  {
     const tmp = mkTmp();
     const outPolicy = path.join(tmp, "generated_policy.json");
     const stagePath = `${outPolicy}.stage`;
@@ -285,6 +296,10 @@ const run = async (): Promise<void> => {
       env: { WEFTEND_ADAPTER_DISABLE: "all,invalid_lane" },
     });
     assertEq(res.status, 40, "adapter doctor --strict should fail closed on unknown policy tokens");
+    const parsed = JSON.parse(res.stdout);
+    assertEq(parsed.strict?.status, "FAIL", "strict JSON status should be FAIL");
+    const reasonCodes = Array.isArray(parsed.strict?.reasonCodes) ? parsed.strict.reasonCodes : [];
+    assert(reasonCodes.includes("ADAPTER_DOCTOR_STRICT_POLICY_UNKNOWN_TOKEN"), "strict JSON reason codes should include unknown-token code");
     assert(
       res.stderr.includes("ADAPTER_DOCTOR_STRICT_POLICY_UNKNOWN_TOKEN"),
       "strict doctor should report ADAPTER_DOCTOR_STRICT_POLICY_UNKNOWN_TOKEN"

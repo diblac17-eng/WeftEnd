@@ -109,6 +109,17 @@ export const runAdapterCli = (args: string[]): number => {
     return 1;
   }
   const report = command === "doctor" ? runAdapterDoctorV1() : listAdaptersV1();
+  const strictReasons = command === "doctor" && strictMode ? collectStrictReasonCodes(report) : [];
+  const reportOut =
+    command === "doctor" && strictMode
+      ? {
+          ...(report as any),
+          strict: {
+            status: strictReasons.length > 0 ? "FAIL" : "PASS",
+            reasonCodes: strictReasons,
+          },
+        }
+      : report;
   if (command === "doctor" && writePolicyPath.length > 0) {
     const disabled = new Set<string>();
     const knownDisabled = Array.isArray((report as any).policy?.disabledAdapters) ? (report as any).policy.disabledAdapters : [];
@@ -140,7 +151,6 @@ export const runAdapterCli = (args: string[]): number => {
     const unknownTokens = Array.isArray((report as any).policy?.unknownTokens) ? (report as any).policy.unknownTokens : [];
     const disabled = Array.isArray((report as any).policy?.disabledAdapters) ? (report as any).policy.disabledAdapters : [];
     const invalidReason = String((report as any).policy?.invalidReasonCode || "");
-    const strictReasons = strictMode ? collectStrictReasonCodes(report) : [];
     lines.push("WEFTEND ADAPTER DOCTOR");
     lines.push(`policy.source=${String((report as any).policy?.source || "none")}`);
     lines.push(`policy.disabled=${disabled.length > 0 ? disabled.join(",") : "-"}`);
@@ -180,9 +190,8 @@ export const runAdapterCli = (args: string[]): number => {
     }
     return 0;
   }
-  process.stdout.write(`${canonicalJSON(report)}\n`);
+  process.stdout.write(`${canonicalJSON(reportOut)}\n`);
   if (command === "doctor" && strictMode) {
-    const strictReasons = collectStrictReasonCodes(report);
     if (strictReasons.length > 0) {
       process.stderr.write(`[${strictReasons.join(",")}] strict adapter doctor checks failed.\n`);
       return 40;
