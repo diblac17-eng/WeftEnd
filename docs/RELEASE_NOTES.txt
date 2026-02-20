@@ -69,11 +69,13 @@ Included
 - OCI layout counts now include manifest and blob counts.
 - Container tarball detection now recognizes Docker-style markers (`manifest.json` + `repositories`) and OCI tar markers (`oci-layout` + `index.json` + `blobs/sha256/*`) for local tar inputs.
 - Explicit OCI layout route now fails closed when manifests exist but blob evidence is missing (`CONTAINER_LAYOUT_INVALID`), preventing partial container identity acceptance.
+- Explicit OCI layout route now requires manifest digest references to resolve to blob entries, preventing unrelated blob padding from satisfying strict OCI layout evidence.
 - Explicit container route now fails closed when OCI index manifests shape is invalid and when container tar metadata is partial, preventing mixed valid/corrupt container acceptance.
 - Explicit Docker-style tar route now requires at least one `layer.tar` entry when `manifest.json` and `repositories` markers are present, preventing placeholder tar marker shells from passing strict container routing.
 - Explicit Docker-style tar route now also requires valid `manifest.json` and `repositories` JSON payload structure, and requires manifest layer references to resolve to tar entries.
 - Explicit Docker-style tar route now requires at least one repository/tag mapping in `repositories` JSON, preventing non-empty but non-usable repository shells from passing strict routing.
 - Explicit Docker-style tar route now requires manifest config references to resolve to tar entries, preventing marker-complete but incomplete config payload shells from passing strict routing.
+- Explicit OCI tar strict route now requires manifest digest references to resolve to blob entries, preventing unrelated blob padding from satisfying strict OCI tar evidence.
 - Explicit compose route now fails closed when service placeholders exist without valid indented service entries or without `image`/`build` evidence, while still allowing build-only compose service definitions.
 - Explicit compose route now requires `image`/`build` evidence to be inside a service block, preventing out-of-service image placeholders from passing strict compose routing.
 - Explicit SBOM route now fails closed when package/component evidence is empty, preventing empty SBOM shells from passing strict container SBOM analysis.

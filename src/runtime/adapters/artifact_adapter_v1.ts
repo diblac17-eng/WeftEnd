@@ -2448,8 +2448,13 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let composeBuildHintCount = 0;
   let composeServicesBlockCount = 0;
   let sbomPackageCount = 0;
+  let ociManifestDigestRefCount = 0;
+  let ociManifestDigestResolvedCount = 0;
 
   if (isOciLayout) {
+    const capturePathSet = new Set<string>(
+      ctx.capture.entries.map((entry) => String(entry.path || "").replace(/\\/g, "/").toLowerCase())
+    );
     const layout = readJsonBounded(path.join(ctx.inputPath, "oci-layout"));
     const layoutOk = layout && typeof layout === "object" && typeof (layout as any).imageLayoutVersion === "string";
     if (!layoutOk) {
@@ -2464,9 +2469,11 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       markers.push("CONTAINER_LAYOUT_PARTIAL");
     }
     const index = readJsonBounded(path.join(ctx.inputPath, "index.json"));
+    let indexManifests: unknown[] = [];
     if (index && typeof index === "object") {
       if (Array.isArray((index as any).manifests)) {
-        ociManifestCount = (index as any).manifests.length;
+        indexManifests = (index as any).manifests;
+        ociManifestCount = indexManifests.length;
         if (strictRoute && ociManifestCount === 0) {
           return {
             ok: false,
@@ -2501,11 +2508,28 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       .map((entry) => String(entry.path || "").replace(/\\/g, "/").toLowerCase())
       .filter((name) => name.startsWith("blobs/sha256/"))
       .length;
+    indexManifests.forEach((manifest) => {
+      if (!manifest || typeof manifest !== "object") return;
+      const digestRaw = typeof (manifest as any).digest === "string" ? String((manifest as any).digest || "") : "";
+      const digestMatch = /^sha256:([a-f0-9]{6,128})$/i.exec(digestRaw.trim());
+      if (!digestMatch) return;
+      const digestHex = digestMatch[1].toLowerCase();
+      ociManifestDigestRefCount += 1;
+      if (capturePathSet.has(`blobs/sha256/${digestHex}`)) ociManifestDigestResolvedCount += 1;
+    });
     if (strictRoute && ociManifestCount > 0 && ociBlobCount === 0) {
       return {
         ok: false,
         failCode: "CONTAINER_LAYOUT_INVALID",
         failMessage: "container adapter requires OCI blob evidence for explicit OCI layout analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_LAYOUT_INVALID"]),
+      };
+    }
+    if (strictRoute && ociManifestDigestRefCount > 0 && ociManifestDigestResolvedCount < ociManifestDigestRefCount) {
+      return {
+        ok: false,
+        failCode: "CONTAINER_LAYOUT_INVALID",
+        failMessage: "container adapter requires OCI manifest digest references to resolve to blob entries for explicit OCI layout analysis.",
         reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_LAYOUT_INVALID"]),
       };
     }
@@ -2515,6 +2539,39 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     markers.push(...tarEntries.markers);
     const tarNames = tarEntries.entries.map((name) => String(name || "").replace(/\\/g, "/").toLowerCase());
     const tarNameSet = new Set<string>(tarNames);
+    if (isOciTarByEntries) {
+      const ociTexts = readTarTextEntriesByBaseName(ctx.inputPath, ["index.json"]);
+      markers.push(...ociTexts.markers);
+      const ociIndexEntry = ociTexts.entries.find((entry) => path.basename(entry.name).toLowerCase() === "index.json");
+      if (ociIndexEntry) {
+        try {
+          const parsed = JSON.parse(String(ociIndexEntry.text || ""));
+          if (parsed && typeof parsed === "object" && Array.isArray((parsed as any).manifests)) {
+            const manifests = (parsed as any).manifests as unknown[];
+            ociManifestCount = manifests.length;
+            manifests.forEach((manifest) => {
+              if (!manifest || typeof manifest !== "object") return;
+              const digestRaw = typeof (manifest as any).digest === "string" ? String((manifest as any).digest || "") : "";
+              const digestMatch = /^sha256:([a-f0-9]{6,128})$/i.exec(digestRaw.trim());
+              if (!digestMatch) return;
+              const digestHex = digestMatch[1].toLowerCase();
+              ociManifestDigestRefCount += 1;
+              if (tarNameSet.has(`blobs/sha256/${digestHex}`)) ociManifestDigestResolvedCount += 1;
+            });
+          }
+        } catch {
+          // strict route handles invalid/partial OCI tar payload below
+        }
+      }
+      if (strictRoute && ociManifestDigestRefCount > 0 && ociManifestDigestResolvedCount < ociManifestDigestRefCount) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected OCI manifest digest references to resolve to tar blob entries for explicit OCI tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
+    }
     dockerManifestMarkerPresent = tarNames.some((name) => path.basename(name) === "manifest.json") ? 1 : 0;
     dockerRepositoriesMarkerPresent = tarNames.some((name) => path.basename(name) === "repositories") ? 1 : 0;
     dockerLayerEntryCount = tarNames.filter((name) => name === "layer.tar" || name.endsWith("/layer.tar")).length;
@@ -2715,6 +2772,8 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       composeHintPresent: isCompose ? 1 : 0,
       ociManifestCount,
       ociBlobCount,
+      ociManifestDigestRefCount,
+      ociManifestDigestResolvedCount,
       tarEntryCount,
       dockerLayerEntryCount,
       dockerManifestMarkerPresent,
