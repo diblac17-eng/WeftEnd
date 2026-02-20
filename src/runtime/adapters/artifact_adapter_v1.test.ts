@@ -1492,6 +1492,34 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const wrongRelDocm = path.join(tmp, "wrong_rel.docm");
+    writeStoredZip(wrongRelDocm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "xl/_rels/workbook.xml.rels", text: "<Relationships></Relationships>" },
+      { name: "word/document.xml", text: "<w:document/>" },
+    ]);
+    const capture = captureTreeV0(wrongRelDocm, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: wrongRelDocm, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit docm with xlsm-only relationship marker");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for docm with mismatched relationship marker");
+  }
+
+  {
+    const tmp = mkTmp();
+    const wrongRelXlsm = path.join(tmp, "wrong_rel.xlsm");
+    writeStoredZip(wrongRelXlsm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "word/_rels/document.xml.rels", text: "<Relationships></Relationships>" },
+      { name: "xl/workbook.xml", text: "<workbook/>" },
+    ]);
+    const capture = captureTreeV0(wrongRelXlsm, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: wrongRelXlsm, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit xlsm with docm-only relationship marker");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for xlsm with mismatched relationship marker");
+  }
+
+  {
+    const tmp = mkTmp();
     const duplicateContentTypesDocm = path.join(tmp, "duplicate_content_types.docm");
     writeStoredZip(duplicateContentTypesDocm, [
       { name: "[Content_Types].xml", text: "<Types></Types>" },

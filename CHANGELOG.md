@@ -17,6 +17,8 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - PDF strict route now requires object-syntax evidence and `startxref` marker evidence.
 - OOXML strict route now requires primary-part evidence (`word/document.xml` for `.docm`, `xl/workbook.xml` for `.xlsm`).
 - Added regression coverage for strict missing-primary-part `.xlsm` and `.docm` scenarios.
+- OOXML strict route now enforces unique required-marker cardinality (`[Content_Types].xml` and primary-part path must each appear exactly once).
+- OOXML strict route now requires type-specific relationship evidence (`word/_rels/document.xml.rels` for `.docm`, `xl/_rels/workbook.xml.rels` for `.xlsm`, or root `_rels/.rels`).
 
 ### Extension strict-route hardening
 - Extension strict route now requires canonical root `manifest.json` for packaged extensions.

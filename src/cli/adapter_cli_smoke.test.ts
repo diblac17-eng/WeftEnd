@@ -746,6 +746,34 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const wrongRelDocm = path.join(tmp, "wrong_rel.docm");
+    writeStoredZip(wrongRelDocm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "xl/_rels/workbook.xml.rels", text: "<Relationships></Relationships>" },
+      { name: "word/document.xml", text: "<w:document/>" },
+    ]);
+    const res = await runCliCapture(["safe-run", wrongRelDocm, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit docm with xlsm-only relationship marker");
+    assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr for docm with mismatched relationship marker");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const wrongRelXlsm = path.join(tmp, "wrong_rel.xlsm");
+    writeStoredZip(wrongRelXlsm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "word/_rels/document.xml.rels", text: "<Relationships></Relationships>" },
+      { name: "xl/workbook.xml", text: "<workbook/>" },
+    ]);
+    const res = await runCliCapture(["safe-run", wrongRelXlsm, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit xlsm with docm-only relationship marker");
+    assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr for xlsm with mismatched relationship marker");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const duplicateContentTypesDocm = path.join(tmp, "duplicate_content_types.docm");
     writeStoredZip(duplicateContentTypesDocm, [
       { name: "[Content_Types].xml", text: "<Types></Types>" },

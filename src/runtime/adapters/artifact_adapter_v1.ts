@@ -2479,10 +2479,12 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
     const namesLower = zip.entries.map((name) => String(name || "").toLowerCase());
     const contentTypesCount = namesLower.filter((name) => name === "[content_types].xml").length;
     const hasContentTypes = contentTypesCount > 0;
-    const hasRelationshipPart =
-      namesLower.includes("_rels/.rels") ||
-      namesLower.includes("word/_rels/document.xml.rels") ||
-      namesLower.includes("xl/_rels/workbook.xml.rels");
+    const hasRootRelationships = namesLower.includes("_rels/.rels");
+    const hasTypeSpecificRelationships =
+      ctx.ext === ".docm"
+        ? namesLower.includes("word/_rels/document.xml.rels")
+        : namesLower.includes("xl/_rels/workbook.xml.rels");
+    const hasRelationshipPart = hasRootRelationships || hasTypeSpecificRelationships;
     const primaryPartCount =
       ctx.ext === ".docm"
         ? namesLower.filter((name) => name === "word/document.xml").length
