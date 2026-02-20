@@ -3472,13 +3472,32 @@ const analyzeScm = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
       reasonCodes: stableSortUniqueReasonsV0(["SCM_ADAPTER_V1", "SCM_UNSUPPORTED_FORMAT"]),
     };
   }
+  const workingTreePaths = ctx.capture.entries
+    .map((entry) => String(entry.path || "").replace(/\\/g, "/"))
+    .filter((p) => p.length > 0 && !p.startsWith(".git/"));
+  if (strictRoute) {
+    const uniquePaths = stableSortUniqueStringsV0(workingTreePaths);
+    if (uniquePaths.length < workingTreePaths.length) {
+      return {
+        ok: false,
+        failCode: "SCM_REF_UNRESOLVED",
+        failMessage: "scm adapter expected non-ambiguous worktree entry paths for explicit scm analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["SCM_ADAPTER_V1", "SCM_REF_UNRESOLVED"]),
+      };
+    }
+    const uniqueCaseFoldedPaths = stableSortUniqueStringsV0(uniquePaths.map((name) => name.toLowerCase()));
+    if (uniqueCaseFoldedPaths.length < uniquePaths.length) {
+      return {
+        ok: false,
+        failCode: "SCM_REF_UNRESOLVED",
+        failMessage: "scm adapter expected case-unambiguous worktree entry paths for explicit scm analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["SCM_ADAPTER_V1", "SCM_REF_UNRESOLVED"]),
+      };
+    }
+  }
   const rev = runCommandLines("git", ["-C", ctx.inputPath, "rev-parse", "HEAD"]);
   const markers: string[] = [];
-  const countWorkingTreeEntries = () =>
-    ctx.capture.entries
-      .map((entry) => String(entry.path || "").replace(/\\/g, "/"))
-      .filter((p) => p.length > 0 && !p.startsWith(".git/"))
-      .length;
+  const countWorkingTreeEntries = () => workingTreePaths.length;
   if (!rev.ok || rev.lines.length === 0) {
     const fallback = readNativeScmFallbackV1(ctx.inputPath);
     if (strictRoute && fallback.commitResolved === 0 && fallback.branchRefCount === 0 && fallback.tagRefCount === 0) {

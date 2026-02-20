@@ -123,6 +123,7 @@ Included
 - SCM fallback hardening:
 - When `git` commands are unavailable/failing, adapter now parses native `.git` reference material (`HEAD`, loose refs, packed-refs) deterministically for source evidence.
 - SCM strict route now fails closed on partial git/native-ref/status metadata, preventing partial SCM evidence from being treated as complete explicit SCM analysis.
+- SCM strict route now requires non-ambiguous worktree entry-path sets, preventing duplicate or case-colliding worktree paths from passing explicit SCM analysis.
 - Image adapter extraction deepened:
 - Deterministic header evidence now includes ISO PVD, VHD footer, VHDX signature, QCOW2 magic/version, and VMDK descriptor/sparse-magic hints.
 - Explicit ISO route now requires both primary volume descriptor and descriptor-set terminator evidence, preventing PVD-only placeholders from passing strict image routing.

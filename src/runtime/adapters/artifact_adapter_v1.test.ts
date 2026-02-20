@@ -3033,6 +3033,27 @@ const run = (): void => {
     assert(!res.ok, "scm adapter should fail closed for partial native .git fallback refs in explicit mode");
     assertEq(res.failCode, "SCM_REF_UNRESOLVED", "expected SCM_REF_UNRESOLVED for partial native refs");
   }
+
+  {
+    const tmp = mkTmp();
+    const repo = path.join(tmp, "pseudo_repo_case_collision");
+    const gitData = path.join(repo, ".gitdata");
+    fs.mkdirSync(path.join(gitData, "refs", "heads"), { recursive: true });
+    fs.mkdirSync(repo, { recursive: true });
+    fs.writeFileSync(path.join(repo, ".git"), "gitdir: .gitdata\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "HEAD"), "ref: refs/heads/main\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "refs", "heads", "main"), "0123456789abcdef0123456789abcdef01234567\n", "utf8");
+    fs.writeFileSync(path.join(repo, "a.txt"), "hello", "utf8");
+
+    const capture = captureTreeV0(repo, limits) as any;
+    capture.entries = capture.entries.concat([
+      { path: "src/Alpha.txt", kind: "file", bytes: 1, digest: "sha256:a" },
+      { path: "src/alpha.txt", kind: "file", bytes: 1, digest: "sha256:b" },
+    ]);
+    const res = runArtifactAdapterV1({ selection: "scm", enabledPlugins: [], inputPath: repo, capture });
+    assert(!res.ok, "scm adapter should fail closed for explicit scm with case-colliding worktree entry paths");
+    assertEq(res.failCode, "SCM_REF_UNRESOLVED", "expected SCM_REF_UNRESOLVED for case-colliding scm worktree entry paths");
+  }
 };
 
 try {

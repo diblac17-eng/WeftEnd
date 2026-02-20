@@ -14,6 +14,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Container strict classification now uses tar entry evidence only and no longer accepts tar filename hints.
 - Container strict SBOM routes now require meaningful identity evidence (`name`, `purl`, `SPDXID`, or `bom-ref`).
 - Compose strict routing now requires in-service `image` or `build` evidence (out-of-service hints do not satisfy strict checks).
+- SCM strict routing now requires non-ambiguous worktree entry-path sets (duplicate or case-colliding paths fail strict routing).
 
 ### Document strict-route hardening
 - PDF strict route now requires object-syntax evidence and `startxref` marker evidence.
