@@ -1052,6 +1052,30 @@ const hasAnyPath = (capture: CaptureTreeV0, patterns: string[]): boolean => {
   return patterns.some((pattern) => normalized.some((name) => name.includes(pattern)));
 };
 
+const capturePathsLowerV1 = (capture: CaptureTreeV0): string[] =>
+  capture.entries.map((entry) => String(entry.path || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase());
+
+const isComposeBaseNameV1 = (baseLower: string): boolean =>
+  baseLower === "docker-compose.yml" ||
+  baseLower === "docker-compose.yaml" ||
+  baseLower === "compose.yml" ||
+  baseLower === "compose.yaml";
+
+const hasComposePathHintV1 = (capture: CaptureTreeV0): boolean =>
+  capturePathsLowerV1(capture).some((relPath) => isComposeBaseNameV1(relPath.split("/").pop() || ""));
+
+const isCicdBaseNameV1 = (baseLower: string): boolean =>
+  baseLower === ".gitlab-ci.yml" ||
+  baseLower === ".gitlab-ci.yaml" ||
+  /^azure-pipelines(?:[._-][^/]+)?\.ya?ml$/.test(baseLower);
+
+const hasCicdPathHintV1 = (capture: CaptureTreeV0): boolean =>
+  capturePathsLowerV1(capture).some((relPath) => {
+    const base = relPath.split("/").pop() || "";
+    if (isCicdBaseNameV1(base)) return true;
+    return /(^|\/)\.github\/workflows\/[^/]+\.(?:yml|yaml)$/.test(relPath);
+  });
+
 const collectTextFiles = (inputPath: string, capture: CaptureTreeV0, exts: Set<string>): string[] => {
   if (capture.kind !== "dir") return [];
   const out: string[] = [];
@@ -2380,9 +2404,7 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd", strictRou
   }
   const textExts = new Set([".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep", ".template"]);
   const files = collectTextFiles(ctx.inputPath, ctx.capture, textExts);
-  const inputLooksIac =
-    IAC_EXTS.has(ctx.ext) ||
-    hasAnyPath(ctx.capture, [".github/workflows/", ".gitlab-ci", "azure-pipelines", "docker-compose", "compose.yaml"]);
+  const inputLooksIac = IAC_EXTS.has(ctx.ext) || hasCicdPathHintV1(ctx.capture) || hasComposePathHintV1(ctx.capture);
   if (!inputLooksIac && files.length === 0) {
     return {
       ok: false,
@@ -2797,12 +2819,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   const isTarInput = ctx.ext === ".tar";
   const isOciLayout =
     isDirectory(ctx.inputPath) && fs.existsSync(path.join(ctx.inputPath, "oci-layout")) && fs.existsSync(path.join(ctx.inputPath, "index.json"));
-  const isCompose =
-    lower === "docker-compose.yml" ||
-    lower === "docker-compose.yaml" ||
-    lower === "compose.yml" ||
-    lower === "compose.yaml" ||
-    hasAnyPath(ctx.capture, ["docker-compose.yml", "docker-compose.yaml", "compose.yaml", "compose.yml"]);
+  const isCompose = isComposeBaseNameV1(lower) || hasComposePathHintV1(ctx.capture);
   const isSbom = /sbom|spdx|cyclonedx|bom/i.test(lower);
   if (strictRoute && ctx.capture.kind !== "file") {
     const entryPaths = ctx.capture.entries
@@ -3803,11 +3820,7 @@ const analyzeSignature = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
 const autoSelectClass = (ctx: AnalyzeCtx): AdapterClassV1 | null => {
   const ext = ctx.ext;
   const base = path.basename(ctx.inputPath).toLowerCase();
-  const hasCicdPathHint =
-    base === ".gitlab-ci.yml" ||
-    base === ".gitlab-ci.yaml" ||
-    base.startsWith("azure-pipelines") ||
-    hasAnyPath(ctx.capture, [".github/workflows/", ".gitlab-ci", "azure-pipelines"]);
+  const hasCicdPathHint = isCicdBaseNameV1(base) || hasCicdPathHintV1(ctx.capture);
   if (EXTENSION_EXTS.has(ext) || (isDirectory(ctx.inputPath) && fs.existsSync(path.join(ctx.inputPath, "manifest.json")))) return "extension";
   if (PACKAGE_EXTS.has(ext)) return "package";
   if (ARCHIVE_EXTS.has(ext)) return "archive";
@@ -3816,7 +3829,7 @@ const autoSelectClass = (ctx: AnalyzeCtx): AdapterClassV1 | null => {
   if (DOCUMENT_EXTS.has(ext)) return "document";
   if (SIGNATURE_EXTS.has(ext)) return "signature";
   if (isDirectory(ctx.inputPath) && fs.existsSync(path.join(ctx.inputPath, ".git"))) return "scm";
-  if (/sbom|spdx|cyclonedx|bom/.test(base) || hasAnyPath(ctx.capture, ["oci-layout", "docker-compose", "compose.yaml"])) return "container";
+  if (/sbom|spdx|cyclonedx|bom/.test(base) || hasAnyPath(ctx.capture, ["oci-layout"]) || hasComposePathHintV1(ctx.capture)) return "container";
   if (IMAGE_EXTS.has(ext)) return "image";
   return null;
 };

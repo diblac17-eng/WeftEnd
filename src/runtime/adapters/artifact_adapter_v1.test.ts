@@ -667,6 +667,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const backup = path.join(tmp, "notes.gitlab-ci.backup");
+    fs.writeFileSync(backup, "title: backup marker only\n", "utf8");
+    const capture = captureTreeV0(tmp, limits);
+    const res = runArtifactAdapterV1({ selection: "auto", enabledPlugins: [], inputPath: tmp, capture });
+    assert(res.ok, "adapter auto should not fail on non-canonical gitlab-ci backup filename");
+    assertEq(res.adapter, undefined, "adapter auto should not force cicd selection for backup-like filename");
+  }
+
+  {
+    const tmp = mkTmp();
     const wfDir = path.join(tmp, ".github", "workflows");
     fs.mkdirSync(wfDir, { recursive: true });
     fs.writeFileSync(path.join(wfDir, "build.yml"), "name: ci\non: [push]\n", "utf8");

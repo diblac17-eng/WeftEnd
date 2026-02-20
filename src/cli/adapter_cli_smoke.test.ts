@@ -485,6 +485,17 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const input = path.join(tmp, "notes.gitlab-ci.backup");
+    fs.writeFileSync(input, "title: backup marker only\n", "utf8");
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "auto"]);
+    assertEq(res.status, 0, `safe-run adapter auto should not force cicd on backup-like gitlab-ci filename\n${res.stderr}`);
+    const safe = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
+    assertEq((safe as any).adapter, undefined, "expected no adapter metadata for backup-like gitlab-ci filename");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const input = path.join(tmp, ".gitlab-ci.yaml");
     fs.writeFileSync(
       input,

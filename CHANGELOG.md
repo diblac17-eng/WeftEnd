@@ -16,6 +16,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - CI/CD adapter discovery/path coverage now explicitly includes `.gitlab-ci.yaml` and `azure-pipelines*.yaml` in addition to existing `.yml` patterns.
 - IaC adapter discovery now explicitly includes `.template` to match implemented route support.
 - Added explicit adapter/runtime and CLI regression coverage for `.gitlab-ci.yaml` success and `azure-pipelines.yaml` path-hint-only fail-closed behavior.
+- Auto adapter CI/CD path hint matching is now canonical-name based to avoid backup/substring false positives forcing CICD route failures.
 - Container strict OCI routes now require digest refs on every manifest entry and require digest refs to resolve to local blob entries.
 - Container strict tar routes now require canonical root markers and unique root marker entries for Docker/OCI marker files.
 - Container strict Docker tar routes now require complete manifest entries (config plus layers) and full reference resolution.

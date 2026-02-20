@@ -92,6 +92,7 @@ Included
 - CI/CD path hints and adapter discovery now explicitly include `.gitlab-ci.yaml` and `azure-pipelines*.yaml` alongside existing `.yml` patterns.
 - IaC adapter discovery now explicitly includes `.template` to match implemented adapter routing coverage.
 - Added explicit regression coverage for `.gitlab-ci.yaml` success and `azure-pipelines.yaml` path-hint-only fail-closed behavior in adapter/runtime and CLI smoke suites.
+- Auto adapter CI/CD path hint matching is now canonical-name based (`.github/workflows/*.yml|*.yaml`, `.gitlab-ci.yml|.yaml`, `azure-pipelines*.yml|*.yaml`) to avoid backup/substring false positives forcing CICD route failures.
 - Explicit `cicd` route now requires CI structure/signals (not filename/path hints alone), failing closed on path-hint-only placeholders.
 - Adapter `auto` classification now treats CI structure/action references as CI evidence, so valid pinned workflows classify as `cicd` instead of falling back to `iac`.
 - Explicit `iac` route now requires IaC structural signals; CI-style workflow content with generic secret terms no longer passes strict IaC routing.
