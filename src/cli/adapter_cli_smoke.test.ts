@@ -1727,6 +1727,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const hintedTar = path.join(tmp, "manifest.json_only.tar");
+    writeSimpleTar(hintedTar, [{ name: "notes.txt", text: "not a container tar" }]);
+    const res = await runCliCapture(["safe-run", hintedTar, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for docker-marker tar filename hints without marker entries");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for docker-marker tar filename hint");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const noLayerTar = path.join(tmp, "container_no_layer.tar");
     writeSimpleTar(noLayerTar, [
       { name: "manifest.json", text: JSON.stringify([{ Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] }]) },

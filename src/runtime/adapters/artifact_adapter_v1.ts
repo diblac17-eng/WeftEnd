@@ -2471,7 +2471,6 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     lower === "compose.yaml" ||
     hasAnyPath(ctx.capture, ["docker-compose.yml", "docker-compose.yaml", "compose.yaml", "compose.yml"]);
   const isSbom = /sbom|spdx|cyclonedx|bom/i.test(lower);
-  const isContainerTarByHint = isTarInput && hasAnyPath(ctx.capture, ["manifest.json", "repositories"]);
   const tarEntries = isTarInput ? readTarEntries(ctx.inputPath) : { entries: [] as string[], markers: [] as string[] };
   const tarEntryNames = tarEntries.entries.map((name) => String(name || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase());
   const isContainerTarByEntries =
@@ -2483,7 +2482,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     tarEntryNames.includes("oci-layout") &&
     tarEntryNames.includes("index.json") &&
     tarEntryNames.some((name) => name.startsWith("blobs/sha256/"));
-  const isContainerTar = isContainerTarByHint || isContainerTarByEntries || isOciTarByEntries;
+  const isContainerTar = isContainerTarByEntries || isOciTarByEntries;
   if (strictRoute && isTarInput && !isContainerTar) {
     return {
       ok: false,

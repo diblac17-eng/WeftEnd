@@ -1965,6 +1965,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tarPath = path.join(tmp, "manifest.json_only.tar");
+    writeSimpleTar(tarPath, [{ name: "notes.txt", text: "not a container tar" }]);
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for tar filenames that only hint docker markers");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for docker-marker filename hint without tar marker entries");
+  }
+
+  {
+    const tmp = mkTmp();
     const badComposePath = path.join(tmp, "compose.yaml");
     fs.writeFileSync(badComposePath, "not compose syntax", "utf8");
     const capture = captureTreeV0(badComposePath, limits);
