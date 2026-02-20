@@ -14,6 +14,7 @@ Included
 - Expected receipt artifacts are verified for presence and digest consistency.
 - Pre-existing/stale unmanaged output files anywhere under the run out-root are flagged as orphan evidence.
 - Analysis still completes; warnings are recorded deterministically in `operator_receipt.json` (`SAFE_RUN_EVIDENCE_*` codes).
+- Added explicit smoke-test coverage for root-level stale output detection under the same non-blocking evidence-corridor behavior.
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)
