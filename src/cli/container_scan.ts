@@ -64,26 +64,21 @@ const parseArgs = (argv: string[]): { rest: string[]; flags: ContainerFlags } =>
   return { rest, flags };
 };
 
-const readPolicy = (policyPath: string): { ok: true; policy: WeftEndPolicyV1; policyId: string } | { ok: false; code: number } => {
+const readPolicy = (
+  policyPath: string
+): { ok: true; policy: WeftEndPolicyV1; policyId: string } | { ok: false; code: number; reasonCode: string; message: string } => {
   if (!fs.existsSync(policyPath)) {
-    console.error("[POLICY_MISSING] policy file not found.");
-    return { ok: false, code: 40 };
+    return { ok: false, code: 40, reasonCode: "POLICY_MISSING", message: "policy file not found." };
   }
   let policyRaw: unknown;
   try {
     policyRaw = JSON.parse(fs.readFileSync(policyPath, "utf8"));
   } catch {
-    console.error("[POLICY_INVALID] policy must be valid JSON.");
-    return { ok: false, code: 40 };
+    return { ok: false, code: 40, reasonCode: "POLICY_INVALID", message: "policy must be valid JSON." };
   }
   const issues = validateWeftEndPolicyV1(policyRaw, "policy");
   if (issues.length > 0) {
-    console.error("[POLICY_INVALID]");
-    issues.forEach((issue) => {
-      const loc = issue.path ? ` (${issue.path})` : "";
-      console.error(`${issue.code}: ${issue.message}${loc}`);
-    });
-    return { ok: false, code: 40 };
+    return { ok: false, code: 40, reasonCode: "POLICY_INVALID", message: "policy validation failed." };
   }
   const policy = canonicalizeWeftEndPolicyV1(policyRaw as any);
   const policyId = computeWeftEndPolicyIdV1(policy);
@@ -104,6 +99,121 @@ const digestText = (value: string): string => computeArtifactDigestV0(value ?? "
 const summarizeContainerScan = (receipt: SafeRunReceiptV0, privacyVerdict: "PASS" | "FAIL", inputRef: string): string => {
   const reason = receipt.topReasonCode && receipt.topReasonCode.length > 0 ? receipt.topReasonCode : "-";
   return `CONTAINER_SCAN ${receipt.analysisVerdict} inputRef=${inputRef} kind=${receipt.artifactKind} exec=${receipt.executionVerdict} reason=${reason} ${formatBuildDigestSummaryV0(receipt.weftendBuild)} privacyLint=${privacyVerdict}`;
+};
+
+const finalizeFailure = (options: {
+  outDir: string;
+  inputRef: string;
+  policyPath: string;
+  policyId?: string;
+  reasonCodes: string[];
+}): number => {
+  const reasonCodes = stableSortUniqueReasonsV0(options.reasonCodes).slice(0, MAX_REASON_CODES);
+  const weftendBuild = computeWeftendBuildV0({ filePath: process?.argv?.[1], source: "NODE_MAIN_JS" }).build;
+  fs.mkdirSync(options.outDir, { recursive: true });
+
+  const selectedPolicy = path.basename(options.policyPath || POLICY_GENERIC);
+  const contentSummary = {
+    targetKind: "file" as const,
+    artifactKind: "dataOnly" as const,
+    fileCountsByKind: {
+      html: 0,
+      js: 0,
+      css: 0,
+      json: 0,
+      wasm: 0,
+      media: 0,
+      binary: 0,
+      other: 0,
+    },
+    totalFiles: 0,
+    totalBytesBounded: 0,
+    sizeSummary: {
+      totalBytesBounded: 0,
+      truncated: false,
+    },
+    topExtensions: [],
+    hasNativeBinaries: false,
+    hasScripts: false,
+    hasHtml: false,
+    externalRefs: {
+      count: 0,
+      topDomains: [],
+    },
+    entryHints: ["ENTRY_CONTAINER_IMAGE"],
+    boundednessMarkers: ["BOUND_NO_NETWORK"],
+    archiveDepthMax: 0,
+    nestedArchiveCount: 0,
+    manifestCount: 0,
+    stringsIndicators: {
+      urlLikeCount: 0,
+      ipLikeCount: 0,
+      powershellLikeCount: 0,
+      cmdExecLikeCount: 0,
+    },
+    policyMatch: {
+      selectedPolicy,
+      reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_POLICY_APPLIED", "POLICY_AUTO_GENERIC"]).slice(0, MAX_REASON_CODES),
+    },
+    hashFamily: {
+      sha256: computeArtifactDigestV0(String(options.inputRef || "")),
+    },
+  };
+
+  const receipt = buildSafeRunReceipt({
+    schema: "weftend.safeRunReceipt/0",
+    v: 0,
+    schemaVersion: 0,
+    weftendBuild,
+    inputKind: "raw",
+    artifactKind: "CONTAINER_IMAGE",
+    entryHint: "ENTRY_CONTAINER_IMAGE",
+    contentSummary,
+    analysisVerdict: "DENY",
+    executionVerdict: "NOT_ATTEMPTED",
+    topReasonCode: reasonCodes.length > 0 ? reasonCodes[0] : "CONTAINER_SCAN_FAILED",
+    inputDigest: computeArtifactDigestV0(String(options.inputRef || "")),
+    policyId: options.policyId || computeArtifactDigestV0("POLICY_UNRESOLVED"),
+    execution: {
+      result: "WITHHELD",
+      reasonCodes: reasonCodes.length > 0 ? reasonCodes : ["CONTAINER_SCAN_FAILED"],
+    },
+    subReceipts: [],
+  });
+
+  const issues = validateSafeRunReceiptV0(receipt, "safeRunReceipt");
+  if (issues.length > 0) {
+    console.error("[SAFE_RUN_RECEIPT_INVALID]");
+    return 1;
+  }
+
+  fs.writeFileSync(path.join(options.outDir, "safe_run_receipt.json"), `${canonicalJSON(receipt)}\n`, "utf8");
+  writeReceiptReadmeV0(options.outDir, receipt.weftendBuild, receipt.schemaVersion);
+
+  const operatorReceipt = buildOperatorReceiptV0({
+    command: "container scan",
+    weftendBuild: receipt.weftendBuild,
+    schemaVersion: receipt.schemaVersion,
+    entries: [{ kind: "safe_run_receipt", relPath: "safe_run_receipt.json", digest: receipt.receiptDigest }],
+    warnings: stableSortUniqueReasonsV0([...(receipt.weftendBuild.reasonCodes ?? []), ...reasonCodes]),
+    contentSummary: receipt.contentSummary,
+  });
+  writeOperatorReceiptV0(options.outDir, operatorReceipt);
+
+  const privacy = runPrivacyLintV0({ root: options.outDir, weftendBuild: receipt.weftendBuild });
+  try {
+    updateLibraryViewFromRunV0({
+      outDir: options.outDir,
+      privacyVerdict: privacy.report.verdict,
+      hostSelfStatus: receipt.hostSelfStatus,
+      hostSelfReasonCodes: receipt.hostSelfReasonCodes ?? [],
+    });
+  } catch {
+    // best-effort library update only
+  }
+
+  console.log(summarizeContainerScan(receipt, privacy.report.verdict, options.inputRef));
+  return 40;
 };
 
 const finalizeSuccess = (options: {
@@ -274,17 +384,38 @@ export const runContainerCli = async (argv: string[]): Promise<number> => {
 
   const policyPath = String(flags["policy"] || POLICY_GENERIC);
   const policyRead = readPolicy(policyPath);
-  if (!policyRead.ok) return policyRead.code;
+  if (!policyRead.ok) {
+    console.error(`[${policyRead.reasonCode}] ${policyRead.message}`);
+    return finalizeFailure({
+      outDir,
+      inputRef: String(inputRef || ""),
+      policyPath,
+      reasonCodes: [policyRead.reasonCode],
+    });
+  }
 
   if (!isImmutableImageRef(inputRef)) {
-    console.error("[DOCKER_IMAGE_REF_NOT_IMMUTABLE] container scan requires an immutable digest reference (name@sha256:... or sha256:...).");
-    return 40;
+    const reasonCode = "DOCKER_IMAGE_REF_NOT_IMMUTABLE";
+    console.error(`[${reasonCode}] container scan requires an immutable digest reference (name@sha256:... or sha256:...).`);
+    return finalizeFailure({
+      outDir,
+      inputRef: String(inputRef || ""),
+      policyPath,
+      policyId: policyRead.policyId,
+      reasonCodes: [reasonCode],
+    });
   }
 
   const probe = probeDockerImageLocalV0(inputRef);
   if (!probe.ok) {
     console.error(`[${probe.code}] ${probe.message}`);
-    return 40;
+    return finalizeFailure({
+      outDir,
+      inputRef: String(inputRef || ""),
+      policyPath,
+      policyId: policyRead.policyId,
+      reasonCodes: [probe.code],
+    });
   }
 
   return finalizeSuccess({

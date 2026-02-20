@@ -191,8 +191,15 @@ Current adapter commands:
 - `weftend email safe-run ...`
 - `weftend safe-run ... --adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature [--enable-plugin <name>]`
 - `weftend adapter list`
+- `weftend adapter doctor`
 - `weftend summarize <outRoot>`
 - `weftend export-json <outRoot> --format normalized_v0`
+
+Maintenance controls:
+- `WEFTEND_ADAPTER_DISABLE=<adapter[,adapter...]>` (or `all`) may temporarily disable adapter lanes.
+- Disabled lanes must fail closed with explicit reason codes.
+- Invalid disable-policy tokens must fail closed.
+- Fail-closed adapter policy outcomes must still preserve deterministic safe-run evidence artifacts.
 
 Adapter normalization notes:
 - Email adapter outputs include `adapter_manifest.json` and required deterministic files.

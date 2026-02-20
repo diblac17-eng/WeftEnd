@@ -51,7 +51,10 @@ suite("cli/container-scan", () => {
     assertEq(res.status, 40, `expected exit 40\n${res.stderr}`);
     const text = `${res.stdout}\n${res.stderr}`;
     assert(text.includes("[DOCKER_IMAGE_REF_NOT_IMMUTABLE]"), "expected immutable-ref denial");
-    assert(!fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "receipt must not be written when ref is mutable");
+    assert(fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "receipt must be written when ref is mutable");
+    assert(fs.existsSync(path.join(outDir, "operator_receipt.json")), "operator receipt must be written when ref is mutable");
+    const receipt = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
+    assertEq(receipt.analysisVerdict, "DENY", "expected DENY analysis verdict for mutable ref");
   });
 
   register("container scan blocks remote docker context", async () => {
@@ -63,7 +66,9 @@ suite("cli/container-scan", () => {
     assertEq(res.status, 40, `expected exit 40\n${res.stderr}`);
     const text = `${res.stdout}\n${res.stderr}`;
     assert(text.includes("[DOCKER_REMOTE_CONTEXT_UNSUPPORTED]"), "expected remote-context denial");
-    assert(!fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "receipt must not be written on precondition failure");
+    assert(fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "receipt must be written on precondition failure");
+    const receipt = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
+    assertEq(receipt.analysisVerdict, "DENY", "expected DENY analysis verdict for remote context denial");
   });
 
   register("container scan fails closed when image is unavailable locally", async () => {
@@ -77,7 +82,9 @@ suite("cli/container-scan", () => {
       text.includes("[DOCKER_IMAGE_NOT_LOCAL]") ||
       text.includes("[DOCKER_DAEMON_UNAVAILABLE]");
     assert(expected, `expected docker precondition code\n${text}`);
-    assert(!fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "receipt must not exist when scan preconditions fail");
+    assert(fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "receipt must exist when scan preconditions fail");
+    const receipt = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
+    assertEq(receipt.analysisVerdict, "DENY", "expected DENY analysis verdict for local-image precondition failure");
   });
 
   register("container help usage prints and exits 1", async () => {

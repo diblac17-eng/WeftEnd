@@ -126,6 +126,14 @@ Operator output artifacts
 
 CLI examples
 - npm run weftend -- adapter list
+- npm run weftend -- adapter doctor
 - npm run weftend -- safe-run <input> --out <dir> --adapter auto
 - npm run weftend -- safe-run <input> --out <dir> --adapter archive
 - npm run weftend -- safe-run <input> --out <dir> --adapter archive --enable-plugin tar
+- WEFTEND_ADAPTER_DISABLE=archive,package npm run weftend -- safe-run <input> --out <dir> --adapter auto
+
+Maintenance gate
+- Adapter lanes can be temporarily disabled with `WEFTEND_ADAPTER_DISABLE=<adapter[,adapter...]>` (or `all`).
+- Disabled lanes fail closed with `ADAPTER_TEMPORARILY_UNAVAILABLE` + `ADAPTER_DISABLED_BY_POLICY`.
+- Invalid disable tokens fail closed with `ADAPTER_POLICY_INVALID`.
+- Fail-closed adapter policy outcomes still produce deterministic safe-run evidence artifacts.
