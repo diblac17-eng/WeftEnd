@@ -593,6 +593,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const looseObjPdf = path.join(tmp, "loose_obj.pdf");
+    fs.writeFileSync(looseObjPdf, "%PDF-1.7\nobj token only trailer\n%%EOF\n", "utf8");
+    const res = await runCliCapture(["safe-run", looseObjPdf, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit document pdf missing object syntax");
+    assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr for pdf missing object syntax");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badPdf = path.join(tmp, "bad.pdf");
     fs.writeFileSync(badPdf, "not-a-pdf", "utf8");
     const res = await runCliCapture(["safe-run", badPdf, "--out", outDir, "--adapter", "document"]);

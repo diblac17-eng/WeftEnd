@@ -2129,12 +2129,13 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
         };
       }
       const pdfWindow = `${head}\n${tail}`;
-      const pdfStructureHintOk = /\bobj\b|\/Type\s*\/Catalog\b|\bxref\b/i.test(pdfWindow);
-      if (!pdfStructureHintOk) {
+      const pdfObjectSyntaxOk = /\b\d+\s+\d+\s+obj\b/.test(pdfWindow);
+      const pdfStructureHintOk = /\/Type\s*\/Catalog\b|\bxref\b|\btrailer\b/i.test(pdfWindow);
+      if (!pdfObjectSyntaxOk || !pdfStructureHintOk) {
         return {
           ok: false,
           failCode: "DOC_FORMAT_MISMATCH",
-          failMessage: "document adapter expected PDF structural marker evidence for explicit document analysis.",
+          failMessage: "document adapter expected PDF object and structural marker evidence for explicit document analysis.",
           reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
         };
       }

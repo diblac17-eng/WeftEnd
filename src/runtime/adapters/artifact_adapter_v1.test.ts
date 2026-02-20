@@ -1388,6 +1388,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const looseObjPdf = path.join(tmp, "loose_obj.pdf");
+    fs.writeFileSync(looseObjPdf, "%PDF-1.7\nobj token only trailer\n%%EOF\n", "utf8");
+    const capture = captureTreeV0(looseObjPdf, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: looseObjPdf, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit pdf with loose obj token and no object syntax");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for explicit pdf missing object syntax");
+  }
+
+  {
+    const tmp = mkTmp();
     const badPdf = path.join(tmp, "bad.pdf");
     fs.writeFileSync(badPdf, "not-a-pdf", "utf8");
     const capture = captureTreeV0(badPdf, limits);
