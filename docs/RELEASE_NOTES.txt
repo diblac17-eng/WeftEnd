@@ -56,6 +56,7 @@ Included
 - Document strict route now requires PDF object-syntax evidence (`<obj> <gen> obj`) plus structural marker evidence (`xref`/catalog/trailer) for explicit `.pdf` analysis, preventing loose-token placeholder inputs from passing strict document routing.
 - Document strict route now requires PDF `startxref` marker evidence for explicit `.pdf` analysis, preventing object+trailer placeholder inputs from passing strict document routing.
 - Document strict route now requires OOXML primary part evidence for explicit office-document analysis (`word/document.xml` for `.docm`, `xl/workbook.xml` for `.xlsm`), preventing marker-only office ZIP shells from passing strict routing.
+- Added strict-route regression coverage for both `.docm` and `.xlsm` missing-primary-part cases to pin fail-closed behavior in adapter and CLI smoke suites.
 - Document strict route now requires a strict RTF prolog (`{\\rtf1`), baseline control-word evidence (`\\ansi`/`\\deff`), and closing-brace evidence for explicit `.rtf` analysis, preventing partial/plaintext placeholders from passing strict document routing.
 - Document strict route now requires minimum CHM structural header evidence (including header-length sanity) for explicit `.chm` analysis, preventing tiny header-only placeholders from passing strict document routing.
 - IaC/CI adapter extraction deepened:

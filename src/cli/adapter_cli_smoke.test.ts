@@ -732,6 +732,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const missingPrimaryXlsm = path.join(tmp, "missing_primary.xlsm");
+    writeStoredZip(missingPrimaryXlsm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "_rels/.rels", text: "<Relationships></Relationships>" },
+      { name: "xl/_rels/workbook.xml.rels", text: "<Relationships></Relationships>" },
+    ]);
+    const res = await runCliCapture(["safe-run", missingPrimaryXlsm, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit xlsm missing primary workbook part");
+    assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr for missing OOXML primary workbook part");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badPem = path.join(tmp, "bad.pem");
     fs.writeFileSync(badPem, "plain text not signature material", "utf8");
     const res = await runCliCapture(["safe-run", badPem, "--out", outDir, "--adapter", "signature"]);

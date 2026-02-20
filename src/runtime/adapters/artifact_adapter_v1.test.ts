@@ -1367,6 +1367,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const missingPrimaryXlsm = path.join(tmp, "missing_primary.xlsm");
+    writeStoredZip(missingPrimaryXlsm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "_rels/.rels", text: "<Relationships></Relationships>" },
+      { name: "xl/_rels/workbook.xml.rels", text: "<Relationships></Relationships>" },
+    ]);
+    const capture = captureTreeV0(missingPrimaryXlsm, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: missingPrimaryXlsm, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit xlsm missing primary workbook part");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for explicit xlsm missing primary workbook part");
+  }
+
+  {
+    const tmp = mkTmp();
     const pdf = path.join(tmp, "demo.pdf");
     fs.writeFileSync(
       pdf,
