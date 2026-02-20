@@ -2525,11 +2525,11 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
         reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_LAYOUT_INVALID"]),
       };
     }
-    if (strictRoute && ociManifestCount > 0 && ociManifestDigestRefCount === 0) {
+    if (strictRoute && ociManifestCount > 0 && ociManifestDigestRefCount < ociManifestCount) {
       return {
         ok: false,
         failCode: "CONTAINER_LAYOUT_INVALID",
-        failMessage: "container adapter requires OCI manifest digest references for explicit OCI layout analysis.",
+        failMessage: "container adapter requires digest references for all OCI manifests in explicit OCI layout analysis.",
         reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_LAYOUT_INVALID"]),
       };
     }
@@ -2579,11 +2579,11 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
           reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
         };
       }
-      if (strictRoute && ociManifestCount > 0 && ociManifestDigestRefCount === 0) {
+      if (strictRoute && ociManifestCount > 0 && ociManifestDigestRefCount < ociManifestCount) {
         return {
           ok: false,
           failCode: "CONTAINER_FORMAT_MISMATCH",
-          failMessage: "container adapter expected OCI manifest digest references for explicit OCI tar analysis.",
+          failMessage: "container adapter expected digest references for all OCI manifests in explicit OCI tar analysis.",
           reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
         };
       }

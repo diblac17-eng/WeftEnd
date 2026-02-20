@@ -70,14 +70,14 @@ Included
 - Container tarball detection now recognizes Docker-style markers (`manifest.json` + `repositories`) and OCI tar markers (`oci-layout` + `index.json` + `blobs/sha256/*`) for local tar inputs.
 - Explicit OCI layout route now fails closed when manifests exist but blob evidence is missing (`CONTAINER_LAYOUT_INVALID`), preventing partial container identity acceptance.
 - Explicit OCI layout route now requires manifest digest references to resolve to blob entries, preventing unrelated blob padding from satisfying strict OCI layout evidence.
-- Explicit OCI layout route now requires non-empty manifest digest references when manifests are present, preventing digestless OCI manifest shells from passing strict layout routing.
+- Explicit OCI layout route now requires digest references for every manifest entry when manifests are present, preventing partial/digestless OCI manifest shells from passing strict layout routing.
 - Explicit container route now fails closed when OCI index manifests shape is invalid and when container tar metadata is partial, preventing mixed valid/corrupt container acceptance.
 - Explicit Docker-style tar route now requires at least one `layer.tar` entry when `manifest.json` and `repositories` markers are present, preventing placeholder tar marker shells from passing strict container routing.
 - Explicit Docker-style tar route now also requires valid `manifest.json` and `repositories` JSON payload structure, and requires all manifest layer references to resolve to tar entries.
 - Explicit Docker-style tar route now requires at least one repository/tag mapping in `repositories` JSON, preventing non-empty but non-usable repository shells from passing strict routing.
 - Explicit Docker-style tar route now requires all manifest config references to resolve to tar entries, preventing partial config payload shells from passing strict routing.
 - Explicit OCI tar strict route now requires manifest digest references to resolve to blob entries, preventing unrelated blob padding from satisfying strict OCI tar evidence.
-- Explicit OCI tar strict route now requires non-empty manifest digest references when manifests are present, preventing digestless OCI tar manifest shells from passing strict routing.
+- Explicit OCI tar strict route now requires digest references for every manifest entry when manifests are present, preventing partial/digestless OCI tar manifest shells from passing strict routing.
 - Added regression coverage for OCI layout/tar digest-required strict paths (missing digest refs and digest-mismatch scenarios) in adapter and CLI smoke suites.
 - Explicit compose route now fails closed when service placeholders exist without valid indented service entries or without `image`/`build` evidence, while still allowing build-only compose service definitions.
 - Explicit compose route now requires `image`/`build` evidence to be inside a service block, preventing out-of-service image placeholders from passing strict compose routing.
