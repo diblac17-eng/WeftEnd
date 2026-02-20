@@ -2061,6 +2061,24 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const sbomPath = path.join(tmp, "shell_sbom.spdx.json");
+    fs.writeFileSync(
+      sbomPath,
+      JSON.stringify({
+        SPDXID: "SPDXRef-DOCUMENT",
+        packages: [{}],
+        components: [{ "bom-ref": "   " }],
+      }),
+      "utf8"
+    );
+    const capture = captureTreeV0(sbomPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: sbomPath, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit sbom with non-meaningful package/component shells");
+    assertEq(res.failCode, "CONTAINER_SBOM_INVALID", "expected CONTAINER_SBOM_INVALID for non-meaningful sbom shells");
+  }
+
+  {
+    const tmp = mkTmp();
     const badIso = path.join(tmp, "bad.iso");
     fs.writeFileSync(badIso, Buffer.from("not-an-iso", "utf8"));
     const badCapture = captureTreeV0(badIso, limits);

@@ -1992,6 +1992,24 @@ const run = async (): Promise<void> => {
     assertEq(res.status, 40, "safe-run should fail closed for explicit empty sbom package evidence");
     assert(res.stderr.includes("CONTAINER_SBOM_INVALID"), "expected CONTAINER_SBOM_INVALID on stderr for empty sbom evidence");
   }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const shellSbom = path.join(tmp, "shell_sbom.spdx.json");
+    fs.writeFileSync(
+      shellSbom,
+      JSON.stringify({
+        SPDXID: "SPDXRef-DOCUMENT",
+        packages: [{}],
+        components: [{ "bom-ref": "   " }],
+      }),
+      "utf8"
+    );
+    const res = await runCliCapture(["safe-run", shellSbom, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit sbom with non-meaningful package/component shells");
+    assert(res.stderr.includes("CONTAINER_SBOM_INVALID"), "expected CONTAINER_SBOM_INVALID on stderr for non-meaningful sbom shells");
+  }
 };
 
 run()

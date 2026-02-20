@@ -85,6 +85,7 @@ Included
 - Explicit compose route now fails closed when service placeholders exist without valid indented service entries or without `image`/`build` evidence, while still allowing build-only compose service definitions.
 - Explicit compose route now requires `image`/`build` evidence to be inside a service block, preventing out-of-service image placeholders from passing strict compose routing.
 - Explicit SBOM route now fails closed when package/component evidence is empty, preventing empty SBOM shells from passing strict container SBOM analysis.
+- Explicit SBOM route now requires meaningful package/component identity evidence (`name`, `purl`, `SPDXID`, or `bom-ref`), preventing empty object shells from passing strict SBOM analysis.
 - SBOM JSON parsing now emits bounded package/component counts when present.
 - Signature/cert adapter extraction deepened:
 - Deterministic PEM block counting for certificate/PKCS7/signature material.

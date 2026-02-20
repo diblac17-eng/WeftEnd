@@ -2702,7 +2702,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
                 if (typeof layer !== "string") return;
                 const normalized = String(layer || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase();
                 if (!normalized) return;
-                 hasLayerRef = true;
+                hasLayerRef = true;
                 refs += 1;
                 if (tarNameSet.has(normalized)) resolved += 1;
               });
@@ -2832,8 +2832,21 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   if (isSbom) {
     const sbom = readJsonBounded(ctx.inputPath);
     if (sbom && typeof sbom === "object") {
-      const pkg = Array.isArray((sbom as any).packages) ? (sbom as any).packages.length : 0;
-      const comps = Array.isArray((sbom as any).components) ? (sbom as any).components.length : 0;
+      const meaningfulEvidenceCount = (arr: unknown[]): number => {
+        let n = 0;
+        arr.forEach((entry) => {
+          if (!entry || typeof entry !== "object") return;
+          const e = entry as Record<string, unknown>;
+          const hasName = typeof e.name === "string" && e.name.trim().length > 0;
+          const hasPurl = typeof e.purl === "string" && e.purl.trim().length > 0;
+          const hasSpdxId = typeof e.SPDXID === "string" && e.SPDXID.trim().length > 0;
+          const hasBomRef = typeof e["bom-ref"] === "string" && e["bom-ref"].trim().length > 0;
+          if (hasName || hasPurl || hasSpdxId || hasBomRef) n += 1;
+        });
+        return n;
+      };
+      const pkg = Array.isArray((sbom as any).packages) ? meaningfulEvidenceCount((sbom as any).packages) : 0;
+      const comps = Array.isArray((sbom as any).components) ? meaningfulEvidenceCount((sbom as any).components) : 0;
       sbomPackageCount = Math.max(pkg, comps);
       if (sbomPackageCount === 0) {
         if (strictRoute) {
