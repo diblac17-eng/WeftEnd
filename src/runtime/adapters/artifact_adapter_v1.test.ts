@@ -1553,11 +1553,17 @@ const run = (): void => {
     fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
     fs.writeFileSync(
       path.join(ociDir, "index.json"),
-      JSON.stringify({ schemaVersion: 2, manifests: [{ mediaType: "x" }, { mediaType: "y" }] }),
+      JSON.stringify({
+        schemaVersion: 2,
+        manifests: [
+          { mediaType: "x", digest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+          { mediaType: "y", digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+        ],
+      }),
       "utf8"
     );
-    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", "a"), "x", "utf8");
-    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", "b"), "y", "utf8");
+    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), "x", "utf8");
+    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"), "y", "utf8");
     const capture = captureTreeV0(ociDir, limits);
     const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: ociDir, capture });
     assert(res.ok, "container adapter should parse oci layout counts");
@@ -1737,8 +1743,11 @@ const run = (): void => {
     const tarPath = path.join(tmp, "oci_layout.tar");
     writeSimpleTar(tarPath, [
       { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
-      { name: "index.json", text: "{\"schemaVersion\":2,\"manifests\":[{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"digest\":\"sha256:abc\",\"size\":1}]}\n" },
-      { name: "blobs/sha256/abc", text: "x" },
+      {
+        name: "index.json",
+        text: "{\"schemaVersion\":2,\"manifests\":[{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"size\":1}]}\n",
+      },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
     ]);
     const capture = captureTreeV0(tarPath, limits);
     const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });

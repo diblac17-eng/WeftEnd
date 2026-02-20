@@ -1545,10 +1545,10 @@ const run = async (): Promise<void> => {
     fs.writeFileSync(path.join(tmp, "oci_image", "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
     fs.writeFileSync(
       path.join(tmp, "oci_image", "index.json"),
-      "{\"schemaVersion\":2,\"manifests\":[{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\"}]}\n",
+      "{\"schemaVersion\":2,\"manifests\":[{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}]}\n",
       "utf8"
     );
-    fs.writeFileSync(path.join(tmp, "oci_image", "blobs", "sha256", "a"), "x", "utf8");
+    fs.writeFileSync(path.join(tmp, "oci_image", "blobs", "sha256", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), "x", "utf8");
     const res = await runCliCapture(["safe-run", path.join(tmp, "oci_image"), "--out", outDir, "--adapter", "container"]);
     assertEq(res.status, 0, `safe-run container should succeed\n${res.stderr}`);
     const safe = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
@@ -1590,8 +1590,11 @@ const run = async (): Promise<void> => {
     const ociTar = path.join(tmp, "oci_layout.tar");
     writeSimpleTar(ociTar, [
       { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
-      { name: "index.json", text: "{\"schemaVersion\":2,\"manifests\":[{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"digest\":\"sha256:abc\",\"size\":1}]}\n" },
-      { name: "blobs/sha256/abc", text: "x" },
+      {
+        name: "index.json",
+        text: "{\"schemaVersion\":2,\"manifests\":[{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"size\":1}]}\n",
+      },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
     ]);
     const res = await runCliCapture(["safe-run", ociTar, "--out", outDir, "--adapter", "container"]);
     assertEq(res.status, 0, `safe-run should accept explicit OCI tar markers\n${res.stderr}`);
