@@ -255,6 +255,19 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const input = path.join(tmp, "case_collision.zip");
+    writeStoredZip(input, [
+      { name: "A.txt", text: "alpha-a" },
+      { name: "a.txt", text: "alpha-b" },
+    ]);
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"]);
+    assertEq(res.status, 40, "safe-run archive should fail closed for strict zip route with case-colliding entry paths");
+    assert(res.stderr.includes("ARCHIVE_FORMAT_MISMATCH"), "expected ARCHIVE_FORMAT_MISMATCH on stderr for case-colliding zip entry paths");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const input = path.join(tmp, "duplicate_paths.tar");
     writeSimpleTar(input, [
       { name: "a.txt", text: "alpha-a" },
@@ -263,6 +276,19 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"]);
     assertEq(res.status, 40, "safe-run archive should fail closed for strict tar route with duplicate entry paths");
     assert(res.stderr.includes("ARCHIVE_FORMAT_MISMATCH"), "expected ARCHIVE_FORMAT_MISMATCH on stderr for duplicate tar entry paths");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "case_collision.tar");
+    writeSimpleTar(input, [
+      { name: "A.txt", text: "alpha-a" },
+      { name: "a.txt", text: "alpha-b" },
+    ]);
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"]);
+    assertEq(res.status, 40, "safe-run archive should fail closed for strict tar route with case-colliding entry paths");
+    assert(res.stderr.includes("ARCHIVE_FORMAT_MISMATCH"), "expected ARCHIVE_FORMAT_MISMATCH on stderr for case-colliding tar entry paths");
   }
 
   {

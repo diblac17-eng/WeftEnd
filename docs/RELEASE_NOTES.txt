@@ -51,7 +51,7 @@ Included
 - `.tar.xz/.txz` now follow explicit tar-plugin, fail-closed handling in archive/package lanes.
 - Explicit `.tar` archive analysis now validates header checksum and octal size fields and fails closed on partial metadata even when earlier entries parsed, preventing mixed valid/corrupt tar acceptance.
 - Explicit `.zip` archive analysis now validates central-directory integrity in strict route and fails closed on partial metadata even when earlier entries parsed, preventing mixed valid/corrupt ZIP acceptance.
-- Explicit `.zip` and `.tar` strict archive routes now require non-ambiguous entry paths, preventing duplicate entry-path ambiguity from passing strict archive routing.
+- Explicit `.zip` and `.tar` strict archive routes now require non-ambiguous entry paths, preventing duplicate or case-colliding entry-path ambiguity from passing strict archive routing.
 - Strict plugin archive routes (`.tgz/.tar.gz/.txz/.tar.xz/.7z`) now enforce non-ambiguous entry-path sets from plugin listing output, preventing duplicate-path ambiguity from passing explicit plugin-backed archive routing.
 - macOS installer coverage added to package adapter:
 - `.pkg` now captures deterministic XAR header and script/permission hint counters.

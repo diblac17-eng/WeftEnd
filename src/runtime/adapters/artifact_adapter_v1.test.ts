@@ -269,6 +269,19 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const caseCollisionZip = path.join(tmp, "case_collision.zip");
+    writeStoredZip(caseCollisionZip, [
+      { name: "A.txt", text: "alpha-a" },
+      { name: "a.txt", text: "alpha-b" },
+    ]);
+    const capture = captureTreeV0(caseCollisionZip, limits);
+    const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: caseCollisionZip, capture });
+    assert(!res.ok, "archive adapter should fail closed for strict zip route with case-colliding entry paths");
+    assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for case-colliding zip entry paths");
+  }
+
+  {
+    const tmp = mkTmp();
     const duplicateTar = path.join(tmp, "duplicate_paths.tar");
     writeSimpleTar(duplicateTar, [
       { name: "a.txt", text: "alpha-a" },
@@ -278,6 +291,19 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: duplicateTar, capture });
     assert(!res.ok, "archive adapter should fail closed for strict tar route with duplicate entry paths");
     assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for duplicate tar entry paths");
+  }
+
+  {
+    const tmp = mkTmp();
+    const caseCollisionTar = path.join(tmp, "case_collision.tar");
+    writeSimpleTar(caseCollisionTar, [
+      { name: "A.txt", text: "alpha-a" },
+      { name: "a.txt", text: "alpha-b" },
+    ]);
+    const capture = captureTreeV0(caseCollisionTar, limits);
+    const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: caseCollisionTar, capture });
+    assert(!res.ok, "archive adapter should fail closed for strict tar route with case-colliding entry paths");
+    assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for case-colliding tar entry paths");
   }
 
   {

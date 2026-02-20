@@ -1471,6 +1471,15 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
         reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_FORMAT_MISMATCH"]),
       };
     }
+    const uniqueCaseFoldedEntries = stableSortUniqueStringsV0(uniqueEntries.map((entry) => entry.toLowerCase()));
+    if (uniqueCaseFoldedEntries.length < uniqueEntries.length) {
+      return {
+        ok: false,
+        failCode: "ARCHIVE_FORMAT_MISMATCH",
+        failMessage: "archive adapter expected case-unambiguous entry paths for explicit route analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_FORMAT_MISMATCH"]),
+      };
+    }
   }
 
   if (ctx.capture.truncated || entries.length > MAX_LIST_ITEMS) markers.push("ARCHIVE_TRUNCATED");
