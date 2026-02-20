@@ -38,6 +38,7 @@ Fail-closed behavior
 - Unknown tokens: `ADAPTER_POLICY_INVALID`.
 - Invalid/unreadable policy file: `ADAPTER_POLICY_INVALID` plus file-specific reason code.
 - Fail-closed adapter-policy outcomes still write deterministic safe-run evidence artifacts.
+- Policy applies to adapter lanes used by `safe-run` and `container scan` (`container` lane).
 
 Doctor command
 - JSON: `npm run weftend -- adapter doctor`

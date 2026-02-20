@@ -169,6 +169,14 @@ export interface AdapterDoctorReportV1 {
   adapters: AdapterDoctorItemV1[];
 }
 
+export interface AdapterMaintenanceStatusV1 {
+  source: "none" | "env" | "explicit" | "file";
+  disabled: boolean;
+  unknownTokens: string[];
+  invalidReasonCode?: string;
+  reasonCodes: string[];
+}
+
 type AnalyzeCtx = {
   inputPath: string;
   ext: string;
@@ -4274,5 +4282,28 @@ export const runAdapterDoctorV1 = (options?: { disabledAdapters?: string[] }): A
       ...(disablePolicy.invalidReasonCode ? { invalidReasonCode: disablePolicy.invalidReasonCode } : {}),
     },
     adapters,
+  };
+};
+
+export const getAdapterMaintenanceStatusV1 = (
+  adapter: AdapterClassV1,
+  options?: { disabledAdapters?: string[] }
+): AdapterMaintenanceStatusV1 => {
+  const disablePolicy = resolveDisabledAdaptersPolicyV1({ disabledAdapters: options?.disabledAdapters });
+  const reasonCodes: string[] = [];
+  if (disablePolicy.invalidReasonCode) {
+    reasonCodes.push("ADAPTER_POLICY_INVALID", disablePolicy.invalidReasonCode);
+  } else if (disablePolicy.unknownTokens.length > 0) {
+    reasonCodes.push("ADAPTER_POLICY_INVALID");
+  }
+  if (disablePolicy.disabledAdapters.has(adapter)) {
+    reasonCodes.push("ADAPTER_DISABLED_BY_POLICY", "ADAPTER_TEMPORARILY_UNAVAILABLE");
+  }
+  return {
+    source: disablePolicy.source,
+    disabled: disablePolicy.disabledAdapters.has(adapter),
+    unknownTokens: disablePolicy.unknownTokens,
+    ...(disablePolicy.invalidReasonCode ? { invalidReasonCode: disablePolicy.invalidReasonCode } : {}),
+    reasonCodes: stableSortUniqueReasonsV0(reasonCodes),
   };
 };

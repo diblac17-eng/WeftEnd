@@ -16,6 +16,7 @@ import {
   probeDockerImageLocalV0,
   type DockerProbeSuccessV0,
 } from "../runtime/container/docker_probe_v0";
+import { getAdapterMaintenanceStatusV1 } from "../runtime/adapters/artifact_adapter_v1";
 import { updateLibraryViewFromRunV0 } from "./library_state";
 
 declare const require: any;
@@ -391,6 +392,26 @@ export const runContainerCli = async (argv: string[]): Promise<number> => {
       inputRef: String(inputRef || ""),
       policyPath,
       reasonCodes: [policyRead.reasonCode],
+    });
+  }
+
+  const maintenance = getAdapterMaintenanceStatusV1("container");
+  if (maintenance.reasonCodes.length > 0) {
+    const topReason = maintenance.reasonCodes.includes("ADAPTER_TEMPORARILY_UNAVAILABLE")
+      ? "ADAPTER_TEMPORARILY_UNAVAILABLE"
+      : maintenance.reasonCodes.includes("ADAPTER_POLICY_INVALID")
+        ? "ADAPTER_POLICY_INVALID"
+        : maintenance.reasonCodes[0] || "ADAPTER_POLICY_INVALID";
+    console.error(`[${topReason}] container adapter maintenance policy denied this run.`);
+    if (maintenance.invalidReasonCode && maintenance.invalidReasonCode !== topReason) {
+      console.error(`[${maintenance.invalidReasonCode}] adapter maintenance policy detail.`);
+    }
+    return finalizeFailure({
+      outDir,
+      inputRef: String(inputRef || ""),
+      policyPath,
+      policyId: policyRead.policyId,
+      reasonCodes: maintenance.reasonCodes,
     });
   }
 

@@ -61,6 +61,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   - No docker pull
   - No registry auth
   - No implicit network activity
+  - Honors adapter maintenance policy (`WEFTEND_ADAPTER_DISABLE` / `WEFTEND_ADAPTER_DISABLE_FILE`) for `container`.
 - Fail-closed precondition outcomes still write deterministic receipts (`safe_run_receipt.json`, `operator_receipt.json`).
 - Output includes deterministic adapter artifacts:
   analysis/adapter_summary_v0.json

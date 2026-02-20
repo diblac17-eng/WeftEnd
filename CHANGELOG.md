@@ -20,6 +20,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added optional file policy source `WEFTEND_ADAPTER_DISABLE_FILE=<path-to-json>` for release/operator maintenance profiles.
 - Added `policies/adapter_maintenance.example.json` and `docs/ADAPTER_MAINTENANCE_POLICY.md` for maintenance policy bootstrapping.
 - Added explicit unreadable policy-file coverage (`ADAPTER_POLICY_FILE_UNREADABLE`) in adapter doctor and safe-run smoke tests.
+- `container scan` now applies the same maintenance-policy gate for `container` lane control.
 - Disabled adapter lanes now fail closed with `ADAPTER_TEMPORARILY_UNAVAILABLE` + `ADAPTER_DISABLED_BY_POLICY`.
 - Invalid maintenance policy tokens now fail closed with `ADAPTER_POLICY_INVALID`.
 - `safe-run` now preserves deterministic evidence artifacts (`safe_run_receipt.json`, `operator_receipt.json`, analysis receipts) even when adapter maintenance policy fails closed.

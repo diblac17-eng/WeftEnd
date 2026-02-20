@@ -87,6 +87,36 @@ suite("cli/container-scan", () => {
     assertEq(receipt.analysisVerdict, "DENY", "expected DENY analysis verdict for local-image precondition failure");
   });
 
+  register("container scan honors maintenance disable policy", async () => {
+    const outDir = makeTempDir();
+    const immutableRef = `docker.io/library/ubuntu@sha256:${"c".repeat(64)}`;
+    const res = await runCliCapture(["container", "scan", immutableRef, "--out", outDir], {
+      env: { WEFTEND_ADAPTER_DISABLE: "container" },
+    });
+    assertEq(res.status, 40, `expected exit 40\n${res.stderr}`);
+    const text = `${res.stdout}\n${res.stderr}`;
+    assert(text.includes("[ADAPTER_TEMPORARILY_UNAVAILABLE]"), "expected maintenance disable denial");
+    assert(fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "receipt must exist when container adapter is disabled");
+    const receipt = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
+    assertEq(receipt.analysisVerdict, "DENY", "expected DENY analysis verdict for maintenance disable");
+  });
+
+  register("container scan fails closed on invalid maintenance file policy", async () => {
+    const outDir = makeTempDir();
+    const tmp = makeTempDir();
+    const policyPath = path.join(tmp, "adapter_maintenance_invalid.json");
+    fs.writeFileSync(policyPath, "{ invalid-json", "utf8");
+    const immutableRef = `docker.io/library/ubuntu@sha256:${"d".repeat(64)}`;
+    const res = await runCliCapture(["container", "scan", immutableRef, "--out", outDir], {
+      env: { WEFTEND_ADAPTER_DISABLE_FILE: policyPath, WEFTEND_ADAPTER_DISABLE: undefined },
+    });
+    assertEq(res.status, 40, `expected exit 40\n${res.stderr}`);
+    const text = `${res.stdout}\n${res.stderr}`;
+    assert(text.includes("[ADAPTER_POLICY_INVALID]"), "expected invalid maintenance policy denial");
+    assert(text.includes("[ADAPTER_POLICY_FILE_INVALID]"), "expected invalid maintenance file detail");
+    assert(fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "receipt must exist on invalid maintenance file policy");
+  });
+
   register("container help usage prints and exits 1", async () => {
     const res = await runCliCapture(["container", "--help"]);
     assertEq(res.status, 1, `expected exit 1\n${res.stderr}`);
