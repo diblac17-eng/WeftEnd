@@ -626,11 +626,15 @@ const main = () => {
   const releaseDirAbs = path.resolve(root, releaseDirEnv);
   const deterministicInputEnv = process.env.WEFTEND_360_INPUT || "tests/fixtures/intake/tampered_manifest/tampered.zip";
   const deterministicInputAbs = path.resolve(root, deterministicInputEnv);
+  const auditStrictMode = process.env.WEFTEND_360_AUDIT_STRICT === "1" ? 1 : 0;
+  const adapterDoctorStrictMode = process.env.WEFTEND_360_ADAPTER_DOCTOR_STRICT === "1" ? 1 : 0;
   const changedFiles = gitChangedFiles();
   const head = safeGitHead();
   const idempotenceContext = {
     command: "verify:360",
     gateVersion: "v2",
+    auditStrictMode,
+    adapterDoctorStrictMode,
     releaseDir: fs.existsSync(releaseDirAbs) ? releaseDirEnv : "MISSING",
     deterministicInput: fs.existsSync(deterministicInputAbs) ? deterministicInputEnv : "MISSING",
     gitHead: head,
@@ -824,7 +828,7 @@ const main = () => {
   recordCapability("npm.proofcheck", proof.ok, proof.ok ? [] : ["VERIFY360_PROOFCHECK_FAILED"]);
 
   // Adapter maintenance doctor gate (informational by default, strict when enabled).
-  const adapterDoctorStrict = String(process.env.WEFTEND_360_ADAPTER_DOCTOR_STRICT || "").trim() === "1";
+  const adapterDoctorStrict = adapterDoctorStrictMode === 1;
   const doctorArgs = ["dist/src/cli/main.js", "adapter", "doctor"];
   if (adapterDoctorStrict) doctorArgs.push("--strict");
   const doctor = runCommandCapture("adapter-doctor", process.execPath, doctorArgs, {}, { emit: false });
@@ -1016,7 +1020,7 @@ const main = () => {
     reasonCodes: auditReasons,
     details: {
       warningCount: auditWarningCount,
-      strictMode: process.env.WEFTEND_360_AUDIT_STRICT === "1" ? 1 : 0,
+      strictMode: auditStrictMode,
     },
   });
   recordCapability("verify360.history_audit", audit.ok, auditReasons);
