@@ -2466,7 +2466,7 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
   if (extractDomains(text).length > 0) externalLink += 1;
 
   if (ctx.ext === ".docm" || ctx.ext === ".xlsm") {
-    const zip = readZipEntries(ctx.inputPath);
+    const zip = readZipEntriesRaw(ctx.inputPath);
     if (strictRoute && zip.entries.length === 0) {
       return {
         ok: false,
@@ -2477,14 +2477,17 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
     }
     markers.push(...zip.markers);
     const namesLower = zip.entries.map((name) => String(name || "").toLowerCase());
-    const hasContentTypes = namesLower.includes("[content_types].xml");
+    const contentTypesCount = namesLower.filter((name) => name === "[content_types].xml").length;
+    const hasContentTypes = contentTypesCount > 0;
     const hasRelationshipPart =
       namesLower.includes("_rels/.rels") ||
       namesLower.includes("word/_rels/document.xml.rels") ||
       namesLower.includes("xl/_rels/workbook.xml.rels");
-    const hasPrimaryPart =
-      (ctx.ext === ".docm" && namesLower.includes("word/document.xml")) ||
-      (ctx.ext === ".xlsm" && namesLower.includes("xl/workbook.xml"));
+    const primaryPartCount =
+      ctx.ext === ".docm"
+        ? namesLower.filter((name) => name === "word/document.xml").length
+        : namesLower.filter((name) => name === "xl/workbook.xml").length;
+    const hasPrimaryPart = primaryPartCount > 0;
     if (strictRoute && (!hasContentTypes || !hasRelationshipPart)) {
       return {
         ok: false,
@@ -2493,11 +2496,27 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
         reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
       };
     }
+    if (strictRoute && contentTypesCount !== 1) {
+      return {
+        ok: false,
+        failCode: "DOC_FORMAT_MISMATCH",
+        failMessage: "document adapter expected exactly one [Content_Types].xml marker for explicit office-document analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+      };
+    }
     if (strictRoute && !hasPrimaryPart) {
       return {
         ok: false,
         failCode: "DOC_FORMAT_MISMATCH",
         failMessage: "document adapter expected OOXML primary document part for explicit office-document analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+      };
+    }
+    if (strictRoute && primaryPartCount !== 1) {
+      return {
+        ok: false,
+        failCode: "DOC_FORMAT_MISMATCH",
+        failMessage: "document adapter expected exactly one OOXML primary document part for explicit office-document analysis.",
         reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
       };
     }

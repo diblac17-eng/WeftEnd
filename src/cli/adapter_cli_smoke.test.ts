@@ -746,6 +746,36 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const duplicateContentTypesDocm = path.join(tmp, "duplicate_content_types.docm");
+    writeStoredZip(duplicateContentTypesDocm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "_rels/.rels", text: "<Relationships></Relationships>" },
+      { name: "word/document.xml", text: "<w:document/>" },
+    ]);
+    const res = await runCliCapture(["safe-run", duplicateContentTypesDocm, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit docm with duplicate [Content_Types].xml markers");
+    assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr for duplicate [Content_Types].xml markers");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const duplicatePrimaryDocm = path.join(tmp, "duplicate_primary.docm");
+    writeStoredZip(duplicatePrimaryDocm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "_rels/.rels", text: "<Relationships></Relationships>" },
+      { name: "word/document.xml", text: "<w:document/>" },
+      { name: "word/document.xml", text: "<w:document/>" },
+    ]);
+    const res = await runCliCapture(["safe-run", duplicatePrimaryDocm, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit docm with duplicate primary document parts");
+    assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr for duplicate primary document parts");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badPem = path.join(tmp, "bad.pem");
     fs.writeFileSync(badPem, "plain text not signature material", "utf8");
     const res = await runCliCapture(["safe-run", badPem, "--out", outDir, "--adapter", "signature"]);

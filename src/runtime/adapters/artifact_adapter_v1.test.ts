@@ -1492,6 +1492,36 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const duplicateContentTypesDocm = path.join(tmp, "duplicate_content_types.docm");
+    writeStoredZip(duplicateContentTypesDocm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "_rels/.rels", text: "<Relationships></Relationships>" },
+      { name: "word/document.xml", text: "<w:document/>" },
+    ]);
+    const capture = captureTreeV0(duplicateContentTypesDocm, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: duplicateContentTypesDocm, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit docm with duplicate [Content_Types].xml markers");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for duplicate [Content_Types].xml markers");
+  }
+
+  {
+    const tmp = mkTmp();
+    const duplicatePrimaryDocm = path.join(tmp, "duplicate_primary.docm");
+    writeStoredZip(duplicatePrimaryDocm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "_rels/.rels", text: "<Relationships></Relationships>" },
+      { name: "word/document.xml", text: "<w:document/>" },
+      { name: "word/document.xml", text: "<w:document/>" },
+    ]);
+    const capture = captureTreeV0(duplicatePrimaryDocm, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: duplicatePrimaryDocm, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit docm with duplicate primary document parts");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for duplicate primary document parts");
+  }
+
+  {
+    const tmp = mkTmp();
     const pdf = path.join(tmp, "demo.pdf");
     fs.writeFileSync(
       pdf,

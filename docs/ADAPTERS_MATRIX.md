@@ -73,7 +73,7 @@ Adapter classes
   DOC_EMBEDDED_OBJECT_PRESENT
   DOC_EXTERNAL_LINK_PRESENT
 - Route strictness:
-  explicit `--adapter document` fails closed on extension/header mismatch (`.pdf/.rtf/.chm`), requires PDF EOF plus object-syntax evidence (`<obj> <gen> obj`), structural marker evidence (`catalog`/`xref`/`trailer`), and `startxref` marker evidence for explicit `.pdf` analysis, requires strict RTF prolog plus baseline control-word and closing-brace evidence for explicit `.rtf` analysis, requires minimum CHM structural header evidence for explicit `.chm` analysis, and fails closed on invalid/missing or partial OOXML ZIP metadata for `.docm/.xlsm` (including missing primary part evidence: `word/document.xml` for `.docm`, `xl/workbook.xml` for `.xlsm`).
+  explicit `--adapter document` fails closed on extension/header mismatch (`.pdf/.rtf/.chm`), requires PDF EOF plus object-syntax evidence (`<obj> <gen> obj`), structural marker evidence (`catalog`/`xref`/`trailer`), and `startxref` marker evidence for explicit `.pdf` analysis, requires strict RTF prolog plus baseline control-word and closing-brace evidence for explicit `.rtf` analysis, requires minimum CHM structural header evidence for explicit `.chm` analysis, and fails closed on invalid/missing or partial OOXML ZIP metadata for `.docm/.xlsm` (including missing primary part evidence: `word/document.xml` for `.docm`, `xl/workbook.xml` for `.xlsm`). Strict OOXML routing now also enforces unique required-marker cardinality (`[Content_Types].xml` and primary-part path must each appear exactly once).
 
 6) container (baseline signal lane)
 - Formats: OCI layouts, container tarball hints, compose/SBOM hints
