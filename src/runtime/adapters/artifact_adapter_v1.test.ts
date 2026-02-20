@@ -411,8 +411,8 @@ const run = (): void => {
     const tmp = mkTmp();
     const partialVsix = path.join(tmp, "partial_extension.vsix");
     writeStoredZip(partialVsix, [
-      { name: "extension/manifest.json", text: JSON.stringify({ manifest_version: 3, name: "demo", version: "1.0.0" }) },
-      { name: "extension/background.js", text: "console.log('x');" },
+      { name: "manifest.json", text: JSON.stringify({ manifest_version: 3, name: "demo", version: "1.0.0" }) },
+      { name: "background.js", text: "console.log('x');" },
     ]);
     corruptSecondZipCentralSignature(partialVsix);
     const capture = captureTreeV0(partialVsix, limits);
@@ -586,7 +586,7 @@ const run = (): void => {
     const vsix = path.join(tmp, "demo.vsix");
     writeStoredZip(vsix, [
       {
-        name: "extension/manifest.json",
+        name: "manifest.json",
         text: JSON.stringify({
           manifest_version: 3,
           name: "demozip",
@@ -603,6 +603,38 @@ const run = (): void => {
     assert(res.ok, "extension adapter should parse zipped manifest");
     assertEq(res.summary?.sourceClass, "extension", "zipped extension class mismatch");
     assert((res.summary?.counts.permissionCount ?? 0) > 0, "zipped extension permission count missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const nestedVsix = path.join(tmp, "nested_manifest.vsix");
+    writeStoredZip(nestedVsix, [
+      {
+        name: "extension/manifest.json",
+        text: JSON.stringify({
+          manifest_version: 3,
+          name: "nested",
+          version: "1.0.0",
+        }),
+      },
+    ]);
+    const capture = captureTreeV0(nestedVsix, limits);
+    const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: nestedVsix, capture });
+    assert(!res.ok, "extension adapter should fail closed when manifest is not at canonical root path");
+    assertEq(res.failCode, "EXTENSION_MANIFEST_MISSING", "expected EXTENSION_MANIFEST_MISSING for nested manifest path");
+  }
+
+  {
+    const tmp = mkTmp();
+    const duplicateVsix = path.join(tmp, "duplicate_manifest.vsix");
+    writeStoredZip(duplicateVsix, [
+      { name: "manifest.json", text: JSON.stringify({ manifest_version: 3, name: "demo-a", version: "1.0.0" }) },
+      { name: "manifest.json", text: JSON.stringify({ manifest_version: 3, name: "demo-b", version: "1.0.1" }) },
+    ]);
+    const capture = captureTreeV0(duplicateVsix, limits);
+    const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: duplicateVsix, capture });
+    assert(!res.ok, "extension adapter should fail closed for duplicate canonical root manifest entries");
+    assertEq(res.failCode, "EXTENSION_FORMAT_MISMATCH", "expected EXTENSION_FORMAT_MISMATCH for duplicate root manifest entries");
   }
 
   {

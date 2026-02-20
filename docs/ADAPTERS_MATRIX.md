@@ -46,7 +46,7 @@ Adapter classes
   EXTENSION_MANIFEST_INVALID
   EXTENSION_EXTERNAL_REF_PRESENT
 - Route strictness:
-  explicit `--adapter extension` fails closed on invalid or partial package metadata (`EXTENSION_FORMAT_MISMATCH`) and when manifest.json is missing or invalid. Strict extension routing also requires baseline manifest core fields (`manifest_version`, `name`, `version`). `.crx` inputs require a valid CRX header and embedded ZIP payload in explicit route analysis.
+  explicit `--adapter extension` fails closed on invalid or partial package metadata (`EXTENSION_FORMAT_MISMATCH`) and when manifest.json is missing or invalid. Strict extension routing also requires baseline manifest core fields (`manifest_version`, `name`, `version`), requires canonical root-path `manifest.json` presence (nested manifest paths do not satisfy strict routing), and requires exactly one canonical root `manifest.json` entry. `.crx` inputs require a valid CRX header and embedded ZIP payload in explicit route analysis.
 
 4) iac / cicd (baseline signal lane)
 - Formats: Terraform, YAML/JSON config, workflow/pipeline definitions

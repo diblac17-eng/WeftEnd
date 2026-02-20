@@ -267,7 +267,12 @@ type ZipCatalogEntryV1 = {
   localOffset: number;
 };
 
-const parseZipCatalogFromBuffer = (buffer: Uint8Array): { entries: ZipCatalogEntryV1[]; markers: string[] } => {
+const normalizeZipEntryPathV1 = (value: string): string => String(value || "").replace(/\\/g, "/").replace(/^\.\/+/, "");
+
+const parseZipCatalogFromBuffer = (
+  buffer: Uint8Array,
+  options?: { dedupe?: boolean }
+): { entries: ZipCatalogEntryV1[]; markers: string[] } => {
   const view = Buffer.from(buffer);
   const markers: string[] = [];
   const catalog: ZipCatalogEntryV1[] = [];
@@ -335,7 +340,7 @@ const parseZipCatalogFromBuffer = (buffer: Uint8Array): { entries: ZipCatalogEnt
       markers.push("ARCHIVE_METADATA_PARTIAL");
       break;
     }
-    const name = view.slice(nameStart, nameEnd).toString("utf8").replace(/\\/g, "/").replace(/^\.\/+/, "");
+    const name = normalizeZipEntryPathV1(view.slice(nameStart, nameEnd).toString("utf8"));
     let localOffset = localOffsetRaw;
     if (localOffset + 4 > view.length || view.readUInt32LE(localOffset) !== sigLFH) {
       const alt = firstLocalOffset + localOffsetRaw;
@@ -355,17 +360,18 @@ const parseZipCatalogFromBuffer = (buffer: Uint8Array): { entries: ZipCatalogEnt
     offset = nameStart + nameLen + extraLen + commentLen;
   }
 
-  const dedup = new Map<string, ZipCatalogEntryV1>();
-  catalog
+  const sorted = catalog
     .slice()
     .sort((a, b) => {
       const c0 = cmpStrV0(a.name, b.name);
       if (c0 !== 0) return c0;
       return a.localOffset - b.localOffset;
-    })
-    .forEach((entry) => {
-      if (!dedup.has(entry.name)) dedup.set(entry.name, entry);
     });
+  if (options?.dedupe === false) return { entries: sorted, markers: stableSortUniqueStringsV0(markers) };
+  const dedup = new Map<string, ZipCatalogEntryV1>();
+  sorted.forEach((entry) => {
+    if (!dedup.has(entry.name)) dedup.set(entry.name, entry);
+  });
   return { entries: Array.from(dedup.values()), markers: stableSortUniqueStringsV0(markers) };
 };
 
@@ -377,10 +383,27 @@ const readZipEntriesFromBuffer = (buffer: Uint8Array): { entries: string[]; mark
   };
 };
 
+const readZipEntriesFromBufferRaw = (buffer: Uint8Array): { entries: string[]; markers: string[] } => {
+  const catalog = parseZipCatalogFromBuffer(buffer, { dedupe: false });
+  return {
+    entries: catalog.entries.map((entry) => entry.name),
+    markers: catalog.markers,
+  };
+};
+
 const readZipEntries = (inputPath: string): { entries: string[]; markers: string[] } => {
   try {
     const buf = fs.readFileSync(inputPath);
     return readZipEntriesFromBuffer(buf);
+  } catch {
+    return { entries: [], markers: ["ARCHIVE_METADATA_PARTIAL"] };
+  }
+};
+
+const readZipEntriesRaw = (inputPath: string): { entries: string[]; markers: string[] } => {
+  try {
+    const buf = fs.readFileSync(inputPath);
+    return readZipEntriesFromBufferRaw(buf);
   } catch {
     return { entries: [], markers: ["ARCHIVE_METADATA_PARTIAL"] };
   }
@@ -457,6 +480,67 @@ const readZipTextEntriesByBaseNameFromBuffer = (
     }
     const base = path.basename(entry.name).toLowerCase();
     if (!wanted.has(base)) continue;
+    const extracted = extractZipEntryText(Buffer.from(archiveBytes), entry);
+    outMarkers.push(...extracted.markers);
+    if (!extracted.ok || typeof extracted.text !== "string") continue;
+    out.push({ name: entry.name, text: extracted.text });
+  }
+  out.sort((a, b) => cmpStrV0(a.name, b.name));
+  return { entries: out, markers: stableSortUniqueStringsV0(outMarkers) };
+};
+
+const readZipTextEntriesByExactPath = (inputPath: string, paths: string[]): { entries: Array<{ name: string; text: string }>; markers: string[] } => {
+  const wanted = new Set(
+    paths
+      .map((name) => normalizeZipEntryPathV1(String(name || "").trim()).toLowerCase())
+      .filter((name) => name.length > 0)
+  );
+  if (wanted.size === 0) return { entries: [], markers: [] };
+  let archiveBytes: any;
+  try {
+    archiveBytes = fs.readFileSync(inputPath);
+  } catch {
+    return { entries: [], markers: ["ARCHIVE_METADATA_PARTIAL"] };
+  }
+  const { entries: catalog, markers } = parseZipCatalogFromBuffer(archiveBytes, { dedupe: false });
+  const out: Array<{ name: string; text: string }> = [];
+  const outMarkers = [...markers];
+  for (const entry of catalog) {
+    if (out.length >= 32) {
+      outMarkers.push("ARCHIVE_TRUNCATED");
+      break;
+    }
+    const normalized = normalizeZipEntryPathV1(entry.name).toLowerCase();
+    if (!wanted.has(normalized)) continue;
+    const extracted = extractZipEntryText(archiveBytes, entry);
+    outMarkers.push(...extracted.markers);
+    if (!extracted.ok || typeof extracted.text !== "string") continue;
+    out.push({ name: entry.name, text: extracted.text });
+  }
+  out.sort((a, b) => cmpStrV0(a.name, b.name));
+  return { entries: out, markers: stableSortUniqueStringsV0(outMarkers) };
+};
+
+const readZipTextEntriesByExactPathFromBuffer = (
+  archiveBytes: Uint8Array,
+  paths: string[]
+): { entries: Array<{ name: string; text: string }>; markers: string[] } => {
+  const wanted = new Set(
+    paths
+      .map((name) => normalizeZipEntryPathV1(String(name || "").trim()).toLowerCase())
+      .filter((name) => name.length > 0)
+  );
+  if (wanted.size === 0) return { entries: [], markers: [] };
+  const { entries: catalog, markers } = parseZipCatalogFromBuffer(archiveBytes, { dedupe: false });
+  const out: Array<{ name: string; text: string }> = [];
+  const outMarkers = [...markers];
+  for (const entry of catalog) {
+    if (out.length >= 32) {
+      outMarkers.push("ARCHIVE_TRUNCATED");
+      break;
+    }
+    const normalized = normalizeZipEntryPathV1(entry.name).toLowerCase();
+    if (!wanted.has(normalized)) continue;
     const extracted = extractZipEntryText(Buffer.from(archiveBytes), entry);
     outMarkers.push(...extracted.markers);
     if (!extracted.ok || typeof extracted.text !== "string") continue;
@@ -1984,14 +2068,14 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     manifestCoreValid = dir.manifestCoreValid;
   } else {
     const isCrx = ext === ".crx";
-    const zipEntries = isCrx ? { entries: [] as string[], markers: [] as string[] } : readZipEntries(ctx.inputPath);
+    const zipEntries = isCrx ? { entries: [] as string[], markers: [] as string[] } : readZipEntriesRaw(ctx.inputPath);
     let zipBuffer: any = null;
     if (isCrx) {
       const crx = extractCrxZipPayload(ctx.inputPath);
       markers.push(...crx.markers);
       if (crx.ok) {
         zipBuffer = crx.payload;
-        const zip = readZipEntriesFromBuffer(zipBuffer);
+        const zip = readZipEntriesFromBufferRaw(zipBuffer);
         zipEntries.entries = zip.entries;
         zipEntries.markers = zip.markers;
       } else if (strictRoute) {
@@ -2003,7 +2087,8 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
         };
       }
     }
-    manifestFound = zipEntries.entries.some((entry) => path.basename(entry).toLowerCase() === "manifest.json");
+    const manifestRootCount = zipEntries.entries.filter((entry) => normalizeZipEntryPathV1(entry).toLowerCase() === "manifest.json").length;
+    manifestFound = manifestRootCount > 0;
     markers.push(...zipEntries.markers);
     if (strictRoute && zipEntries.markers.includes("ARCHIVE_METADATA_PARTIAL")) {
       return {
@@ -2013,11 +2098,19 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
         reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_FORMAT_MISMATCH"]),
       };
     }
+    if (strictRoute && manifestRootCount > 1) {
+      return {
+        ok: false,
+        failCode: "EXTENSION_FORMAT_MISMATCH",
+        failMessage: "extension adapter expected exactly one root manifest.json entry for explicit extension analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_FORMAT_MISMATCH"]),
+      };
+    }
     if (!manifestFound) markers.push("EXTENSION_MANIFEST_MISSING");
     else {
       const manifestTexts = isCrx && zipBuffer
-        ? readZipTextEntriesByBaseNameFromBuffer(zipBuffer, ["manifest.json"])
-        : readZipTextEntriesByBaseName(ctx.inputPath, ["manifest.json"]);
+        ? readZipTextEntriesByExactPathFromBuffer(zipBuffer, ["manifest.json"])
+        : readZipTextEntriesByExactPath(ctx.inputPath, ["manifest.json"]);
       markers.push(...manifestTexts.markers);
       if (manifestTexts.entries.length === 0) {
         markers.push("EXTENSION_MANIFEST_PARTIAL");

@@ -1385,13 +1385,38 @@ const run = async (): Promise<void> => {
     const tmp = mkTmp();
     const partialVsix = path.join(tmp, "partial_extension.vsix");
     writeStoredZip(partialVsix, [
-      { name: "extension/manifest.json", text: JSON.stringify({ manifest_version: 3, name: "demo", version: "1.0.0" }) },
-      { name: "extension/background.js", text: "console.log('x');" },
+      { name: "manifest.json", text: JSON.stringify({ manifest_version: 3, name: "demo", version: "1.0.0" }) },
+      { name: "background.js", text: "console.log('x');" },
     ]);
     corruptSecondZipCentralSignature(partialVsix);
     const res = await runCliCapture(["safe-run", partialVsix, "--out", outDir, "--adapter", "extension"]);
     assertEq(res.status, 40, "safe-run should fail closed when extension ZIP metadata is partial after parsed entries");
     assert(res.stderr.includes("EXTENSION_FORMAT_MISMATCH"), "expected EXTENSION_FORMAT_MISMATCH on stderr for partial extension zip metadata");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const nestedVsix = path.join(tmp, "nested_manifest.vsix");
+    writeStoredZip(nestedVsix, [
+      { name: "extension/manifest.json", text: JSON.stringify({ manifest_version: 3, name: "demo", version: "1.0.0" }) },
+    ]);
+    const res = await runCliCapture(["safe-run", nestedVsix, "--out", outDir, "--adapter", "extension"]);
+    assertEq(res.status, 40, "safe-run should fail closed when extension manifest is not at canonical root path");
+    assert(res.stderr.includes("EXTENSION_MANIFEST_MISSING"), "expected EXTENSION_MANIFEST_MISSING on stderr for nested manifest path");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const duplicateVsix = path.join(tmp, "duplicate_manifest.vsix");
+    writeStoredZip(duplicateVsix, [
+      { name: "manifest.json", text: JSON.stringify({ manifest_version: 3, name: "demo-a", version: "1.0.0" }) },
+      { name: "manifest.json", text: JSON.stringify({ manifest_version: 3, name: "demo-b", version: "1.0.1" }) },
+    ]);
+    const res = await runCliCapture(["safe-run", duplicateVsix, "--out", outDir, "--adapter", "extension"]);
+    assertEq(res.status, 40, "safe-run should fail closed for duplicate root extension manifest entries");
+    assert(res.stderr.includes("EXTENSION_FORMAT_MISMATCH"), "expected EXTENSION_FORMAT_MISMATCH on stderr for duplicate manifest entries");
   }
 
   {
