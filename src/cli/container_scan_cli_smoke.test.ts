@@ -45,9 +45,19 @@ function suite(name: string, define: () => void): void {
 const makeTempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), "weftend-container-scan-"));
 
 suite("cli/container-scan", () => {
+  register("container scan requires immutable digest reference", async () => {
+    const outDir = makeTempDir();
+    const res = await runCliCapture(["container", "scan", "ubuntu:latest", "--out", outDir]);
+    assertEq(res.status, 40, `expected exit 40\n${res.stderr}`);
+    const text = `${res.stdout}\n${res.stderr}`;
+    assert(text.includes("[DOCKER_IMAGE_REF_NOT_IMMUTABLE]"), "expected immutable-ref denial");
+    assert(!fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "receipt must not be written when ref is mutable");
+  });
+
   register("container scan blocks remote docker context", async () => {
     const outDir = makeTempDir();
-    const res = await runCliCapture(["container", "scan", "ubuntu:latest", "--out", outDir], {
+    const immutableRef = `docker.io/library/ubuntu@sha256:${"a".repeat(64)}`;
+    const res = await runCliCapture(["container", "scan", immutableRef, "--out", outDir], {
       env: { DOCKER_HOST: "tcp://example.invalid:2375" },
     });
     assertEq(res.status, 40, `expected exit 40\n${res.stderr}`);
@@ -58,7 +68,7 @@ suite("cli/container-scan", () => {
 
   register("container scan fails closed when image is unavailable locally", async () => {
     const outDir = makeTempDir();
-    const ref = "weftend-never-local:__definitely_missing__";
+    const ref = `docker.io/library/weftend-never-local@sha256:${"b".repeat(64)}`;
     const res = await runCliCapture(["container", "scan", ref, "--out", outDir]);
     assertEq(res.status, 40, `expected exit 40\n${res.stderr}`);
     const text = `${res.stdout}\n${res.stderr}`;

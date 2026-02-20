@@ -32,7 +32,14 @@ type ContainerFlags = Record<string, string | boolean>;
 
 const printUsage = () => {
   console.log("Usage:");
-  console.log("  weftend container scan <imageRefOrId> --out <dir> [--policy <policy.json>]");
+  console.log("  weftend container scan <image@sha256:...|sha256:...> --out <dir> [--policy <policy.json>]");
+};
+
+const isImmutableImageRef = (value: string): boolean => {
+  const v = String(value || "").trim();
+  if (/^sha256:[A-Fa-f0-9]{64}$/.test(v)) return true;
+  if (/@sha256:[A-Fa-f0-9]{64}$/.test(v)) return true;
+  return false;
 };
 
 const parseArgs = (argv: string[]): { rest: string[]; flags: ContainerFlags } => {
@@ -269,6 +276,11 @@ export const runContainerCli = async (argv: string[]): Promise<number> => {
   const policyRead = readPolicy(policyPath);
   if (!policyRead.ok) return policyRead.code;
 
+  if (!isImmutableImageRef(inputRef)) {
+    console.error("[DOCKER_IMAGE_REF_NOT_IMMUTABLE] container scan requires an immutable digest reference (name@sha256:... or sha256:...).");
+    return 40;
+  }
+
   const probe = probeDockerImageLocalV0(inputRef);
   if (!probe.ok) {
     console.error(`[${probe.code}] ${probe.message}`);
@@ -283,4 +295,3 @@ export const runContainerCli = async (argv: string[]): Promise<number> => {
     probe,
   });
 };
-

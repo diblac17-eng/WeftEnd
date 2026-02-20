@@ -42,9 +42,10 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   analysis/adapter_findings_v0.json
 
 3.2) Container scan (CLI, local Docker inspect only)
-- Scan a locally available image reference:
-  npm run weftend -- container scan <imageRefOrId> --out <dir>
+- Scan a locally available immutable image reference:
+  npm run weftend -- container scan <image@sha256:...|sha256:...> --out <dir>
 - This lane is local-only and fail-closed:
+  - Requires immutable digest refs (no mutable tag refs like `:latest`)
   - No docker pull
   - No registry auth
   - No implicit network activity

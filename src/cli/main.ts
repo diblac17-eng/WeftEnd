@@ -38,7 +38,7 @@ const printUsage = () => {
   console.log("  weftend safe-run <input> [--policy <policy.json>] --out <dir> [--profile web|mod|generic] [--script <file>] [--execute] [--withhold-exec|--no-exec] [--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature] [--enable-plugin <name>]");
   console.log("  weftend email unpack <input.eml|input.mbox|input.msg> --out <dir> [--index <n>] [--message-id <id>]");
   console.log("  weftend email safe-run <input.eml|input.mbox|input.msg|email_export_dir> --out <dir> [--policy <policy.json>] [--index <n>] [--message-id <id>]");
-  console.log("  weftend container scan <imageRefOrId> --out <dir> [--policy <policy.json>]");
+  console.log("  weftend container scan <image@sha256:...|sha256:...> --out <dir> [--policy <policy.json>]");
   console.log("  weftend adapter list");
   console.log("  weftend shadow-audit <request.json>");
   console.log("  weftend compare <leftOutRoot> <rightOutRoot> --out <dir>");

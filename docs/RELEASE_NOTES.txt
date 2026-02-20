@@ -96,6 +96,8 @@ Included
 - New package reason code support: `PACKAGE_SIGNING_INFO_PRESENT` alongside existing unavailable paths.
 - Container scan now emits adapter metadata/signals plus adapter artifacts using the same deterministic contract as safe-run adapters.
 - Container scan evidence remains local-only inspect data and excludes unstable fields (timestamps/raw env/path values).
+- Container scan now requires immutable image digest refs (`name@sha256:...` or `sha256:...`) and fails closed on mutable tag refs.
+- Privacy lint coverage now includes wildcard `analysis/*.json` artifacts so new adapter JSON outputs cannot bypass privacy scanning by filename drift.
 - Wave coverage now includes:
 - Wave 1: archives, packages/installers, extensions
 - Wave 2 baseline: IaC/CICD and document risk signal extraction
