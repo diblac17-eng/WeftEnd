@@ -1717,6 +1717,24 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const ociTarDuplicateRootMarkers = path.join(tmp, "oci_layout_duplicate_root_markers.tar");
+    writeSimpleTar(ociTarDuplicateRootMarkers, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      {
+        name: "index.json",
+        text: "{\"schemaVersion\":2,\"manifests\":[{\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}]}\n",
+      },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+    ]);
+    const res = await runCliCapture(["safe-run", ociTarDuplicateRootMarkers, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI tar duplicate root markers");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar duplicate root markers");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badTar = path.join(tmp, "bad_container.tar");
     fs.writeFileSync(badTar, "not-a-container-tar", "utf8");
     const res = await runCliCapture(["safe-run", badTar, "--out", outDir, "--adapter", "container"]);
@@ -1845,6 +1863,25 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", nestedMarkersTar, "--out", outDir, "--adapter", "container"]);
     assertEq(res.status, 40, "safe-run should fail closed for explicit docker tar nested marker paths");
     assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for docker tar nested marker paths");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const duplicateRootMarkersTar = path.join(tmp, "container_duplicate_root_markers.tar");
+    writeSimpleTar(duplicateRootMarkersTar, [
+      {
+        name: "manifest.json",
+        text: JSON.stringify([{ Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] }]),
+      },
+      { name: "manifest.json", text: JSON.stringify([{ Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] }]) },
+      { name: "repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
+      { name: "config.json", text: "{}" },
+      { name: "layer.tar", text: "layer-bytes" },
+    ]);
+    const res = await runCliCapture(["safe-run", duplicateRootMarkersTar, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit docker tar duplicate root markers");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for docker tar duplicate root markers");
   }
 
   {

@@ -2623,7 +2623,29 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     markers.push(...tarEntries.markers);
     const tarNames = tarEntryNames;
     const tarNameSet = new Set<string>(tarNames);
+    const markerTexts = readTarTextEntriesByExactPath(ctx.inputPath, ["manifest.json", "repositories", "oci-layout", "index.json"]);
+    markers.push(...markerTexts.markers);
+    const rootManifestCount = markerTexts.entries.filter(
+      (entry) => String(entry.name || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase() === "manifest.json"
+    ).length;
+    const rootRepositoriesCount = markerTexts.entries.filter(
+      (entry) => String(entry.name || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase() === "repositories"
+    ).length;
+    const rootOciLayoutCount = markerTexts.entries.filter(
+      (entry) => String(entry.name || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase() === "oci-layout"
+    ).length;
+    const rootOciIndexCount = markerTexts.entries.filter(
+      (entry) => String(entry.name || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase() === "index.json"
+    ).length;
     if (isOciTarByEntries) {
+      if (strictRoute && (rootOciLayoutCount !== 1 || rootOciIndexCount !== 1)) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected unique root OCI marker entries for explicit OCI tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
       const ociTexts = readTarTextEntriesByExactPath(ctx.inputPath, ["index.json"]);
       markers.push(...ociTexts.markers);
       const ociIndexEntry = ociTexts.entries.find(
@@ -2670,6 +2692,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     dockerRepositoriesMarkerPresent = tarNameSet.has("repositories") ? 1 : 0;
     dockerLayerEntryCount = tarNames.filter((name) => name === "layer.tar" || name.endsWith("/layer.tar")).length;
     if (dockerManifestMarkerPresent > 0 && dockerRepositoriesMarkerPresent > 0 && !isOciTarByEntries) {
+      if (strictRoute && (rootManifestCount !== 1 || rootRepositoriesCount !== 1)) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected unique root docker marker entries for explicit docker tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
       const dockerTexts = readTarTextEntriesByExactPath(ctx.inputPath, ["manifest.json", "repositories"]);
       markers.push(...dockerTexts.markers);
       const manifestEntry = dockerTexts.entries.find(
