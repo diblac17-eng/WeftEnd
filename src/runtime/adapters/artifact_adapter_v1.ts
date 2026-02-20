@@ -1395,7 +1395,12 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
         reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_PLUGIN_UNAVAILABLE"]),
       };
     }
-    entries = stableSortUniqueStringsV0(tarList.lines.map((line) => line.replace(/\\/g, "/").replace(/^\.\/+/, "")));
+    const normalizedTarLines = tarList.lines
+      .map((line) => line.replace(/\\/g, "/").replace(/^\.\/+/, ""))
+      .filter((line) => line.length > 0 && !line.endsWith("/"));
+    entries = strictRoute
+      ? normalizedTarLines.slice().sort((a, b) => cmpStrV0(a, b))
+      : stableSortUniqueStringsV0(normalizedTarLines);
     reasonCodes.push("ARCHIVE_PLUGIN_USED");
   } else if (ext === ".7z") {
     if (!ctx.enabledPlugins.has("7z")) {
@@ -1424,12 +1429,13 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
         reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_PLUGIN_UNAVAILABLE"]),
       };
     }
-    entries = stableSortUniqueStringsV0(
-      sevenList.lines
-        .filter((line) => line.startsWith("Path = "))
-        .map((line) => line.slice("Path = ".length).trim())
-        .filter((line) => line.length > 0 && !line.endsWith("/"))
-    );
+    const normalized7zLines = sevenList.lines
+      .filter((line) => line.startsWith("Path = "))
+      .map((line) => line.slice("Path = ".length).trim())
+      .filter((line) => line.length > 0 && !line.endsWith("/"));
+    entries = strictRoute
+      ? normalized7zLines.slice().sort((a, b) => cmpStrV0(a, b))
+      : stableSortUniqueStringsV0(normalized7zLines);
     reasonCodes.push("ARCHIVE_PLUGIN_USED");
   } else {
     return {
@@ -1455,7 +1461,7 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_FORMAT_MISMATCH"]),
     };
   }
-  if (strictRoute && (ext === ".zip" || ext === ".tar")) {
+  if (strictRoute) {
     const uniqueEntries = stableSortUniqueStringsV0(entries);
     if (uniqueEntries.length < entries.length) {
       return {

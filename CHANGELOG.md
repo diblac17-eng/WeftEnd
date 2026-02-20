@@ -36,6 +36,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 
 ### Archive strict-route hardening
 - Strict `.zip` and `.tar` archive routes now require non-ambiguous entry paths (duplicate entry paths fail strict routing).
+- Strict plugin archive routes (`.tgz/.tar.gz/.txz/.tar.xz/.7z`) now also require non-ambiguous entry-path sets from plugin listing output.
 
 ### Validation status for this unreleased batch
 - `npm run compile --silent`: pass
