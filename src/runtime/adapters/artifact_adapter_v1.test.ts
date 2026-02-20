@@ -231,6 +231,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tbzAlias = path.join(tmp, "sample.tbz");
+    fs.writeFileSync(tbzAlias, "not-a-real-tbz", "utf8");
+    const capture = captureTreeV0(tbzAlias, limits);
+    const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: tbzAlias, capture });
+    assert(!res.ok, "archive tbz alias without plugin should fail closed");
+    assertEq(res.failCode, "ARCHIVE_PLUGIN_REQUIRED", "expected plugin required code for tbz alias");
+  }
+
+  {
+    const tmp = mkTmp();
     const tgz = path.join(tmp, "case_collision_plugin.tgz");
     writeSimpleTgz(tgz, [
       { name: "A.txt", text: "alpha-a" },
@@ -881,6 +891,16 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: tbzAlias, capture });
     assert(!res.ok, "package adapter should fail closed for tbz2 alias compressed tar package without tar plugin");
     assertEq(res.failCode, "PACKAGE_PLUGIN_REQUIRED", "expected PACKAGE_PLUGIN_REQUIRED for package tbz2 alias without tar plugin");
+  }
+
+  {
+    const tmp = mkTmp();
+    const tbzAlias = path.join(tmp, "bad.tbz");
+    fs.writeFileSync(tbzAlias, "not-a-real-tbz", "utf8");
+    const capture = captureTreeV0(tbzAlias, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: tbzAlias, capture });
+    assert(!res.ok, "package adapter should fail closed for tbz alias compressed tar package without tar plugin");
+    assertEq(res.failCode, "PACKAGE_PLUGIN_REQUIRED", "expected PACKAGE_PLUGIN_REQUIRED for package tbz alias without tar plugin");
   }
 
   {

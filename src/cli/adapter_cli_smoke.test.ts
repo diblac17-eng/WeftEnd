@@ -229,6 +229,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const input = path.join(tmp, "sample.tbz");
+    fs.writeFileSync(input, "not-a-real-tbz", "utf8");
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"]);
+    assertEq(res.status, 40, "safe-run archive should fail closed for tbz alias without tar plugin");
+    assert(res.stderr.includes("ARCHIVE_PLUGIN_REQUIRED"), "expected ARCHIVE_PLUGIN_REQUIRED on stderr for tbz alias");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const input = path.join(tmp, "case_collision_plugin.tgz");
     writeSimpleTgz(input, [
       { name: "A.txt", text: "alpha-a" },
@@ -1162,6 +1172,16 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", badTbzAlias, "--out", outDir, "--adapter", "package"]);
     assertEq(res.status, 40, "safe-run should fail closed for tbz2 alias compressed tar package without tar plugin");
     assert(res.stderr.includes("PACKAGE_PLUGIN_REQUIRED"), "expected PACKAGE_PLUGIN_REQUIRED on stderr for bad tbz2 alias without plugin");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const badTbzAlias = path.join(tmp, "bad.tbz");
+    fs.writeFileSync(badTbzAlias, "not-a-real-tbz", "utf8");
+    const res = await runCliCapture(["safe-run", badTbzAlias, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for tbz alias compressed tar package without tar plugin");
+    assert(res.stderr.includes("PACKAGE_PLUGIN_REQUIRED"), "expected PACKAGE_PLUGIN_REQUIRED on stderr for bad tbz alias without plugin");
   }
 
   {
