@@ -230,37 +230,87 @@ const main = () => {
   assert(receiptB.idempotence?.pointerPolicy === "UPDATE_SUPPRESSED", "VERIFY360_HARNESS_REPLAY_POINTER_POLICY_INVALID");
   assertHistoryLink(receiptB, runA, receiptAPath);
 
-  const statusC = runVerify({ WEFTEND_360_FORCE_EXCEPTION: "1" });
-  assert(statusC !== 0, "VERIFY360_HARNESS_FORCED_EXCEPTION_DID_NOT_FAIL");
-  const runsAfterC = listRunNames();
-  const newRunsC = diffNewRuns(runsAfterB, runsAfterC);
-  assert(newRunsC.length === 1, "VERIFY360_HARNESS_FORCED_EXCEPTION_RUN_COUNT_INVALID");
-  const runC = newRunsC[0];
-  const latestC = readLatest();
-  assert(latestC === latestA, "VERIFY360_HARNESS_FORCED_EXCEPTION_POINTER_ADVANCED");
-  const receiptCPath = path.join(historyRoot, runC, "verify_360_receipt.json");
-  const reportCPath = path.join(historyRoot, runC, "verify_360_report.txt");
-  assert(fs.existsSync(receiptCPath), "VERIFY360_HARNESS_RECEIPT_C_MISSING");
-  assert(fs.existsSync(reportCPath), "VERIFY360_HARNESS_REPORT_C_MISSING");
-  const receiptC = readJson(receiptCPath);
-  const reportC = readText(reportCPath);
-  assertStateReceipt(receiptC, "FAIL");
-  assertReportPolicyLines(reportC);
-  assertSortedUnique(receiptC.reasonCodes, "VERIFY360_HARNESS_REASON_CODES");
-  assertCapabilityLedger(receiptC);
-  const reasonCodes = Array.isArray(receiptC.reasonCodes) ? receiptC.reasonCodes : [];
+  const strictReplayEnv = {
+    WEFTEND_360_ADAPTER_DOCTOR_STRICT: "1",
+  };
+  const statusD = runVerify(strictReplayEnv);
+  assert(statusD === 0, `VERIFY360_HARNESS_STRICT_NEW_FAILED status=${statusD}`);
+  const runsAfterD = listRunNames();
+  const newRunsD = diffNewRuns(runsAfterB, runsAfterD);
+  assert(newRunsD.length === 1, "VERIFY360_HARNESS_STRICT_NEW_RUN_COUNT_INVALID");
+  const runD = newRunsD[0];
+  const latestD = readLatest();
+  assert(latestD, "VERIFY360_HARNESS_LATEST_MISSING_AFTER_STRICT_NEW");
+  const receiptDPath = path.join(historyRoot, runD, "verify_360_receipt.json");
+  const reportDPath = path.join(historyRoot, runD, "verify_360_report.txt");
+  assert(fs.existsSync(receiptDPath), "VERIFY360_HARNESS_RECEIPT_D_MISSING");
+  assert(fs.existsSync(reportDPath), "VERIFY360_HARNESS_REPORT_D_MISSING");
+  const receiptD = readJson(receiptDPath);
+  const reportD = readText(reportDPath);
+  const verdictD = String(receiptD.verdict || "");
+  assert(verdictD === "PASS" || verdictD === "PARTIAL", "VERIFY360_HARNESS_STRICT_NEW_VERDICT_INVALID");
+  assertStateReceipt(receiptD, verdictD);
+  assertReportPolicyLines(reportD);
+  assertSortedUnique(receiptD.reasonCodes, "VERIFY360_HARNESS_REASON_CODES");
+  assertCapabilityLedger(receiptD);
+  assert(receiptD.idempotence?.mode === "NEW", "VERIFY360_HARNESS_STRICT_NEW_EXPECTED_NEW");
+  assertHistoryLink(receiptD, runB, receiptBPath);
+
+  const statusE = runVerify(strictReplayEnv);
+  assert(statusE === 0, `VERIFY360_HARNESS_STRICT_REPLAY_FAILED status=${statusE}`);
+  const runsAfterE = listRunNames();
+  const newRunsE = diffNewRuns(runsAfterD, runsAfterE);
+  assert(newRunsE.length === 1, "VERIFY360_HARNESS_STRICT_REPLAY_RUN_COUNT_INVALID");
+  const runE = newRunsE[0];
+  const latestE = readLatest();
+  assert(latestE === latestD, "VERIFY360_HARNESS_STRICT_REPLAY_POINTER_ADVANCED");
+  const receiptEPath = path.join(historyRoot, runE, "verify_360_receipt.json");
+  const reportEPath = path.join(historyRoot, runE, "verify_360_report.txt");
+  assert(fs.existsSync(receiptEPath), "VERIFY360_HARNESS_RECEIPT_E_MISSING");
+  assert(fs.existsSync(reportEPath), "VERIFY360_HARNESS_REPORT_E_MISSING");
+  const receiptE = readJson(receiptEPath);
+  const reportE = readText(reportEPath);
+  const verdictE = String(receiptE.verdict || "");
+  assert(verdictE === "PASS" || verdictE === "PARTIAL", "VERIFY360_HARNESS_STRICT_REPLAY_VERDICT_INVALID");
+  assertStateReceipt(receiptE, verdictE);
+  assertReportPolicyLines(reportE);
+  assertSortedUnique(receiptE.reasonCodes, "VERIFY360_HARNESS_REASON_CODES");
+  assertCapabilityLedger(receiptE);
+  assert(receiptE.idempotence?.mode === "REPLAY", "VERIFY360_HARNESS_STRICT_REPLAY_MODE_MISSING");
+  assert(receiptE.idempotence?.pointerPolicy === "UPDATE_SUPPRESSED", "VERIFY360_HARNESS_STRICT_REPLAY_POINTER_POLICY_INVALID");
+  assertHistoryLink(receiptE, runD, receiptDPath);
+
+  const statusF = runVerify({ WEFTEND_360_FORCE_EXCEPTION: "1" });
+  assert(statusF !== 0, "VERIFY360_HARNESS_FORCED_EXCEPTION_DID_NOT_FAIL");
+  const runsAfterF = listRunNames();
+  const newRunsF = diffNewRuns(runsAfterE, runsAfterF);
+  assert(newRunsF.length === 1, "VERIFY360_HARNESS_FORCED_EXCEPTION_RUN_COUNT_INVALID");
+  const runF = newRunsF[0];
+  const latestF = readLatest();
+  assert(latestF === latestD, "VERIFY360_HARNESS_FORCED_EXCEPTION_POINTER_ADVANCED");
+  const receiptFPath = path.join(historyRoot, runF, "verify_360_receipt.json");
+  const reportFPath = path.join(historyRoot, runF, "verify_360_report.txt");
+  assert(fs.existsSync(receiptFPath), "VERIFY360_HARNESS_RECEIPT_F_MISSING");
+  assert(fs.existsSync(reportFPath), "VERIFY360_HARNESS_REPORT_F_MISSING");
+  const receiptF = readJson(receiptFPath);
+  const reportF = readText(reportFPath);
+  assertStateReceipt(receiptF, "FAIL");
+  assertReportPolicyLines(reportF);
+  assertSortedUnique(receiptF.reasonCodes, "VERIFY360_HARNESS_REASON_CODES");
+  assertCapabilityLedger(receiptF);
+  const reasonCodes = Array.isArray(receiptF.reasonCodes) ? receiptF.reasonCodes : [];
   assert(reasonCodes.includes("VERIFY360_INTERNAL_EXCEPTION"), "VERIFY360_HARNESS_INTERNAL_EXCEPTION_REASON_MISSING");
   assert(reasonCodes.includes("VERIFY360_FORCED_EXCEPTION"), "VERIFY360_HARNESS_FORCED_EXCEPTION_REASON_MISSING");
-  assertHistoryLink(receiptC, runB, receiptBPath);
+  assertHistoryLink(receiptF, runE, receiptEPath);
   assert(
-    reasonCodes.includes(`VERIFY360_FAIL_CLOSED_AT_${String(receiptC.interpreted?.gateState || "").toUpperCase()}`),
+    reasonCodes.includes(`VERIFY360_FAIL_CLOSED_AT_${String(receiptF.interpreted?.gateState || "").toUpperCase()}`),
     "VERIFY360_HARNESS_FAIL_CLOSED_AT_REASON_MISSING"
   );
   const auditStatus = runAuditStrict();
   assert(auditStatus === 0, `VERIFY360_HARNESS_AUDIT_STRICT_FAILED status=${auditStatus}`);
 
   console.log(
-    `verify:360:harness PASS outRoot=${outRoot} beforeLatest=${beforeLatest || "NONE"} passRun=${runA} replayRun=${runB} forcedRun=${runC}`
+    `verify:360:harness PASS outRoot=${outRoot} beforeLatest=${beforeLatest || "NONE"} passRun=${runA} replayRun=${runB} strictRun=${runD} strictReplayRun=${runE} forcedRun=${runF}`
   );
 };
 
