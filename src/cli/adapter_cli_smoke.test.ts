@@ -224,6 +224,18 @@ const run = async (): Promise<void> => {
   }
 
   {
+    const res = await runCliCapture(["adapter", "doctor"], {
+      env: { WEFTEND_ADAPTER_DISABLE: "all,invalid_lane" },
+    });
+    assertEq(res.status, 0, `adapter doctor with mixed valid/invalid policy tokens should still report\n${res.stderr}`);
+    const parsed = JSON.parse(res.stdout);
+    const unknown = (parsed.policy?.unknownTokens as string[]) || [];
+    assert(unknown.includes("invalid_lane"), "adapter doctor should surface unknown maintenance policy token");
+    const disabled = (parsed.policy?.disabledAdapters as string[]) || [];
+    assert(disabled.includes("archive") && disabled.includes("signature"), "adapter doctor all-token should disable full adapter set");
+  }
+
+  {
     const outDir = mkTmp();
     const tmp = mkTmp();
     const input = path.join(tmp, "good.zip");
