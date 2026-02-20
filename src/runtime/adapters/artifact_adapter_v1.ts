@@ -2605,7 +2605,28 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
       };
     }
     markers.push(...zip.markers);
-    const namesLower = zip.entries.map((name) => String(name || "").toLowerCase());
+    const normalizedNames = zip.entries.map((name) => normalizeZipEntryPathV1(String(name || "")));
+    if (strictRoute) {
+      const uniqueNames = stableSortUniqueStringsV0(normalizedNames);
+      if (uniqueNames.length < normalizedNames.length) {
+        return {
+          ok: false,
+          failCode: "DOC_FORMAT_MISMATCH",
+          failMessage: "document adapter expected non-ambiguous OOXML entry paths for explicit office-document analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+        };
+      }
+      const uniqueCaseFoldedNames = stableSortUniqueStringsV0(uniqueNames.map((name) => name.toLowerCase()));
+      if (uniqueCaseFoldedNames.length < uniqueNames.length) {
+        return {
+          ok: false,
+          failCode: "DOC_FORMAT_MISMATCH",
+          failMessage: "document adapter expected case-unambiguous OOXML entry paths for explicit office-document analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+        };
+      }
+    }
+    const namesLower = normalizedNames.map((name) => name.toLowerCase());
     const contentTypesCount = namesLower.filter((name) => name === "[content_types].xml").length;
     const hasContentTypes = contentTypesCount > 0;
     const rootRelationshipsCount = namesLower.filter((name) => name === "_rels/.rels").length;

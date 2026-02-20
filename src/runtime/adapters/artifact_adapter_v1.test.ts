@@ -1753,6 +1753,22 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const caseCollisionDocm = path.join(tmp, "case_collision.docm");
+    writeStoredZip(caseCollisionDocm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "_rels/.rels", text: "<Relationships></Relationships>" },
+      { name: "word/document.xml", text: "<w:document/>" },
+      { name: "word/Scripts.js", text: "a" },
+      { name: "word/scripts.js", text: "b" },
+    ]);
+    const capture = captureTreeV0(caseCollisionDocm, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: caseCollisionDocm, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit docm with case-colliding OOXML entry paths");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for case-colliding OOXML entry paths");
+  }
+
+  {
+    const tmp = mkTmp();
     const pdf = path.join(tmp, "demo.pdf");
     fs.writeFileSync(
       pdf,

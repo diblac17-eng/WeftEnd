@@ -908,6 +908,22 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const caseCollisionDocm = path.join(tmp, "case_collision.docm");
+    writeStoredZip(caseCollisionDocm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "_rels/.rels", text: "<Relationships></Relationships>" },
+      { name: "word/document.xml", text: "<w:document/>" },
+      { name: "word/Scripts.js", text: "a" },
+      { name: "word/scripts.js", text: "b" },
+    ]);
+    const res = await runCliCapture(["safe-run", caseCollisionDocm, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit docm with case-colliding OOXML entry paths");
+    assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr for case-colliding OOXML entry paths");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badPem = path.join(tmp, "bad.pem");
     fs.writeFileSync(badPem, "plain text not signature material", "utf8");
     const res = await runCliCapture(["safe-run", badPem, "--out", outDir, "--adapter", "signature"]);
