@@ -23,6 +23,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - When fail-on-partial policy blocks a PARTIAL verdict, verify output now prints `blocked_by_policy` and receipt interpretation records `partialBlockedByPolicy=1`.
 - Added `npm run verify:360:release` helper for a single strict release gate command (`adapter doctor strict + fail-on-partial + strict audit`).
 - `verify:360:harness` now validates strict-mode idempotence separation (`NEW` then `REPLAY`) to prevent strict/non-strict replay-key regression.
+- Emergency verify report output now includes policy summary lines (`policy.*`) and failure receipts carry interpreted policy fields for consistent fail-closed readability.
 
 ### Adapter maintenance controls
 - Added `weftend adapter doctor` for deterministic adapter readiness/maintenance reporting.

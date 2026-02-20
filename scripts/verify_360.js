@@ -610,6 +610,10 @@ const writeEmergencyOutputs = (runDir, payload, writeError) => {
     "VERIFY360 FAIL",
     `runId=${payload.runId}`,
     `reasonCodes=${(payload.reasonCodes || []).join(",") || "-"}`,
+    `policy.auditStrict=${Number(payload.idempotenceContext?.auditStrictMode ?? 0) === 1 ? 1 : 0}`,
+    `policy.adapterDoctorStrict=${Number(payload.idempotenceContext?.adapterDoctorStrictMode ?? 0) === 1 ? 1 : 0}`,
+    `policy.failOnPartial=${Number(payload.interpreted?.policy?.failOnPartialMode ?? payload.idempotenceContext?.failOnPartialMode ?? 0) === 1 ? 1 : 0}`,
+    `policy.partialBlocked=${Number(payload.interpreted?.policy?.partialBlockedByPolicy ?? 0) === 1 ? 1 : 0}`,
     "emergencyWrite=1",
     `emergencyWriteDigest=${writeErrorDigest}`,
   ].join("\n");
@@ -1242,6 +1246,10 @@ const main = () => {
         reasonCodes: emergencyReasonCodes,
         idempotenceMode,
         idempotencePointerPolicy: "UPDATE_SUPPRESSED",
+        policy: {
+          failOnPartialMode,
+          partialBlockedByPolicy: 0,
+        },
         expectedStateTarget: "RECORDED",
       },
       explain: buildExplain("FAIL", idempotenceMode),
