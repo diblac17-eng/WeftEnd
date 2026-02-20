@@ -475,6 +475,31 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const input = path.join(tmp, "azure-pipelines.yaml");
+    fs.writeFileSync(input, "title: placeholder\nmessage: plain text\n", "utf8");
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "cicd"]);
+    assertEq(res.status, 40, "safe-run should fail closed for azure-pipelines.yaml path-hint-only input without ci structure/signals");
+    assert(res.stderr.includes("CICD_UNSUPPORTED_FORMAT"), "expected CICD_UNSUPPORTED_FORMAT on stderr for azure-pipelines.yaml path-hint-only input");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, ".gitlab-ci.yaml");
+    fs.writeFileSync(
+      input,
+      "stages:\n  - build\nbuild:\n  stage: build\n  script:\n    - echo hello\n",
+      "utf8"
+    );
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "cicd"]);
+    assertEq(res.status, 0, `safe-run should accept gitlab-ci.yaml with ci structure\n${res.stderr}`);
+    const safe = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
+    assertEq(safe.contentSummary?.adapterSignals?.class, "cicd", "expected cicd adapter class for gitlab-ci.yaml");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const input = path.join(tmp, "notes.yaml");
     fs.writeFileSync(input, "title: hello\nmessage: plain text\n", "utf8");
     const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "iac"]);

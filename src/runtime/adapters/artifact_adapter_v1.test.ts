@@ -600,6 +600,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const gitlab = path.join(tmp, ".gitlab-ci.yaml");
+    fs.writeFileSync(
+      gitlab,
+      "stages:\n  - build\nbuild:\n  stage: build\n  script:\n    - echo hello\n",
+      "utf8"
+    );
+    const capture = captureTreeV0(tmp, limits);
+    const res = runArtifactAdapterV1({ selection: "cicd", enabledPlugins: [], inputPath: tmp, capture });
+    assert(res.ok, "cicd adapter should succeed for gitlab-ci.yaml workflow");
+    assertEq(res.summary?.sourceClass, "cicd", "expected cicd source class for gitlab-ci.yaml");
+  }
+
+  {
+    const tmp = mkTmp();
     const wfDir = path.join(tmp, ".github", "workflows");
     fs.mkdirSync(wfDir, { recursive: true });
     fs.writeFileSync(
@@ -639,6 +653,16 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "cicd", enabledPlugins: [], inputPath: tmp, capture });
     assert(!res.ok, "cicd adapter should fail closed for path-hint-only workflow without ci structure/signals");
     assertEq(res.failCode, "CICD_UNSUPPORTED_FORMAT", "expected CICD_UNSUPPORTED_FORMAT for path-hint-only workflow");
+  }
+
+  {
+    const tmp = mkTmp();
+    const azure = path.join(tmp, "azure-pipelines.yaml");
+    fs.writeFileSync(azure, "title: placeholder\nmessage: plain text\n", "utf8");
+    const capture = captureTreeV0(tmp, limits);
+    const res = runArtifactAdapterV1({ selection: "cicd", enabledPlugins: [], inputPath: tmp, capture });
+    assert(!res.ok, "cicd adapter should fail closed for azure-pipelines.yaml path-hint-only input");
+    assertEq(res.failCode, "CICD_UNSUPPORTED_FORMAT", "expected CICD_UNSUPPORTED_FORMAT for azure-pipelines.yaml path-hint-only input");
   }
 
   {
