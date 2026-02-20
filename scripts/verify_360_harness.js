@@ -139,6 +139,7 @@ const assertReportPolicyLines = (reportText) => {
     "policy.auditStrict=",
     "policy.adapterDoctorStrict=",
     "policy.failOnPartial=",
+    "policy.partialBlocked=",
     "adapterDoctor.status=",
     "adapterDoctor.strictStatus=",
     "adapterDoctor.strictReasons=",

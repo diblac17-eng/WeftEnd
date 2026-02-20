@@ -490,6 +490,7 @@ const writeOutputs = (runDir, payload, options = {}) => {
   const policyAdapterStrict = Number(payload.idempotenceContext?.adapterDoctorStrictMode ?? 0) === 1 ? 1 : 0;
   const policyFailOnPartial =
     Number(payload.interpreted?.policy?.failOnPartialMode ?? payload.idempotenceContext?.failOnPartialMode ?? 0) === 1 ? 1 : 0;
+  const policyPartialBlocked = Number(payload.interpreted?.policy?.partialBlockedByPolicy ?? 0) === 1 ? 1 : 0;
   lines.push(`VERIFY360 ${payload.verdict}`);
   lines.push(`runId=${payload.runId}`);
   lines.push(`history.prevRun=${payload.historyLink?.priorRunId || "NONE"}`);
@@ -499,6 +500,7 @@ const writeOutputs = (runDir, payload, options = {}) => {
   lines.push(`policy.auditStrict=${policyAuditStrict}`);
   lines.push(`policy.adapterDoctorStrict=${policyAdapterStrict}`);
   lines.push(`policy.failOnPartial=${policyFailOnPartial}`);
+  lines.push(`policy.partialBlocked=${policyPartialBlocked}`);
   lines.push(`adapterDoctor.status=${adapterDoctorStep?.status || "-"}`);
   lines.push(`adapterDoctor.strictStatus=${String(adapterDoctorDetails?.strictStatus || "-")}`);
   lines.push(
@@ -1049,10 +1051,11 @@ const main = () => {
   const hasFail = statuses.includes("FAIL");
   const hasPartial = statuses.includes("PARTIAL") || statuses.includes("SKIP");
   const verdict = hasFail ? "FAIL" : hasPartial ? "PARTIAL" : "PASS";
+  const partialBlockedByPolicy = failOnPartialMode === 1 && verdict === "PARTIAL";
   const reasonCodesBase = stableSortUnique(
     steps.flatMap((s) => (Array.isArray(s.reasonCodes) ? s.reasonCodes : []))
   );
-  const reasonCodes = failOnPartialMode === 1 && verdict === "PARTIAL" ? stableSortUnique([...reasonCodesBase, "VERIFY360_PARTIAL_BLOCKED_BY_POLICY"]) : reasonCodesBase;
+  const reasonCodes = partialBlockedByPolicy ? stableSortUnique([...reasonCodesBase, "VERIFY360_PARTIAL_BLOCKED_BY_POLICY"]) : reasonCodesBase;
   recordCapability("output.write_receipt", true, []);
   const stepStatusSummary = summarizeStepStatuses(steps);
   const capabilityDecisions = buildCapabilityDecisions(capabilityMap);
@@ -1110,6 +1113,7 @@ const main = () => {
       idempotencePointerPolicy,
       policy: {
         failOnPartialMode,
+        partialBlockedByPolicy: partialBlockedByPolicy ? 1 : 0,
       },
       expectedStateTarget: "RECORDED",
     },
@@ -1162,9 +1166,9 @@ const main = () => {
     throw new Error("FAIL_CLOSED_AT_FINALIZED_MISSING_RECEIPT");
   }
   advanceState("RECORDED");
-  console.log(`verify:360 ${verdict} receipt=${rel(path.join(runDir, "verify_360_receipt.json"))}`);
+  console.log(`verify:360 ${verdict}${partialBlockedByPolicy ? " (blocked_by_policy)" : ""} receipt=${rel(path.join(runDir, "verify_360_receipt.json"))}`);
 
-  if (verdict === "FAIL" || (failOnPartialMode === 1 && verdict === "PARTIAL")) process.exit(1);
+  if (verdict === "FAIL" || partialBlockedByPolicy) process.exit(1);
   process.exit(0);
   } catch (error) {
     const errorDigest = sha256Text(String(error?.message || error || "UNKNOWN"));

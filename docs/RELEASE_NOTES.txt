@@ -17,6 +17,7 @@ Included
 - Added `WEFTEND_360_FAIL_ON_PARTIAL=1` policy support (and helper commands) to force non-zero exit when verify ends in PARTIAL.
 - `verify_360_report.txt` now includes explicit gate-policy and adapter-doctor strict summary lines (`policy.*`, `adapterDoctor.*`) for quick human review.
 - `verify:360:harness` now checks these report lines in pass/replay/fail lanes to prevent report regression.
+- Policy-enforced PARTIAL exits now print `verify:360 PARTIAL (blocked_by_policy)` and set `interpreted.policy.partialBlockedByPolicy=1` for explicit machine/human signaling.
 - Safe-run now enforces a non-blocking evidence corridor check before completion:
 - Expected receipt artifacts are verified for presence and digest consistency.
 - Pre-existing/stale unmanaged output files anywhere under the run out-root are flagged as orphan evidence.
