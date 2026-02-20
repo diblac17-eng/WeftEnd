@@ -73,9 +73,9 @@ Included
 - Explicit OCI layout route now requires non-empty manifest digest references when manifests are present, preventing digestless OCI manifest shells from passing strict layout routing.
 - Explicit container route now fails closed when OCI index manifests shape is invalid and when container tar metadata is partial, preventing mixed valid/corrupt container acceptance.
 - Explicit Docker-style tar route now requires at least one `layer.tar` entry when `manifest.json` and `repositories` markers are present, preventing placeholder tar marker shells from passing strict container routing.
-- Explicit Docker-style tar route now also requires valid `manifest.json` and `repositories` JSON payload structure, and requires manifest layer references to resolve to tar entries.
+- Explicit Docker-style tar route now also requires valid `manifest.json` and `repositories` JSON payload structure, and requires all manifest layer references to resolve to tar entries.
 - Explicit Docker-style tar route now requires at least one repository/tag mapping in `repositories` JSON, preventing non-empty but non-usable repository shells from passing strict routing.
-- Explicit Docker-style tar route now requires manifest config references to resolve to tar entries, preventing marker-complete but incomplete config payload shells from passing strict routing.
+- Explicit Docker-style tar route now requires all manifest config references to resolve to tar entries, preventing partial config payload shells from passing strict routing.
 - Explicit OCI tar strict route now requires manifest digest references to resolve to blob entries, preventing unrelated blob padding from satisfying strict OCI tar evidence.
 - Explicit OCI tar strict route now requires non-empty manifest digest references when manifests are present, preventing digestless OCI tar manifest shells from passing strict routing.
 - Explicit compose route now fails closed when service placeholders exist without valid indented service entries or without `image`/`build` evidence, while still allowing build-only compose service definitions.

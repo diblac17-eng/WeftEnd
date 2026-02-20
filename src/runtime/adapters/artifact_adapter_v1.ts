@@ -2657,19 +2657,19 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
           reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
         };
       }
-      if (strictRoute && dockerManifestLayerRefCount > 0 && dockerManifestLayerResolvedCount === 0) {
+      if (strictRoute && dockerManifestLayerRefCount > 0 && dockerManifestLayerResolvedCount < dockerManifestLayerRefCount) {
         return {
           ok: false,
           failCode: "CONTAINER_FORMAT_MISMATCH",
-          failMessage: "container adapter expected docker manifest layer references to resolve to tar entries for explicit docker tar analysis.",
+          failMessage: "container adapter expected all docker manifest layer references to resolve to tar entries for explicit docker tar analysis.",
           reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
         };
       }
-      if (strictRoute && dockerManifestConfigRefCount > 0 && dockerManifestConfigResolvedCount === 0) {
+      if (strictRoute && dockerManifestConfigRefCount > 0 && dockerManifestConfigResolvedCount < dockerManifestConfigRefCount) {
         return {
           ok: false,
           failCode: "CONTAINER_FORMAT_MISMATCH",
-          failMessage: "container adapter expected docker manifest config references to resolve to tar entries for explicit docker tar analysis.",
+          failMessage: "container adapter expected all docker manifest config references to resolve to tar entries for explicit docker tar analysis.",
           reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
         };
       }

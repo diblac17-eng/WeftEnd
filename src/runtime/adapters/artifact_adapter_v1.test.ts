@@ -1725,6 +1725,45 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tarPath = path.join(tmp, "container_partial_layer_resolution.tar");
+    writeSimpleTar(tarPath, [
+      {
+        name: "manifest.json",
+        text: JSON.stringify([{ Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar", "missing/layer.tar"] }]),
+      },
+      { name: "repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
+      { name: "config.json", text: "{}" },
+      { name: "layer.tar", text: "layer-bytes" },
+    ]);
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit docker tar partial layer reference resolution");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for partial docker layer resolution");
+  }
+
+  {
+    const tmp = mkTmp();
+    const tarPath = path.join(tmp, "container_partial_config_resolution.tar");
+    writeSimpleTar(tarPath, [
+      {
+        name: "manifest.json",
+        text: JSON.stringify([
+          { Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] },
+          { Config: "missing.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] },
+        ]),
+      },
+      { name: "repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
+      { name: "config.json", text: "{}" },
+      { name: "layer.tar", text: "layer-bytes" },
+    ]);
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit docker tar partial config reference resolution");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for partial docker config resolution");
+  }
+
+  {
+    const tmp = mkTmp();
     const tarPath = path.join(tmp, "container_partial.tar");
     writeSimpleTar(tarPath, [
       { name: "manifest.json", text: "[]" },

@@ -1701,6 +1701,45 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const partialLayerResolutionTar = path.join(tmp, "container_partial_layer_resolution.tar");
+    writeSimpleTar(partialLayerResolutionTar, [
+      {
+        name: "manifest.json",
+        text: JSON.stringify([{ Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar", "missing/layer.tar"] }]),
+      },
+      { name: "repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
+      { name: "config.json", text: "{}" },
+      { name: "layer.tar", text: "layer-bytes" },
+    ]);
+    const res = await runCliCapture(["safe-run", partialLayerResolutionTar, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit docker tar partial layer reference resolution");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for partial docker layer resolution");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const partialConfigResolutionTar = path.join(tmp, "container_partial_config_resolution.tar");
+    writeSimpleTar(partialConfigResolutionTar, [
+      {
+        name: "manifest.json",
+        text: JSON.stringify([
+          { Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] },
+          { Config: "missing.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] },
+        ]),
+      },
+      { name: "repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
+      { name: "config.json", text: "{}" },
+      { name: "layer.tar", text: "layer-bytes" },
+    ]);
+    const res = await runCliCapture(["safe-run", partialConfigResolutionTar, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit docker tar partial config reference resolution");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for partial docker config resolution");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const partialTar = path.join(tmp, "partial_container.tar");
     writeSimpleTar(partialTar, [
       { name: "manifest.json", text: "[]" },
