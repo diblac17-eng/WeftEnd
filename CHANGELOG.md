@@ -17,6 +17,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added fail-closed adapter maintenance policy gate using `WEFTEND_ADAPTER_DISABLE=<adapter[,adapter...]>`.
 - Disabled adapter lanes now fail closed with `ADAPTER_TEMPORARILY_UNAVAILABLE` + `ADAPTER_DISABLED_BY_POLICY`.
 - Invalid maintenance policy tokens now fail closed with `ADAPTER_POLICY_INVALID`.
+- `safe-run` now preserves deterministic evidence artifacts (`safe_run_receipt.json`, `operator_receipt.json`, analysis receipts) even when adapter maintenance policy fails closed.
 
 ### Adapter strict-route hardening
 - CI/CD adapter discovery/path coverage now explicitly includes `.gitlab-ci.yaml` and `azure-pipelines*.yaml` in addition to existing `.yml` patterns.

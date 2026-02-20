@@ -92,6 +92,7 @@ Adapter maintenance gate
 - Use `WEFTEND_ADAPTER_DISABLE=all` to disable every adapter lane.
 - Disabled lanes fail closed with `ADAPTER_TEMPORARILY_UNAVAILABLE`.
 - Invalid policy tokens fail closed with `ADAPTER_POLICY_INVALID`.
+- Adapter policy failures still emit deterministic safe-run evidence artifacts.
 
 Release trust notes
 - Standard and portable release zips ship with .sha256 files.

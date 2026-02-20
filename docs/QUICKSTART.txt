@@ -48,6 +48,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   - Use WEFTEND_ADAPTER_DISABLE=all to disable all adapter lanes.
   - Disabled lane result is fail-closed (ADAPTER_TEMPORARILY_UNAVAILABLE).
   - Invalid disable token is fail-closed (ADAPTER_POLICY_INVALID).
+  - Fail-closed adapter-policy outcomes still write deterministic safe-run evidence artifacts.
 
 3.2) Container scan (CLI, local Docker inspect only)
 - Scan a locally available immutable image reference:

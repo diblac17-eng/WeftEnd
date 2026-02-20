@@ -335,6 +335,43 @@ suite("cli/safe-run", () => {
     assert(receipt.contentSummary.entryHints.includes("ENTRY_HTML_LIKE"), "expected ENTRY_HTML_LIKE hint");
   });
 
+  register("safe-run adapter disabled policy still writes deterministic receipts", async () => {
+    const outDir = makeTempDir();
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const policyPath = path.join(process.cwd(), "policies", "web_component_default.json");
+    const result = await runCliCapture(
+      ["safe-run", inputPath, "--policy", policyPath, "--adapter", "archive", "--out", path.join(outDir, "run")],
+      { env: { WEFTEND_ADAPTER_DISABLE: "archive" } }
+    );
+    assertEq(result.status, 40, `expected adapter-disabled fail-closed exit code\n${result.stderr}`);
+    assert(result.stderr.includes("ADAPTER_TEMPORARILY_UNAVAILABLE"), "expected ADAPTER_TEMPORARILY_UNAVAILABLE stderr");
+    const runRoot = path.join(outDir, "run");
+    assert(fs.existsSync(path.join(runRoot, "safe_run_receipt.json")), "expected safe_run_receipt.json on adapter-disabled failure");
+    assert(fs.existsSync(path.join(runRoot, "operator_receipt.json")), "expected operator_receipt.json on adapter-disabled failure");
+    assert(fs.existsSync(path.join(runRoot, "analysis", "intake_decision.json")), "expected analysis intake decision artifact");
+    const receipt = readJson(runRoot, "safe_run_receipt.json");
+    assertEq(receipt.analysisVerdict, "DENY", "expected DENY analysis verdict on adapter-disabled failure");
+    assert(receipt.execution.reasonCodes.includes("ADAPTER_TEMPORARILY_UNAVAILABLE"), "expected adapter fail code in execution reasons");
+  });
+
+  register("safe-run invalid adapter disable policy still writes deterministic receipts", async () => {
+    const outDir = makeTempDir();
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const policyPath = path.join(process.cwd(), "policies", "web_component_default.json");
+    const result = await runCliCapture(
+      ["safe-run", inputPath, "--policy", policyPath, "--adapter", "archive", "--out", path.join(outDir, "run")],
+      { env: { WEFTEND_ADAPTER_DISABLE: "archive,bogus_lane" } }
+    );
+    assertEq(result.status, 40, `expected adapter-policy-invalid fail-closed exit code\n${result.stderr}`);
+    assert(result.stderr.includes("ADAPTER_POLICY_INVALID"), "expected ADAPTER_POLICY_INVALID stderr");
+    const runRoot = path.join(outDir, "run");
+    assert(fs.existsSync(path.join(runRoot, "safe_run_receipt.json")), "expected safe_run_receipt.json on policy-invalid failure");
+    assert(fs.existsSync(path.join(runRoot, "operator_receipt.json")), "expected operator_receipt.json on policy-invalid failure");
+    const receipt = readJson(runRoot, "safe_run_receipt.json");
+    assertEq(receipt.analysisVerdict, "DENY", "expected DENY analysis verdict on adapter policy invalid");
+    assert(receipt.execution.reasonCodes.includes("ADAPTER_POLICY_INVALID"), "expected adapter policy invalid code in execution reasons");
+  });
+
   register("safe-run malformed input exits 40", async () => {
     const outDir = makeTempDir();
     const policyPath = path.join(process.cwd(), "policies", "web_component_default.json");

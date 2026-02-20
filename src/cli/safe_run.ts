@@ -847,6 +847,19 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
   const decisionJson = `${canonicalJSON(output.decision)}\n`;
   const disclosureTxt = `${output.disclosure}\n`;
   const appealJson = `${canonicalJSON(output.appeal)}\n`;
+  const baseSubReceipts: Array<{ name: string; digest: string }> = [
+    { name: "analysis/appeal_bundle.json", digest: digestText(appealJson) },
+    { name: "analysis/disclosure.txt", digest: digestText(disclosureTxt) },
+    { name: "analysis/intake_decision.json", digest: digestText(decisionJson) },
+    { name: "analysis/weftend_mint_v1.json", digest: digestText(mintJson) },
+    { name: "analysis/weftend_mint_v1.txt", digest: digestText(mintTxt) },
+  ];
+
+  writeFile(path.join(analysisDir, "weftend_mint_v1.json"), mintJson);
+  writeFile(path.join(analysisDir, "weftend_mint_v1.txt"), mintTxt);
+  writeFile(path.join(analysisDir, "intake_decision.json"), decisionJson);
+  writeFile(path.join(analysisDir, "disclosure.txt"), disclosureTxt);
+  writeFile(path.join(analysisDir, "appeal_bundle.json"), appealJson);
 
   const adapterResult = runArtifactAdapterV1({
     selection: adapterSelection,
@@ -857,27 +870,51 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
   if (!adapterResult.ok) {
     const code = adapterResult.failCode || "ADAPTER_PRECONDITION_FAILED";
     const message = adapterResult.failMessage || "adapter precondition failed.";
+    const contentSummary = buildContentSummaryV0({
+      inputPath: options.inputPath,
+      capture: result.capture,
+      observations: result.mint.observations,
+      artifactKind: classifiedRaw.artifactKind,
+      policyMatch,
+    });
+    const executionVerdict: SafeRunExecutionVerdictV0 = executeRequested ? "SKIP" : "NOT_ATTEMPTED";
+    const executionReasonCodes = stableSortUniqueReasonsV0(
+      executeRequested
+        ? ["INTAKE_NOT_APPROVED", code]
+        : [withholdExec ? "SAFE_RUN_WITHHOLD_EXEC_REQUESTED" : "SAFE_RUN_EXECUTION_NOT_REQUESTED", code]
+    );
+    const receipt = buildSafeRunReceipt({
+      schema: "weftend.safeRunReceipt/0",
+      v: 0,
+      schemaVersion: 0,
+      weftendBuild,
+      inputKind: "raw",
+      artifactKind: classifiedRaw.artifactKind,
+      entryHint: classifiedRaw.entryHint,
+      analysisVerdict: "DENY",
+      executionVerdict,
+      topReasonCode: topReason(
+        [code, ...(adapterResult.reasonCodes ?? [])],
+        output.decision.topReasonCodes,
+        classifiedRaw.reasonCodes
+      ),
+      inputDigest: result.mint.input.rootDigest,
+      policyId: output.decision.policyId,
+      intakeDecisionDigest: output.decision.decisionDigest,
+      contentSummary,
+      execution: { result: toExecutionResult(executionVerdict), reasonCodes: executionReasonCodes },
+      subReceipts: baseSubReceipts,
+    });
+    const out = finalize(receipt, [...classifiedRaw.reasonCodes, ...output.decision.topReasonCodes, code, ...(adapterResult.reasonCodes ?? [])]);
     console.error(`[${code}] ${message}`);
+    if (!out.ok) return out.code;
     return 40;
   }
   const adapterSummaryJson = adapterResult.summary ? `${canonicalJSON(adapterResult.summary)}\n` : "";
   const adapterFindingsJson = adapterResult.findings ? `${canonicalJSON(adapterResult.findings)}\n` : "";
-
-  writeFile(path.join(analysisDir, "weftend_mint_v1.json"), mintJson);
-  writeFile(path.join(analysisDir, "weftend_mint_v1.txt"), mintTxt);
-  writeFile(path.join(analysisDir, "intake_decision.json"), decisionJson);
-  writeFile(path.join(analysisDir, "disclosure.txt"), disclosureTxt);
-  writeFile(path.join(analysisDir, "appeal_bundle.json"), appealJson);
   if (adapterSummaryJson) writeFile(path.join(analysisDir, "adapter_summary_v0.json"), adapterSummaryJson);
   if (adapterFindingsJson) writeFile(path.join(analysisDir, "adapter_findings_v0.json"), adapterFindingsJson);
-
-  const subReceipts: Array<{ name: string; digest: string }> = [
-    { name: "analysis/appeal_bundle.json", digest: digestText(appealJson) },
-    { name: "analysis/disclosure.txt", digest: digestText(disclosureTxt) },
-    { name: "analysis/intake_decision.json", digest: digestText(decisionJson) },
-    { name: "analysis/weftend_mint_v1.json", digest: digestText(mintJson) },
-    { name: "analysis/weftend_mint_v1.txt", digest: digestText(mintTxt) },
-  ];
+  const subReceipts: Array<{ name: string; digest: string }> = [...baseSubReceipts];
   if (adapterSummaryJson) {
     subReceipts.push({ name: "analysis/adapter_summary_v0.json", digest: digestText(adapterSummaryJson) });
   }
