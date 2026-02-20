@@ -1033,6 +1033,81 @@ const countMatchesV1 = (text: string, pattern: RegExp): number => {
   return count;
 };
 
+type ComposeHintsV1 = {
+  imageRefCount: number;
+  serviceEntryCount: number;
+  serviceWithImageOrBuildCount: number;
+  buildHintCount: number;
+  servicesBlockCount: number;
+};
+
+const analyzeComposeHintsV1 = (text: string): ComposeHintsV1 => {
+  const lines = text.split(/\r?\n/);
+  let imageRefCount = 0;
+  let serviceEntryCount = 0;
+  let serviceWithImageOrBuildCount = 0;
+  let buildHintCount = 0;
+  let servicesBlockCount = 0;
+  let inServices = false;
+  let servicesIndent = -1;
+  let currentServiceIndent = -1;
+  let currentServiceOpen = false;
+  let currentServiceHasImageOrBuild = false;
+  const flushService = (): void => {
+    if (currentServiceOpen && currentServiceHasImageOrBuild) serviceWithImageOrBuildCount += 1;
+    currentServiceOpen = false;
+    currentServiceHasImageOrBuild = false;
+    currentServiceIndent = -1;
+  };
+  for (const raw of lines) {
+    if (/^\s*#/.test(raw)) continue;
+    const line = raw.replace(/\t/g, "  ");
+    if (/^\s*$/.test(line)) continue;
+    const indentMatch = /^ */.exec(line);
+    const indent = indentMatch ? indentMatch[0].length : 0;
+    const trimmed = line.trim();
+    if (/^services\s*:\s*$/.test(trimmed)) {
+      if (inServices) flushService();
+      inServices = true;
+      servicesIndent = indent;
+      servicesBlockCount += 1;
+      continue;
+    }
+    if (!inServices) continue;
+    if (indent <= servicesIndent && /^[A-Za-z0-9._-]+\s*:\s*$/.test(trimmed)) {
+      flushService();
+      inServices = false;
+      servicesIndent = -1;
+      continue;
+    }
+    const serviceMatch = /^([A-Za-z0-9._-]+)\s*:\s*$/.exec(trimmed);
+    if (serviceMatch && indent === servicesIndent + 2) {
+      flushService();
+      currentServiceOpen = true;
+      currentServiceIndent = indent;
+      serviceEntryCount += 1;
+      continue;
+    }
+    if (currentServiceOpen && indent > currentServiceIndent) {
+      if (/^image\s*:\s*[^\s#]+/.test(trimmed)) {
+        imageRefCount += 1;
+        currentServiceHasImageOrBuild = true;
+      } else if (/^build\s*:\s*[^\s#]+/.test(trimmed) || /^build\s*:\s*$/.test(trimmed)) {
+        buildHintCount += 1;
+        currentServiceHasImageOrBuild = true;
+      }
+    }
+  }
+  if (inServices) flushService();
+  return {
+    imageRefCount,
+    serviceEntryCount,
+    serviceWithImageOrBuildCount,
+    buildHintCount,
+    servicesBlockCount,
+  };
+};
+
 const isLikelyDerSequenceV1 = (bytes: any): boolean => {
   if (!bytes || bytes.length < 4) return false;
   if (bytes[0] !== 0x30) return false;
@@ -2369,6 +2444,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let composeImageRefCount = 0;
   let composeServiceHintCount = 0;
   let composeServiceChildHintCount = 0;
+  let composeServiceWithImageOrBuildCount = 0;
   let composeBuildHintCount = 0;
   let composeServicesBlockCount = 0;
   let sbomPackageCount = 0;
@@ -2563,21 +2639,22 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       composeFiles.forEach((relPath) => composeTexts.push(readTextBounded(path.join(ctx.inputPath, relPath))));
     }
     composeTexts.forEach((text) => {
-      composeImageRefCount += countMatchesV1(text, /\bimage\s*:\s*[^\s#]+/gi);
-      composeServiceHintCount += countMatchesV1(text, /^\s{0,2}[A-Za-z0-9._-]+\s*:\s*$/gm);
-      composeServiceChildHintCount += countMatchesV1(text, /^\s{2,}[A-Za-z0-9._-]+\s*:\s*$/gm);
-      composeBuildHintCount += countMatchesV1(text, /\bbuild\s*:\s*[^\s#]+/gi);
-      composeBuildHintCount += countMatchesV1(text, /^\s*build\s*:\s*$/gm);
-      composeServicesBlockCount += countMatchesV1(text, /^\s*services\s*:\s*$/gm);
+      const hints = analyzeComposeHintsV1(text);
+      composeImageRefCount += hints.imageRefCount;
+      composeServiceHintCount += hints.serviceEntryCount;
+      composeServiceChildHintCount += hints.serviceEntryCount;
+      composeServiceWithImageOrBuildCount += hints.serviceWithImageOrBuildCount;
+      composeBuildHintCount += hints.buildHintCount;
+      composeServicesBlockCount += hints.servicesBlockCount;
     });
     if (
       strictRoute &&
-      (composeServicesBlockCount === 0 || composeServiceChildHintCount === 0 || (composeImageRefCount === 0 && composeBuildHintCount === 0))
+      (composeServicesBlockCount === 0 || composeServiceHintCount === 0 || composeServiceWithImageOrBuildCount === 0)
     ) {
       return {
         ok: false,
         failCode: "CONTAINER_FORMAT_MISMATCH",
-        failMessage: "container adapter expected compose services block with service entries and image/build hints for explicit compose analysis.",
+        failMessage: "container adapter expected compose services block with service entries and in-service image/build hints for explicit compose analysis.",
         reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
       };
     }
@@ -2652,6 +2729,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       composeImageRefCount,
       composeServiceHintCount,
       composeServiceChildHintCount,
+      composeServiceWithImageOrBuildCount,
       composeBuildHintCount,
       composeServicesBlockCount,
       sbomPackageCount,

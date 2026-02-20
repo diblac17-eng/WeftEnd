@@ -1685,6 +1685,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const outOfServiceImageCompose = path.join(tmp, "compose.yaml");
+    fs.writeFileSync(outOfServiceImageCompose, "services:\n  web:\n    restart: always\nimage: nginx:latest\n", "utf8");
+    const res = await runCliCapture(["safe-run", outOfServiceImageCompose, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed when compose image hint is outside service block");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for compose image hint outside service block");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const shallowCompose = path.join(tmp, "compose.yaml");
     fs.writeFileSync(shallowCompose, "services:\nimage: nginx:latest\n", "utf8");
     const res = await runCliCapture(["safe-run", shallowCompose, "--out", outDir, "--adapter", "container"]);

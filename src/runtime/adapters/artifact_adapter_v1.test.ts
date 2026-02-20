@@ -1762,6 +1762,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const outOfServiceImageComposePath = path.join(tmp, "compose.yaml");
+    fs.writeFileSync(outOfServiceImageComposePath, "services:\n  web:\n    restart: always\nimage: nginx:latest\n", "utf8");
+    const capture = captureTreeV0(outOfServiceImageComposePath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: outOfServiceImageComposePath, capture });
+    assert(!res.ok, "container adapter should fail closed when compose image hint is outside service block");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for compose image hint outside service block");
+  }
+
+  {
+    const tmp = mkTmp();
     const shallowComposePath = path.join(tmp, "compose.yaml");
     fs.writeFileSync(shallowComposePath, "services:\nimage: nginx:latest\n", "utf8");
     const capture = captureTreeV0(shallowComposePath, limits);
