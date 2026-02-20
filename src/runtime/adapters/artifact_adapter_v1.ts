@@ -2793,6 +2793,29 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     lower === "compose.yaml" ||
     hasAnyPath(ctx.capture, ["docker-compose.yml", "docker-compose.yaml", "compose.yaml", "compose.yml"]);
   const isSbom = /sbom|spdx|cyclonedx|bom/i.test(lower);
+  if (strictRoute && ctx.capture.kind !== "file") {
+    const entryPaths = ctx.capture.entries
+      .map((entry) => String(entry.path || "").replace(/\\/g, "/"))
+      .filter((p) => p.length > 0);
+    const uniquePaths = stableSortUniqueStringsV0(entryPaths);
+    if (uniquePaths.length < entryPaths.length) {
+      return {
+        ok: false,
+        failCode: "CONTAINER_FORMAT_MISMATCH",
+        failMessage: "container adapter expected non-ambiguous entry paths for explicit container analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+      };
+    }
+    const uniqueCaseFoldedPaths = stableSortUniqueStringsV0(uniquePaths.map((name) => name.toLowerCase()));
+    if (uniqueCaseFoldedPaths.length < uniquePaths.length) {
+      return {
+        ok: false,
+        failCode: "CONTAINER_FORMAT_MISMATCH",
+        failMessage: "container adapter expected case-unambiguous entry paths for explicit container analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+      };
+    }
+  }
   const tarEntries = isTarInput
     ? readTarEntries(ctx.inputPath, strictRoute ? { dedupe: false } : undefined)
     : { entries: [] as string[], markers: [] as string[] };
