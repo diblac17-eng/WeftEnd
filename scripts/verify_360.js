@@ -484,12 +484,30 @@ const writeOutputs = (runDir, payload, options = {}) => {
   const txtPath = path.join(stageDir, "verify_360_report.txt");
 
   const lines = [];
+  const adapterDoctorStep = (payload.steps || []).find((s) => String(s?.id || "") === "adapter_doctor");
+  const adapterDoctorDetails = adapterDoctorStep && typeof adapterDoctorStep.details === "object" ? adapterDoctorStep.details : {};
+  const policyAuditStrict = Number(payload.idempotenceContext?.auditStrictMode ?? 0) === 1 ? 1 : 0;
+  const policyAdapterStrict = Number(payload.idempotenceContext?.adapterDoctorStrictMode ?? 0) === 1 ? 1 : 0;
+  const policyFailOnPartial =
+    Number(payload.interpreted?.policy?.failOnPartialMode ?? payload.idempotenceContext?.failOnPartialMode ?? 0) === 1 ? 1 : 0;
   lines.push(`VERIFY360 ${payload.verdict}`);
   lines.push(`runId=${payload.runId}`);
   lines.push(`history.prevRun=${payload.historyLink?.priorRunId || "NONE"}`);
   lines.push(`history.prevDigest=${payload.historyLink?.priorReceiptFileDigest || "NONE"}`);
   lines.push(`history.linkDigest=${payload.historyLinkDigest || "-"}`);
   lines.push(`reasonCodes=${(payload.reasonCodes || []).join(",") || "-"}`);
+  lines.push(`policy.auditStrict=${policyAuditStrict}`);
+  lines.push(`policy.adapterDoctorStrict=${policyAdapterStrict}`);
+  lines.push(`policy.failOnPartial=${policyFailOnPartial}`);
+  lines.push(`adapterDoctor.status=${adapterDoctorStep?.status || "-"}`);
+  lines.push(`adapterDoctor.strictStatus=${String(adapterDoctorDetails?.strictStatus || "-")}`);
+  lines.push(
+    `adapterDoctor.strictReasons=${
+      Array.isArray(adapterDoctorDetails?.strictReasonCodes) && adapterDoctorDetails.strictReasonCodes.length > 0
+        ? adapterDoctorDetails.strictReasonCodes.join("|")
+        : "-"
+    }`
+  );
   lines.push(`observed.stepStatus=${canonicalJSON(payload.observed?.stepStatusSummary || {}).trim()}`);
   lines.push(`observed.capabilities=${payload.observed?.capabilityDecisionCount ?? "-"}`);
   lines.push(`interpreted.verdict=${payload.interpreted?.verdict || payload.verdict || "-"}`);
