@@ -143,6 +143,9 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - One-command strict release gate with clean dedicated out-root reset:
   npm run verify:360:release:cleanout
   Note: this still fails if strict adapter doctor finds unresolved missing-plugin requirements.
+- Managed strict release gate (auto-generates temporary adapter maintenance policy for missing-plugin lanes):
+  npm run verify:360:release:managed
+  Note: generated policy is used for strict adapter-doctor preflight only; full `verify:360` then runs without global adapter-disable env leakage.
 - Optional corridor harness (pass/replay/forced-exception):
   npm run verify:360:harness
 - Optional history audit:
@@ -168,6 +171,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   - set WEFTEND_RELEASE_DIR for proofcheck release fixture path
   - set WEFTEND_360_INPUT for deterministic replay input path
   - set WEFTEND_360_OUT_ROOT for isolated verify output root (optional)
+  - set WEFTEND_360_SAFE_RUN_ADAPTER to force adapter selection in verify deterministic safe-run pair (optional)
 
 Notes
 - No cloud. No telemetry. No malware scoring.

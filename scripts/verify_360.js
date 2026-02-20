@@ -501,6 +501,7 @@ const writeOutputs = (runDir, payload, options = {}) => {
   lines.push(`policy.adapterDoctorStrict=${policyAdapterStrict}`);
   lines.push(`policy.failOnPartial=${policyFailOnPartial}`);
   lines.push(`policy.partialBlocked=${policyPartialBlocked}`);
+  lines.push(`policy.safeRunAdapter=${String(payload.idempotenceContext?.safeRunAdapter || "auto")}`);
   lines.push(`adapterDoctor.status=${adapterDoctorStep?.status || "-"}`);
   lines.push(`adapterDoctor.strictStatus=${String(adapterDoctorDetails?.strictStatus || "-")}`);
   lines.push(
@@ -614,6 +615,7 @@ const writeEmergencyOutputs = (runDir, payload, writeError) => {
     `policy.adapterDoctorStrict=${Number(payload.idempotenceContext?.adapterDoctorStrictMode ?? 0) === 1 ? 1 : 0}`,
     `policy.failOnPartial=${Number(payload.interpreted?.policy?.failOnPartialMode ?? payload.idempotenceContext?.failOnPartialMode ?? 0) === 1 ? 1 : 0}`,
     `policy.partialBlocked=${Number(payload.interpreted?.policy?.partialBlockedByPolicy ?? 0) === 1 ? 1 : 0}`,
+    `policy.safeRunAdapter=${String(payload.idempotenceContext?.safeRunAdapter || "auto")}`,
     "emergencyWrite=1",
     `emergencyWriteDigest=${writeErrorDigest}`,
   ].join("\n");
@@ -650,6 +652,25 @@ const main = () => {
   const releaseDirAbs = path.resolve(root, releaseDirEnv);
   const deterministicInputEnv = process.env.WEFTEND_360_INPUT || "tests/fixtures/intake/tampered_manifest/tampered.zip";
   const deterministicInputAbs = path.resolve(root, deterministicInputEnv);
+  const safeRunAdapterRaw = String(process.env.WEFTEND_360_SAFE_RUN_ADAPTER || "").trim().toLowerCase();
+  const allowedSafeRunAdapters = new Set([
+    "auto",
+    "none",
+    "archive",
+    "package",
+    "extension",
+    "iac",
+    "cicd",
+    "document",
+    "container",
+    "image",
+    "scm",
+    "signature",
+  ]);
+  if (safeRunAdapterRaw.length > 0 && !allowedSafeRunAdapters.has(safeRunAdapterRaw)) {
+    throw new Error("VERIFY360_SAFE_RUN_ADAPTER_INVALID");
+  }
+  const safeRunAdapter = safeRunAdapterRaw.length > 0 ? safeRunAdapterRaw : "auto";
   const auditStrictMode = process.env.WEFTEND_360_AUDIT_STRICT === "1" ? 1 : 0;
   const adapterDoctorStrictMode = process.env.WEFTEND_360_ADAPTER_DOCTOR_STRICT === "1" ? 1 : 0;
   const failOnPartialMode = process.env.WEFTEND_360_FAIL_ON_PARTIAL === "1" ? 1 : 0;
@@ -661,6 +682,7 @@ const main = () => {
     auditStrictMode,
     adapterDoctorStrictMode,
     failOnPartialMode,
+    safeRunAdapter,
     releaseDir: fs.existsSync(releaseDirAbs) ? releaseDirEnv : "MISSING",
     deterministicInput: fs.existsSync(deterministicInputAbs) ? deterministicInputEnv : "MISSING",
     gitHead: head,
@@ -922,22 +944,26 @@ const main = () => {
     });
     recordCapability("fixture.deterministic_input", true, []);
 
-    const safeA = runCommand("safe-run-a", process.execPath, [
+    const safeAArgs = [
       "dist/src/cli/main.js",
       "safe-run",
       deterministicInputAbs,
       "--out",
       outA,
       "--withhold-exec",
-    ]);
-    const safeB = runCommand("safe-run-b", process.execPath, [
+    ];
+    if (safeRunAdapterRaw.length > 0) safeAArgs.push("--adapter", safeRunAdapter);
+    const safeA = runCommand("safe-run-a", process.execPath, safeAArgs);
+    const safeBArgs = [
       "dist/src/cli/main.js",
       "safe-run",
       deterministicInputAbs,
       "--out",
       outB,
       "--withhold-exec",
-    ]);
+    ];
+    if (safeRunAdapterRaw.length > 0) safeBArgs.push("--adapter", safeRunAdapter);
+    const safeB = runCommand("safe-run-b", process.execPath, safeBArgs);
     const pairReasons = [];
     let pairOk = safeA.ok && safeB.ok;
     if (!safeA.ok) pairReasons.push("VERIFY360_SAFE_RUN_A_FAILED");

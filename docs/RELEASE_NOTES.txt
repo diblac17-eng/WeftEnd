@@ -18,6 +18,7 @@ Included
 - `verify:360` now captures adapter doctor output quietly (no raw doctor JSON console dump) while preserving step evidence in the verify receipt/report.
 - Added `npm run verify:360:adapter:strict` helper for full verify runs with strict adapter doctor gating enabled.
 - `verify:360` idempotence context now includes strict-mode flags, preventing replay-key collisions between strict and non-strict runs.
+- `verify:360` now supports optional deterministic safe-run adapter override via `WEFTEND_360_SAFE_RUN_ADAPTER` (validated adapter set, included in idempotence context and report policy lines).
 - Added `WEFTEND_360_FAIL_ON_PARTIAL=1` policy support (and helper commands) to force non-zero exit when verify ends in PARTIAL.
 - `verify_360_report.txt` now includes explicit gate-policy and adapter-doctor strict summary lines (`policy.*`, `adapterDoctor.*`) for quick human review.
 - `verify:360:harness` now checks these report lines in pass/replay/fail lanes to prevent report regression.
@@ -27,6 +28,7 @@ Included
 - Strict release helper is intentionally sensitive to existing audit warnings; use isolated `WEFTEND_360_OUT_ROOT` for clean-gate decisions.
 - Added `npm run verify:360:release:cleanout` helper to run the same strict release gate against a freshly reset dedicated out-root.
 - Clean out-root removes legacy-history warning noise, but strict release gate still fails by design when adapter-doctor strict requirements remain unresolved.
+- Added `npm run verify:360:release:managed` helper to auto-generate a temporary adapter maintenance policy (disabling missing-plugin lanes), run strict adapter-doctor preflight with that policy, then run strict `verify:360` without global adapter-disable env leakage into full test lanes.
 - Emergency verify report path now preserves policy context lines (`policy.*`) so fail-closed receipts remain operator-readable under write-path fallback.
 - Safe-run now enforces a non-blocking evidence corridor check before completion:
 - Expected receipt artifacts are verified for presence and digest consistency.

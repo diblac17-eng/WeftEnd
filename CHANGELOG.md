@@ -23,6 +23,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `verify:360` now captures adapter doctor output quietly to keep gate console output focused while preserving adapter doctor evidence in verify receipts/reports.
 - Added `npm run verify:360:adapter:strict` helper to run full verify with strict adapter doctor mode enabled.
 - `verify:360` idempotence key context now includes strict-mode flags to avoid replay-key collisions between strict and non-strict runs.
+- Added optional `WEFTEND_360_SAFE_RUN_ADAPTER` override for verify deterministic safe-run pair; value is validated and included in idempotence/report policy context.
 - Added `WEFTEND_360_FAIL_ON_PARTIAL=1` behavior and helper scripts to enforce non-zero exit on PARTIAL verify verdicts when required by release policy.
 - `verify_360_report.txt` now includes explicit policy and adapter-doctor strict summary lines for faster operator review (`policy.*`, `adapterDoctor.*`).
 - `verify:360:harness` now asserts those policy/adapter-doctor report lines are present across pass/replay/fail lanes.
@@ -30,6 +31,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added `npm run verify:360:release` helper for a single strict release gate command (`adapter doctor strict + fail-on-partial + strict audit`).
 - Added `npm run verify:360:release:cleanout` helper to execute the strict release gate after resetting a dedicated verify out-root.
 - Documented expected strict-gate behavior: clean out-root removes history-noise, but unresolved strict adapter-doctor requirements still block release gate.
+- Added `npm run verify:360:release:managed` helper to generate a temporary adapter maintenance policy for missing-plugin lanes, run strict adapter-doctor preflight with that policy, then run strict verify gate without leaking adapter-disable policy into full test env.
 - `verify:360:harness` now validates strict-mode idempotence separation (`NEW` then `REPLAY`) to prevent strict/non-strict replay-key regression.
 - Emergency verify report output now includes policy summary lines (`policy.*`) and failure receipts carry interpreted policy fields for consistent fail-closed readability.
 

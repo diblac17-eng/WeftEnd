@@ -16,6 +16,8 @@ Short, strict release checklist (alpha).
     - npm run verify:360:release
   - Optional strict gate with clean dedicated out-root:
     - npm run verify:360:release:cleanout
+  - Optional managed strict release gate (auto-generates temporary adapter maintenance policy):
+    - npm run verify:360:release:managed
   - Confirm receipt exists:
     - out\\verify_360\\latest.txt
     - out\\verify_360\\history\\run_<seq>\\verify_360_receipt.json

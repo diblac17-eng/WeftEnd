@@ -95,6 +95,7 @@ Command
 - `npm run verify:360:release` (strict adapter doctor + fail-on-partial + strict audit)
   - for clean release decisions, prefer an isolated `WEFTEND_360_OUT_ROOT` if existing history contains legacy warnings
 - `npm run verify:360:release:cleanout` (same strict release gate with dedicated `out/verify_360_release` reset before run)
+- `npm run verify:360:release:managed` (strict adapter-doctor preflight using generated temporary maintenance policy, then strict verify gate)
 - `npm run verify:360:harness` (replay + forced-exception corridor validation)
 - `npm run verify:360:audit` (history integrity audit)
 - `npm run verify:360:audit:strict` (strict audit; warnings fail)
@@ -103,6 +104,8 @@ Command
 - Optional output root override for isolated runs:
   - `WEFTEND_360_OUT_ROOT=<path>`
   - useful for isolated harness/testing lanes without touching default `out/verify_360`.
+- Optional deterministic safe-run adapter override inside verify pair:
+  - `WEFTEND_360_SAFE_RUN_ADAPTER=auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 
 Output evidence
 - `out/verify_360/history/run_<seq>/verify_360_receipt.json`
