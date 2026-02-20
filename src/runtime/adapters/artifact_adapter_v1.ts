@@ -3805,6 +3805,7 @@ const autoSelectClass = (ctx: AnalyzeCtx): AdapterClassV1 | null => {
   const base = path.basename(ctx.inputPath).toLowerCase();
   const hasCicdPathHint =
     base === ".gitlab-ci.yml" ||
+    base === ".gitlab-ci.yaml" ||
     base.startsWith("azure-pipelines") ||
     hasAnyPath(ctx.capture, [".github/workflows/", ".gitlab-ci", "azure-pipelines"]);
   if (EXTENSION_EXTS.has(ext) || (isDirectory(ctx.inputPath) && fs.existsSync(path.join(ctx.inputPath, "manifest.json")))) return "extension";
@@ -4012,7 +4013,7 @@ export const listAdaptersV1 = (): AdapterListReportV1 => {
       adapter: "cicd",
       mode: "built_in",
       plugins: [],
-      formats: [".github/workflows/*.yml", ".gitlab-ci.yml", "azure-pipelines*.yml"],
+      formats: [".github/workflows/*.yml", ".github/workflows/*.yaml", ".gitlab-ci.yml", ".gitlab-ci.yaml", "azure-pipelines*.yml", "azure-pipelines*.yaml"],
     },
     {
       adapter: "document",
