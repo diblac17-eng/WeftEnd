@@ -43,3 +43,5 @@ Fail-closed behavior
 Doctor command
 - JSON: `npm run weftend -- adapter doctor`
 - Text: `npm run weftend -- adapter doctor --text`
+- Write current effective policy to file: `npm run weftend -- adapter doctor --write-policy policies/adapter_maintenance.json`
+- Write policy and include adapters with missing plugins: `npm run weftend -- adapter doctor --write-policy policies/adapter_maintenance.json --include-missing-plugins`

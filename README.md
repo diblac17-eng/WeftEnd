@@ -84,6 +84,8 @@ Useful commands
 - npm run weftend -- adapter list
 - npm run weftend -- adapter doctor
 - npm run weftend -- adapter doctor --text
+- npm run weftend -- adapter doctor --write-policy policies/adapter_maintenance.json
+- npm run weftend -- adapter doctor --write-policy policies/adapter_maintenance.json --include-missing-plugins
 - npm run weftend -- safe-run <input> --out <dir> --adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature
 - npm run weftend -- safe-run <input> --out <dir> --adapter archive --enable-plugin tar
 

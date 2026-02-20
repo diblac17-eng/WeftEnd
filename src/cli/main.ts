@@ -40,7 +40,7 @@ const printUsage = () => {
   console.log("  weftend email safe-run <input.eml|input.mbox|input.msg|email_export_dir> --out <dir> [--policy <policy.json>] [--index <n>] [--message-id <id>]");
   console.log("  weftend container scan <image@sha256:...|sha256:...> --out <dir> [--policy <policy.json>]");
   console.log("  weftend adapter list");
-  console.log("  weftend adapter doctor [--text]");
+  console.log("  weftend adapter doctor [--text] [--write-policy <path>] [--include-missing-plugins]");
   console.log("  weftend shadow-audit <request.json>");
   console.log("  weftend compare <leftOutRoot> <rightOutRoot> --out <dir>");
   console.log("  weftend summarize <outRoot>");

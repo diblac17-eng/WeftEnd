@@ -127,6 +127,7 @@ Operator output artifacts
 CLI examples
 - npm run weftend -- adapter list
 - npm run weftend -- adapter doctor
+- npm run weftend -- adapter doctor --write-policy policies/adapter_maintenance.json
 - npm run weftend -- safe-run <input> --out <dir> --adapter auto
 - npm run weftend -- safe-run <input> --out <dir> --adapter archive
 - npm run weftend -- safe-run <input> --out <dir> --adapter archive --enable-plugin tar

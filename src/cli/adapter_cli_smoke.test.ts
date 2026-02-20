@@ -217,6 +217,33 @@ const run = async (): Promise<void> => {
   }
 
   {
+    const tmp = mkTmp();
+    const outPolicy = path.join(tmp, "generated_policy.json");
+    const res = await runCliCapture(["adapter", "doctor", "--write-policy", outPolicy], {
+      env: { WEFTEND_ADAPTER_DISABLE: "archive,container", WEFTEND_ADAPTER_DISABLE_FILE: undefined },
+    });
+    assertEq(res.status, 0, `adapter doctor --write-policy should succeed\n${res.stderr}`);
+    assert(fs.existsSync(outPolicy), "adapter doctor --write-policy should create policy file");
+    const parsed = JSON.parse(fs.readFileSync(outPolicy, "utf8"));
+    assertEq(parsed.schema, "weftend.adapterMaintenance/0", "generated policy schema mismatch");
+    const disabled = Array.isArray(parsed.disabledAdapters) ? parsed.disabledAdapters : [];
+    assertEq(disabled.join(","), "archive,container", "generated policy should include current disabled adapters");
+  }
+
+  {
+    const tmp = mkTmp();
+    const outPolicy = path.join(tmp, "generated_policy_include_missing.json");
+    const res = await runCliCapture(["adapter", "doctor", "--write-policy", outPolicy, "--include-missing-plugins"], {
+      env: { WEFTEND_ADAPTER_DISABLE: "iac", WEFTEND_ADAPTER_DISABLE_FILE: undefined },
+    });
+    assertEq(res.status, 0, `adapter doctor --write-policy --include-missing-plugins should succeed\n${res.stderr}`);
+    assert(fs.existsSync(outPolicy), "adapter doctor include-missing should create policy file");
+    const parsed = JSON.parse(fs.readFileSync(outPolicy, "utf8"));
+    const disabled = Array.isArray(parsed.disabledAdapters) ? parsed.disabledAdapters : [];
+    assert(disabled.includes("iac"), "generated include-missing policy should retain already disabled adapters");
+  }
+
+  {
     const res = await runCliCapture(["adapter", "doctor"], {
       env: { WEFTEND_ADAPTER_DISABLE: "archive,package" },
     });
@@ -286,6 +313,11 @@ const run = async (): Promise<void> => {
   {
     const res = await runCliCapture(["adapter", "list", "--text"]);
     assertEq(res.status, 1, "adapter list --text should fail usage");
+  }
+
+  {
+    const res = await runCliCapture(["adapter", "doctor", "--write-policy"]);
+    assertEq(res.status, 1, "adapter doctor --write-policy without path should fail usage");
   }
 
   {

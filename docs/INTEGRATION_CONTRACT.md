@@ -192,6 +192,7 @@ Current adapter commands:
 - `weftend safe-run ... --adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature [--enable-plugin <name>]`
 - `weftend adapter list`
 - `weftend adapter doctor`
+- `weftend adapter doctor --write-policy <path> [--include-missing-plugins]`
 - `weftend summarize <outRoot>`
 - `weftend export-json <outRoot> --format normalized_v0`
 
