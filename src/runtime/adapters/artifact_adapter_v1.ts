@@ -823,7 +823,7 @@ const readTarTextEntriesByExactPath = (
   return { entries: out, markers: stableSortUniqueStringsV0(markers) };
 };
 
-const readArEntriesV1 = (inputPath: string): { entries: string[]; markers: string[] } => {
+const readArEntriesV1 = (inputPath: string, options?: { dedupe?: boolean }): { entries: string[]; markers: string[] } => {
   const markers: string[] = [];
   const entries: string[] = [];
   const buf = readBytesBounded(inputPath, MAX_AR_SCAN_BYTES);
@@ -861,7 +861,11 @@ const readArEntriesV1 = (inputPath: string): { entries: string[]; markers: strin
     offset += padded;
   }
   if (offset < buf.length && entries.length === 0) markers.push("PACKAGE_METADATA_PARTIAL");
-  return { entries: stableSortUniqueStringsV0(entries), markers: stableSortUniqueStringsV0(markers) };
+  const sorted = entries.slice().sort((a, b) => cmpStrV0(a, b));
+  return {
+    entries: options?.dedupe === false ? sorted : stableSortUniqueStringsV0(sorted),
+    markers: stableSortUniqueStringsV0(markers),
+  };
 };
 
 const runCommandLines = (cmd: string, args: string[]): { ok: boolean; lines: string[] } => {
@@ -1667,7 +1671,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       markers.push("PACKAGE_PLUGIN_TAR_NOT_ENABLED");
     }
   } else if (ext === ".deb") {
-    const ar = readArEntriesV1(ctx.inputPath);
+    const ar = readArEntriesV1(ctx.inputPath, strictRoute ? { dedupe: false } : undefined);
     entryNames = ar.entries;
     debArEntryCount = entryNames.length;
     if (strictRoute && entryNames.length === 0) {
@@ -1680,14 +1684,25 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
     }
     if (strictRoute) {
       const namesLower = entryNames.map((entry) => String(entry || "").toLowerCase());
-      const hasDebianBinary = namesLower.includes("debian-binary");
-      const hasControl = namesLower.some((name) => name === "control.tar" || name.startsWith("control.tar."));
-      const hasData = namesLower.some((name) => name === "data.tar" || name.startsWith("data.tar."));
+      const debianBinaryCount = namesLower.filter((name) => name === "debian-binary").length;
+      const controlCount = namesLower.filter((name) => name === "control.tar" || name.startsWith("control.tar.")).length;
+      const dataCount = namesLower.filter((name) => name === "data.tar" || name.startsWith("data.tar.")).length;
+      const hasDebianBinary = debianBinaryCount > 0;
+      const hasControl = controlCount > 0;
+      const hasData = dataCount > 0;
       if (!hasDebianBinary || !hasControl || !hasData) {
         return {
           ok: false,
           failCode: "PACKAGE_FORMAT_MISMATCH",
           failMessage: "package adapter expected Debian package structure entries for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
+      if (debianBinaryCount !== 1 || controlCount !== 1 || dataCount !== 1) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter expected non-ambiguous Debian package structure entries for explicit package analysis.",
           reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
         };
       }

@@ -1326,6 +1326,21 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const duplicateStructureDeb = path.join(tmp, "duplicate_structure.deb");
+    writeSimpleAr(duplicateStructureDeb, [
+      { name: "debian-binary", bytes: Buffer.from("2.0\n", "utf8") },
+      { name: "debian-binary", bytes: Buffer.from("2.0\n", "utf8") },
+      { name: "control.tar.gz", bytes: Buffer.from("fake-control-".repeat(24), "utf8") },
+      { name: "data.tar.xz", bytes: Buffer.from("fake-data-".repeat(24), "utf8") },
+    ]);
+    const res = await runCliCapture(["safe-run", duplicateStructureDeb, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for deb with duplicate required structure entries");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for duplicate deb structure entries");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const tinyStubDeb = path.join(tmp, "tiny_stub.deb");
     writeSimpleAr(tinyStubDeb, [
       { name: "debian-binary", bytes: Buffer.from("2.0\n", "utf8") },
