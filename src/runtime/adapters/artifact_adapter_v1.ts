@@ -4007,7 +4007,7 @@ export const listAdaptersV1 = (): AdapterListReportV1 => {
       adapter: "iac",
       mode: "built_in",
       plugins: [],
-      formats: [".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep"],
+      formats: [".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep", ".template"],
     },
     {
       adapter: "cicd",

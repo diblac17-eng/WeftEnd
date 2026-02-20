@@ -189,11 +189,13 @@ const run = async (): Promise<void> => {
     }
     const archiveFormats = byName.get("archive")?.formats ?? [];
     const packageFormats = byName.get("package")?.formats ?? [];
+    const iacFormats = byName.get("iac")?.formats ?? [];
     const cicdFormats = byName.get("cicd")?.formats ?? [];
     assert(archiveFormats.includes(".tbz2"), "adapter list archive formats should include .tbz2 alias");
     assert(archiveFormats.includes(".tbz"), "adapter list archive formats should include .tbz alias");
     assert(packageFormats.includes(".tbz2"), "adapter list package formats should include .tbz2 alias");
     assert(packageFormats.includes(".tbz"), "adapter list package formats should include .tbz alias");
+    assert(iacFormats.includes(".template"), "adapter list iac formats should include .template");
     assert(cicdFormats.includes(".gitlab-ci.yaml"), "adapter list cicd formats should include .gitlab-ci.yaml");
     assert(cicdFormats.includes("azure-pipelines*.yaml"), "adapter list cicd formats should include azure-pipelines*.yaml");
   }
