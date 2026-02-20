@@ -307,6 +307,18 @@ const run = async (): Promise<void> => {
   }
 
   {
+    const res = await runCliCapture(["adapter", "doctor", "--text", "--strict"], {
+      env: { WEFTEND_ADAPTER_DISABLE: "all,invalid_lane" },
+    });
+    assertEq(res.status, 40, "adapter doctor --text --strict should fail closed on unknown policy tokens");
+    assert(res.stdout.includes("strict.status=FAIL"), "strict text output should include FAIL status");
+    assert(
+      res.stdout.includes("ADAPTER_DOCTOR_STRICT_POLICY_UNKNOWN_TOKEN"),
+      "strict text output should include unknown-token strict reason"
+    );
+  }
+
+  {
     const tmp = mkTmp();
     const policyPath = path.join(tmp, "adapter_maintenance.json");
     fs.writeFileSync(policyPath, JSON.stringify({ disabledAdapters: ["archive", "container"] }), "utf8");
