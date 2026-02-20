@@ -2512,6 +2512,8 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let dockerManifestJsonValid = 0;
   let dockerRepositoriesJsonValid = 0;
   let dockerRepositoriesTagMapCount = 0;
+  let dockerManifestItemCount = 0;
+  let dockerManifestCompleteItemCount = 0;
   let dockerManifestConfigRefCount = 0;
   let dockerManifestConfigResolvedCount = 0;
   let dockerManifestLayerRefCount = 0;
@@ -2685,20 +2687,26 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
             let resolved = 0;
             parsed.forEach((item: any) => {
               if (!item || typeof item !== "object") return;
+              dockerManifestItemCount += 1;
               const configRef = typeof item.Config === "string" ? String(item.Config || "") : "";
+              let hasConfigRef = false;
               if (configRef.trim().length > 0) {
                 const normalizedConfig = configRef.replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase();
                 dockerManifestConfigRefCount += 1;
+                hasConfigRef = true;
                 if (normalizedConfig.length > 0 && tarNameSet.has(normalizedConfig)) dockerManifestConfigResolvedCount += 1;
               }
               const layers = Array.isArray(item.Layers) ? item.Layers : [];
+              let hasLayerRef = false;
               layers.forEach((layer: unknown) => {
                 if (typeof layer !== "string") return;
                 const normalized = String(layer || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase();
                 if (!normalized) return;
+                 hasLayerRef = true;
                 refs += 1;
                 if (tarNameSet.has(normalized)) resolved += 1;
               });
+              if (hasConfigRef && hasLayerRef) dockerManifestCompleteItemCount += 1;
             });
             if (refs > 0) {
               dockerManifestJsonValid = 1;
@@ -2735,6 +2743,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
           ok: false,
           failCode: "CONTAINER_FORMAT_MISMATCH",
           failMessage: "container adapter expected valid docker manifest/repositories JSON for explicit docker tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
+      if (strictRoute && dockerManifestItemCount > 0 && dockerManifestCompleteItemCount < dockerManifestItemCount) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected each docker manifest entry to include config and layer references for explicit docker tar analysis.",
           reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
         };
       }
@@ -2878,6 +2894,8 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       dockerManifestJsonValid,
       dockerRepositoriesJsonValid,
       dockerRepositoriesTagMapCount,
+      dockerManifestItemCount,
+      dockerManifestCompleteItemCount,
       dockerManifestConfigRefCount,
       dockerManifestConfigResolvedCount,
       dockerManifestLayerRefCount,

@@ -1822,6 +1822,27 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tarPath = path.join(tmp, "container_partial_manifest_entry_shape.tar");
+    writeSimpleTar(tarPath, [
+      {
+        name: "manifest.json",
+        text: JSON.stringify([
+          { Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] },
+          { Config: "missing-config.json", RepoTags: ["demo:latest"], Layers: [] },
+        ]),
+      },
+      { name: "repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
+      { name: "config.json", text: "{}" },
+      { name: "layer.tar", text: "layer-bytes" },
+    ]);
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for docker tar partial manifest entry shape");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for docker tar partial manifest entry shape");
+  }
+
+  {
+    const tmp = mkTmp();
     const tarPath = path.join(tmp, "container_partial.tar");
     writeSimpleTar(tarPath, [
       { name: "manifest.json", text: "[]" },

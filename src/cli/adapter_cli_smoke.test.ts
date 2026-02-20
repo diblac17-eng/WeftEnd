@@ -1840,6 +1840,27 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const partialManifestEntryShapeTar = path.join(tmp, "container_partial_manifest_entry_shape.tar");
+    writeSimpleTar(partialManifestEntryShapeTar, [
+      {
+        name: "manifest.json",
+        text: JSON.stringify([
+          { Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] },
+          { Config: "missing-config.json", RepoTags: ["demo:latest"], Layers: [] },
+        ]),
+      },
+      { name: "repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
+      { name: "config.json", text: "{}" },
+      { name: "layer.tar", text: "layer-bytes" },
+    ]);
+    const res = await runCliCapture(["safe-run", partialManifestEntryShapeTar, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit docker tar partial manifest entry shape");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for docker tar partial manifest entry shape");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const partialTar = path.join(tmp, "partial_container.tar");
     writeSimpleTar(partialTar, [
       { name: "manifest.json", text: "[]" },
