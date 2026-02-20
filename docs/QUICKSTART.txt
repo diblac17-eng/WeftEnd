@@ -124,6 +124,9 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   npm run verify:360:enforce-partial
 - Enforce both strict adapter gating and fail-on-partial:
   npm run verify:360:adapter:strict:enforced
+- One-command release-grade strict gate (adapter strict + fail-on-partial + strict audit):
+  npm run verify:360:release
+  Note: strict audit fails on existing history warnings; use a clean `WEFTEND_360_OUT_ROOT` when needed.
 - Optional corridor harness (pass/replay/forced-exception):
   npm run verify:360:harness
 - Optional history audit:

@@ -21,6 +21,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `verify_360_report.txt` now includes explicit policy and adapter-doctor strict summary lines for faster operator review (`policy.*`, `adapterDoctor.*`).
 - `verify:360:harness` now asserts those policy/adapter-doctor report lines are present across pass/replay/fail lanes.
 - When fail-on-partial policy blocks a PARTIAL verdict, verify output now prints `blocked_by_policy` and receipt interpretation records `partialBlockedByPolicy=1`.
+- Added `npm run verify:360:release` helper for a single strict release gate command (`adapter doctor strict + fail-on-partial + strict audit`).
 
 ### Adapter maintenance controls
 - Added `weftend adapter doctor` for deterministic adapter readiness/maintenance reporting.

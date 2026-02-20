@@ -18,6 +18,8 @@ Included
 - `verify_360_report.txt` now includes explicit gate-policy and adapter-doctor strict summary lines (`policy.*`, `adapterDoctor.*`) for quick human review.
 - `verify:360:harness` now checks these report lines in pass/replay/fail lanes to prevent report regression.
 - Policy-enforced PARTIAL exits now print `verify:360 PARTIAL (blocked_by_policy)` and set `interpreted.policy.partialBlockedByPolicy=1` for explicit machine/human signaling.
+- Added `npm run verify:360:release` helper for one-command strict release gating (`adapter doctor strict + fail-on-partial + strict audit`).
+- Strict release helper is intentionally sensitive to existing audit warnings; use isolated `WEFTEND_360_OUT_ROOT` for clean-gate decisions.
 - Safe-run now enforces a non-blocking evidence corridor check before completion:
 - Expected receipt artifacts are verified for presence and digest consistency.
 - Pre-existing/stale unmanaged output files anywhere under the run out-root are flagged as orphan evidence.

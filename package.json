@@ -15,6 +15,7 @@
     "verify:360:adapter:strict": "node -e \"const {spawnSync}=require('child_process');const env={...process.env,WEFTEND_360_ADAPTER_DOCTOR_STRICT:'1'};const r=spawnSync(process.execPath,['scripts/verify_360.js'],{stdio:'inherit',env});process.exit(r.status||0);\"",
     "verify:360:enforce-partial": "node -e \"const {spawnSync}=require('child_process');const env={...process.env,WEFTEND_360_FAIL_ON_PARTIAL:'1'};const r=spawnSync(process.execPath,['scripts/verify_360.js'],{stdio:'inherit',env});process.exit(r.status||0);\"",
     "verify:360:adapter:strict:enforced": "node -e \"const {spawnSync}=require('child_process');const env={...process.env,WEFTEND_360_ADAPTER_DOCTOR_STRICT:'1',WEFTEND_360_FAIL_ON_PARTIAL:'1'};const r=spawnSync(process.execPath,['scripts/verify_360.js'],{stdio:'inherit',env});process.exit(r.status||0);\"",
+    "verify:360:release": "node -e \"const {spawnSync}=require('child_process');const env={...process.env,WEFTEND_360_ADAPTER_DOCTOR_STRICT:'1',WEFTEND_360_FAIL_ON_PARTIAL:'1',WEFTEND_360_AUDIT_STRICT:'1'};const r=spawnSync(process.execPath,['scripts/verify_360.js'],{stdio:'inherit',env});process.exit(r.status||0);\"",
     "verify:360:harness": "node scripts/verify_360_harness.js",
     "verify:360:audit": "node scripts/verify_360_audit.js",
     "verify:360:audit:strict": "node -e \"const {spawnSync}=require('child_process');const env={...process.env,WEFTEND_360_AUDIT_STRICT:'1'};const r=spawnSync(process.execPath,['scripts/verify_360_audit.js'],{stdio:'inherit',env});process.exit(r.status||0);\""

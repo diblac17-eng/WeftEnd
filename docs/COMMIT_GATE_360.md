@@ -92,6 +92,8 @@ Command
 - `npm run verify:360:adapter:strict` (full gate + strict adapter doctor checks)
 - `npm run verify:360:enforce-partial` (full gate + non-zero exit on PARTIAL verdict)
 - `npm run verify:360:adapter:strict:enforced` (strict adapter doctor + non-zero exit on PARTIAL verdict)
+- `npm run verify:360:release` (strict adapter doctor + fail-on-partial + strict audit)
+  - for clean release decisions, prefer an isolated `WEFTEND_360_OUT_ROOT` if existing history contains legacy warnings
 - `npm run verify:360:harness` (replay + forced-exception corridor validation)
 - `npm run verify:360:audit` (history integrity audit)
 - `npm run verify:360:audit:strict` (strict audit; warnings fail)
