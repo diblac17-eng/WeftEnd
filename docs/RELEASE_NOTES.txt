@@ -21,6 +21,8 @@ Included
 - Policy-enforced PARTIAL exits now print `verify:360 PARTIAL (blocked_by_policy)` and set `interpreted.policy.partialBlockedByPolicy=1` for explicit machine/human signaling.
 - Added `npm run verify:360:release` helper for one-command strict release gating (`adapter doctor strict + fail-on-partial + strict audit`).
 - Strict release helper is intentionally sensitive to existing audit warnings; use isolated `WEFTEND_360_OUT_ROOT` for clean-gate decisions.
+- Added `npm run verify:360:release:cleanout` helper to run the same strict release gate against a freshly reset dedicated out-root.
+- Clean out-root removes legacy-history warning noise, but strict release gate still fails by design when adapter-doctor strict requirements remain unresolved.
 - Emergency verify report path now preserves policy context lines (`policy.*`) so fail-closed receipts remain operator-readable under write-path fallback.
 - Safe-run now enforces a non-blocking evidence corridor check before completion:
 - Expected receipt artifacts are verified for presence and digest consistency.

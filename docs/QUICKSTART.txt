@@ -127,6 +127,9 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - One-command release-grade strict gate (adapter strict + fail-on-partial + strict audit):
   npm run verify:360:release
   Note: strict audit fails on existing history warnings; use a clean `WEFTEND_360_OUT_ROOT` when needed.
+- One-command strict release gate with clean dedicated out-root reset:
+  npm run verify:360:release:cleanout
+  Note: this still fails if strict adapter doctor finds unresolved missing-plugin requirements.
 - Optional corridor harness (pass/replay/forced-exception):
   npm run verify:360:harness
 - Optional history audit:

@@ -22,6 +22,8 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `verify:360:harness` now asserts those policy/adapter-doctor report lines are present across pass/replay/fail lanes.
 - When fail-on-partial policy blocks a PARTIAL verdict, verify output now prints `blocked_by_policy` and receipt interpretation records `partialBlockedByPolicy=1`.
 - Added `npm run verify:360:release` helper for a single strict release gate command (`adapter doctor strict + fail-on-partial + strict audit`).
+- Added `npm run verify:360:release:cleanout` helper to execute the strict release gate after resetting a dedicated verify out-root.
+- Documented expected strict-gate behavior: clean out-root removes history-noise, but unresolved strict adapter-doctor requirements still block release gate.
 - `verify:360:harness` now validates strict-mode idempotence separation (`NEW` then `REPLAY`) to prevent strict/non-strict replay-key regression.
 - Emergency verify report output now includes policy summary lines (`policy.*`) and failure receipts carry interpreted policy fields for consistent fail-closed readability.
 
