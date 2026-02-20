@@ -8,6 +8,8 @@ Short, strict release checklist (alpha).
 2) Full validation loop (no skips)
 - Preferred (single full-spin gate):
   - npm run verify:360
+  - Optional stricter adapter maintenance gate:
+    - npm run verify:360:adapter:strict
   - Confirm receipt exists:
     - out\\verify_360\\latest.txt
     - out\\verify_360\\history\\run_<seq>\\verify_360_receipt.json

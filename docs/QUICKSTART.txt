@@ -118,6 +118,8 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 9) Commit gate (contributors)
 - Before any reusable commit:
   npm run verify:360
+- Verify with strict adapter-maintenance gating enabled:
+  npm run verify:360:adapter:strict
 - Optional corridor harness (pass/replay/forced-exception):
   npm run verify:360:harness
 - Optional history audit:

@@ -89,6 +89,7 @@ Core rule
 
 Command
 - `npm run verify:360`
+- `npm run verify:360:adapter:strict` (full gate + strict adapter doctor checks)
 - `npm run verify:360:harness` (replay + forced-exception corridor validation)
 - `npm run verify:360:audit` (history integrity audit)
 - `npm run verify:360:audit:strict` (strict audit; warnings fail)
