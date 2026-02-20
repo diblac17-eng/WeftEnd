@@ -1,0 +1,44 @@
+WeftEnd Adapter Maintenance Policy
+
+Purpose
+- Temporarily disable adapter lanes that are out of maintenance scope while preserving fail-closed behavior.
+
+How policy is resolved
+1) Explicit runtime options (internal call surface).
+2) `WEFTEND_ADAPTER_DISABLE` environment variable.
+3) `WEFTEND_ADAPTER_DISABLE_FILE` JSON file path.
+4) Default file path if present: `policies/adapter_maintenance.json`.
+
+Policy JSON shape
+```json
+{
+  "schema": "weftend.adapterMaintenance/0",
+  "disabledAdapters": ["archive", "container"]
+}
+```
+
+Supported adapter names
+- `archive`
+- `package`
+- `extension`
+- `iac`
+- `cicd`
+- `document`
+- `container`
+- `image`
+- `scm`
+- `signature`
+
+Special tokens
+- `all` or `*`: disable all adapters.
+- `none`: no-op token.
+
+Fail-closed behavior
+- Disabled lanes: `ADAPTER_TEMPORARILY_UNAVAILABLE` + `ADAPTER_DISABLED_BY_POLICY`.
+- Unknown tokens: `ADAPTER_POLICY_INVALID`.
+- Invalid/unreadable policy file: `ADAPTER_POLICY_INVALID` plus file-specific reason code.
+- Fail-closed adapter-policy outcomes still write deterministic safe-run evidence artifacts.
+
+Doctor command
+- JSON: `npm run weftend -- adapter doctor`
+- Text: `npm run weftend -- adapter doctor --text`
