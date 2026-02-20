@@ -7,7 +7,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 
 ### Safe-run evidence corridor
 - `safe-run` now verifies expected receipt artifacts for presence and digest consistency before completion.
-- `safe-run` now flags unmanaged pre-existing output files as deterministic orphan-evidence warnings.
+- `safe-run` now flags unmanaged pre-existing output files anywhere under out-root as deterministic orphan-evidence warnings.
 - Analysis is not blocked by these checks; warning codes are recorded in `operator_receipt.json` (`SAFE_RUN_EVIDENCE_*`).
 
 ### Adapter strict-route hardening

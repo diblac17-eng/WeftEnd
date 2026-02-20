@@ -136,11 +136,7 @@ const evaluateEvidenceWarnings = (input: {
   });
 
   const actualSet = new Set<string>();
-  if (fs.existsSync(path.join(input.outDir, "safe_run_receipt.json"))) actualSet.add("safe_run_receipt.json");
-  if (fs.existsSync(path.join(input.outDir, "operator_receipt.json"))) actualSet.add("operator_receipt.json");
-  listFilesRecursiveRel(input.outDir, "weftend").forEach((rel) => actualSet.add(rel));
-  listFilesRecursiveRel(input.outDir, "analysis").forEach((rel) => actualSet.add(rel));
-  listFilesRecursiveRel(input.outDir, "host").forEach((rel) => actualSet.add(rel));
+  listFilesRecursiveRel(input.outDir, ".").forEach((rel) => actualSet.add(rel));
 
   const warnings: string[] = [];
   expected.forEach((digest, relPath) => {

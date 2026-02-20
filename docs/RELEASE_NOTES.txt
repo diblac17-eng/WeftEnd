@@ -12,7 +12,7 @@ Included
 - Gate now uses explicit state progression and two-phase output finalize (`stage -> finalize`) with `verify_360_output_manifest.json`.
 - Safe-run now enforces a non-blocking evidence corridor check before completion:
 - Expected receipt artifacts are verified for presence and digest consistency.
-- Pre-existing/stale unmanaged output files are flagged as orphan evidence.
+- Pre-existing/stale unmanaged output files anywhere under the run out-root are flagged as orphan evidence.
 - Analysis still completes; warnings are recorded deterministically in `operator_receipt.json` (`SAFE_RUN_EVIDENCE_*` codes).
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
