@@ -1564,7 +1564,26 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       };
     }
     if (strictRoute) {
-      const namesLower = entryNames.map((entry) => normalizeZipEntryPathV1(String(entry || "")).toLowerCase());
+      const normalizedNames = entryNames.map((entry) => normalizeZipEntryPathV1(String(entry || "")));
+      const uniqueNames = stableSortUniqueStringsV0(normalizedNames);
+      if (uniqueNames.length < normalizedNames.length) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter expected non-ambiguous package entry paths for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
+      const uniqueCaseFoldedNames = stableSortUniqueStringsV0(uniqueNames.map((name) => name.toLowerCase()));
+      if (uniqueCaseFoldedNames.length < uniqueNames.length) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter expected case-unambiguous package entry paths for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
+      const namesLower = normalizedNames.map((name) => name.toLowerCase());
       let hasPackageStructure = true;
       if (ext === ".msix") {
         const appxManifestCount = namesLower.filter((name) => name === "appxmanifest.xml").length;
@@ -1723,7 +1742,26 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       };
     }
     if (strictRoute) {
-      const namesLower = entryNames.map((entry) => String(entry || "").toLowerCase());
+      const normalizedNames = entryNames.map((entry) => String(entry || "").replace(/\\/g, "/").replace(/^\.\/+/, ""));
+      const uniqueNames = stableSortUniqueStringsV0(normalizedNames);
+      if (uniqueNames.length < normalizedNames.length) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter expected non-ambiguous package entry paths for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
+      const uniqueCaseFoldedNames = stableSortUniqueStringsV0(uniqueNames.map((name) => name.toLowerCase()));
+      if (uniqueCaseFoldedNames.length < uniqueNames.length) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter expected case-unambiguous package entry paths for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
+      const namesLower = normalizedNames.map((name) => name.toLowerCase());
       const debianBinaryCount = namesLower.filter((name) => name === "debian-binary").length;
       const controlCount = namesLower.filter((name) => name === "control.tar" || name.startsWith("control.tar.")).length;
       const dataCount = namesLower.filter((name) => name === "data.tar" || name.startsWith("data.tar.")).length;

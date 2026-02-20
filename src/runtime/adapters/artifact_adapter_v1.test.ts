@@ -1189,6 +1189,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const caseCollisionJar = path.join(tmp, "case_collision.jar");
+    writeStoredZip(caseCollisionJar, [
+      { name: "META-INF/MANIFEST.MF", text: "Manifest-Version: 1.0\nMain-Class: demo.Main\n" + "z".repeat(256) + "\n" },
+      { name: "lib/Alpha.class", text: "a" },
+      { name: "lib/alpha.class", text: "b" },
+    ]);
+    const capture = captureTreeV0(caseCollisionJar, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: caseCollisionJar, capture });
+    assert(!res.ok, "package adapter should fail closed for jar with case-colliding package entry paths");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for case-colliding package entry paths");
+  }
+
+  {
+    const tmp = mkTmp();
     const jar = path.join(tmp, "demo.jar");
     writeStoredZip(jar, [{ name: "META-INF/MANIFEST.MF", text: "Manifest-Version: 1.0\n" + "Main-Class: demo.Main\n" + "z".repeat(256) + "\n" }]);
     const capture = captureTreeV0(jar, limits);

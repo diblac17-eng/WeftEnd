@@ -1391,6 +1391,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const caseCollisionJar = path.join(tmp, "case_collision.jar");
+    writeStoredZip(caseCollisionJar, [
+      { name: "META-INF/MANIFEST.MF", text: "Manifest-Version: 1.0\nMain-Class: demo.Main\n" + "z".repeat(256) + "\n" },
+      { name: "lib/Alpha.class", text: "a" },
+      { name: "lib/alpha.class", text: "b" },
+    ]);
+    const res = await runCliCapture(["safe-run", caseCollisionJar, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for jar with case-colliding package entry paths");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for case-colliding package entry paths");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const partialNupkg = path.join(tmp, "partial.nupkg");
     writeStoredZip(partialNupkg, [
       { name: "demo.nuspec", text: "<package></package>" },

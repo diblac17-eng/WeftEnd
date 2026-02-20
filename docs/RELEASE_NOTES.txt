@@ -49,6 +49,7 @@ Included
 - Package strict route now requires canonical ZIP marker paths for `.msix/.nupkg/.whl` structure checks, preventing nested lookalike marker paths from passing explicit package routing.
 - Package strict route now requires unique required-marker cardinality for `.msix/.nupkg/.whl/.jar` ZIP structures, preventing duplicate/ambiguous required-marker sets from passing explicit package routing.
 - Package strict route now evaluates raw ZIP entry catalogs for required-marker cardinality, preventing duplicate same-path required markers from being hidden by ZIP-entry deduplication in explicit package routing.
+- Package strict route now requires non-ambiguous package entry-path sets (duplicate or case-colliding package entry paths fail strict routing), preventing ambiguous package archives from passing explicit package analysis.
 - Archive/package tar coverage expanded:
 - `.tar.xz/.txz` now follow explicit tar-plugin, fail-closed handling in archive/package lanes.
 - Explicit `.tar` archive analysis now validates header checksum and octal size fields and fails closed on partial metadata even when earlier entries parsed, preventing mixed valid/corrupt tar acceptance.
