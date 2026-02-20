@@ -33,6 +33,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   npm run weftend -- adapter list
 - Check adapter dependency and maintenance status:
   npm run weftend -- adapter doctor
+  npm run weftend -- adapter doctor --text
 - Run safe-run with adapter auto-detect:
   npm run weftend -- safe-run <input> --out <dir> --adapter auto
 - Force a specific adapter:

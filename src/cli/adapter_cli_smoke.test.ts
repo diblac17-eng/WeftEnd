@@ -209,6 +209,14 @@ const run = async (): Promise<void> => {
   }
 
   {
+    const res = await runCliCapture(["adapter", "doctor", "--text"]);
+    assertEq(res.status, 0, `adapter doctor --text should succeed\n${res.stderr}`);
+    assert(res.stdout.includes("WEFTEND ADAPTER DOCTOR"), "adapter doctor --text should print header");
+    assert(res.stdout.includes("policy.source="), "adapter doctor --text should print policy source");
+    assert(res.stdout.includes("actions:"), "adapter doctor --text should print actions section");
+  }
+
+  {
     const res = await runCliCapture(["adapter", "doctor"], {
       env: { WEFTEND_ADAPTER_DISABLE: "archive,package" },
     });
@@ -261,6 +269,11 @@ const run = async (): Promise<void> => {
     const parsed = JSON.parse(res.stdout);
     assertEq(parsed.policy?.source, "file", "invalid file policy should still report file source");
     assertEq(parsed.policy?.invalidReasonCode, "ADAPTER_POLICY_FILE_INVALID", "expected invalid file policy reason code");
+  }
+
+  {
+    const res = await runCliCapture(["adapter", "list", "--text"]);
+    assertEq(res.status, 1, "adapter list --text should fail usage");
   }
 
   {

@@ -21,6 +21,7 @@ Included
 - Optional repeatable plugin flag: `--enable-plugin <name>` (explicit local plugin use only)
 - New adapter discovery command: `weftend adapter list`
 - New adapter maintenance/health command: `weftend adapter doctor`
+- Added readable doctor mode: `weftend adapter doctor --text` (deterministic local guidance, no auto-install/network).
 - Adapter maintenance gate added (operator-controlled, fail-closed):
 - `WEFTEND_ADAPTER_DISABLE=<adapter[,adapter...]>` disables selected adapter lanes without removing code.
 - Optional file policy path: `WEFTEND_ADAPTER_DISABLE_FILE=<path-to-json>` with `{"disabledAdapters":[...]}`.
