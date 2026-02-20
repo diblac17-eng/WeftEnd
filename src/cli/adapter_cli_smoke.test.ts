@@ -1873,6 +1873,24 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const ociTarDuplicateBlobRefPath = path.join(tmp, "oci_layout_duplicate_blob_ref_path.tar");
+    writeSimpleTar(ociTarDuplicateBlobRefPath, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      {
+        name: "index.json",
+        text: "{\"schemaVersion\":2,\"manifests\":[{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"size\":1}]}\n",
+      },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x1" },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x2" },
+    ]);
+    const res = await runCliCapture(["safe-run", ociTarDuplicateBlobRefPath, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI tar duplicate referenced blob path");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar duplicate blob reference path");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const ociTarMissingDigestRefs = path.join(tmp, "oci_layout_missing_digest_refs.tar");
     writeSimpleTar(ociTarMissingDigestRefs, [
       { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
@@ -2107,6 +2125,25 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", partialManifestEntryShapeTar, "--out", outDir, "--adapter", "container"]);
     assertEq(res.status, 40, "safe-run should fail closed for explicit docker tar partial manifest entry shape");
     assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for docker tar partial manifest entry shape");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const duplicateLayerRefPathTar = path.join(tmp, "container_duplicate_layer_ref_path.tar");
+    writeSimpleTar(duplicateLayerRefPathTar, [
+      {
+        name: "manifest.json",
+        text: JSON.stringify([{ Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] }]),
+      },
+      { name: "repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
+      { name: "config.json", text: "{}" },
+      { name: "layer.tar", text: "layer-bytes-a" },
+      { name: "layer.tar", text: "layer-bytes-b" },
+    ]);
+    const res = await runCliCapture(["safe-run", duplicateLayerRefPathTar, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit docker tar duplicate referenced layer path");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for docker tar duplicate referenced layer path");
   }
 
   {

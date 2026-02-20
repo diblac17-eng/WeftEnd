@@ -2073,6 +2073,25 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tarPath = path.join(tmp, "container_duplicate_layer_ref_path.tar");
+    writeSimpleTar(tarPath, [
+      {
+        name: "manifest.json",
+        text: JSON.stringify([{ Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] }]),
+      },
+      { name: "repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
+      { name: "config.json", text: "{}" },
+      { name: "layer.tar", text: "layer-bytes-a" },
+      { name: "layer.tar", text: "layer-bytes-b" },
+    ]);
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for docker tar with duplicate referenced layer path");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for duplicate docker layer reference path");
+  }
+
+  {
+    const tmp = mkTmp();
     const tarPath = path.join(tmp, "container_partial.tar");
     writeSimpleTar(tarPath, [
       { name: "manifest.json", text: "[]" },
@@ -2133,6 +2152,24 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
     assert(!res.ok, "container adapter should fail closed for OCI tar digest refs that do not resolve to blobs");
     assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for OCI tar digest mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
+    const tarPath = path.join(tmp, "oci_layout_duplicate_blob_ref_path.tar");
+    writeSimpleTar(tarPath, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      {
+        name: "index.json",
+        text: "{\"schemaVersion\":2,\"manifests\":[{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"size\":1}]}\n",
+      },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x1" },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x2" },
+    ]);
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for OCI tar with duplicate referenced blob path");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for duplicate OCI blob reference path");
   }
 
   {

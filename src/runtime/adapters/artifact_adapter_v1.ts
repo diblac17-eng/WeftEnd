@@ -613,7 +613,7 @@ const readZipTextEntriesByFilter = (
   return { entries: out, markers: stableSortUniqueStringsV0(outMarkers) };
 };
 
-const readTarEntries = (inputPath: string): { entries: string[]; markers: string[] } => {
+const readTarEntries = (inputPath: string, options?: { dedupe?: boolean }): { entries: string[]; markers: string[] } => {
   const parseTarOctal = (raw: string): number | null => {
     const text = raw.replace(/\0.*$/, "").trim();
     if (text.length === 0) return 0;
@@ -676,7 +676,11 @@ const readTarEntries = (inputPath: string): { entries: string[]; markers: string
     const allRemainingZero = remaining.every((b: number) => b === 0);
     if (!(terminatedByZeroBlock && allRemainingZero)) markers.push("ARCHIVE_METADATA_PARTIAL");
   }
-  return { entries: stableSortUniqueStringsV0(entries), markers: stableSortUniqueStringsV0(markers) };
+  const sorted = entries.slice().sort((a, b) => cmpStrV0(a, b));
+  return {
+    entries: options?.dedupe === false ? sorted : stableSortUniqueStringsV0(sorted),
+    markers: stableSortUniqueStringsV0(markers),
+  };
 };
 
 const readTarTextEntriesByBaseName = (inputPath: string, baseNames: string[]): { entries: Array<{ name: string; text: string }>; markers: string[] } => {
@@ -2595,8 +2599,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     lower === "compose.yaml" ||
     hasAnyPath(ctx.capture, ["docker-compose.yml", "docker-compose.yaml", "compose.yaml", "compose.yml"]);
   const isSbom = /sbom|spdx|cyclonedx|bom/i.test(lower);
-  const tarEntries = isTarInput ? readTarEntries(ctx.inputPath) : { entries: [] as string[], markers: [] as string[] };
+  const tarEntries = isTarInput
+    ? readTarEntries(ctx.inputPath, strictRoute ? { dedupe: false } : undefined)
+    : { entries: [] as string[], markers: [] as string[] };
   const tarEntryNames = tarEntries.entries.map((name) => String(name || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase());
+  const tarNameCountMap = tarEntryNames.reduce((map, name) => {
+    map.set(name, (map.get(name) ?? 0) + 1);
+    return map;
+  }, new Map<string, number>());
   const isContainerTarByEntries =
     isTarInput &&
     tarEntryNames.includes("manifest.json") &&
@@ -2639,8 +2649,10 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let dockerManifestCompleteItemCount = 0;
   let dockerManifestConfigRefCount = 0;
   let dockerManifestConfigResolvedCount = 0;
+  let dockerManifestConfigAmbiguousCount = 0;
   let dockerManifestLayerRefCount = 0;
   let dockerManifestLayerResolvedCount = 0;
+  let dockerManifestLayerAmbiguousCount = 0;
   let composeImageRefCount = 0;
   let composeServiceHintCount = 0;
   let composeServiceChildHintCount = 0;
@@ -2650,6 +2662,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let sbomPackageCount = 0;
   let ociManifestDigestRefCount = 0;
   let ociManifestDigestResolvedCount = 0;
+  let ociManifestDigestAmbiguousCount = 0;
 
   if (isOciLayout) {
     const capturePathSet = new Set<string>(
@@ -2788,7 +2801,10 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
               if (!digestMatch) return;
               const digestHex = digestMatch[1].toLowerCase();
               ociManifestDigestRefCount += 1;
-              if (tarNameSet.has(`blobs/sha256/${digestHex}`)) ociManifestDigestResolvedCount += 1;
+              const blobRef = `blobs/sha256/${digestHex}`;
+              const blobRefCount = tarNameCountMap.get(blobRef) ?? 0;
+              if (blobRefCount === 1) ociManifestDigestResolvedCount += 1;
+              else if (blobRefCount > 1) ociManifestDigestAmbiguousCount += 1;
             });
           }
         } catch {
@@ -2800,6 +2816,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
           ok: false,
           failCode: "CONTAINER_FORMAT_MISMATCH",
           failMessage: "container adapter expected OCI manifest digest references to resolve to tar blob entries for explicit OCI tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
+      if (strictRoute && ociManifestDigestAmbiguousCount > 0) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected non-ambiguous OCI tar blob references for explicit OCI tar analysis.",
           reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
         };
       }
@@ -2847,7 +2871,11 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
                 const normalizedConfig = configRef.replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase();
                 dockerManifestConfigRefCount += 1;
                 hasConfigRef = true;
-                if (normalizedConfig.length > 0 && tarNameSet.has(normalizedConfig)) dockerManifestConfigResolvedCount += 1;
+                if (normalizedConfig.length > 0) {
+                  const configRefCount = tarNameCountMap.get(normalizedConfig) ?? 0;
+                  if (configRefCount === 1) dockerManifestConfigResolvedCount += 1;
+                  else if (configRefCount > 1) dockerManifestConfigAmbiguousCount += 1;
+                }
               }
               const layers = Array.isArray(item.Layers) ? item.Layers : [];
               let hasLayerRef = false;
@@ -2857,7 +2885,9 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
                 if (!normalized) return;
                 hasLayerRef = true;
                 refs += 1;
-                if (tarNameSet.has(normalized)) resolved += 1;
+                const layerRefCount = tarNameCountMap.get(normalized) ?? 0;
+                if (layerRefCount === 1) resolved += 1;
+                else if (layerRefCount > 1) dockerManifestLayerAmbiguousCount += 1;
               });
               if (hasConfigRef && hasLayerRef) dockerManifestCompleteItemCount += 1;
             });
@@ -2920,6 +2950,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
           ok: false,
           failCode: "CONTAINER_FORMAT_MISMATCH",
           failMessage: "container adapter expected all docker manifest config references to resolve to tar entries for explicit docker tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
+      if (strictRoute && (dockerManifestLayerAmbiguousCount > 0 || dockerManifestConfigAmbiguousCount > 0)) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected non-ambiguous docker manifest references for explicit docker tar analysis.",
           reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
         };
       }
@@ -3053,6 +3091,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       ociBlobCount,
       ociManifestDigestRefCount,
       ociManifestDigestResolvedCount,
+      ociManifestDigestAmbiguousCount,
       tarEntryCount,
       dockerLayerEntryCount,
       dockerManifestMarkerPresent,
@@ -3064,8 +3103,10 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       dockerManifestCompleteItemCount,
       dockerManifestConfigRefCount,
       dockerManifestConfigResolvedCount,
+      dockerManifestConfigAmbiguousCount,
       dockerManifestLayerRefCount,
       dockerManifestLayerResolvedCount,
+      dockerManifestLayerAmbiguousCount,
       composeImageRefCount,
       composeServiceHintCount,
       composeServiceChildHintCount,
