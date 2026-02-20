@@ -28,6 +28,7 @@ Included
 - Extension strict route now fails closed on partial ZIP metadata even when `manifest.json` is present, preventing mixed valid/corrupt extension package acceptance.
 - Extension strict route now requires baseline manifest core fields (`manifest_version`, `name`, `version`) for explicit extension analysis, preventing empty/placeholder manifests from passing.
 - Extension strict route now requires canonical root-path `manifest.json` presence and fails closed on nested-only manifest paths or duplicate root `manifest.json` entries.
+- Extension strict route now requires non-ambiguous extension package entry-path sets, preventing duplicate or case-colliding package paths from passing explicit extension analysis.
 - Linux package coverage added to package adapter:
 - `.deb` now parses deterministic AR entry metadata (bounded, no extraction/exec).
 - `.rpm` now captures deterministic lead/header/script/signing hint counters from local bytes only.

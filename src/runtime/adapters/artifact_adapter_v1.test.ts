@@ -717,6 +717,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const caseCollisionVsix = path.join(tmp, "case_collision_entries.vsix");
+    writeStoredZip(caseCollisionVsix, [
+      { name: "manifest.json", text: JSON.stringify({ manifest_version: 3, name: "demo", version: "1.0.0" }) },
+      { name: "scripts/Alpha.js", text: "console.log('a');" },
+      { name: "scripts/alpha.js", text: "console.log('b');" },
+    ]);
+    const capture = captureTreeV0(caseCollisionVsix, limits);
+    const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: caseCollisionVsix, capture });
+    assert(!res.ok, "extension adapter should fail closed for case-colliding extension package entry paths");
+    assertEq(res.failCode, "EXTENSION_FORMAT_MISMATCH", "expected EXTENSION_FORMAT_MISMATCH for case-colliding extension package entry paths");
+  }
+
+  {
+    const tmp = mkTmp();
     const zipPath = path.join(tmp, "payload.zip");
     const crx = path.join(tmp, "demo.crx");
     writeStoredZip(zipPath, [

@@ -2195,7 +2195,28 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
         };
       }
     }
-    const manifestRootCount = zipEntries.entries.filter((entry) => normalizeZipEntryPathV1(entry).toLowerCase() === "manifest.json").length;
+    const normalizedZipEntries = zipEntries.entries.map((entry) => normalizeZipEntryPathV1(entry));
+    if (strictRoute) {
+      const uniqueEntries = stableSortUniqueStringsV0(normalizedZipEntries);
+      if (uniqueEntries.length < normalizedZipEntries.length) {
+        return {
+          ok: false,
+          failCode: "EXTENSION_FORMAT_MISMATCH",
+          failMessage: "extension adapter expected non-ambiguous extension package entry paths for explicit route analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_FORMAT_MISMATCH"]),
+        };
+      }
+      const uniqueCaseFoldedEntries = stableSortUniqueStringsV0(uniqueEntries.map((entry) => entry.toLowerCase()));
+      if (uniqueCaseFoldedEntries.length < uniqueEntries.length) {
+        return {
+          ok: false,
+          failCode: "EXTENSION_FORMAT_MISMATCH",
+          failMessage: "extension adapter expected case-unambiguous extension package entry paths for explicit route analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_FORMAT_MISMATCH"]),
+        };
+      }
+    }
+    const manifestRootCount = normalizedZipEntries.filter((entry) => entry.toLowerCase() === "manifest.json").length;
     manifestFound = manifestRootCount > 0;
     markers.push(...zipEntries.markers);
     if (strictRoute && zipEntries.markers.includes("ARCHIVE_METADATA_PARTIAL")) {
