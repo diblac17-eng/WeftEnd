@@ -219,6 +219,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const input = path.join(tmp, "sample.tbz2");
+    fs.writeFileSync(input, "not-a-real-tbz2", "utf8");
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"]);
+    assertEq(res.status, 40, "safe-run archive should fail closed for tbz2 alias without tar plugin");
+    assert(res.stderr.includes("ARCHIVE_PLUGIN_REQUIRED"), "expected ARCHIVE_PLUGIN_REQUIRED on stderr for tbz2 alias");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const input = path.join(tmp, "case_collision_plugin.tgz");
     writeSimpleTgz(input, [
       { name: "A.txt", text: "alpha-a" },

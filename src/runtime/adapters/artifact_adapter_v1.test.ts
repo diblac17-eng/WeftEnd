@@ -221,6 +221,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tbzAlias = path.join(tmp, "sample.tbz2");
+    fs.writeFileSync(tbzAlias, "not-a-real-tbz2", "utf8");
+    const capture = captureTreeV0(tbzAlias, limits);
+    const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: tbzAlias, capture });
+    assert(!res.ok, "archive tbz2 alias without plugin should fail closed");
+    assertEq(res.failCode, "ARCHIVE_PLUGIN_REQUIRED", "expected plugin required code for tbz2 alias");
+  }
+
+  {
+    const tmp = mkTmp();
     const tgz = path.join(tmp, "case_collision_plugin.tgz");
     writeSimpleTgz(tgz, [
       { name: "A.txt", text: "alpha-a" },

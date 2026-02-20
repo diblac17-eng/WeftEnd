@@ -13,7 +13,7 @@ Legend
 Adapter classes
 
 1) archive
-- Formats: .zip, .tar (built-in), .tar.gz/.tgz/.tar.bz2/.tar.xz/.txz (tar plugin), .7z (7z plugin)
+- Formats: .zip, .tar (built-in), .tar.gz/.tgz/.tar.bz2(.tbz2/.tbz)/.tar.xz/.txz (tar plugin), .7z (7z plugin)
 - Key reason codes:
   ARCHIVE_ADAPTER_V1
   ARCHIVE_FORMAT_MISMATCH
