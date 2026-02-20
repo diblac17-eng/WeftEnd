@@ -1519,7 +1519,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
   let pkgXarHeaderPresent = 0;
   let dmgKolyTrailerPresent = 0;
   if (ext === ".nupkg" || ext === ".whl" || ext === ".jar" || ext === ".msix") {
-    const zip = readZipEntries(ctx.inputPath);
+    const zip = strictRoute ? readZipEntriesRaw(ctx.inputPath) : readZipEntries(ctx.inputPath);
     entryNames = zip.entries;
     if (strictRoute && entryNames.length === 0) {
       return {

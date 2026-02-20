@@ -852,6 +852,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const duplicateSamePathMsix = path.join(tmp, "duplicate_same_path_markers.msix");
+    writeStoredZip(duplicateSamePathMsix, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "AppxManifest.xml", text: "<Package></Package>" },
+    ]);
+    const capture = captureTreeV0(duplicateSamePathMsix, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: duplicateSamePathMsix, capture });
+    assert(!res.ok, "package adapter should fail closed for msix with duplicate same-path required markers");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for duplicate same-path msix required markers");
+  }
+
+  {
+    const tmp = mkTmp();
     const msix = path.join(tmp, "demo.msix");
     writeStoredZip(msix, [
       {
@@ -1040,6 +1054,19 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: badStructureJar, capture });
     assert(!res.ok, "package adapter should fail closed for jar missing manifest");
     assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for jar missing structure");
+  }
+
+  {
+    const tmp = mkTmp();
+    const duplicateManifestJar = path.join(tmp, "duplicate_manifest.jar");
+    writeStoredZip(duplicateManifestJar, [
+      { name: "META-INF/MANIFEST.MF", text: "Manifest-Version: 1.0\n" },
+      { name: "META-INF/MANIFEST.MF", text: "Manifest-Version: 1.0\n" },
+    ]);
+    const capture = captureTreeV0(duplicateManifestJar, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: duplicateManifestJar, capture });
+    assert(!res.ok, "package adapter should fail closed for jar with duplicate same-path manifest entries");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for duplicate same-path jar manifest entries");
   }
 
   {

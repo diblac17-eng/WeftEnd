@@ -1116,6 +1116,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const duplicateSamePathMsix = path.join(tmp, "duplicate_same_path_markers.msix");
+    writeStoredZip(duplicateSamePathMsix, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "AppxManifest.xml", text: "<Package></Package>" },
+    ]);
+    const res = await runCliCapture(["safe-run", duplicateSamePathMsix, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for msix with duplicate same-path required markers");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for duplicate same-path msix required markers");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const tinyMsix = path.join(tmp, "tiny.msix");
     writeStoredZip(tinyMsix, [{ name: "AppxManifest.xml", text: "<Package></Package>" }]);
     const res = await runCliCapture(["safe-run", tinyMsix, "--out", outDir, "--adapter", "package"]);
@@ -1216,6 +1230,19 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", tinyJar, "--out", outDir, "--adapter", "package"]);
     assertEq(res.status, 40, "safe-run should fail closed for jar with valid structure but tiny file size");
     assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for tiny jar structural size");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const duplicateManifestJar = path.join(tmp, "duplicate_manifest.jar");
+    writeStoredZip(duplicateManifestJar, [
+      { name: "META-INF/MANIFEST.MF", text: "Manifest-Version: 1.0\n" },
+      { name: "META-INF/MANIFEST.MF", text: "Manifest-Version: 1.0\n" },
+    ]);
+    const res = await runCliCapture(["safe-run", duplicateManifestJar, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for jar with duplicate same-path manifest entries");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for duplicate same-path jar manifest entries");
   }
 
   {

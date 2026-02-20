@@ -29,6 +29,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Package ZIP structure checks now require canonical marker paths for `.msix`, `.nupkg`, and `.whl`.
 - Nested lookalike ZIP markers no longer satisfy strict package routing.
 - Strict package ZIP structure now enforces unique required-marker cardinality for `.msix`, `.nupkg`, `.whl`, and `.jar`.
+- Strict package ZIP marker cardinality now evaluates raw ZIP entry catalogs, so duplicate same-path required markers fail closed.
 
 ### Validation status for this unreleased batch
 - `npm run compile --silent`: pass
