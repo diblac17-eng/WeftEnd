@@ -1605,12 +1605,36 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const invalidIdentAppImage = path.join(tmp, "invalid_ident.appimage");
+    const bytes = Buffer.alloc(1024, 0);
+    bytes[0] = 0x7f;
+    bytes[1] = 0x45;
+    bytes[2] = 0x4c;
+    bytes[3] = 0x46;
+    bytes[4] = 0x00; // invalid ELF class
+    bytes[5] = 0x01; // little-endian
+    bytes[6] = 0x01; // ELF version
+    bytes[8] = 0x41;
+    bytes[9] = 0x49;
+    bytes[10] = 0x02;
+    fs.writeFileSync(invalidIdentAppImage, bytes);
+    const res = await runCliCapture(["safe-run", invalidIdentAppImage, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for appimage with invalid ELF ident");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for invalid appimage ELF ident");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const tinyValidAppImage = path.join(tmp, "tiny_valid.appimage");
     const bytes = Buffer.alloc(64, 0);
     bytes[0] = 0x7f;
     bytes[1] = 0x45;
     bytes[2] = 0x4c;
     bytes[3] = 0x46;
+    bytes[4] = 0x02;
+    bytes[5] = 0x01;
+    bytes[6] = 0x01;
     bytes[8] = 0x41;
     bytes[9] = 0x49;
     bytes[10] = 0x02;

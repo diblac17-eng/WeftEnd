@@ -1550,6 +1550,27 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const appimage = path.join(tmp, "invalid_ident.appimage");
+    const bytes = Buffer.alloc(1024, 0);
+    bytes[0] = 0x7f;
+    bytes[1] = 0x45;
+    bytes[2] = 0x4c;
+    bytes[3] = 0x46;
+    bytes[4] = 0x00; // invalid ELF class
+    bytes[5] = 0x01; // little-endian
+    bytes[6] = 0x01; // ELF version
+    bytes[8] = 0x41; // A
+    bytes[9] = 0x49; // I
+    bytes[10] = 0x02; // AppImage type 2
+    fs.writeFileSync(appimage, bytes);
+    const capture = captureTreeV0(appimage, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: appimage, capture });
+    assert(!res.ok, "package adapter should fail closed for appimage with invalid ELF ident");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for invalid appimage ELF ident");
+  }
+
+  {
+    const tmp = mkTmp();
     const appimage = path.join(tmp, "text_marker_only.appimage");
     const bytes = Buffer.alloc(1024, 0);
     bytes[0] = 0x7f;
@@ -1572,6 +1593,9 @@ const run = (): void => {
     bytes[1] = 0x45;
     bytes[2] = 0x4c;
     bytes[3] = 0x46;
+    bytes[4] = 0x02; // ELFCLASS64
+    bytes[5] = 0x01; // little-endian
+    bytes[6] = 0x01; // EV_CURRENT
     bytes[8] = 0x41; // A
     bytes[9] = 0x49; // I
     bytes[10] = 0x02; // AppImage type 2
@@ -1582,6 +1606,7 @@ const run = (): void => {
     assert(res.ok, "package adapter should parse appimage header hints");
     assertEq(res.summary?.sourceClass, "package", "appimage package class mismatch");
     assertEq(res.summary?.counts.appImageElfPresent, 1, "appimage elf marker missing");
+    assertEq(res.summary?.counts.appImageElfIdentValid, 1, "appimage elf ident validity marker missing");
     assertEq(res.summary?.counts.appImageMarkerPresent, 1, "appimage runtime marker missing");
     assertEq(res.summary?.counts.appImageType, 2, "appimage runtime type mismatch");
     assert((res.summary?.reasonCodes ?? []).includes("EXECUTION_WITHHELD_INSTALLER"), "appimage installer withheld reason missing");
@@ -1595,6 +1620,9 @@ const run = (): void => {
     bytes[1] = 0x45;
     bytes[2] = 0x4c;
     bytes[3] = 0x46;
+    bytes[4] = 0x02; // ELFCLASS64
+    bytes[5] = 0x01; // little-endian
+    bytes[6] = 0x01; // EV_CURRENT
     bytes[8] = 0x41; // A
     bytes[9] = 0x49; // I
     bytes[10] = 0x02; // AppImage type 2

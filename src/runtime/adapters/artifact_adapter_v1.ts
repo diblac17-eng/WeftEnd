@@ -1550,6 +1550,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
   let rpmLeadPresent = 0;
   let rpmHeaderPresent = 0;
   let appImageElfPresent = 0;
+  let appImageElfIdentValid = 0;
   let appImageMarkerPresent = 0;
   let appImageType = 0;
   let pkgXarHeaderPresent = 0;
@@ -1831,13 +1832,19 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
     }
   } else if (ext === ".appimage") {
     const bytes = readBytesBounded(ctx.inputPath, 256 * 1024);
-    appImageElfPresent = bytes.length >= 4 && bytes[0] === 0x7f && bytes[1] === 0x45 && bytes[2] === 0x4c && bytes[3] === 0x46 ? 1 : 0;
+    const hasElfMagic = bytes.length >= 4 && bytes[0] === 0x7f && bytes[1] === 0x45 && bytes[2] === 0x4c && bytes[3] === 0x46;
+    const elfClass = bytes.length >= 5 ? bytes[4] : 0;
+    const elfData = bytes.length >= 6 ? bytes[5] : 0;
+    const elfVersion = bytes.length >= 7 ? bytes[6] : 0;
+    const hasElfIdent = bytes.length >= 16 && (elfClass === 1 || elfClass === 2) && (elfData === 1 || elfData === 2) && elfVersion === 1;
+    appImageElfPresent = hasElfMagic ? 1 : 0;
+    appImageElfIdentValid = hasElfIdent ? 1 : 0;
     const hasRuntimeMagic = bytes.length >= 11 && bytes[8] === 0x41 && bytes[9] === 0x49 && (bytes[10] === 0x01 || bytes[10] === 0x02);
     appImageMarkerPresent = hasRuntimeMagic ? 1 : 0;
     appImageType = hasRuntimeMagic ? bytes[10] : 0;
     const headText = Buffer.from(bytes.subarray(0, Math.min(bytes.length, 4096))).toString("latin1");
     if (/AppRun|\.desktop|squashfs/i.test(headText)) textScriptHints += 1;
-    if (appImageElfPresent === 0 || appImageMarkerPresent === 0) {
+    if (appImageElfPresent === 0 || appImageElfIdentValid === 0 || appImageMarkerPresent === 0) {
       if (strictRoute) {
         return {
           ok: false,
@@ -1847,10 +1854,11 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
         };
       }
       if (appImageElfPresent === 0) markers.push("PACKAGE_APPIMAGE_HEADER_MISSING");
+      if (appImageElfPresent > 0 && appImageElfIdentValid === 0) markers.push("PACKAGE_APPIMAGE_ELF_IDENT_INVALID");
       if (appImageMarkerPresent === 0) markers.push(headText.includes("AppImage") ? "PACKAGE_APPIMAGE_MARKER_PARTIAL" : "PACKAGE_APPIMAGE_MARKER_MISSING");
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
     }
-    if (strictRoute && appImageElfPresent > 0 && appImageMarkerPresent > 0 && packageFileBytes < 512) {
+    if (strictRoute && appImageElfPresent > 0 && appImageElfIdentValid > 0 && appImageMarkerPresent > 0 && packageFileBytes < 512) {
       return {
         ok: false,
         failCode: "PACKAGE_FORMAT_MISMATCH",
@@ -2073,6 +2081,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       rpmLeadPresent,
       rpmHeaderPresent,
       appImageElfPresent,
+      appImageElfIdentValid,
       appImageMarkerPresent,
       appImageType,
       pkgXarHeaderPresent,
