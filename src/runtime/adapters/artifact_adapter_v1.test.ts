@@ -1668,6 +1668,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const shallowComposePath = path.join(tmp, "compose.yaml");
+    fs.writeFileSync(shallowComposePath, "services:\nimage: nginx:latest\n", "utf8");
+    const capture = captureTreeV0(shallowComposePath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: shallowComposePath, capture });
+    assert(!res.ok, "container adapter should fail closed for compose shell without indented service entries");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for compose shell without service entries");
+  }
+
+  {
+    const tmp = mkTmp();
     const buildComposePath = path.join(tmp, "compose.yaml");
     fs.writeFileSync(buildComposePath, "services:\n  web:\n    build: .\n", "utf8");
     const capture = captureTreeV0(buildComposePath, limits);

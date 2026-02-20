@@ -2274,6 +2274,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let dockerRepositoriesMarkerPresent = 0;
   let composeImageRefCount = 0;
   let composeServiceHintCount = 0;
+  let composeServiceChildHintCount = 0;
   let composeBuildHintCount = 0;
   let composeServicesBlockCount = 0;
   let sbomPackageCount = 0;
@@ -2386,18 +2387,19 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     composeTexts.forEach((text) => {
       composeImageRefCount += countMatchesV1(text, /\bimage\s*:\s*[^\s#]+/gi);
       composeServiceHintCount += countMatchesV1(text, /^\s{0,2}[A-Za-z0-9._-]+\s*:\s*$/gm);
+      composeServiceChildHintCount += countMatchesV1(text, /^\s{2,}[A-Za-z0-9._-]+\s*:\s*$/gm);
       composeBuildHintCount += countMatchesV1(text, /\bbuild\s*:\s*[^\s#]+/gi);
       composeBuildHintCount += countMatchesV1(text, /^\s*build\s*:\s*$/gm);
       composeServicesBlockCount += countMatchesV1(text, /^\s*services\s*:\s*$/gm);
     });
     if (
       strictRoute &&
-      (composeServicesBlockCount === 0 || (composeImageRefCount === 0 && composeBuildHintCount === 0))
+      (composeServicesBlockCount === 0 || composeServiceChildHintCount === 0 || (composeImageRefCount === 0 && composeBuildHintCount === 0))
     ) {
       return {
         ok: false,
         failCode: "CONTAINER_FORMAT_MISMATCH",
-        failMessage: "container adapter expected compose services and image/build hints for explicit compose analysis.",
+        failMessage: "container adapter expected compose services block with service entries and image/build hints for explicit compose analysis.",
         reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
       };
     }
@@ -2464,6 +2466,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       dockerRepositoriesMarkerPresent,
       composeImageRefCount,
       composeServiceHintCount,
+      composeServiceChildHintCount,
       composeBuildHintCount,
       composeServicesBlockCount,
       sbomPackageCount,

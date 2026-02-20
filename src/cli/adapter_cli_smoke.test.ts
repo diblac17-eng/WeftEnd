@@ -1579,6 +1579,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const shallowCompose = path.join(tmp, "compose.yaml");
+    fs.writeFileSync(shallowCompose, "services:\nimage: nginx:latest\n", "utf8");
+    const res = await runCliCapture(["safe-run", shallowCompose, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for compose shell without indented service entries");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for compose shell without service entries");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const buildCompose = path.join(tmp, "compose.yaml");
     fs.writeFileSync(buildCompose, "services:\n  web:\n    build: .\n", "utf8");
     const res = await runCliCapture(["safe-run", buildCompose, "--out", outDir, "--adapter", "container"]);
