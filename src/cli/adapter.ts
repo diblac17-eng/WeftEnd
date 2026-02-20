@@ -17,6 +17,24 @@ const printUsage = () => {
   console.log("  weftend adapter doctor [--text] [--write-policy <path>] [--include-missing-plugins]");
 };
 
+const writeCanonicalPolicyAtomic = (outPath: string, payload: unknown): void => {
+  const resolved = path.resolve(process.cwd(), outPath);
+  const dir = path.dirname(resolved);
+  const stagePath = `${resolved}.stage`;
+  fs.mkdirSync(dir, { recursive: true });
+  try {
+    fs.writeFileSync(stagePath, `${canonicalJSON(payload)}\n`, "utf8");
+    fs.renameSync(stagePath, resolved);
+  } catch (err) {
+    try {
+      if (fs.existsSync(stagePath)) fs.unlinkSync(stagePath);
+    } catch {
+      // best-effort cleanup only
+    }
+    throw err;
+  }
+};
+
 export const runAdapterCli = (args: string[]): number => {
   const command = String(args[0] || "").trim().toLowerCase();
   let textMode = false;
@@ -75,9 +93,12 @@ export const runAdapterCli = (args: string[]): number => {
       schema: "weftend.adapterMaintenance/0",
       disabledAdapters: Array.from(disabled.values()).sort((a, b) => cmpStrV0(a, b)),
     };
-    const outPath = path.resolve(process.cwd(), writePolicyPath);
-    fs.mkdirSync(path.dirname(outPath), { recursive: true });
-    fs.writeFileSync(outPath, `${canonicalJSON(policy)}\n`, "utf8");
+    try {
+      writeCanonicalPolicyAtomic(writePolicyPath, policy);
+    } catch {
+      process.stderr.write("[ADAPTER_POLICY_WRITE_FAILED] unable to write policy output file.\n");
+      return 1;
+    }
   }
   if (command === "doctor" && textMode) {
     const lines: string[] = [];

@@ -219,11 +219,13 @@ const run = async (): Promise<void> => {
   {
     const tmp = mkTmp();
     const outPolicy = path.join(tmp, "generated_policy.json");
+    const stagePath = `${outPolicy}.stage`;
     const res = await runCliCapture(["adapter", "doctor", "--write-policy", outPolicy], {
       env: { WEFTEND_ADAPTER_DISABLE: "archive,container", WEFTEND_ADAPTER_DISABLE_FILE: undefined },
     });
     assertEq(res.status, 0, `adapter doctor --write-policy should succeed\n${res.stderr}`);
     assert(fs.existsSync(outPolicy), "adapter doctor --write-policy should create policy file");
+    assert(!fs.existsSync(stagePath), "adapter doctor --write-policy should finalize without leftover stage file");
     const parsed = JSON.parse(fs.readFileSync(outPolicy, "utf8"));
     assertEq(parsed.schema, "weftend.adapterMaintenance/0", "generated policy schema mismatch");
     const disabled = Array.isArray(parsed.disabledAdapters) ? parsed.disabledAdapters : [];

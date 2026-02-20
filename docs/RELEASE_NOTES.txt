@@ -23,6 +23,7 @@ Included
 - New adapter maintenance/health command: `weftend adapter doctor`
 - Added readable doctor mode: `weftend adapter doctor --text` (deterministic local guidance, no auto-install/network).
 - Added policy writer mode: `weftend adapter doctor --write-policy <path> [--include-missing-plugins]`.
+- Policy writer now uses two-phase finalize (`<path>.stage -> <path>`) and fails closed with explicit write error on output failure.
 - Adapter maintenance gate added (operator-controlled, fail-closed):
 - `WEFTEND_ADAPTER_DISABLE=<adapter[,adapter...]>` disables selected adapter lanes without removing code.
 - Optional file policy path: `WEFTEND_ADAPTER_DISABLE_FILE=<path-to-json>` with `{"disabledAdapters":[...]}`.

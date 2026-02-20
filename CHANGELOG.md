@@ -18,6 +18,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added `weftend adapter doctor` for deterministic adapter readiness/maintenance reporting.
 - Added `weftend adapter doctor --text` for a human-readable maintenance report with deterministic local actions.
 - Added `weftend adapter doctor --write-policy <path> [--include-missing-plugins]` to generate maintenance policy files.
+- Policy writer output is now finalized atomically using a two-phase stage/finalize flow (`<path>.stage -> <path>`), with explicit fail-closed write error on output failure.
 - Added fail-closed adapter maintenance policy gate using `WEFTEND_ADAPTER_DISABLE=<adapter[,adapter...]>`.
 - Added optional file policy source `WEFTEND_ADAPTER_DISABLE_FILE=<path-to-json>` for release/operator maintenance profiles.
 - Added `policies/adapter_maintenance.example.json` and `docs/ADAPTER_MAINTENANCE_POLICY.md` for maintenance policy bootstrapping.
