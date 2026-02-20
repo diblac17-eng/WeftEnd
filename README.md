@@ -31,6 +31,9 @@ What's new in the latest alpha
 - Builder integration contract is available:
   - weftend export-json <outRoot> --format normalized_v0
   - contract: weftend.normalizedSummary/0
+- Added first-party GitHub Actions artifact-meter workflow:
+  - .github/workflows/weftend_artifact_meter.yml
+  - docs/GITHUB_ACTIONS.md
 - Core/runtime trust hardening sweep included in release scope.
 - Release packaging hygiene hardened:
   - internal test/harness payloads are pruned from release bundles
@@ -90,6 +93,7 @@ Useful commands
 - Note: `--include-missing-plugins` requires `--write-policy`.
 - npm run weftend -- safe-run <input> --out <dir> --adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature
 - npm run weftend -- safe-run <input> --out <dir> --adapter archive --enable-plugin tar
+- See docs/GITHUB_ACTIONS.md for CI usage with .github/workflows/weftend_artifact_meter.yml
 
 Adapter maintenance gate
 - Set `WEFTEND_ADAPTER_DISABLE` to temporarily disable adapter lanes without removing code.

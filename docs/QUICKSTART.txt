@@ -82,6 +82,19 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   - bounded tartarus kind counters
 - No storage/export side effects are performed by default.
 
+3.4) GitHub Actions artifact meter (optional)
+- Included workflow:
+  .github/workflows/weftend_artifact_meter.yml
+- Run from Actions UI (`workflow_dispatch`) with:
+  - target_path (required)
+  - adapter (required)
+  - baseline_path (optional)
+- This executes deterministic `safe-run` (analysis-only, `--withhold-exec`) and optional compare.
+- Workflow artifacts are uploaded under:
+  out/ci_meter
+- Details:
+  docs/GITHUB_ACTIONS.md
+
 4) Launchpad (no CLI after install)
 - Open Start Menu -> WeftEnd Launchpad
 - Add shortcuts/apps in:

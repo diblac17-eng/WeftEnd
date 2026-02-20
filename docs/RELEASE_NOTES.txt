@@ -4,6 +4,10 @@ Scope: Deterministic artifact intake, baseline/compare workflows, operator-facin
 Liability scope: WeftEnd is an evidence and change-tracking engine, not a malware oracle or compliance guarantee.
 
 Included
+- GitHub Actions integration added for deterministic CI artifact-meter runs:
+- Added workflow: `.github/workflows/weftend_artifact_meter.yml`
+- Workflow runs `safe-run` (analysis-only, `--withhold-exec`) with optional compare and uploads `out/ci_meter` artifacts.
+- Added usage guide: `docs/GITHUB_ACTIONS.md`
 - 360 commit gate added:
 - `npm run verify:360` now performs compile/test/proofcheck + deterministic replay + privacy lint + compare smoke.
 - Gate now always writes evidence artifacts (`verify_360_receipt.json` and `verify_360_report.txt`) for PASS/PARTIAL/FAIL outcomes.

@@ -5,6 +5,12 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 
 ## [Unreleased]
 
+### GitHub Actions integration
+- Added `.github/workflows/weftend_artifact_meter.yml` for manual CI artifact-meter runs (`workflow_dispatch`).
+- Workflow executes deterministic `safe-run` (analysis-only, `--withhold-exec`) with optional baseline compare.
+- Workflow uploads `out/ci_meter` receipts/reports as downloadable artifacts and writes a bounded run summary.
+- Added `docs/GITHUB_ACTIONS.md` with setup, inputs, and expected outputs.
+
 ### Safe-run evidence corridor
 - `safe-run` now verifies expected receipt artifacts for presence and digest consistency before completion.
 - `safe-run` now flags unmanaged pre-existing output files anywhere under out-root as deterministic orphan-evidence warnings.
