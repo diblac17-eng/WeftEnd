@@ -30,6 +30,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Nested-only manifest paths no longer satisfy strict extension routing.
 - Duplicate root `manifest.json` entries now fail closed in strict mode.
 - Strict extension package routes now require non-ambiguous entry-path sets (duplicate or case-colliding entry paths fail strict routing).
+- Strict extension unpacked routes now also require non-ambiguous entry-path sets (duplicate or case-colliding entry paths fail strict routing).
 
 ### Package strict-route hardening
 - Package ZIP structure checks now require canonical marker paths for `.msix`, `.nupkg`, and `.whl`.

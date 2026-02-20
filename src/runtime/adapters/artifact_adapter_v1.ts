@@ -2166,6 +2166,29 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let manifestCoreValid = false;
 
   if (isDir) {
+    if (strictRoute) {
+      const extensionEntryPaths = ctx.capture.entries
+        .map((entry) => String(entry.path || "").replace(/\\/g, "/"))
+        .filter((p) => p.length > 0);
+      const uniqueEntryPaths = stableSortUniqueStringsV0(extensionEntryPaths);
+      if (uniqueEntryPaths.length < extensionEntryPaths.length) {
+        return {
+          ok: false,
+          failCode: "EXTENSION_FORMAT_MISMATCH",
+          failMessage: "extension adapter expected non-ambiguous extension entry paths for explicit route analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_FORMAT_MISMATCH"]),
+        };
+      }
+      const uniqueCaseFoldedPaths = stableSortUniqueStringsV0(uniqueEntryPaths.map((name) => name.toLowerCase()));
+      if (uniqueCaseFoldedPaths.length < uniqueEntryPaths.length) {
+        return {
+          ok: false,
+          failCode: "EXTENSION_FORMAT_MISMATCH",
+          failMessage: "extension adapter expected case-unambiguous extension entry paths for explicit route analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_FORMAT_MISMATCH"]),
+        };
+      }
+    }
     const dir = analyzeExtensionDir(ctx.inputPath);
     manifestFound = dir.manifestFound;
     manifestInvalid = dir.manifestInvalid;

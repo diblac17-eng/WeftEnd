@@ -551,6 +551,19 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    fs.writeFileSync(path.join(tmp, "manifest.json"), JSON.stringify({ manifest_version: 3, name: "demo", version: "1.0.0" }), "utf8");
+    const capture = captureTreeV0(tmp, limits) as any;
+    capture.entries = capture.entries.concat([
+      { path: "Scripts/Alpha.js", kind: "file", bytes: 1, digest: "sha256:a" },
+      { path: "scripts/alpha.js", kind: "file", bytes: 1, digest: "sha256:b" },
+    ]);
+    const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: tmp, capture });
+    assert(!res.ok, "extension adapter should fail closed for explicit unpacked extension with case-colliding entry paths");
+    assertEq(res.failCode, "EXTENSION_FORMAT_MISMATCH", "expected EXTENSION_FORMAT_MISMATCH for case-colliding unpacked extension entry paths");
+  }
+
+  {
+    const tmp = mkTmp();
     const wfDir = path.join(tmp, ".github", "workflows");
     fs.mkdirSync(wfDir, { recursive: true });
     fs.writeFileSync(
