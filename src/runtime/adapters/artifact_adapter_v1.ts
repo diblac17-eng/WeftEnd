@@ -661,6 +661,80 @@ const readTarTextEntriesByBaseName = (inputPath: string, baseNames: string[]): {
   return { entries: out, markers: stableSortUniqueStringsV0(markers) };
 };
 
+const readTarTextEntriesByExactPath = (
+  inputPath: string,
+  exactPaths: string[]
+): { entries: Array<{ name: string; text: string }>; markers: string[] } => {
+  const parseTarOctal = (raw: string): number | null => {
+    const text = raw.replace(/\0.*$/, "").trim();
+    if (text.length === 0) return 0;
+    if (!/^[0-7]+$/.test(text)) return null;
+    const parsed = Number.parseInt(text, 8);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  };
+  const tarHeaderChecksum = (block: any): number => {
+    let sum = 0;
+    for (let i = 0; i < 512; i += 1) {
+      sum += i >= 148 && i < 156 ? 0x20 : block[i] ?? 0;
+    }
+    return sum;
+  };
+  const wanted = new Set(
+    exactPaths
+      .map((name) => String(name || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase())
+      .filter((name) => name.length > 0)
+  );
+  if (wanted.size === 0) return { entries: [], markers: [] };
+  let buf: Uint8Array;
+  try {
+    buf = fs.readFileSync(inputPath);
+  } catch {
+    return { entries: [], markers: ["ARCHIVE_METADATA_PARTIAL"] };
+  }
+  const markers: string[] = [];
+  const out: Array<{ name: string; text: string }> = [];
+  let offset = 0;
+  while (offset + 512 <= buf.length) {
+    const block = Buffer.from(buf.subarray(offset, offset + 512));
+    const empty = block.every((b: number) => b === 0);
+    if (empty) break;
+    const recordedChecksum = parseTarOctal(block.slice(148, 156).toString("ascii"));
+    if (recordedChecksum === null || tarHeaderChecksum(block) !== recordedChecksum) {
+      markers.push("ARCHIVE_METADATA_PARTIAL");
+      break;
+    }
+    const nameRaw = block.slice(0, 100).toString("utf8").replace(/\0.*$/, "");
+    const prefixRaw = block.slice(345, 500).toString("utf8").replace(/\0.*$/, "");
+    const size = parseTarOctal(block.slice(124, 136).toString("ascii"));
+    if (size === null) {
+      markers.push("ARCHIVE_METADATA_PARTIAL");
+      break;
+    }
+    const fullName = `${prefixRaw ? `${prefixRaw}/` : ""}${nameRaw}`.replace(/\\/g, "/").replace(/^\.\/+/, "");
+    const dataSize = size > 0 ? size : 0;
+    const dataStart = offset + 512;
+    const dataEnd = dataStart + dataSize;
+    const advance = 512 + Math.ceil(dataSize / 512) * 512;
+    if (!Number.isFinite(advance) || advance <= 0 || offset + advance > buf.length || dataEnd > buf.length) {
+      markers.push("ARCHIVE_METADATA_PARTIAL");
+      break;
+    }
+    const normalized = fullName.toLowerCase();
+    if (fullName && !fullName.endsWith("/") && wanted.has(normalized)) {
+      const bounded = Buffer.from(buf.subarray(dataStart, Math.min(dataEnd, dataStart + MAX_TEXT_BYTES)));
+      if (dataSize > MAX_TEXT_BYTES) markers.push("ARCHIVE_TRUNCATED");
+      out.push({ name: fullName, text: bounded.toString("utf8") });
+      if (out.length >= 32) {
+        markers.push("ARCHIVE_TRUNCATED");
+        break;
+      }
+    }
+    offset += advance;
+  }
+  out.sort((a, b) => cmpStrV0(a.name, b.name));
+  return { entries: out, markers: stableSortUniqueStringsV0(markers) };
+};
+
 const readArEntriesV1 = (inputPath: string): { entries: string[]; markers: string[] } => {
   const markers: string[] = [];
   const entries: string[] = [];
@@ -2399,15 +2473,16 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   const isSbom = /sbom|spdx|cyclonedx|bom/i.test(lower);
   const isContainerTarByHint = isTarInput && hasAnyPath(ctx.capture, ["manifest.json", "repositories"]);
   const tarEntries = isTarInput ? readTarEntries(ctx.inputPath) : { entries: [] as string[], markers: [] as string[] };
+  const tarEntryNames = tarEntries.entries.map((name) => String(name || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase());
   const isContainerTarByEntries =
     isTarInput &&
-    tarEntries.entries.some((name) => path.basename(String(name || "")).toLowerCase() === "manifest.json") &&
-    tarEntries.entries.some((name) => path.basename(String(name || "")).toLowerCase() === "repositories");
+    tarEntryNames.some((name) => path.basename(name) === "manifest.json") &&
+    tarEntryNames.some((name) => path.basename(name) === "repositories");
   const isOciTarByEntries =
     isTarInput &&
-    tarEntries.entries.some((name) => path.basename(String(name || "")).toLowerCase() === "oci-layout") &&
-    tarEntries.entries.some((name) => path.basename(String(name || "")).toLowerCase() === "index.json") &&
-    tarEntries.entries.some((name) => String(name || "").replace(/\\/g, "/").toLowerCase().startsWith("blobs/sha256/"));
+    tarEntryNames.includes("oci-layout") &&
+    tarEntryNames.includes("index.json") &&
+    tarEntryNames.some((name) => name.startsWith("blobs/sha256/"));
   const isContainerTar = isContainerTarByHint || isContainerTarByEntries || isOciTarByEntries;
   if (strictRoute && isTarInput && !isContainerTar) {
     return {
@@ -2545,12 +2620,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   if (isContainerTar) {
     tarEntryCount = tarEntries.entries.length;
     markers.push(...tarEntries.markers);
-    const tarNames = tarEntries.entries.map((name) => String(name || "").replace(/\\/g, "/").toLowerCase());
+    const tarNames = tarEntryNames;
     const tarNameSet = new Set<string>(tarNames);
     if (isOciTarByEntries) {
-      const ociTexts = readTarTextEntriesByBaseName(ctx.inputPath, ["index.json"]);
+      const ociTexts = readTarTextEntriesByExactPath(ctx.inputPath, ["index.json"]);
       markers.push(...ociTexts.markers);
-      const ociIndexEntry = ociTexts.entries.find((entry) => path.basename(entry.name).toLowerCase() === "index.json");
+      const ociIndexEntry = ociTexts.entries.find(
+        (entry) => String(entry.name || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase() === "index.json"
+      );
       if (ociIndexEntry) {
         try {
           const parsed = JSON.parse(String(ociIndexEntry.text || ""));

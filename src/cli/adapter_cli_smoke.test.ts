@@ -1700,6 +1700,23 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const ociTarNestedMarkers = path.join(tmp, "oci_layout_nested_markers.tar");
+    writeSimpleTar(ociTarNestedMarkers, [
+      { name: "nested/oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      {
+        name: "nested/index.json",
+        text: "{\"schemaVersion\":2,\"manifests\":[{\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}]}\n",
+      },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+    ]);
+    const res = await runCliCapture(["safe-run", ociTarNestedMarkers, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI tar nested marker paths");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar nested marker paths");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badTar = path.join(tmp, "bad_container.tar");
     fs.writeFileSync(badTar, "not-a-container-tar", "utf8");
     const res = await runCliCapture(["safe-run", badTar, "--out", outDir, "--adapter", "container"]);
