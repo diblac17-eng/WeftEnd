@@ -1359,6 +1359,36 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const iso = path.join(tmp, "sample.iso");
+    const bytes = Buffer.alloc(18 * 2048, 0);
+    bytes[16 * 2048] = 1;
+    Buffer.from("CD001", "ascii").copy(bytes, 16 * 2048 + 1);
+    bytes[16 * 2048 + 6] = 1;
+    bytes[17 * 2048] = 255;
+    Buffer.from("CD001", "ascii").copy(bytes, 17 * 2048 + 1);
+    bytes[17 * 2048 + 6] = 1;
+    fs.writeFileSync(iso, bytes);
+    const res = await runCliCapture(["safe-run", iso, "--out", outDir, "--adapter", "image"]);
+    assertEq(res.status, 0, "safe-run should accept explicit iso with pvd and terminator evidence");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const iso = path.join(tmp, "no_terminator.iso");
+    const bytes = Buffer.alloc(18 * 2048, 0);
+    bytes[16 * 2048] = 1;
+    Buffer.from("CD001", "ascii").copy(bytes, 16 * 2048 + 1);
+    bytes[16 * 2048 + 6] = 1;
+    fs.writeFileSync(iso, bytes);
+    const res = await runCliCapture(["safe-run", iso, "--out", outDir, "--adapter", "image"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit iso missing descriptor terminator");
+    assert(res.stderr.includes("IMAGE_FORMAT_MISMATCH"), "expected IMAGE_FORMAT_MISMATCH on stderr for iso missing terminator");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const vhd = path.join(tmp, "sample.vhd");
     const bytes = Buffer.alloc(1024, 0);
     Buffer.from("conectix", "ascii").copy(bytes, bytes.length - 512);

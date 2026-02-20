@@ -96,7 +96,7 @@ Adapter classes
   IMAGE_TABLE_TRUNCATED
   IMAGE_FORMAT_MISMATCH
 - Route strictness:
-  explicit `--adapter image` fails closed when extension/header evidence does not match, including unsupported `.qcow2` versions, `.qcow2` headers below minimum structural size, `.vhd` footer-only files below minimum structural size, `.vhdx` signature-only files below minimum structural size, `.vmdk` descriptor-only files below minimum structural size, and weak `.vmdk` descriptor-only hints that lack structural evidence.
+  explicit `--adapter image` fails closed when extension/header evidence does not match, including unsupported `.qcow2` versions, `.qcow2` headers below minimum structural size, `.iso` inputs missing descriptor-set terminator evidence after PVD, `.vhd` footer-only files below minimum structural size, `.vhdx` signature-only files below minimum structural size, `.vmdk` descriptor-only files below minimum structural size, and weak `.vmdk` descriptor-only hints that lack structural evidence.
 
 8) scm (baseline signal lane)
 - Formats: local git trees

@@ -2633,6 +2633,7 @@ const analyzeImage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
 
   let isoPvdPresent = 0;
   let isoPvdVersionPresent = 0;
+  let isoTerminatorPresent = 0;
   let vhdFooterPresent = 0;
   let vhdxSignaturePresent = 0;
   let qcowMagicPresent = 0;
@@ -2644,12 +2645,19 @@ const analyzeImage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
 
   if (ctx.ext === ".iso") {
     const pvdOffset = 16 * 2048;
+    const vdstOffset = 17 * 2048;
     if (head.length >= pvdOffset + 7) {
       const sig = head.subarray(pvdOffset + 1, pvdOffset + 6).toString("ascii");
       const type = head[pvdOffset];
       const version = head[pvdOffset + 6];
       if (version === 1) isoPvdVersionPresent = 1;
       if (sig === "CD001" && (type === 1 || type === 2) && version === 1) isoPvdPresent = 1;
+      if (head.length >= vdstOffset + 7) {
+        const termSig = head.subarray(vdstOffset + 1, vdstOffset + 6).toString("ascii");
+        const termType = head[vdstOffset];
+        const termVersion = head[vdstOffset + 6];
+        if (termSig === "CD001" && termType === 255 && termVersion === 1) isoTerminatorPresent = 1;
+      }
     } else {
       markers.push("IMAGE_HEADER_PARTIAL");
     }
@@ -2725,6 +2733,14 @@ const analyzeImage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
       reasonCodes: stableSortUniqueReasonsV0(["IMAGE_ADAPTER_V1", "IMAGE_FORMAT_MISMATCH"]),
     };
   }
+  if (strictRoute && ctx.ext === ".iso" && (isoPvdPresent === 0 || isoTerminatorPresent === 0)) {
+    return {
+      ok: false,
+      failCode: "IMAGE_FORMAT_MISMATCH",
+      failMessage: "image adapter requires ISO primary descriptor and terminator evidence for explicit image analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["IMAGE_ADAPTER_V1", "IMAGE_FORMAT_MISMATCH"]),
+    };
+  }
   if (
     strictRoute &&
     ctx.ext === ".vmdk" &&
@@ -2753,6 +2769,7 @@ const analyzeImage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
       headerMatchCount,
       isoPvdPresent,
       isoPvdVersionPresent,
+      isoTerminatorPresent,
       vhdFooterPresent,
       vhdxSignaturePresent,
       qcowMagicPresent,

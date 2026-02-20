@@ -89,6 +89,7 @@ Included
 - SCM strict route now fails closed on partial git/native-ref/status metadata, preventing partial SCM evidence from being treated as complete explicit SCM analysis.
 - Image adapter extraction deepened:
 - Deterministic header evidence now includes ISO PVD, VHD footer, VHDX signature, QCOW2 magic/version, and VMDK descriptor/sparse-magic hints.
+- Explicit ISO route now requires both primary volume descriptor and descriptor-set terminator evidence, preventing PVD-only placeholders from passing strict image routing.
 - Explicit image route now requires minimum structural byte-size evidence for `qcow2` and `vhdx` beyond magic/signature bytes, preventing tiny signature-only files from passing strict image analysis.
 - Explicit image route now requires minimum structural byte-size evidence for `vhd` beyond footer marker bytes, preventing tiny footer-only files from passing strict image analysis.
 - Explicit image route now requires minimum descriptor size for descriptor-only `vmdk` analysis, preventing tiny placeholder descriptors from passing strict image routing.

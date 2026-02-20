@@ -1760,10 +1760,13 @@ const run = (): void => {
   {
     const tmp = mkTmp();
     const iso = path.join(tmp, "sample.iso");
-    const bytes = Buffer.alloc(16 * 2048 + 64, 0);
+    const bytes = Buffer.alloc(18 * 2048, 0);
     bytes[16 * 2048] = 1; // primary volume descriptor
     Buffer.from("CD001", "ascii").copy(bytes, 16 * 2048 + 1);
     bytes[16 * 2048 + 6] = 1; // descriptor version
+    bytes[17 * 2048] = 255; // descriptor set terminator
+    Buffer.from("CD001", "ascii").copy(bytes, 17 * 2048 + 1);
+    bytes[17 * 2048 + 6] = 1;
     fs.writeFileSync(iso, bytes);
     const capture = captureTreeV0(iso, limits);
     const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: iso, capture });
@@ -1771,7 +1774,22 @@ const run = (): void => {
     assertEq(res.summary?.sourceClass, "image", "iso image class mismatch");
     assertEq(res.summary?.counts.isoPvdPresent, 1, "iso pvd should be detected");
     assertEq(res.summary?.counts.isoPvdVersionPresent, 1, "iso pvd version should be detected");
+    assertEq(res.summary?.counts.isoTerminatorPresent, 1, "iso terminator should be detected");
     assert((res.summary?.counts.headerMatchCount ?? 0) > 0, "iso header match count missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const iso = path.join(tmp, "no_terminator.iso");
+    const bytes = Buffer.alloc(18 * 2048, 0);
+    bytes[16 * 2048] = 1; // primary volume descriptor
+    Buffer.from("CD001", "ascii").copy(bytes, 16 * 2048 + 1);
+    bytes[16 * 2048 + 6] = 1; // descriptor version
+    fs.writeFileSync(iso, bytes);
+    const capture = captureTreeV0(iso, limits);
+    const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: iso, capture });
+    assert(!res.ok, "image adapter should fail closed for explicit iso missing descriptor terminator");
+    assertEq(res.failCode, "IMAGE_FORMAT_MISMATCH", "expected IMAGE_FORMAT_MISMATCH for iso missing descriptor terminator");
   }
 
   {
