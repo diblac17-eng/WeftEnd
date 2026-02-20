@@ -160,6 +160,7 @@ const assertRunInvariants = ({
   idempotencePointerPolicy,
   capabilityDecisions,
   observedCapabilityDecisionCount,
+  allowFailClosedPointerSuppression = false,
 }) => {
   if (!Array.isArray(steps) || steps.length === 0) throw new Error("VERIFY360_INVARIANT_STEPS_EMPTY");
   if (steps.length > MAX_STEPS) throw new Error("VERIFY360_INVARIANT_STEPS_OVERFLOW");
@@ -179,7 +180,13 @@ const assertRunInvariants = ({
   const pointerDecision = (capabilityDecisions || []).find((d) => d.capability === "output.update_latest_pointer");
   const pointerGranted = String(pointerDecision?.status || "DENIED") === "GRANTED";
   if (idempotenceMode === "NEW") {
-    if (idempotencePointerPolicy !== "UPDATE_ALLOWED" || !pointerGranted) {
+    const normalNew = idempotencePointerPolicy === "UPDATE_ALLOWED" && pointerGranted;
+    const failClosedNew = idempotencePointerPolicy === "UPDATE_SUPPRESSED" && !pointerGranted;
+    if (allowFailClosedPointerSuppression) {
+      if (!normalNew && !failClosedNew) {
+        throw new Error("VERIFY360_INVARIANT_POINTER_POLICY_NEW_MISMATCH");
+      }
+    } else if (!normalNew) {
       throw new Error("VERIFY360_INVARIANT_POINTER_POLICY_NEW_MISMATCH");
     }
   } else if (idempotenceMode === "REPLAY" || idempotenceMode === "PARTIAL") {
@@ -667,10 +674,8 @@ const main = () => {
     "scm",
     "signature",
   ]);
-  if (safeRunAdapterRaw.length > 0 && !allowedSafeRunAdapters.has(safeRunAdapterRaw)) {
-    throw new Error("VERIFY360_SAFE_RUN_ADAPTER_INVALID");
-  }
-  const safeRunAdapter = safeRunAdapterRaw.length > 0 ? safeRunAdapterRaw : "auto";
+  const safeRunAdapterInvalid = safeRunAdapterRaw.length > 0 && !allowedSafeRunAdapters.has(safeRunAdapterRaw);
+  const safeRunAdapter = safeRunAdapterInvalid ? "INVALID" : safeRunAdapterRaw.length > 0 ? safeRunAdapterRaw : "auto";
   const auditStrictMode = process.env.WEFTEND_360_AUDIT_STRICT === "1" ? 1 : 0;
   const adapterDoctorStrictMode = process.env.WEFTEND_360_ADAPTER_DOCTOR_STRICT === "1" ? 1 : 0;
   const failOnPartialMode = process.env.WEFTEND_360_FAIL_ON_PARTIAL === "1" ? 1 : 0;
@@ -731,6 +736,9 @@ const main = () => {
     runCommand(name, npm.cmd, [...npm.argsPrefix, "run", name, ...extraArgs], envExtra);
 
   try {
+  if (safeRunAdapterInvalid) {
+    throw new Error("VERIFY360_SAFE_RUN_ADAPTER_INVALID");
+  }
   if (process.env.WEFTEND_360_FORCE_EXCEPTION === "1") {
     throw new Error("VERIFY360_FORCED_EXCEPTION");
   }
@@ -1316,6 +1324,7 @@ const main = () => {
       idempotencePointerPolicy: "UPDATE_SUPPRESSED",
       capabilityDecisions,
       observedCapabilityDecisionCount: failurePayload.observed.capabilityDecisionCount,
+      allowFailClosedPointerSuppression: true,
     });
     assertPayloadConsistency(failurePayload);
     try {

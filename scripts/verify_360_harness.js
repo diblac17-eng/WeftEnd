@@ -140,6 +140,7 @@ const assertReportPolicyLines = (reportText) => {
     "policy.adapterDoctorStrict=",
     "policy.failOnPartial=",
     "policy.partialBlocked=",
+    "policy.safeRunAdapter=",
     "adapterDoctor.status=",
     "adapterDoctor.strictStatus=",
     "adapterDoctor.strictReasons=",
@@ -306,11 +307,34 @@ const main = () => {
     reasonCodes.includes(`VERIFY360_FAIL_CLOSED_AT_${String(receiptF.interpreted?.gateState || "").toUpperCase()}`),
     "VERIFY360_HARNESS_FAIL_CLOSED_AT_REASON_MISSING"
   );
+
+  const statusG = runVerify({ WEFTEND_360_SAFE_RUN_ADAPTER: "invalid_adapter_value" });
+  assert(statusG !== 0, "VERIFY360_HARNESS_INVALID_ADAPTER_DID_NOT_FAIL");
+  const runsAfterG = listRunNames();
+  const newRunsG = diffNewRuns(runsAfterF, runsAfterG);
+  assert(newRunsG.length === 1, "VERIFY360_HARNESS_INVALID_ADAPTER_RUN_COUNT_INVALID");
+  const runG = newRunsG[0];
+  const latestG = readLatest();
+  assert(latestG === latestD, "VERIFY360_HARNESS_INVALID_ADAPTER_POINTER_ADVANCED");
+  const receiptGPath = path.join(historyRoot, runG, "verify_360_receipt.json");
+  const reportGPath = path.join(historyRoot, runG, "verify_360_report.txt");
+  assert(fs.existsSync(receiptGPath), "VERIFY360_HARNESS_RECEIPT_G_MISSING");
+  assert(fs.existsSync(reportGPath), "VERIFY360_HARNESS_REPORT_G_MISSING");
+  const receiptG = readJson(receiptGPath);
+  const reportG = readText(reportGPath);
+  assertStateReceipt(receiptG, "FAIL");
+  assertReportPolicyLines(reportG);
+  assertSortedUnique(receiptG.reasonCodes, "VERIFY360_HARNESS_REASON_CODES");
+  assertCapabilityLedger(receiptG);
+  const reasonCodesG = Array.isArray(receiptG.reasonCodes) ? receiptG.reasonCodes : [];
+  assert(reasonCodesG.includes("VERIFY360_SAFE_RUN_ADAPTER_INVALID"), "VERIFY360_HARNESS_INVALID_ADAPTER_REASON_MISSING");
+  assertHistoryLink(receiptG, runF, receiptFPath);
+
   const auditStatus = runAuditStrict();
   assert(auditStatus === 0, `VERIFY360_HARNESS_AUDIT_STRICT_FAILED status=${auditStatus}`);
 
   console.log(
-    `verify:360:harness PASS outRoot=${outRoot} beforeLatest=${beforeLatest || "NONE"} passRun=${runA} replayRun=${runB} strictRun=${runD} strictReplayRun=${runE} forcedRun=${runF}`
+    `verify:360:harness PASS outRoot=${outRoot} beforeLatest=${beforeLatest || "NONE"} passRun=${runA} replayRun=${runB} strictRun=${runD} strictReplayRun=${runE} forcedRun=${runF} invalidAdapterRun=${runG}`
   );
 };
 

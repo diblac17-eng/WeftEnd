@@ -30,6 +30,8 @@ Included
 - Clean out-root removes legacy-history warning noise, but strict release gate still fails by design when adapter-doctor strict requirements remain unresolved.
 - Added `npm run verify:360:release:managed` helper to auto-generate a temporary adapter maintenance policy (disabling missing-plugin lanes), run strict adapter-doctor preflight with that policy, then run strict `verify:360` without global adapter-disable env leakage into full test lanes.
 - Added optional verify env override `WEFTEND_360_SAFE_RUN_ADAPTER` (validated adapter set) for deterministic pair-lane control; value is recorded in idempotence context/report policy lines.
+- Invalid `WEFTEND_360_SAFE_RUN_ADAPTER` values now fail closed inside verify corridor and still emit fail receipts/reports (`VERIFY360_SAFE_RUN_ADAPTER_INVALID`), preserving evidence-first behavior.
+- `verify:360:harness` now covers invalid adapter override failure path and verifies pointer non-advance + receipt/report persistence.
 - Added Green Team workflow contract test for `.github/workflows/weftend_artifact_meter.yml` to enforce analysis-only (`--withhold-exec`) and bounded artifact-output workflow invariants in test/proofcheck loops.
 - Emergency verify report path now preserves policy context lines (`policy.*`) so fail-closed receipts remain operator-readable under write-path fallback.
 - Safe-run now enforces a non-blocking evidence corridor check before completion:
