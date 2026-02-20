@@ -56,11 +56,18 @@ Short, strict release checklist (alpha).
   - WeftEnd Launchpad
   - WeftEnd Download
 
-8) Release folder sync check
+8) Adapter maintenance readiness check
+- npm run weftend -- adapter doctor --text
+- Confirm `policy.invalid=-` unless intentionally testing a maintenance-file failure case.
+- If a maintenance profile is needed for release operators:
+  - npm run weftend -- adapter doctor --write-policy policies\\adapter_maintenance.json --include-missing-plugins
+  - Confirm generated file exists and has schema `weftend.adapterMaintenance/0`.
+
+9) Release folder sync check
 - Copy from out\\release to release upload folder.
 - Ensure upload folder has no stale extra files.
 - Re-verify zip hashes in upload folder if contents were rebuilt.
 
-9) Tag + publish
-- Only after steps 1-8 pass.
+10) Tag + publish
+- Only after steps 1-9 pass.
 - Upload artifacts from the latest synced release folder.

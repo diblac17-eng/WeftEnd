@@ -55,6 +55,10 @@ suite("cli/container-scan", () => {
     assert(fs.existsSync(path.join(outDir, "operator_receipt.json")), "operator receipt must be written when ref is mutable");
     const receipt = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
     assertEq(receipt.analysisVerdict, "DENY", "expected DENY analysis verdict for mutable ref");
+    const operator = JSON.parse(fs.readFileSync(path.join(outDir, "operator_receipt.json"), "utf8"));
+    const entries = Array.isArray(operator?.receipts) ? operator.receipts : [];
+    const hasReadmeEntry = entries.some((entry: any) => entry?.relPath === "weftend/README.txt");
+    assert(hasReadmeEntry, "expected operator receipt to include README digest link");
   });
 
   register("container scan blocks remote docker context", async () => {
