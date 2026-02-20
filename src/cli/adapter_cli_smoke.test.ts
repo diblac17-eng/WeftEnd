@@ -201,6 +201,29 @@ const run = async (): Promise<void> => {
   }
 
   {
+    const res = await runCliCapture(["adapter", "doctor"]);
+    assertEq(res.status, 0, `adapter doctor should succeed\n${res.stderr}`);
+    const parsed = JSON.parse(res.stdout);
+    assertEq(parsed.schema, "weftend.adapterDoctor/0", "adapter doctor schema mismatch");
+    assert(Array.isArray(parsed.adapters), "adapter doctor adapters should be array");
+  }
+
+  {
+    const res = await runCliCapture(["adapter", "doctor"], {
+      env: { WEFTEND_ADAPTER_DISABLE: "archive,package" },
+    });
+    assertEq(res.status, 0, `adapter doctor with env policy should succeed\n${res.stderr}`);
+    const parsed = JSON.parse(res.stdout);
+    assertEq(parsed.policy?.source, "env", "adapter doctor policy source should be env");
+    assert(Array.isArray(parsed.policy?.disabledAdapters), "adapter doctor disabledAdapters should be array");
+    const disabledAdapters = (parsed.policy?.disabledAdapters as string[]) || [];
+    assert(disabledAdapters.includes("archive"), "adapter doctor should include archive in disabledAdapters");
+    assert(disabledAdapters.includes("package"), "adapter doctor should include package in disabledAdapters");
+    const archive = (parsed.adapters as Array<{ adapter: string; maintenance?: string }>).find((item) => item.adapter === "archive");
+    assertEq(archive?.maintenance, "disabled", "archive maintenance should be disabled under env policy");
+  }
+
+  {
     const outDir = mkTmp();
     const tmp = mkTmp();
     const input = path.join(tmp, "good.zip");
@@ -219,6 +242,36 @@ const run = async (): Promise<void> => {
     const safe = JSON.parse(fs.readFileSync(safePath, "utf8"));
     assert(safe.adapter && safe.adapter.adapterId === "archive_adapter_v1", "safe receipt adapter metadata missing");
     assert(safe.contentSummary && safe.contentSummary.adapterSignals, "contentSummary.adapterSignals missing");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "good.zip");
+    writeStoredZip(input, [
+      { name: "a.txt", text: "alpha" },
+      { name: "b/c.txt", text: "beta" },
+    ]);
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"], {
+      env: { WEFTEND_ADAPTER_DISABLE: "archive" },
+    });
+    assertEq(res.status, 40, "safe-run archive should fail closed when disabled by maintenance policy");
+    assert(res.stderr.includes("ADAPTER_TEMPORARILY_UNAVAILABLE"), "expected ADAPTER_TEMPORARILY_UNAVAILABLE on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "good.zip");
+    writeStoredZip(input, [
+      { name: "a.txt", text: "alpha" },
+      { name: "b/c.txt", text: "beta" },
+    ]);
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"], {
+      env: { WEFTEND_ADAPTER_DISABLE: "archive,bogus_lane" },
+    });
+    assertEq(res.status, 40, "safe-run should fail closed for invalid adapter maintenance policy token");
+    assert(res.stderr.includes("ADAPTER_POLICY_INVALID"), "expected ADAPTER_POLICY_INVALID on stderr");
   }
 
   {

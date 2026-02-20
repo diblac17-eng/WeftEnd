@@ -82,8 +82,15 @@ Useful commands
 - npm run weftend -- launchpad sync
 - npm run weftend -- export-json <outRoot> --format normalized_v0
 - npm run weftend -- adapter list
+- npm run weftend -- adapter doctor
 - npm run weftend -- safe-run <input> --out <dir> --adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature
 - npm run weftend -- safe-run <input> --out <dir> --adapter archive --enable-plugin tar
+
+Adapter maintenance gate
+- Set `WEFTEND_ADAPTER_DISABLE` to temporarily disable adapter lanes without removing code.
+- Example: `WEFTEND_ADAPTER_DISABLE=archive,package`.
+- Disabled lanes fail closed with `ADAPTER_TEMPORARILY_UNAVAILABLE`.
+- Invalid policy tokens fail closed with `ADAPTER_POLICY_INVALID`.
 
 Release trust notes
 - Standard and portable release zips ship with .sha256 files.

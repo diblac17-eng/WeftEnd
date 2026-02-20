@@ -19,6 +19,7 @@ const MAX_FINDING_CODES = 128;
 const MAX_TEXT_BYTES = 256 * 1024;
 const MAX_AR_SCAN_BYTES = 8 * 1024 * 1024;
 const KNOWN_PLUGIN_NAMES = new Set<string>(["tar", "7z"]);
+export const ADAPTER_DISABLE_ENV_V1 = "WEFTEND_ADAPTER_DISABLE";
 
 const ARCHIVE_EXTS = new Set([".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tar.xz", ".txz", ".7z"]);
 const PACKAGE_EXTS = new Set([".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".tar.bz2", ".tar.xz", ".txz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"]);
@@ -66,6 +67,19 @@ export type AdapterClassV1 =
   | "signature";
 
 export type AdapterModeV1 = "built_in" | "plugin";
+const KNOWN_ADAPTER_CLASSES_V1: AdapterClassV1[] = [
+  "archive",
+  "package",
+  "extension",
+  "iac",
+  "cicd",
+  "document",
+  "container",
+  "image",
+  "scm",
+  "signature",
+];
+const KNOWN_ADAPTER_CLASS_SET_V1 = new Set<AdapterClassV1>(KNOWN_ADAPTER_CLASSES_V1);
 
 export interface SafeRunAdapterMetaV1 {
   adapterId: string;
@@ -106,6 +120,7 @@ export interface AdapterRunOptionsV1 {
   enabledPlugins: string[];
   inputPath: string;
   capture: CaptureTreeV0;
+  disabledAdapters?: string[];
 }
 
 export interface AdapterRunResultV1 {
@@ -130,6 +145,26 @@ export interface AdapterListReportV1 {
   schema: "weftend.adapterList/0";
   schemaVersion: 0;
   adapters: AdapterListItemV1[];
+}
+
+export interface AdapterDoctorItemV1 {
+  adapter: string;
+  mode: "built_in" | "mixed";
+  plugins: Array<{ name: string; available: boolean }>;
+  formats: string[];
+  maintenance: "enabled" | "disabled";
+  reasonCodes: string[];
+}
+
+export interface AdapterDoctorReportV1 {
+  schema: "weftend.adapterDoctor/0";
+  schemaVersion: 0;
+  policy: {
+    source: "none" | "env" | "explicit";
+    disabledAdapters: string[];
+    unknownTokens: string[];
+  };
+  adapters: AdapterDoctorItemV1[];
 }
 
 type AnalyzeCtx = {
@@ -3871,8 +3906,154 @@ const allowedPackagePluginsForExt = (ext: string): Set<string> | null => {
   return new Set<string>();
 };
 
+type AdapterDisablePolicySourceV1 = "none" | "env" | "explicit";
+type AdapterDisablePolicyV1 = {
+  source: AdapterDisablePolicySourceV1;
+  disabledAdapters: Set<AdapterClassV1>;
+  unknownTokens: string[];
+};
+
+const tokenizeDisablePolicyV1 = (values: string[]): string[] => {
+  const out: string[] = [];
+  values.forEach((raw) => {
+    String(raw || "")
+      .split(/[\s,;]+/)
+      .forEach((token) => {
+        const normalized = String(token || "").trim().toLowerCase();
+        if (normalized.length > 0) out.push(normalized);
+      });
+  });
+  return out;
+};
+
+const resolveDisabledAdaptersPolicyV1 = (options?: { disabledAdapters?: string[] }): AdapterDisablePolicyV1 => {
+  const explicit = Array.isArray(options?.disabledAdapters) ? options?.disabledAdapters || [] : [];
+  let source: AdapterDisablePolicySourceV1 = "none";
+  let tokens: string[] = [];
+  if (explicit.length > 0) {
+    source = "explicit";
+    tokens = tokenizeDisablePolicyV1(explicit);
+  } else {
+    const envRaw =
+      process && process.env && typeof process.env[ADAPTER_DISABLE_ENV_V1] === "string"
+        ? String(process.env[ADAPTER_DISABLE_ENV_V1] || "")
+        : "";
+    if (envRaw.trim().length > 0) {
+      source = "env";
+      tokens = tokenizeDisablePolicyV1([envRaw]);
+    }
+  }
+
+  const disabledAdapters = new Set<AdapterClassV1>();
+  const unknownTokens: string[] = [];
+  let allDisabled = false;
+  tokens.forEach((token) => {
+    if (token === "none") return;
+    if (token === "all" || token === "*") {
+      allDisabled = true;
+      return;
+    }
+    if (KNOWN_ADAPTER_CLASS_SET_V1.has(token as AdapterClassV1)) {
+      disabledAdapters.add(token as AdapterClassV1);
+      return;
+    }
+    unknownTokens.push(token);
+  });
+  if (allDisabled) KNOWN_ADAPTER_CLASSES_V1.forEach((name) => disabledAdapters.add(name));
+  return {
+    source,
+    disabledAdapters,
+    unknownTokens: stableSortUniqueStringsV0(unknownTokens),
+  };
+};
+
+const buildAdapterCatalogV1 = (): AdapterListItemV1[] => {
+  const tarAvailable = commandAvailable("tar");
+  const sevenAvailable = commandAvailable("7z");
+  const adapters: AdapterListItemV1[] = [
+    {
+      adapter: "archive",
+      mode: "mixed",
+      plugins: [
+        { name: "tar", available: tarAvailable },
+        { name: "7z", available: sevenAvailable },
+      ],
+      formats: [".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tbz2", ".tbz", ".tar.xz", ".txz", ".7z"],
+    },
+    {
+      adapter: "package",
+      mode: "mixed",
+      plugins: [{ name: "tar", available: tarAvailable }],
+      formats: [".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".tar.bz2", ".tbz2", ".tbz", ".tar.xz", ".txz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"],
+    },
+    {
+      adapter: "extension",
+      mode: "built_in",
+      plugins: [],
+      formats: [".crx", ".vsix", ".xpi", "manifest.json (directory)"],
+    },
+    {
+      adapter: "iac",
+      mode: "built_in",
+      plugins: [],
+      formats: [".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep", ".template"],
+    },
+    {
+      adapter: "cicd",
+      mode: "built_in",
+      plugins: [],
+      formats: [".github/workflows/*.yml", ".github/workflows/*.yaml", ".gitlab-ci.yml", ".gitlab-ci.yaml", "azure-pipelines*.yml", "azure-pipelines*.yaml"],
+    },
+    {
+      adapter: "document",
+      mode: "built_in",
+      plugins: [],
+      formats: [".pdf", ".docm", ".xlsm", ".rtf", ".chm"],
+    },
+    {
+      adapter: "container",
+      mode: "built_in",
+      plugins: [],
+      formats: ["oci-layout dir", "compose.yml", "compose.yaml", "docker-compose.yml", "docker-compose.yaml", "sbom/spdx/cyclonedx"],
+    },
+    {
+      adapter: "image",
+      mode: "built_in",
+      plugins: [],
+      formats: [".iso", ".vhd", ".vhdx", ".vmdk", ".qcow2"],
+    },
+    {
+      adapter: "scm",
+      mode: "built_in",
+      plugins: [],
+      formats: ["git working tree (.git)"],
+    },
+    {
+      adapter: "signature",
+      mode: "built_in",
+      plugins: [],
+      formats: [".cer", ".crt", ".pem", ".p7b", ".sig"],
+    },
+  ];
+  adapters.sort((a, b) => cmpStrV0(a.adapter, b.adapter));
+  adapters.forEach((item) => {
+    item.formats = item.formats.slice().sort((a, b) => cmpStrV0(a, b));
+    item.plugins = item.plugins.slice().sort((a, b) => cmpStrV0(a.name, b.name));
+  });
+  return adapters;
+};
+
 export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunResultV1 => {
   const selection = options.selection;
+  const disablePolicy = resolveDisabledAdaptersPolicyV1({ disabledAdapters: options.disabledAdapters });
+  if (disablePolicy.unknownTokens.length > 0) {
+    return {
+      ok: false,
+      failCode: "ADAPTER_POLICY_INVALID",
+      failMessage: `unknown adapter disable token(s): ${disablePolicy.unknownTokens.join(", ")}`,
+      reasonCodes: stableSortUniqueReasonsV0(["ADAPTER_POLICY_INVALID"]),
+    };
+  }
   const normalizedPlugins = (options.enabledPlugins || [])
     .map((name) => String(name || "").trim().toLowerCase())
     .filter((name) => name.length > 0);
@@ -3958,6 +4139,14 @@ export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunRe
       }
     }
   }
+  if (disablePolicy.disabledAdapters.has(adapterClass)) {
+    return {
+      ok: false,
+      failCode: "ADAPTER_TEMPORARILY_UNAVAILABLE",
+      failMessage: `adapter ${adapterClass} is disabled by maintenance policy.`,
+      reasonCodes: stableSortUniqueReasonsV0(["ADAPTER_DISABLED_BY_POLICY", "ADAPTER_TEMPORARILY_UNAVAILABLE"]),
+    };
+  }
 
   const analyzed = analyzeByClass(adapterClass, ctx, selection !== "auto");
   if (!analyzed.ok) {
@@ -3992,81 +4181,36 @@ export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunRe
 };
 
 export const listAdaptersV1 = (): AdapterListReportV1 => {
-  const tarAvailable = commandAvailable("tar");
-  const sevenAvailable = commandAvailable("7z");
-  const adapters: AdapterListItemV1[] = [
-    {
-      adapter: "archive",
-      mode: "mixed",
-      plugins: [
-        { name: "tar", available: tarAvailable },
-        { name: "7z", available: sevenAvailable },
-      ],
-      formats: [".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tbz2", ".tbz", ".tar.xz", ".txz", ".7z"],
-    },
-    {
-      adapter: "package",
-      mode: "mixed",
-      plugins: [{ name: "tar", available: tarAvailable }],
-      formats: [".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".tar.bz2", ".tbz2", ".tbz", ".tar.xz", ".txz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"],
-    },
-    {
-      adapter: "extension",
-      mode: "built_in",
-      plugins: [],
-      formats: [".crx", ".vsix", ".xpi", "manifest.json (directory)"],
-    },
-    {
-      adapter: "iac",
-      mode: "built_in",
-      plugins: [],
-      formats: [".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep", ".template"],
-    },
-    {
-      adapter: "cicd",
-      mode: "built_in",
-      plugins: [],
-      formats: [".github/workflows/*.yml", ".github/workflows/*.yaml", ".gitlab-ci.yml", ".gitlab-ci.yaml", "azure-pipelines*.yml", "azure-pipelines*.yaml"],
-    },
-    {
-      adapter: "document",
-      mode: "built_in",
-      plugins: [],
-      formats: [".pdf", ".docm", ".xlsm", ".rtf", ".chm"],
-    },
-    {
-      adapter: "container",
-      mode: "built_in",
-      plugins: [],
-      formats: ["oci-layout dir", "compose.yml", "compose.yaml", "docker-compose.yml", "docker-compose.yaml", "sbom/spdx/cyclonedx"],
-    },
-    {
-      adapter: "image",
-      mode: "built_in",
-      plugins: [],
-      formats: [".iso", ".vhd", ".vhdx", ".vmdk", ".qcow2"],
-    },
-    {
-      adapter: "scm",
-      mode: "built_in",
-      plugins: [],
-      formats: ["git working tree (.git)"],
-    },
-    {
-      adapter: "signature",
-      mode: "built_in",
-      plugins: [],
-      formats: [".cer", ".crt", ".pem", ".p7b", ".sig"],
-    },
-  ];
-  adapters.sort((a, b) => cmpStrV0(a.adapter, b.adapter));
-  adapters.forEach((item) => {
-    item.formats = item.formats.slice().sort((a, b) => cmpStrV0(a, b));
-    item.plugins = item.plugins.slice().sort((a, b) => cmpStrV0(a.name, b.name));
-  });
+  const adapters = buildAdapterCatalogV1();
   return {
     schema: "weftend.adapterList/0",
     schemaVersion: 0,
+    adapters,
+  };
+};
+
+export const runAdapterDoctorV1 = (options?: { disabledAdapters?: string[] }): AdapterDoctorReportV1 => {
+  const disablePolicy = resolveDisabledAdaptersPolicyV1({ disabledAdapters: options?.disabledAdapters });
+  const adapters = buildAdapterCatalogV1().map((item) => {
+    const isDisabled = disablePolicy.disabledAdapters.has(item.adapter as AdapterClassV1);
+    const reasonCodes = isDisabled ? ["ADAPTER_DISABLED_BY_POLICY"] : [];
+    return {
+      adapter: item.adapter,
+      mode: item.mode,
+      plugins: item.plugins,
+      formats: item.formats,
+      maintenance: isDisabled ? ("disabled" as const) : ("enabled" as const),
+      reasonCodes: stableSortUniqueReasonsV0(reasonCodes),
+    };
+  });
+  return {
+    schema: "weftend.adapterDoctor/0",
+    schemaVersion: 0,
+    policy: {
+      source: disablePolicy.source,
+      disabledAdapters: Array.from(disablePolicy.disabledAdapters.values()).sort((a, b) => cmpStrV0(a, b)),
+      unknownTokens: disablePolicy.unknownTokens,
+    },
     adapters,
   };
 };

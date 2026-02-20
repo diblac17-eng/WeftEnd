@@ -488,6 +488,35 @@ const run = (): void => {
   }
 
   {
+    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const capture = captureTreeV0(input, limits);
+    const res = runArtifactAdapterV1({
+      selection: "archive",
+      enabledPlugins: [],
+      inputPath: input,
+      capture,
+      disabledAdapters: ["archive"],
+    });
+    assert(!res.ok, "archive adapter should fail closed when disabled by maintenance policy");
+    assertEq(res.failCode, "ADAPTER_TEMPORARILY_UNAVAILABLE", "expected ADAPTER_TEMPORARILY_UNAVAILABLE for disabled adapter");
+    assert((res.reasonCodes || []).includes("ADAPTER_DISABLED_BY_POLICY"), "expected ADAPTER_DISABLED_BY_POLICY in reasonCodes");
+  }
+
+  {
+    const input = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+    const capture = captureTreeV0(input, limits);
+    const res = runArtifactAdapterV1({
+      selection: "archive",
+      enabledPlugins: [],
+      inputPath: input,
+      capture,
+      disabledAdapters: ["archive", "bogus_lane"],
+    });
+    assert(!res.ok, "adapter run should fail closed for invalid maintenance policy token");
+    assertEq(res.failCode, "ADAPTER_POLICY_INVALID", "expected ADAPTER_POLICY_INVALID for invalid maintenance policy token");
+  }
+
+  {
     const tmp = mkTmp();
     const capture = captureTreeV0(tmp, limits);
     const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: tmp, capture });

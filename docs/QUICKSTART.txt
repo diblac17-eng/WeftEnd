@@ -31,6 +31,8 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 3.1) Universal artifact adapter lane (CLI)
 - List adapter coverage:
   npm run weftend -- adapter list
+- Check adapter dependency and maintenance status:
+  npm run weftend -- adapter doctor
 - Run safe-run with adapter auto-detect:
   npm run weftend -- safe-run <input> --out <dir> --adapter auto
 - Force a specific adapter:
@@ -40,6 +42,11 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - Adapter artifacts (when adapter is applied):
   analysis/adapter_summary_v0.json
   analysis/adapter_findings_v0.json
+- Optional maintenance gate:
+  - Set WEFTEND_ADAPTER_DISABLE to disable adapter lanes temporarily.
+  - Example: WEFTEND_ADAPTER_DISABLE=archive,package
+  - Disabled lane result is fail-closed (ADAPTER_TEMPORARILY_UNAVAILABLE).
+  - Invalid disable token is fail-closed (ADAPTER_POLICY_INVALID).
 
 3.2) Container scan (CLI, local Docker inspect only)
 - Scan a locally available immutable image reference:
