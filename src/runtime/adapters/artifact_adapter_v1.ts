@@ -1641,7 +1641,12 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       mode = "plugin";
       const tarList = runCommandLines("tar", ["-tf", ctx.inputPath]);
       if (tarList.ok) {
-        entryNames = stableSortUniqueStringsV0(tarList.lines);
+        const normalizedTarLines = tarList.lines
+          .map((line) => String(line || "").replace(/\\/g, "/").replace(/^\.\/+/, ""))
+          .filter((line) => line.length > 0 && !line.endsWith("/"));
+        entryNames = strictRoute
+          ? normalizedTarLines.slice().sort((a, b) => cmpStrV0(a, b))
+          : stableSortUniqueStringsV0(normalizedTarLines);
       } else {
         if (strictRoute) {
           return {
@@ -1675,6 +1680,17 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       }
       reasonCodes.push("PACKAGE_METADATA_PARTIAL");
       markers.push("PACKAGE_PLUGIN_TAR_NOT_ENABLED");
+    }
+    if (strictRoute) {
+      const uniqueEntries = stableSortUniqueStringsV0(entryNames);
+      if (uniqueEntries.length < entryNames.length) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter expected non-ambiguous package archive entry paths for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
     }
   } else if (ext === ".deb") {
     const ar = readArEntriesV1(ctx.inputPath, strictRoute ? { dedupe: false } : undefined);
