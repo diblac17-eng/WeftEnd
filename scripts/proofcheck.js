@@ -78,6 +78,7 @@ const tests = [
   "dist/src/core/orangeteam/receipt_privacy_contract.test.js",
   "dist/src/tools/greenteam/release_artifacts_present.test.js",
   "dist/src/tools/greenteam/release_bundle_manifest.test.js",
+  "dist/src/tools/greenteam/workflow_artifact_meter_contract.test.js",
   "dist/src/engine/graph.test.js",
   "dist/src/engine/portal_model.test.js",
   "dist/src/engine/portal_model_caps.test.js",
