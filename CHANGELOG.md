@@ -10,6 +10,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `safe-run` now flags unmanaged pre-existing output files anywhere under out-root as deterministic orphan-evidence warnings.
 - Analysis is not blocked by these checks; warning codes are recorded in `operator_receipt.json` (`SAFE_RUN_EVIDENCE_*`).
 - Added explicit smoke-test coverage for root-level stale output detection under the same non-blocking warning model.
+- `operator_receipt.json` now carries additive digest links for `weftend/README.txt` and run sub-receipts (`analysis/*`, `host/*`) for stronger evidence-chain traceability.
 
 ### Adapter strict-route hardening
 - CI/CD adapter discovery/path coverage now explicitly includes `.gitlab-ci.yaml` and `azure-pipelines*.yaml` in addition to existing `.yml` patterns.

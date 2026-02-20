@@ -22,6 +22,7 @@ import type {
   ExecutionMode,
   IntakeDecisionV1,
   MintProfileV1,
+  OperatorReceiptEntryV0,
   PlanSnapshotV0,
   ReleaseManifestV0,
   RuntimeBundle,
@@ -651,10 +652,29 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
 
     writeFile(path.join(outDir, "safe_run_receipt.json"), `${canonicalJSON(receipt)}\n`);
     writeFile(path.join(outDir, "weftend", "README.txt"), readmeText);
-    const entries = [
-      { kind: "safe_run_receipt", relPath: "safe_run_receipt.json", digest: receipt.receiptDigest },
-      ...(receipt.hostReceiptDigest ? [{ kind: "host_run_receipt", relPath: "host/host_run_receipt.json", digest: receipt.hostReceiptDigest }] : []),
-    ];
+    const entryMap = new Map<string, OperatorReceiptEntryV0>();
+    const addEntry = (kind: string, relPath: string, digest: string) => {
+      const k = `${kind}|${relPath}|${digest}`;
+      if (entryMap.has(k)) return;
+      entryMap.set(k, { kind, relPath, digest });
+    };
+    addEntry("safe_run_receipt", "safe_run_receipt.json", receipt.receiptDigest);
+    addEntry("receipt_readme", "weftend/README.txt", digestText(readmeText));
+    if (receipt.hostReceiptDigest) {
+      addEntry("host_run_receipt", "host/host_run_receipt.json", receipt.hostReceiptDigest);
+    }
+    (receipt.subReceipts ?? []).forEach((item) => {
+      const relPath = String(item.name || "").replace(/\\/g, "/");
+      const digest = String(item.digest || "");
+      if (!relPath || !digest) return;
+      const kind = relPath.startsWith("analysis/")
+        ? "analysis_receipt"
+        : relPath.startsWith("host/")
+          ? "host_run_receipt"
+          : "run_artifact";
+      addEntry(kind, relPath, digest);
+    });
+    const entries = Array.from(entryMap.values());
     const buildAndWriteOperator = (warnings: string[]) => {
       const operatorReceipt = buildOperatorReceiptV0({
         command: "safe-run",

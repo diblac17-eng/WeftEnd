@@ -116,6 +116,9 @@ suite("cli/safe-run", () => {
     const operator = JSON.parse(fs.readFileSync(operatorPath, "utf8"));
     const opIssues = validateOperatorReceiptV0(operator, "operatorReceipt");
     assertEq(opIssues.length, 0, "expected operator receipt to validate");
+    const opEntries = Array.isArray(operator.receipts) ? operator.receipts : [];
+    const hasReadmeEntry = opEntries.some((entry: any) => entry?.kind === "receipt_readme" && entry?.relPath === "weftend/README.txt");
+    assert(hasReadmeEntry, "expected operator receipt to include README digest link");
 
     const combined = `${result.stdout}\n${result.stderr}`;
     assert(combined.includes("privacyLint=PASS"), "expected privacy lint summary");
@@ -159,6 +162,9 @@ suite("cli/safe-run", () => {
     const operator = JSON.parse(fs.readFileSync(operatorPath, "utf8"));
     const opIssues = validateOperatorReceiptV0(operator, "operatorReceipt");
     assertEq(opIssues.length, 0, "expected operator receipt to validate");
+    const opEntries = Array.isArray(operator.receipts) ? operator.receipts : [];
+    const hasAnalysisEntry = opEntries.some((entry: any) => entry?.kind === "analysis_receipt" && entry?.relPath === "analysis/intake_decision.json");
+    assert(hasAnalysisEntry, "expected operator receipt to include analysis sub-receipt digest links");
     const privacy = runPrivacyLintV0({ root: outDir, weftendBuild: receipt.weftendBuild });
     assertEq(privacy.report.verdict, "PASS", "expected privacy lint pass");
   });
