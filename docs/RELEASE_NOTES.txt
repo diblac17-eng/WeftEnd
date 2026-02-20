@@ -82,6 +82,7 @@ Included
 - Explicit `cicd` route now requires CI structure/signals (not filename/path hints alone), failing closed on path-hint-only placeholders.
 - Adapter `auto` classification now treats CI structure/action references as CI evidence, so valid pinned workflows classify as `cicd` instead of falling back to `iac`.
 - Explicit `iac` route now requires IaC structural signals; CI-style workflow content with generic secret terms no longer passes strict IaC routing.
+- Explicit `iac` and `cicd` routes now require non-ambiguous entry-path sets, preventing duplicate or case-colliding directory paths from passing strict route analysis.
 - Container adapter extraction deepened:
 - OCI layout counts now include manifest and blob counts.
 - Container tarball detection now recognizes Docker-style markers (`manifest.json` + `repositories`) and OCI tar markers (`oci-layout` + `index.json` + `blobs/sha256/*`) for local tar inputs.

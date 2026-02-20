@@ -60,7 +60,7 @@ Adapter classes
   CICD_SECRET_CONTEXT_USAGE
   CICD_EXTERNAL_RUNNER_REF
 - Route strictness:
-  explicit `--adapter iac` fails closed on non-IaC text/config inputs (`IAC_UNSUPPORTED_FORMAT`) and requires IaC structural signals (generic secret-keyword matches alone do not satisfy strict IaC routing). Explicit `--adapter cicd` fails closed on non-CI/CD inputs (`CICD_UNSUPPORTED_FORMAT`). CI/CD path/filename hints alone do not satisfy strict CI/CD route requirements without CI structure/signals.
+  explicit `--adapter iac` fails closed on non-IaC text/config inputs (`IAC_UNSUPPORTED_FORMAT`), requires non-ambiguous entry-path sets (duplicate or case-colliding paths fail strict routing), and requires IaC structural signals (generic secret-keyword matches alone do not satisfy strict IaC routing). Explicit `--adapter cicd` fails closed on non-CI/CD inputs (`CICD_UNSUPPORTED_FORMAT`) and requires non-ambiguous entry-path sets (duplicate or case-colliding paths fail strict routing). CI/CD path/filename hints alone do not satisfy strict CI/CD route requirements without CI structure/signals.
 - Auto classification:
   adapter `auto` classifies CI/CD when CI structure/action references are present, including pinned-only workflows that do not emit risk-only CI reason codes.
 

@@ -2341,7 +2341,32 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     findingCodes: stableSortUniqueReasonsV0(findingCodes.concat(updateDomains.length > 0 ? ["EXTENSION_EXTERNAL_REF_PRESENT"] : [])),
   };
 };
-const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd"): AnalyzeResult => {
+const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd", strictRoute: boolean = false): AnalyzeResult => {
+  if (strictRoute && forcedClass && ctx.capture.kind !== "file") {
+    const entryPaths = ctx.capture.entries
+      .map((entry) => String(entry.path || "").replace(/\\/g, "/"))
+      .filter((p) => p.length > 0);
+    const uniquePaths = stableSortUniqueStringsV0(entryPaths);
+    const mismatchCode = forcedClass === "cicd" ? "CICD_UNSUPPORTED_FORMAT" : "IAC_UNSUPPORTED_FORMAT";
+    const mismatchReason = forcedClass === "cicd" ? "CICD_ADAPTER_V1" : "IAC_ADAPTER_V1";
+    if (uniquePaths.length < entryPaths.length) {
+      return {
+        ok: false,
+        failCode: mismatchCode,
+        failMessage: `${forcedClass} adapter expected non-ambiguous entry paths for explicit ${forcedClass} analysis.`,
+        reasonCodes: stableSortUniqueReasonsV0([mismatchReason, mismatchCode]),
+      };
+    }
+    const uniqueCaseFoldedPaths = stableSortUniqueStringsV0(uniquePaths.map((name) => name.toLowerCase()));
+    if (uniqueCaseFoldedPaths.length < uniquePaths.length) {
+      return {
+        ok: false,
+        failCode: mismatchCode,
+        failMessage: `${forcedClass} adapter expected case-unambiguous entry paths for explicit ${forcedClass} analysis.`,
+        reasonCodes: stableSortUniqueReasonsV0([mismatchReason, mismatchCode]),
+      };
+    }
+  }
   const textExts = new Set([".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep", ".template"]);
   const files = collectTextFiles(ctx.inputPath, ctx.capture, textExts);
   const inputLooksIac =
@@ -3765,7 +3790,7 @@ const analyzeByClass = (adapterClass: AdapterClassV1, ctx: AnalyzeCtx, strictRou
   if (adapterClass === "archive") return analyzeArchive(ctx, strictRoute);
   if (adapterClass === "package") return analyzePackage(ctx, strictRoute);
   if (adapterClass === "extension") return analyzeExtension(ctx, strictRoute);
-  if (adapterClass === "iac" || adapterClass === "cicd") return analyzeIacCicd(ctx, adapterClass);
+  if (adapterClass === "iac" || adapterClass === "cicd") return analyzeIacCicd(ctx, adapterClass, strictRoute);
   if (adapterClass === "document") return analyzeDocument(ctx, strictRoute);
   if (adapterClass === "container") return analyzeContainer(ctx, strictRoute);
   if (adapterClass === "image") return analyzeImage(ctx, strictRoute);

@@ -623,6 +623,21 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const wfDir = path.join(tmp, ".github", "workflows");
+    fs.mkdirSync(wfDir, { recursive: true });
+    fs.writeFileSync(path.join(wfDir, "build.yml"), "name: ci\non: [push]\n", "utf8");
+    const capture = captureTreeV0(tmp, limits) as any;
+    capture.entries = capture.entries.concat([
+      { path: ".github/workflows/Alpha.yml", kind: "file", bytes: 1, digest: "sha256:a" },
+      { path: ".github/workflows/alpha.yml", kind: "file", bytes: 1, digest: "sha256:b" },
+    ]);
+    const res = runArtifactAdapterV1({ selection: "cicd", enabledPlugins: [], inputPath: tmp, capture });
+    assert(!res.ok, "cicd adapter should fail closed for explicit cicd with case-colliding entry paths");
+    assertEq(res.failCode, "CICD_UNSUPPORTED_FORMAT", "expected CICD_UNSUPPORTED_FORMAT for case-colliding cicd entry paths");
+  }
+
+  {
+    const tmp = mkTmp();
     const tf = path.join(tmp, "main.tf");
     fs.writeFileSync(tf, "resource \"null_resource\" \"x\" {}\n", "utf8");
     const capture = captureTreeV0(tf, limits);
@@ -639,6 +654,20 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "iac", enabledPlugins: [], inputPath: yaml, capture });
     assert(!res.ok, "iac adapter should fail closed for non-iac yaml under explicit iac route");
     assertEq(res.failCode, "IAC_UNSUPPORTED_FORMAT", "expected IAC_UNSUPPORTED_FORMAT for iac route mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
+    const tf = path.join(tmp, "main.tf");
+    fs.writeFileSync(tf, "resource \"null_resource\" \"x\" {}\n", "utf8");
+    const capture = captureTreeV0(tmp, limits) as any;
+    capture.entries = capture.entries.concat([
+      { path: "modules/Alpha.tf", kind: "file", bytes: 1, digest: "sha256:a" },
+      { path: "modules/alpha.tf", kind: "file", bytes: 1, digest: "sha256:b" },
+    ]);
+    const res = runArtifactAdapterV1({ selection: "iac", enabledPlugins: [], inputPath: tmp, capture });
+    assert(!res.ok, "iac adapter should fail closed for explicit iac with case-colliding entry paths");
+    assertEq(res.failCode, "IAC_UNSUPPORTED_FORMAT", "expected IAC_UNSUPPORTED_FORMAT for case-colliding iac entry paths");
   }
 
   {
