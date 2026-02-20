@@ -272,6 +272,18 @@ const run = async (): Promise<void> => {
   }
 
   {
+    const tmp = mkTmp();
+    const missingPath = path.join(tmp, "missing_adapter_maintenance.json");
+    const res = await runCliCapture(["adapter", "doctor"], {
+      env: { WEFTEND_ADAPTER_DISABLE_FILE: missingPath, WEFTEND_ADAPTER_DISABLE: undefined },
+    });
+    assertEq(res.status, 0, `adapter doctor with unreadable file policy should still report\n${res.stderr}`);
+    const parsed = JSON.parse(res.stdout);
+    assertEq(parsed.policy?.source, "file", "unreadable file policy should report file source");
+    assertEq(parsed.policy?.invalidReasonCode, "ADAPTER_POLICY_FILE_UNREADABLE", "expected unreadable file policy reason code");
+  }
+
+  {
     const res = await runCliCapture(["adapter", "list", "--text"]);
     assertEq(res.status, 1, "adapter list --text should fail usage");
   }
@@ -342,6 +354,23 @@ const run = async (): Promise<void> => {
     });
     assertEq(res.status, 40, "safe-run should fail closed for invalid adapter file policy");
     assert(res.stderr.includes("ADAPTER_POLICY_INVALID"), "expected ADAPTER_POLICY_INVALID on stderr for invalid file policy");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const missingPath = path.join(tmp, "missing_adapter_maintenance.json");
+    const input = path.join(tmp, "good.zip");
+    writeStoredZip(input, [
+      { name: "a.txt", text: "alpha" },
+      { name: "b/c.txt", text: "beta" },
+    ]);
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"], {
+      env: { WEFTEND_ADAPTER_DISABLE_FILE: missingPath, WEFTEND_ADAPTER_DISABLE: undefined },
+    });
+    assertEq(res.status, 40, "safe-run should fail closed for unreadable adapter file policy");
+    assert(res.stderr.includes("ADAPTER_POLICY_INVALID"), "expected ADAPTER_POLICY_INVALID on stderr for unreadable file policy");
+    assert(res.stderr.includes("ADAPTER_POLICY_FILE_UNREADABLE"), "expected ADAPTER_POLICY_FILE_UNREADABLE detail on stderr");
   }
 
   {

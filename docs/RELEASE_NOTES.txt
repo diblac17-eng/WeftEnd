@@ -28,6 +28,7 @@ Included
 - Added maintenance policy template and reference docs:
 - `policies/adapter_maintenance.example.json`
 - `docs/ADAPTER_MAINTENANCE_POLICY.md`
+- Unreadable maintenance policy files now surface deterministic file reason code details (`ADAPTER_POLICY_FILE_UNREADABLE`) through doctor and fail-closed adapter runs.
 - Disabled adapter lanes fail closed with `ADAPTER_TEMPORARILY_UNAVAILABLE` and `ADAPTER_DISABLED_BY_POLICY`.
 - Invalid disable-policy tokens fail closed with `ADAPTER_POLICY_INVALID`.
 - Adapter maintenance/policy fail-closed paths now still write deterministic safe-run evidence artifacts (`safe_run_receipt.json`, `operator_receipt.json`, and analysis receipts) before returning precondition exit code.
