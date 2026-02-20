@@ -595,6 +595,72 @@ const readTarEntries = (inputPath: string): { entries: string[]; markers: string
   return { entries: stableSortUniqueStringsV0(entries), markers: stableSortUniqueStringsV0(markers) };
 };
 
+const readTarTextEntriesByBaseName = (inputPath: string, baseNames: string[]): { entries: Array<{ name: string; text: string }>; markers: string[] } => {
+  const parseTarOctal = (raw: string): number | null => {
+    const text = raw.replace(/\0.*$/, "").trim();
+    if (text.length === 0) return 0;
+    if (!/^[0-7]+$/.test(text)) return null;
+    const parsed = Number.parseInt(text, 8);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  };
+  const tarHeaderChecksum = (block: any): number => {
+    let sum = 0;
+    for (let i = 0; i < 512; i += 1) {
+      sum += i >= 148 && i < 156 ? 0x20 : block[i] ?? 0;
+    }
+    return sum;
+  };
+  const wanted = new Set(baseNames.map((name) => String(name || "").trim().toLowerCase()).filter((name) => name.length > 0));
+  if (wanted.size === 0) return { entries: [], markers: [] };
+  let buf: Uint8Array;
+  try {
+    buf = fs.readFileSync(inputPath);
+  } catch {
+    return { entries: [], markers: ["ARCHIVE_METADATA_PARTIAL"] };
+  }
+  const markers: string[] = [];
+  const out: Array<{ name: string; text: string }> = [];
+  let offset = 0;
+  while (offset + 512 <= buf.length) {
+    const block = Buffer.from(buf.subarray(offset, offset + 512));
+    const empty = block.every((b: number) => b === 0);
+    if (empty) break;
+    const recordedChecksum = parseTarOctal(block.slice(148, 156).toString("ascii"));
+    if (recordedChecksum === null || tarHeaderChecksum(block) !== recordedChecksum) {
+      markers.push("ARCHIVE_METADATA_PARTIAL");
+      break;
+    }
+    const nameRaw = block.slice(0, 100).toString("utf8").replace(/\0.*$/, "");
+    const prefixRaw = block.slice(345, 500).toString("utf8").replace(/\0.*$/, "");
+    const size = parseTarOctal(block.slice(124, 136).toString("ascii"));
+    if (size === null) {
+      markers.push("ARCHIVE_METADATA_PARTIAL");
+      break;
+    }
+    const fullName = `${prefixRaw ? `${prefixRaw}/` : ""}${nameRaw}`.replace(/\\/g, "/").replace(/^\.\/+/, "");
+    const dataSize = size > 0 ? size : 0;
+    const dataStart = offset + 512;
+    const dataEnd = dataStart + dataSize;
+    const advance = 512 + Math.ceil(dataSize / 512) * 512;
+    if (!Number.isFinite(advance) || advance <= 0 || offset + advance > buf.length || dataEnd > buf.length) {
+      markers.push("ARCHIVE_METADATA_PARTIAL");
+      break;
+    }
+    if (fullName && !fullName.endsWith("/") && wanted.has(path.basename(fullName).toLowerCase())) {
+      const bounded = Buffer.from(buf.subarray(dataStart, Math.min(dataEnd, dataStart + MAX_TEXT_BYTES)));
+      if (dataSize > MAX_TEXT_BYTES) markers.push("ARCHIVE_TRUNCATED");
+      out.push({ name: fullName, text: bounded.toString("utf8") });
+      if (out.length >= 32) {
+        markers.push("ARCHIVE_TRUNCATED");
+        break;
+      }
+    }
+    offset += advance;
+  }
+  out.sort((a, b) => cmpStrV0(a.name, b.name));
+  return { entries: out, markers: stableSortUniqueStringsV0(markers) };
+};
+
 const readArEntriesV1 = (inputPath: string): { entries: string[]; markers: string[] } => {
   const markers: string[] = [];
   const entries: string[] = [];
@@ -2272,6 +2338,10 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let dockerLayerEntryCount = 0;
   let dockerManifestMarkerPresent = 0;
   let dockerRepositoriesMarkerPresent = 0;
+  let dockerManifestJsonValid = 0;
+  let dockerRepositoriesJsonValid = 0;
+  let dockerManifestLayerRefCount = 0;
+  let dockerManifestLayerResolvedCount = 0;
   let composeImageRefCount = 0;
   let composeServiceHintCount = 0;
   let composeServiceChildHintCount = 0;
@@ -2344,9 +2414,69 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     tarEntryCount = tarEntries.entries.length;
     markers.push(...tarEntries.markers);
     const tarNames = tarEntries.entries.map((name) => String(name || "").replace(/\\/g, "/").toLowerCase());
+    const tarNameSet = new Set<string>(tarNames);
     dockerManifestMarkerPresent = tarNames.some((name) => path.basename(name) === "manifest.json") ? 1 : 0;
     dockerRepositoriesMarkerPresent = tarNames.some((name) => path.basename(name) === "repositories") ? 1 : 0;
     dockerLayerEntryCount = tarNames.filter((name) => name === "layer.tar" || name.endsWith("/layer.tar")).length;
+    if (dockerManifestMarkerPresent > 0 && dockerRepositoriesMarkerPresent > 0 && !isOciTarByEntries) {
+      const dockerTexts = readTarTextEntriesByBaseName(ctx.inputPath, ["manifest.json", "repositories"]);
+      markers.push(...dockerTexts.markers);
+      const manifestEntry = dockerTexts.entries.find((entry) => path.basename(entry.name).toLowerCase() === "manifest.json");
+      const repositoriesEntry = dockerTexts.entries.find((entry) => path.basename(entry.name).toLowerCase() === "repositories");
+      if (manifestEntry) {
+        try {
+          const parsed = JSON.parse(String(manifestEntry.text || ""));
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            let refs = 0;
+            let resolved = 0;
+            parsed.forEach((item: any) => {
+              if (!item || typeof item !== "object") return;
+              const layers = Array.isArray(item.Layers) ? item.Layers : [];
+              layers.forEach((layer: unknown) => {
+                if (typeof layer !== "string") return;
+                const normalized = String(layer || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase();
+                if (!normalized) return;
+                refs += 1;
+                if (tarNameSet.has(normalized)) resolved += 1;
+              });
+            });
+            if (refs > 0) {
+              dockerManifestJsonValid = 1;
+              dockerManifestLayerRefCount = refs;
+              dockerManifestLayerResolvedCount = resolved;
+            }
+          }
+        } catch {
+          // strict route handles invalid marker payload below
+        }
+      }
+      if (repositoriesEntry) {
+        try {
+          const parsed = JSON.parse(String(repositoriesEntry.text || ""));
+          if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && Object.keys(parsed).length > 0) {
+            dockerRepositoriesJsonValid = 1;
+          }
+        } catch {
+          // strict route handles invalid marker payload below
+        }
+      }
+      if (strictRoute && (dockerManifestJsonValid === 0 || dockerRepositoriesJsonValid === 0)) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected valid docker manifest/repositories JSON for explicit docker tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
+      if (strictRoute && dockerManifestLayerRefCount > 0 && dockerManifestLayerResolvedCount === 0) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected docker manifest layer references to resolve to tar entries for explicit docker tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
+    }
     if (strictRoute && tarEntries.markers.includes("ARCHIVE_METADATA_PARTIAL")) {
       return {
         ok: false,
@@ -2464,6 +2594,10 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       dockerLayerEntryCount,
       dockerManifestMarkerPresent,
       dockerRepositoriesMarkerPresent,
+      dockerManifestJsonValid,
+      dockerRepositoriesJsonValid,
+      dockerManifestLayerRefCount,
+      dockerManifestLayerResolvedCount,
       composeImageRefCount,
       composeServiceHintCount,
       composeServiceChildHintCount,

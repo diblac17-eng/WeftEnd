@@ -1567,8 +1567,9 @@ const run = (): void => {
     const tmp = mkTmp();
     const tarPath = path.join(tmp, "container.tar");
     writeSimpleTar(tarPath, [
-      { name: "manifest.json", text: "[]" },
-      { name: "repositories", text: "{}" },
+      { name: "manifest.json", text: JSON.stringify([{ Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] }]) },
+      { name: "repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
+      { name: "config.json", text: "{}" },
       { name: "layer.tar", text: "layer-bytes" },
     ]);
     const capture = captureTreeV0(tarPath, limits);
@@ -1582,14 +1583,28 @@ const run = (): void => {
     const tmp = mkTmp();
     const tarPath = path.join(tmp, "container_no_layer.tar");
     writeSimpleTar(tarPath, [
-      { name: "manifest.json", text: "[]" },
-      { name: "repositories", text: "{}" },
+      { name: "manifest.json", text: JSON.stringify([{ Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] }]) },
+      { name: "repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
       { name: "notes.txt", text: "placeholder" },
     ]);
     const capture = captureTreeV0(tarPath, limits);
     const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
     assert(!res.ok, "container adapter should fail closed for explicit docker tar markers without layer tar evidence");
     assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for docker tar markers without layer evidence");
+  }
+
+  {
+    const tmp = mkTmp();
+    const tarPath = path.join(tmp, "container_invalid_manifest_json.tar");
+    writeSimpleTar(tarPath, [
+      { name: "manifest.json", text: "[]" },
+      { name: "repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
+      { name: "layer.tar", text: "layer-bytes" },
+    ]);
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit docker tar invalid manifest payload");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for invalid docker manifest payload");
   }
 
   {

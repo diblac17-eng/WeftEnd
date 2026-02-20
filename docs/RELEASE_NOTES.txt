@@ -68,6 +68,7 @@ Included
 - Explicit OCI layout route now fails closed when manifests exist but blob evidence is missing (`CONTAINER_LAYOUT_INVALID`), preventing partial container identity acceptance.
 - Explicit container route now fails closed when OCI index manifests shape is invalid and when container tar metadata is partial, preventing mixed valid/corrupt container acceptance.
 - Explicit Docker-style tar route now requires at least one `layer.tar` entry when `manifest.json` and `repositories` markers are present, preventing placeholder tar marker shells from passing strict container routing.
+- Explicit Docker-style tar route now also requires valid `manifest.json` and `repositories` JSON payload structure, and requires manifest layer references to resolve to tar entries.
 - Explicit compose route now fails closed when service placeholders exist without valid indented service entries or without `image`/`build` evidence, while still allowing build-only compose service definitions.
 - Explicit SBOM route now fails closed when package/component evidence is empty, preventing empty SBOM shells from passing strict container SBOM analysis.
 - SBOM JSON parsing now emits bounded package/component counts when present.

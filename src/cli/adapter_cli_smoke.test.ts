@@ -1532,13 +1532,27 @@ const run = async (): Promise<void> => {
     const tmp = mkTmp();
     const noLayerTar = path.join(tmp, "container_no_layer.tar");
     writeSimpleTar(noLayerTar, [
-      { name: "manifest.json", text: "[]" },
-      { name: "repositories", text: "{}" },
+      { name: "manifest.json", text: JSON.stringify([{ Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] }]) },
+      { name: "repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
       { name: "notes.txt", text: "placeholder" },
     ]);
     const res = await runCliCapture(["safe-run", noLayerTar, "--out", outDir, "--adapter", "container"]);
     assertEq(res.status, 40, "safe-run should fail closed for explicit docker tar markers without layer tar evidence");
     assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for docker tar missing layer evidence");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const invalidManifestTar = path.join(tmp, "container_invalid_manifest_json.tar");
+    writeSimpleTar(invalidManifestTar, [
+      { name: "manifest.json", text: "[]" },
+      { name: "repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
+      { name: "layer.tar", text: "layer-bytes" },
+    ]);
+    const res = await runCliCapture(["safe-run", invalidManifestTar, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit docker tar invalid manifest payload");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for invalid docker manifest payload");
   }
 
   {
