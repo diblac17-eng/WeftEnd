@@ -1350,7 +1350,7 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       }
     }
     if (strictRoute) {
-      const zip = readZipEntries(ctx.inputPath);
+      const zip = readZipEntriesRaw(ctx.inputPath);
       entries = zip.entries;
       markers.push(...zip.markers);
     } else if (ctx.capture.kind === "zip") {
@@ -1361,7 +1361,7 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       markers.push(...zip.markers);
     }
   } else if (ext === ".tar") {
-    const tar = readTarEntries(ctx.inputPath);
+    const tar = readTarEntries(ctx.inputPath, strictRoute ? { dedupe: false } : undefined);
     entries = tar.entries;
     markers.push(...tar.markers);
   } else if (ext === ".tar.gz" || ext === ".tgz" || ext === ".tar.bz2" || ext === ".tar.xz" || ext === ".txz") {
@@ -1450,6 +1450,17 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       failMessage: "archive adapter expected a valid archive structure for explicit route analysis.",
       reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_FORMAT_MISMATCH"]),
     };
+  }
+  if (strictRoute && (ext === ".zip" || ext === ".tar")) {
+    const uniqueEntries = stableSortUniqueStringsV0(entries);
+    if (uniqueEntries.length < entries.length) {
+      return {
+        ok: false,
+        failCode: "ARCHIVE_FORMAT_MISMATCH",
+        failMessage: "archive adapter expected non-ambiguous archive entry paths for explicit route analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_FORMAT_MISMATCH"]),
+      };
+    }
   }
 
   if (ctx.capture.truncated || entries.length > MAX_LIST_ITEMS) markers.push("ARCHIVE_TRUNCATED");

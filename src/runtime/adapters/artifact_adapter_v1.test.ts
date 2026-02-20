@@ -256,6 +256,32 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const duplicateZip = path.join(tmp, "duplicate_paths.zip");
+    writeStoredZip(duplicateZip, [
+      { name: "a.txt", text: "alpha-a" },
+      { name: "a.txt", text: "alpha-b" },
+    ]);
+    const capture = captureTreeV0(duplicateZip, limits);
+    const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: duplicateZip, capture });
+    assert(!res.ok, "archive adapter should fail closed for strict zip route with duplicate entry paths");
+    assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for duplicate zip entry paths");
+  }
+
+  {
+    const tmp = mkTmp();
+    const duplicateTar = path.join(tmp, "duplicate_paths.tar");
+    writeSimpleTar(duplicateTar, [
+      { name: "a.txt", text: "alpha-a" },
+      { name: "a.txt", text: "alpha-b" },
+    ]);
+    const capture = captureTreeV0(duplicateTar, limits);
+    const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: duplicateTar, capture });
+    assert(!res.ok, "archive adapter should fail closed for strict tar route with duplicate entry paths");
+    assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for duplicate tar entry paths");
+  }
+
+  {
+    const tmp = mkTmp();
     const txz = path.join(tmp, "sample.txz");
     fs.writeFileSync(txz, "not-a-real-txz", "utf8");
     const capture = captureTreeV0(txz, limits);

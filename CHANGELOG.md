@@ -33,6 +33,9 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Strict package ZIP structure now enforces unique required-marker cardinality for `.msix`, `.nupkg`, `.whl`, and `.jar`.
 - Strict package ZIP marker cardinality now evaluates raw ZIP entry catalogs, so duplicate same-path required markers fail closed.
 
+### Archive strict-route hardening
+- Strict `.zip` and `.tar` archive routes now require non-ambiguous entry paths (duplicate entry paths fail strict routing).
+
 ### Validation status for this unreleased batch
 - `npm run compile --silent`: pass
 - `node dist/src/runtime/adapters/artifact_adapter_v1.test.js`: pass
