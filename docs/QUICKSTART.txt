@@ -131,6 +131,8 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   - legacy history warnings are surfaced without forcing strict failure
 - To enforce strict warning-fail behavior inside `verify:360`, set:
   WEFTEND_360_AUDIT_STRICT=1
+- To enforce strict adapter maintenance/plugin checks inside `verify:360`, set:
+  WEFTEND_360_ADAPTER_DOCTOR_STRICT=1
 - It always writes a verification receipt/report, including PARTIAL/FAIL outcomes:
   - out/verify_360/history/run_<seq>/verify_360_receipt.json
   - out/verify_360/history/run_<seq>/verify_360_report.txt

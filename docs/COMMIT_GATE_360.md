@@ -82,6 +82,10 @@ Core rule
    - legacy warnings are surfaced as reason codes (`VERIFY360_HISTORY_AUDIT_WARNINGS_PRESENT`) without forcing strict-mode failure
    - pre-write first-run lanes allow empty history (`WEFTEND_360_AUDIT_ALLOW_EMPTY=1`) so new isolated roots fail only on real integrity errors
    - strict behavior remains available via `WEFTEND_360_AUDIT_STRICT=1`
+21. `verify:360` includes an `adapter_doctor` maintenance check step:
+   - non-strict mode records readiness evidence without failing the gate on missing plugins
+   - strict behavior is available via `WEFTEND_360_ADAPTER_DOCTOR_STRICT=1`
+   - strict failures are recorded as explicit PARTIAL evidence (`VERIFY360_ADAPTER_DOCTOR_STRICT_FAILED`) with adapter strict reason codes
 
 Command
 - `npm run verify:360`

@@ -29,6 +29,7 @@ const RUN_STATES = [
   "RECORDED",
 ];
 const CAPABILITY_REQUESTS = [
+  "cli.adapter_doctor",
   "cli.compare",
   "cli.safe_run",
   "fixture.deterministic_input",
@@ -303,6 +304,14 @@ const parseAuditWarnings = (stdoutText) => {
   if (!m) return 0;
   const n = Number.parseInt(m[1], 10);
   return Number.isFinite(n) && n >= 0 ? n : 0;
+};
+
+const parseJsonSafe = (text) => {
+  try {
+    return JSON.parse(String(text || ""));
+  } catch {
+    return null;
+  }
 };
 
 const gitChangedFiles = () => {
@@ -810,6 +819,41 @@ const main = () => {
   });
   advanceState("PROOFCHECK_DONE");
   recordCapability("npm.proofcheck", proof.ok, proof.ok ? [] : ["VERIFY360_PROOFCHECK_FAILED"]);
+
+  // Adapter maintenance doctor gate (informational by default, strict when enabled).
+  const adapterDoctorStrict = String(process.env.WEFTEND_360_ADAPTER_DOCTOR_STRICT || "").trim() === "1";
+  const doctorArgs = ["dist/src/cli/main.js", "adapter", "doctor"];
+  if (adapterDoctorStrict) doctorArgs.push("--strict");
+  const doctor = runCommandCapture("adapter-doctor", process.execPath, doctorArgs);
+  const doctorJson = parseJsonSafe(doctor.stdout);
+  const strictReasonCodes = Array.isArray(doctorJson?.strict?.reasonCodes)
+    ? stableSortUnique(doctorJson.strict.reasonCodes.map((value) => String(value || "")))
+    : [];
+  const doctorReasons = [];
+  if (!doctor.ok) {
+    if (adapterDoctorStrict && doctor.exitCode === 40) {
+      doctorReasons.push("VERIFY360_ADAPTER_DOCTOR_STRICT_FAILED");
+      strictReasonCodes.forEach((code) => doctorReasons.push(code));
+    } else {
+      doctorReasons.push("VERIFY360_ADAPTER_DOCTOR_FAILED");
+    }
+  }
+  addStep({
+    id: "adapter_doctor",
+    status: doctor.ok ? "PASS" : adapterDoctorStrict && doctor.exitCode === 40 ? "PARTIAL" : "FAIL",
+    exitCode: doctor.exitCode,
+    reasonCodes: stableSortUnique(doctorReasons),
+    details: {
+      strictMode: adapterDoctorStrict,
+      strictStatus: String(doctorJson?.strict?.status || (adapterDoctorStrict ? "UNKNOWN" : "OFF")),
+      strictReasonCodes,
+    },
+  });
+  recordCapability(
+    "cli.adapter_doctor",
+    doctor.ok,
+    doctor.ok ? [] : stableSortUnique(adapterDoctorStrict && doctor.exitCode === 40 ? ["VERIFY360_ADAPTER_DOCTOR_STRICT_FAILED"] : ["VERIFY360_ADAPTER_DOCTOR_FAILED"])
+  );
 
   // Determinism replay precondition.
   if (!fs.existsSync(deterministicInputAbs)) {

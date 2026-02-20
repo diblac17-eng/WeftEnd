@@ -10,6 +10,7 @@ Included
 - Host precondition misses are explicit PARTIAL/SKIP evidence, not silent no-output aborts.
 - Gate enforces docs/update discipline: code changes without operator-facing doc updates fail with `VERIFY360_DOC_SYNC_MISSING`.
 - Gate now uses explicit state progression and two-phase output finalize (`stage -> finalize`) with `verify_360_output_manifest.json`.
+- Gate now runs adapter maintenance doctor during verify (`adapter_doctor` step), with optional strict mode via `WEFTEND_360_ADAPTER_DOCTOR_STRICT=1` (strict failures are recorded as explicit PARTIAL evidence with reason codes).
 - Safe-run now enforces a non-blocking evidence corridor check before completion:
 - Expected receipt artifacts are verified for presence and digest consistency.
 - Pre-existing/stale unmanaged output files anywhere under the run out-root are flagged as orphan evidence.
