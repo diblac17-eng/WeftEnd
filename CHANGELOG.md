@@ -12,6 +12,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added explicit smoke-test coverage for root-level stale output detection under the same non-blocking warning model.
 - `operator_receipt.json` now carries additive digest links for `weftend/README.txt` and run sub-receipts (`analysis/*`, `host/*`) for stronger evidence-chain traceability.
 - `container scan` now also preserves deterministic evidence artifacts on fail-closed preconditions (`safe_run_receipt.json` and `operator_receipt.json` are written before exit 40).
+- `container scan` now applies the same evidence-corridor checks as safe-run: expected receipt artifacts are verified for presence/digest consistency and unmanaged pre-existing outputs are surfaced as deterministic `SAFE_RUN_EVIDENCE_*` warnings.
 
 ### Adapter maintenance controls
 - Added `weftend adapter doctor` for deterministic adapter readiness/maintenance reporting.

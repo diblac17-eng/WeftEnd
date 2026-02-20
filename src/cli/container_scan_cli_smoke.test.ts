@@ -87,6 +87,21 @@ suite("cli/container-scan", () => {
     assertEq(receipt.analysisVerdict, "DENY", "expected DENY analysis verdict for local-image precondition failure");
   });
 
+  register("container scan records orphan evidence warning on pre-existing unmanaged output", async () => {
+    const outDir = makeTempDir();
+    fs.writeFileSync(path.join(outDir, "stale_output.txt"), "stale", "utf8");
+    const res = await runCliCapture(["container", "scan", "ubuntu:latest", "--out", outDir]);
+    assertEq(res.status, 40, `expected exit 40\n${res.stderr}`);
+    const operatorPath = path.join(outDir, "operator_receipt.json");
+    assert(fs.existsSync(operatorPath), "operator receipt must exist");
+    const operatorReceipt = JSON.parse(fs.readFileSync(operatorPath, "utf8"));
+    const warnings = Array.isArray(operatorReceipt?.warnings) ? operatorReceipt.warnings : [];
+    assert(
+      warnings.includes("SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"),
+      "expected SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT warning for pre-existing unmanaged output"
+    );
+  });
+
   register("container scan honors maintenance disable policy", async () => {
     const outDir = makeTempDir();
     const immutableRef = `docker.io/library/ubuntu@sha256:${"c".repeat(64)}`;

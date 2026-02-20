@@ -169,6 +169,9 @@ Included
 - Container scan evidence remains local-only inspect data and excludes unstable fields (timestamps/raw env/path values).
 - Container scan now requires immutable image digest refs (`name@sha256:...` or `sha256:...`) and fails closed on mutable tag refs.
 - Container scan now fails closed when Docker inspect resolves to a digest that does not match the immutable input digest ref.
+- Container scan now applies the same non-blocking evidence corridor checks as safe-run:
+- expected receipt artifacts are verified for presence and digest consistency;
+- pre-existing unmanaged files under out-root are surfaced as deterministic `SAFE_RUN_EVIDENCE_*` warnings in `operator_receipt.json`.
 - Privacy lint coverage now includes wildcard `analysis/*.json` artifacts so new adapter JSON outputs cannot bypass privacy scanning by filename drift.
 - Privacy lint coverage now includes wildcard `analysis/*.txt` artifacts for the same anti-bypass guarantee on adapter text outputs.
 - Wave coverage now includes:
