@@ -217,6 +217,14 @@ const run = async (): Promise<void> => {
   }
 
   {
+    const res = await runCliCapture(["adapter", "doctor", "--text", "--strict"], {
+      env: { WEFTEND_ADAPTER_DISABLE: "all", WEFTEND_ADAPTER_DISABLE_FILE: undefined },
+    });
+    assertEq(res.status, 0, `adapter doctor --text --strict should pass when adapters are intentionally disabled\n${res.stderr}`);
+    assert(res.stdout.includes("strict.status=PASS"), "strict doctor text output should include PASS status");
+  }
+
+  {
     const tmp = mkTmp();
     const outPolicy = path.join(tmp, "generated_policy.json");
     const stagePath = `${outPolicy}.stage`;
@@ -273,6 +281,17 @@ const run = async (): Promise<void> => {
   }
 
   {
+    const res = await runCliCapture(["adapter", "doctor", "--strict"], {
+      env: { WEFTEND_ADAPTER_DISABLE: "all,invalid_lane" },
+    });
+    assertEq(res.status, 40, "adapter doctor --strict should fail closed on unknown policy tokens");
+    assert(
+      res.stderr.includes("ADAPTER_DOCTOR_STRICT_POLICY_UNKNOWN_TOKEN"),
+      "strict doctor should report ADAPTER_DOCTOR_STRICT_POLICY_UNKNOWN_TOKEN"
+    );
+  }
+
+  {
     const tmp = mkTmp();
     const policyPath = path.join(tmp, "adapter_maintenance.json");
     fs.writeFileSync(policyPath, JSON.stringify({ disabledAdapters: ["archive", "container"] }), "utf8");
@@ -298,6 +317,20 @@ const run = async (): Promise<void> => {
     const parsed = JSON.parse(res.stdout);
     assertEq(parsed.policy?.source, "file", "invalid file policy should still report file source");
     assertEq(parsed.policy?.invalidReasonCode, "ADAPTER_POLICY_FILE_INVALID", "expected invalid file policy reason code");
+  }
+
+  {
+    const tmp = mkTmp();
+    const policyPath = path.join(tmp, "adapter_maintenance_invalid_strict.json");
+    fs.writeFileSync(policyPath, "{ invalid-json", "utf8");
+    const res = await runCliCapture(["adapter", "doctor", "--strict"], {
+      env: { WEFTEND_ADAPTER_DISABLE_FILE: policyPath, WEFTEND_ADAPTER_DISABLE: undefined },
+    });
+    assertEq(res.status, 40, "adapter doctor --strict should fail closed on invalid file policy");
+    assert(
+      res.stderr.includes("ADAPTER_DOCTOR_STRICT_POLICY_INVALID"),
+      "strict doctor should report ADAPTER_DOCTOR_STRICT_POLICY_INVALID"
+    );
   }
 
   {

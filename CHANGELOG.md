@@ -17,6 +17,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 ### Adapter maintenance controls
 - Added `weftend adapter doctor` for deterministic adapter readiness/maintenance reporting.
 - Added `weftend adapter doctor --text` for a human-readable maintenance report with deterministic local actions.
+- Added `weftend adapter doctor --strict` for fail-closed maintenance checks (invalid policy and unresolved missing-plugin requirements return exit 40).
 - Added `weftend adapter doctor --write-policy <path> [--include-missing-plugins]` to generate maintenance policy files.
 - Policy writer output is now finalized atomically using a two-phase stage/finalize flow (`<path>.stage -> <path>`), with explicit fail-closed write error on output failure.
 - `--include-missing-plugins` is now accepted only with `--write-policy`, removing silent no-op flag behavior.

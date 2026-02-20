@@ -58,6 +58,7 @@ Short, strict release checklist (alpha).
 
 8) Adapter maintenance readiness check
 - npm run weftend -- adapter doctor --text
+- npm run weftend -- adapter doctor --strict
 - Confirm `policy.invalid=-` unless intentionally testing a maintenance-file failure case.
 - If a maintenance profile is needed for release operators:
   - npm run weftend -- adapter doctor --write-policy policies\\adapter_maintenance.json --include-missing-plugins

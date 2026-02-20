@@ -84,6 +84,7 @@ Useful commands
 - npm run weftend -- adapter list
 - npm run weftend -- adapter doctor
 - npm run weftend -- adapter doctor --text
+- npm run weftend -- adapter doctor --strict
 - npm run weftend -- adapter doctor --write-policy policies/adapter_maintenance.json
 - npm run weftend -- adapter doctor --write-policy policies/adapter_maintenance.json --include-missing-plugins
 - Note: `--include-missing-plugins` requires `--write-policy`.

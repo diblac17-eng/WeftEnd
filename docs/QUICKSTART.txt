@@ -34,6 +34,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - Check adapter dependency and maintenance status:
   npm run weftend -- adapter doctor
   npm run weftend -- adapter doctor --text
+  npm run weftend -- adapter doctor --strict
   npm run weftend -- adapter doctor --write-policy policies/adapter_maintenance.json
   npm run weftend -- adapter doctor --write-policy policies/adapter_maintenance.json --include-missing-plugins
   Note: `--include-missing-plugins` is valid only with `--write-policy`.

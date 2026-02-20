@@ -14,7 +14,7 @@ const path = require("path");
 const printUsage = () => {
   console.log("Usage:");
   console.log("  weftend adapter list");
-  console.log("  weftend adapter doctor [--text] [--write-policy <path>] [--include-missing-plugins]");
+  console.log("  weftend adapter doctor [--text] [--strict] [--write-policy <path>] [--include-missing-plugins]");
 };
 
 const writeCanonicalPolicyAtomic = (outPath: string, payload: unknown): void => {
@@ -35,9 +35,36 @@ const writeCanonicalPolicyAtomic = (outPath: string, payload: unknown): void => 
   }
 };
 
+const stableSortUniqueStrings = (items: string[]): string[] =>
+  Array.from(new Set((items || []).map((value) => String(value || "").trim()).filter((value) => value.length > 0))).sort((a, b) => cmpStrV0(a, b));
+
+const collectMissingPluginAdapters = (report: any): string[] =>
+  stableSortUniqueStrings(
+    ((report as any).adapters || [])
+      .filter(
+        (item: any) =>
+          Array.isArray(item?.plugins) &&
+          item.plugins.some((plugin: any) => !plugin?.available) &&
+          String(item?.maintenance || "") !== "disabled"
+      )
+      .map((item: any) => String(item?.adapter || ""))
+  );
+
+const collectStrictReasonCodes = (report: any): string[] => {
+  const reasons: string[] = [];
+  const invalidReason = String((report as any).policy?.invalidReasonCode || "");
+  const unknownTokens = Array.isArray((report as any).policy?.unknownTokens) ? (report as any).policy.unknownTokens : [];
+  const missingPluginAdapters = collectMissingPluginAdapters(report);
+  if (invalidReason) reasons.push("ADAPTER_DOCTOR_STRICT_POLICY_INVALID");
+  if (unknownTokens.length > 0) reasons.push("ADAPTER_DOCTOR_STRICT_POLICY_UNKNOWN_TOKEN");
+  if (missingPluginAdapters.length > 0) reasons.push("ADAPTER_DOCTOR_STRICT_MISSING_PLUGIN");
+  return stableSortUniqueStrings(reasons);
+};
+
 export const runAdapterCli = (args: string[]): number => {
   const command = String(args[0] || "").trim().toLowerCase();
   let textMode = false;
+  let strictMode = false;
   let writePolicyPath = "";
   let includeMissingPlugins = false;
   for (let i = 1; i < args.length; i += 1) {
@@ -46,6 +73,10 @@ export const runAdapterCli = (args: string[]): number => {
     if (!normalized) continue;
     if (normalized === "--text") {
       textMode = true;
+      continue;
+    }
+    if (normalized === "--strict") {
+      strictMode = true;
       continue;
     }
     if (normalized === "--include-missing-plugins") {
@@ -69,7 +100,7 @@ export const runAdapterCli = (args: string[]): number => {
     printUsage();
     return 1;
   }
-  if (command === "list" && (textMode || writePolicyPath.length > 0 || includeMissingPlugins)) {
+  if (command === "list" && (textMode || strictMode || writePolicyPath.length > 0 || includeMissingPlugins)) {
     printUsage();
     return 1;
   }
@@ -109,11 +140,14 @@ export const runAdapterCli = (args: string[]): number => {
     const unknownTokens = Array.isArray((report as any).policy?.unknownTokens) ? (report as any).policy.unknownTokens : [];
     const disabled = Array.isArray((report as any).policy?.disabledAdapters) ? (report as any).policy.disabledAdapters : [];
     const invalidReason = String((report as any).policy?.invalidReasonCode || "");
+    const strictReasons = strictMode ? collectStrictReasonCodes(report) : [];
     lines.push("WEFTEND ADAPTER DOCTOR");
     lines.push(`policy.source=${String((report as any).policy?.source || "none")}`);
     lines.push(`policy.disabled=${disabled.length > 0 ? disabled.join(",") : "-"}`);
     lines.push(`policy.unknown=${unknownTokens.length > 0 ? unknownTokens.join(",") : "-"}`);
     lines.push(`policy.invalid=${invalidReason || "-"}`);
+    lines.push(`strict.status=${strictMode ? (strictReasons.length > 0 ? "FAIL" : "PASS") : "OFF"}`);
+    lines.push(`strict.reasons=${strictReasons.length > 0 ? strictReasons.join(",") : "-"}`);
     lines.push("adapters:");
     ((report as any).adapters || []).forEach((item: any) => {
       const plugins = Array.isArray(item?.plugins)
@@ -128,15 +162,7 @@ export const runAdapterCli = (args: string[]): number => {
     const actions: string[] = [];
     if (invalidReason) actions.push("Fix adapter policy file content or unset WEFTEND_ADAPTER_DISABLE_FILE.");
     if (unknownTokens.length > 0) actions.push("Remove unknown adapter disable tokens.");
-    const missingPluginAdapters = ((report as any).adapters || [])
-      .filter(
-        (item: any) =>
-          Array.isArray(item?.plugins) &&
-          item.plugins.some((plugin: any) => !plugin?.available) &&
-          String(item?.maintenance || "") !== "disabled"
-      )
-      .map((item: any) => String(item?.adapter || ""))
-      .filter((value: string) => value.length > 0);
+    const missingPluginAdapters = collectMissingPluginAdapters(report);
     if (missingPluginAdapters.length > 0) {
       actions.push(`Install missing plugins or disable affected adapters: ${missingPluginAdapters.join(",")}.`);
     }
@@ -148,8 +174,19 @@ export const runAdapterCli = (args: string[]): number => {
     if (actions.length === 0) lines.push("  none");
     else actions.forEach((action) => lines.push(`  - ${action}`));
     process.stdout.write(`${lines.join("\n")}\n`);
+    if (strictMode && strictReasons.length > 0) {
+      process.stderr.write(`[${strictReasons.join(",")}] strict adapter doctor checks failed.\n`);
+      return 40;
+    }
     return 0;
   }
   process.stdout.write(`${canonicalJSON(report)}\n`);
+  if (command === "doctor" && strictMode) {
+    const strictReasons = collectStrictReasonCodes(report);
+    if (strictReasons.length > 0) {
+      process.stderr.write(`[${strictReasons.join(",")}] strict adapter doctor checks failed.\n`);
+      return 40;
+    }
+  }
   return 0;
 };

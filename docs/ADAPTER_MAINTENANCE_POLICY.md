@@ -43,5 +43,7 @@ Fail-closed behavior
 Doctor command
 - JSON: `npm run weftend -- adapter doctor`
 - Text: `npm run weftend -- adapter doctor --text`
+- Strict gate (exit 40 on invalid policy/unknown tokens/unresolved missing plugins): `npm run weftend -- adapter doctor --strict`
 - Write current effective policy to file: `npm run weftend -- adapter doctor --write-policy policies/adapter_maintenance.json`
 - Write policy and include adapters with missing plugins: `npm run weftend -- adapter doctor --write-policy policies/adapter_maintenance.json --include-missing-plugins`
+- `--include-missing-plugins` is only valid with `--write-policy`.
