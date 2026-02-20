@@ -99,6 +99,7 @@ Included
 - Container scan now requires immutable image digest refs (`name@sha256:...` or `sha256:...`) and fails closed on mutable tag refs.
 - Container scan now fails closed when Docker inspect resolves to a digest that does not match the immutable input digest ref.
 - Privacy lint coverage now includes wildcard `analysis/*.json` artifacts so new adapter JSON outputs cannot bypass privacy scanning by filename drift.
+- Privacy lint coverage now includes wildcard `analysis/*.txt` artifacts for the same anti-bypass guarantee on adapter text outputs.
 - Wave coverage now includes:
 - Wave 1: archives, packages/installers, extensions
 - Wave 2 baseline: IaC/CICD and document risk signal extraction

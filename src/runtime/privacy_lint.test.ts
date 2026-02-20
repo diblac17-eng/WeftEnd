@@ -64,6 +64,19 @@ suite("runtime/privacy lint", () => {
     assert(result.report.violations.some((v) => v.code === "ABS_PATH_WIN"), "expected ABS_PATH_WIN from wildcard analysis json");
   });
 
+  register("analysis wildcard TXT files are linted for privacy patterns", () => {
+    const root = makeTempDir();
+    const analysisDir = path.join(root, "analysis");
+    fs.mkdirSync(analysisDir, { recursive: true });
+    const wildcardTxt = path.join(analysisDir, "new_adapter_surface_v0.txt");
+    fs.writeFileSync(wildcardTxt, "path=C:\\\\Users\\\\alice\\\\secret\n", "utf8");
+
+    const fixedBuild = { algo: "sha256", digest: "sha256:22222222", source: "NODE_MAIN_JS" } as any;
+    const result = runPrivacyLintV0({ root, weftendBuild: fixedBuild });
+    assertEq(result.report.verdict, "FAIL", "expected FAIL verdict for analysis wildcard txt path leakage");
+    assert(result.report.violations.some((v) => v.code === "ABS_PATH_WIN"), "expected ABS_PATH_WIN from wildcard analysis txt");
+  });
+
   register("README allows reasonCodes WEFTEND_ only on approved line", () => {
     const root = makeTempDir();
     const readmeDir = path.join(root, "weftend");

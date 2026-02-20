@@ -33,7 +33,7 @@ const REPORT_PATH = path.join("weftend", "privacy_lint_v0.json");
 const allowedFile = (relPath: string): boolean => {
   const relNorm = relPath.split(path.sep).join("/").toLowerCase();
   const base = path.basename(relPath).toLowerCase();
-  if (relNorm.startsWith("analysis/") && relNorm.endsWith(".json")) return true;
+  if (relNorm.startsWith("analysis/") && (relNorm.endsWith(".json") || relNorm.endsWith(".txt"))) return true;
   if (base.includes("receipt") && base.endsWith(".json")) return true;
   if (base === "weftend_mint_v1.json") return true;
   if (base === "intake_decision.json") return true;
