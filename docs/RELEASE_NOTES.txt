@@ -78,6 +78,7 @@ Included
 - Explicit Docker-style tar route now requires all manifest config references to resolve to tar entries, preventing partial config payload shells from passing strict routing.
 - Explicit OCI tar strict route now requires manifest digest references to resolve to blob entries, preventing unrelated blob padding from satisfying strict OCI tar evidence.
 - Explicit OCI tar strict route now requires non-empty manifest digest references when manifests are present, preventing digestless OCI tar manifest shells from passing strict routing.
+- Added regression coverage for OCI layout/tar digest-required strict paths (missing digest refs and digest-mismatch scenarios) in adapter and CLI smoke suites.
 - Explicit compose route now fails closed when service placeholders exist without valid indented service entries or without `image`/`build` evidence, while still allowing build-only compose service definitions.
 - Explicit compose route now requires `image`/`build` evidence to be inside a service block, preventing out-of-service image placeholders from passing strict compose routing.
 - Explicit SBOM route now fails closed when package/component evidence is empty, preventing empty SBOM shells from passing strict container SBOM analysis.

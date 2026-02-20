@@ -1587,6 +1587,23 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const ociDir = path.join(tmp, "oci_missing_digest_refs");
+    fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
+    fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
+    fs.writeFileSync(
+      path.join(ociDir, "index.json"),
+      "{\"schemaVersion\":2,\"manifests\":[{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\"}]}\n",
+      "utf8"
+    );
+    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), "x", "utf8");
+    const res = await runCliCapture(["safe-run", ociDir, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI layout missing digest refs");
+    assert(res.stderr.includes("CONTAINER_LAYOUT_INVALID"), "expected CONTAINER_LAYOUT_INVALID on stderr for OCI layout missing digest refs");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const ociTar = path.join(tmp, "oci_layout.tar");
     writeSimpleTar(ociTar, [
       { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
@@ -1630,6 +1647,20 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", ociTarDigestMismatch, "--out", outDir, "--adapter", "container"]);
     assertEq(res.status, 40, "safe-run should fail closed for explicit OCI tar digest mismatch");
     assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar digest mismatch");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const ociTarMissingDigestRefs = path.join(tmp, "oci_layout_missing_digest_refs.tar");
+    writeSimpleTar(ociTarMissingDigestRefs, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      { name: "index.json", text: "{\"schemaVersion\":2,\"manifests\":[{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"size\":1}]}\n" },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+    ]);
+    const res = await runCliCapture(["safe-run", ociTarMissingDigestRefs, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI tar missing digest refs");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar missing digest refs");
   }
 
   {
