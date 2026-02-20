@@ -277,8 +277,9 @@ const runCommand = (label, cmd, args, envExtra = {}) => {
   };
 };
 
-const runCommandCapture = (label, cmd, args, envExtra = {}) => {
+const runCommandCapture = (label, cmd, args, envExtra = {}, options = {}) => {
   const env = { ...process.env, ...envExtra };
+  const emit = options && options.emit !== false;
   const res = spawnSync(cmd, args, {
     cwd: root,
     encoding: "utf8",
@@ -287,8 +288,10 @@ const runCommandCapture = (label, cmd, args, envExtra = {}) => {
   });
   const stdout = String(res.stdout || "");
   const stderr = String(res.stderr || "");
-  if (stdout.length > 0) process.stdout.write(stdout);
-  if (stderr.length > 0) process.stderr.write(stderr);
+  if (emit) {
+    if (stdout.length > 0) process.stdout.write(stdout);
+    if (stderr.length > 0) process.stderr.write(stderr);
+  }
   const status = typeof res.status === "number" ? res.status : 1;
   return {
     label,
@@ -824,7 +827,7 @@ const main = () => {
   const adapterDoctorStrict = String(process.env.WEFTEND_360_ADAPTER_DOCTOR_STRICT || "").trim() === "1";
   const doctorArgs = ["dist/src/cli/main.js", "adapter", "doctor"];
   if (adapterDoctorStrict) doctorArgs.push("--strict");
-  const doctor = runCommandCapture("adapter-doctor", process.execPath, doctorArgs);
+  const doctor = runCommandCapture("adapter-doctor", process.execPath, doctorArgs, {}, { emit: false });
   const doctorJson = parseJsonSafe(doctor.stdout);
   const strictReasonCodes = Array.isArray(doctorJson?.strict?.reasonCodes)
     ? stableSortUnique(doctorJson.strict.reasonCodes.map((value) => String(value || "")))
