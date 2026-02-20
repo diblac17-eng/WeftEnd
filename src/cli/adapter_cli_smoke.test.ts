@@ -1121,6 +1121,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const input = path.join(tmp, "valid_package.tgz");
+    writeSimpleTgz(input, [{ name: "pkg/install.sh", text: "echo ok" }]);
+    if (tarAvailable()) {
+      const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "package", "--enable-plugin", "tar"]);
+      assertEq(res.status, 0, `safe-run should accept compressed tar package when tar plugin is enabled\n${res.stderr}`);
+      const safe = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
+      assertEq(safe.adapter?.adapterId, "package_adapter_v1", "safe receipt package adapter metadata missing for plugin package tgz");
+      assertEq(safe.adapter?.mode, "plugin", "safe receipt package adapter mode should be plugin for package tgz");
+    }
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const input = path.join(tmp, "case_collision_package.tgz");
     writeSimpleTgz(input, [
       { name: "PKG/Install.sh", text: "echo a" },
@@ -1131,6 +1145,16 @@ const run = async (): Promise<void> => {
       assertEq(res.status, 40, "safe-run should fail closed for strict package plugin route with case-colliding entry paths");
       assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for case-colliding package plugin entries");
     }
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "bad.msi");
+    fs.writeFileSync(input, "not-a-cfb-msi", "utf8");
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "package", "--enable-plugin", "tar"]);
+    assertEq(res.status, 40, "safe-run should fail closed when tar plugin is supplied for non-applicable package format");
+    assert(res.stderr.includes("ADAPTER_PLUGIN_UNUSED"), "expected ADAPTER_PLUGIN_UNUSED on stderr for package msi with tar plugin");
   }
 
   {

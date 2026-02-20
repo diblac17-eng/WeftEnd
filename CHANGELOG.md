@@ -35,6 +35,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Strict `.deb` structure checks now require non-ambiguous required-entry cardinality (duplicate required structure entries fail strict routing).
 - Strict compressed package-tar plugin route now requires non-ambiguous entry-path sets from plugin listing output (duplicate or case-colliding entry paths fail strict routing).
 - Package adapter plugin applicability now accepts `--enable-plugin tar` for compressed package-tar formats and still fails closed on non-applicable package formats.
+- Added regression coverage for package tar-plugin routing (accepted compressed package-tar path and non-applicable plugin rejection).
 
 ### Archive strict-route hardening
 - Strict `.zip` and `.tar` archive routes now require non-ambiguous entry paths (duplicate or case-colliding entry paths fail strict routing).

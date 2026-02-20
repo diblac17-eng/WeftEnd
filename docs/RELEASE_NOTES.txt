@@ -40,6 +40,7 @@ Included
 - Package strict route now requires non-ambiguous Debian required-entry cardinality, preventing duplicate required `.deb` structure entries from passing strict package routing.
 - Package strict compressed-tar plugin route now requires non-ambiguous archive entry paths from plugin listing output, preventing duplicate or case-colliding path ambiguity from passing explicit package archive routing.
 - Package plugin applicability now includes package adapter routes, so `--enable-plugin tar` is accepted for compressed package tar formats and still fails closed as `ADAPTER_PLUGIN_UNUSED` on non-applicable package formats.
+- Added adapter and CLI regression coverage for package tar-plugin routing, including accepted plugin path (`mode=plugin`) and non-applicable plugin rejection (`ADAPTER_PLUGIN_UNUSED`).
 - Package strict route now requires minimum structural byte-size evidence for `.exe` beyond valid PE header bytes, preventing tiny synthetic placeholders from passing explicit package routing.
 - Package strict route now requires minimum structural byte-size evidence for `.msi` beyond valid CFB header bytes, preventing tiny synthetic placeholders from passing explicit package routing.
 - Package strict route now requires minimum structural byte-size evidence for `.appimage` beyond valid runtime marker bytes, preventing tiny synthetic placeholders from passing explicit package routing.

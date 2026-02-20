@@ -799,6 +799,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tgz = path.join(tmp, "valid_package.tgz");
+    writeSimpleTgz(tgz, [{ name: "pkg/install.sh", text: "echo ok" }]);
+    const capture = captureTreeV0(tgz, limits);
+    const tarAvailable = runCmd("tar", ["--help"]).ok;
+    if (tarAvailable) {
+      const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: ["tar"], inputPath: tgz, capture });
+      assert(res.ok, "package adapter should accept compressed tar package when tar plugin is enabled");
+      assertEq(res.summary?.sourceClass, "package", "package tgz sourceClass mismatch");
+      assertEq(res.adapter?.mode, "plugin", "package tgz adapter mode should be plugin");
+    }
+  }
+
+  {
+    const tmp = mkTmp();
     const tgz = path.join(tmp, "case_collision_package.tgz");
     writeSimpleTgz(tgz, [
       { name: "PKG/Install.sh", text: "echo a" },
@@ -811,6 +825,16 @@ const run = (): void => {
       assert(!res.ok, "package adapter should fail closed for strict package plugin route with case-colliding entry paths");
       assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for case-colliding package plugin entries");
     }
+  }
+
+  {
+    const tmp = mkTmp();
+    const input = path.join(tmp, "bad.msi");
+    fs.writeFileSync(input, "not-a-cfb-msi", "utf8");
+    const capture = captureTreeV0(input, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: ["tar"], inputPath: input, capture });
+    assert(!res.ok, "package adapter should fail closed when tar plugin is provided for non-applicable package format");
+    assertEq(res.failCode, "ADAPTER_PLUGIN_UNUSED", "expected ADAPTER_PLUGIN_UNUSED for package msi with tar plugin");
   }
 
   {
