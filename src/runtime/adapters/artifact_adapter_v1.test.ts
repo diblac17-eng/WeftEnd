@@ -1577,6 +1577,21 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const duplicateRootRelsDocm = path.join(tmp, "duplicate_root_rels.docm");
+    writeStoredZip(duplicateRootRelsDocm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "_rels/.rels", text: "<Relationships></Relationships>" },
+      { name: "_rels/.rels", text: "<Relationships></Relationships>" },
+      { name: "word/document.xml", text: "<w:document/>" },
+    ]);
+    const capture = captureTreeV0(duplicateRootRelsDocm, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: duplicateRootRelsDocm, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit docm with duplicate root relationship markers");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for duplicate OOXML relationship markers");
+  }
+
+  {
+    const tmp = mkTmp();
     const pdf = path.join(tmp, "demo.pdf");
     fs.writeFileSync(
       pdf,

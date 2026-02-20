@@ -63,6 +63,7 @@ Included
 - Added strict-route regression coverage for both `.docm` and `.xlsm` missing-primary-part cases to pin fail-closed behavior in adapter and CLI smoke suites.
 - Document strict route now requires unique required-marker cardinality for OOXML inputs (`[Content_Types].xml` and the primary-part path must each appear exactly once), preventing duplicate/ambiguous OOXML marker sets from passing strict routing.
 - Document strict route now requires type-specific OOXML relationship evidence (`word/_rels/document.xml.rels` for `.docm`, `xl/_rels/workbook.xml.rels` for `.xlsm`, or root `_rels/.rels`), preventing cross-type relationship markers from passing strict routing.
+- Document strict route now requires non-ambiguous OOXML relationship marker cardinality (duplicate root/type-specific relationship markers fail closed), preventing duplicate relationship-marker ambiguity from passing strict routing.
 - Document strict route now requires a strict RTF prolog (`{\\rtf1`), baseline control-word evidence (`\\ansi`/`\\deff`), and closing-brace evidence for explicit `.rtf` analysis, preventing partial/plaintext placeholders from passing strict document routing.
 - Document strict route now requires minimum CHM structural header evidence (including header-length sanity) for explicit `.chm` analysis, preventing tiny header-only placeholders from passing strict document routing.
 - IaC/CI adapter extraction deepened:

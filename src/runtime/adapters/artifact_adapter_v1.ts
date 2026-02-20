@@ -2479,11 +2479,13 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
     const namesLower = zip.entries.map((name) => String(name || "").toLowerCase());
     const contentTypesCount = namesLower.filter((name) => name === "[content_types].xml").length;
     const hasContentTypes = contentTypesCount > 0;
-    const hasRootRelationships = namesLower.includes("_rels/.rels");
-    const hasTypeSpecificRelationships =
+    const rootRelationshipsCount = namesLower.filter((name) => name === "_rels/.rels").length;
+    const typeSpecificRelationshipsCount =
       ctx.ext === ".docm"
-        ? namesLower.includes("word/_rels/document.xml.rels")
-        : namesLower.includes("xl/_rels/workbook.xml.rels");
+        ? namesLower.filter((name) => name === "word/_rels/document.xml.rels").length
+        : namesLower.filter((name) => name === "xl/_rels/workbook.xml.rels").length;
+    const hasRootRelationships = rootRelationshipsCount > 0;
+    const hasTypeSpecificRelationships = typeSpecificRelationshipsCount > 0;
     const hasRelationshipPart = hasRootRelationships || hasTypeSpecificRelationships;
     const primaryPartCount =
       ctx.ext === ".docm"
@@ -2503,6 +2505,14 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
         ok: false,
         failCode: "DOC_FORMAT_MISMATCH",
         failMessage: "document adapter expected exactly one [Content_Types].xml marker for explicit office-document analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+      };
+    }
+    if (strictRoute && (rootRelationshipsCount > 1 || typeSpecificRelationshipsCount > 1)) {
+      return {
+        ok: false,
+        failCode: "DOC_FORMAT_MISMATCH",
+        failMessage: "document adapter expected non-ambiguous OOXML relationship markers for explicit office-document analysis.",
         reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
       };
     }
