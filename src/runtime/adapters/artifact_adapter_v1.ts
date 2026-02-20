@@ -1533,18 +1533,21 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       const namesLower = entryNames.map((entry) => normalizeZipEntryPathV1(String(entry || "")).toLowerCase());
       let hasPackageStructure = true;
       if (ext === ".msix") {
-        const hasManifest = namesLower.includes("appxmanifest.xml") || namesLower.includes("appxbundlemanifest.xml");
-        const hasContentTypes = namesLower.includes("[content_types].xml");
-        hasPackageStructure = hasManifest && hasContentTypes;
+        const appxManifestCount = namesLower.filter((name) => name === "appxmanifest.xml").length;
+        const appxBundleManifestCount = namesLower.filter((name) => name === "appxbundlemanifest.xml").length;
+        const contentTypesCount = namesLower.filter((name) => name === "[content_types].xml").length;
+        hasPackageStructure = (appxManifestCount + appxBundleManifestCount) === 1 && contentTypesCount === 1;
       } else if (ext === ".nupkg") {
-        hasPackageStructure = namesLower.some((name) => /^[^/]+\.nuspec$/.test(name));
+        const nuspecCount = namesLower.filter((name) => /^[^/]+\.nuspec$/.test(name)).length;
+        hasPackageStructure = nuspecCount === 1;
       } else if (ext === ".whl") {
-        const hasMetadata = namesLower.some((name) => /^[^/]+\.dist-info\/metadata$/.test(name));
-        const hasWheel = namesLower.some((name) => /^[^/]+\.dist-info\/wheel$/.test(name));
-        const hasRecord = namesLower.some((name) => /^[^/]+\.dist-info\/record$/.test(name));
-        hasPackageStructure = hasMetadata && hasWheel && hasRecord;
+        const metadataCount = namesLower.filter((name) => /^[^/]+\.dist-info\/metadata$/.test(name)).length;
+        const wheelCount = namesLower.filter((name) => /^[^/]+\.dist-info\/wheel$/.test(name)).length;
+        const recordCount = namesLower.filter((name) => /^[^/]+\.dist-info\/record$/.test(name)).length;
+        hasPackageStructure = metadataCount === 1 && wheelCount === 1 && recordCount === 1;
       } else if (ext === ".jar") {
-        hasPackageStructure = namesLower.some((name) => name === "meta-inf/manifest.mf");
+        const manifestCount = namesLower.filter((name) => name === "meta-inf/manifest.mf").length;
+        hasPackageStructure = manifestCount === 1;
       }
       if (!hasPackageStructure) {
         return {

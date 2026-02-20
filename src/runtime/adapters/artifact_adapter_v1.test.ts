@@ -838,6 +838,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const duplicateManifestMsix = path.join(tmp, "duplicate_manifest_markers.msix");
+    writeStoredZip(duplicateManifestMsix, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "AppxManifest.xml", text: "<Package></Package>" },
+      { name: "AppxBundleManifest.xml", text: "<Bundle></Bundle>" },
+    ]);
+    const capture = captureTreeV0(duplicateManifestMsix, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: duplicateManifestMsix, capture });
+    assert(!res.ok, "package adapter should fail closed for msix with ambiguous multiple root manifest markers");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for ambiguous msix manifest markers");
+  }
+
+  {
+    const tmp = mkTmp();
     const msix = path.join(tmp, "demo.msix");
     writeStoredZip(msix, [
       {
@@ -905,6 +919,19 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const duplicateNupkg = path.join(tmp, "duplicate_nuspec.nupkg");
+    writeStoredZip(duplicateNupkg, [
+      { name: "demo.nuspec", text: "<package>\n" + "x".repeat(384) + "\n</package>" },
+      { name: "alt.nuspec", text: "<package>\n" + "y".repeat(384) + "\n</package>" },
+    ]);
+    const capture = captureTreeV0(duplicateNupkg, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: duplicateNupkg, capture });
+    assert(!res.ok, "package adapter should fail closed for nupkg with multiple root nuspec markers");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for duplicate root nuspec markers");
+  }
+
+  {
+    const tmp = mkTmp();
     const nupkg = path.join(tmp, "demo.nupkg");
     writeStoredZip(nupkg, [{ name: "demo.nuspec", text: "<package>\n" + "x".repeat(384) + "\n</package>" }]);
     const capture = captureTreeV0(nupkg, limits);
@@ -960,6 +987,21 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: nestedWhl, capture });
     assert(!res.ok, "package adapter should fail closed for whl dist-info markers that are not at canonical root paths");
     assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for nested whl dist-info marker paths");
+  }
+
+  {
+    const tmp = mkTmp();
+    const duplicateWhl = path.join(tmp, "duplicate_dist_info.whl");
+    writeStoredZip(duplicateWhl, [
+      { name: "demo-1.0.dist-info/METADATA", text: "Name: demo\nVersion: 1.0.0\n" + "x".repeat(320) + "\n" },
+      { name: "demo-1.0.dist-info/WHEEL", text: "Wheel-Version: 1.0\nTag: py3-none-any\n" + "y".repeat(160) + "\n" },
+      { name: "demo-1.0.dist-info/RECORD", text: "demo-1.0.dist-info/METADATA,,\n" },
+      { name: "alt-1.0.dist-info/METADATA", text: "Name: alt\nVersion: 1.0.0\n" + "z".repeat(320) + "\n" },
+    ]);
+    const capture = captureTreeV0(duplicateWhl, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: duplicateWhl, capture });
+    assert(!res.ok, "package adapter should fail closed for whl with ambiguous multiple dist-info metadata markers");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for duplicate whl dist-info metadata markers");
   }
 
   {

@@ -1044,6 +1044,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const duplicateManifestMsix = path.join(tmp, "duplicate_manifest_markers.msix");
+    writeStoredZip(duplicateManifestMsix, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "AppxManifest.xml", text: "<Package></Package>" },
+      { name: "AppxBundleManifest.xml", text: "<Bundle></Bundle>" },
+    ]);
+    const res = await runCliCapture(["safe-run", duplicateManifestMsix, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for msix with ambiguous multiple root manifest markers");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for ambiguous msix manifest markers");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const tinyMsix = path.join(tmp, "tiny.msix");
     writeStoredZip(tinyMsix, [{ name: "AppxManifest.xml", text: "<Package></Package>" }]);
     const res = await runCliCapture(["safe-run", tinyMsix, "--out", outDir, "--adapter", "package"]);
@@ -1069,6 +1083,19 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", nestedNupkg, "--out", outDir, "--adapter", "package"]);
     assertEq(res.status, 40, "safe-run should fail closed for nupkg nuspec markers that are not at canonical root paths");
     assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for nested nupkg nuspec marker path");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const duplicateNupkg = path.join(tmp, "duplicate_nuspec.nupkg");
+    writeStoredZip(duplicateNupkg, [
+      { name: "demo.nuspec", text: "<package>\n" + "x".repeat(384) + "\n</package>" },
+      { name: "alt.nuspec", text: "<package>\n" + "y".repeat(384) + "\n</package>" },
+    ]);
+    const res = await runCliCapture(["safe-run", duplicateNupkg, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for nupkg with multiple root nuspec markers");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for duplicate root nuspec markers");
   }
 
   {
@@ -1106,6 +1133,21 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", nestedWhl, "--out", outDir, "--adapter", "package"]);
     assertEq(res.status, 40, "safe-run should fail closed for whl dist-info markers that are not at canonical root paths");
     assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for nested whl dist-info marker paths");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const duplicateWhl = path.join(tmp, "duplicate_dist_info.whl");
+    writeStoredZip(duplicateWhl, [
+      { name: "demo-1.0.dist-info/METADATA", text: "Name: demo\nVersion: 1.0.0\n" + "x".repeat(320) + "\n" },
+      { name: "demo-1.0.dist-info/WHEEL", text: "Wheel-Version: 1.0\nTag: py3-none-any\n" + "y".repeat(160) + "\n" },
+      { name: "demo-1.0.dist-info/RECORD", text: "demo-1.0.dist-info/METADATA,,\n" },
+      { name: "alt-1.0.dist-info/METADATA", text: "Name: alt\nVersion: 1.0.0\n" + "z".repeat(320) + "\n" },
+    ]);
+    const res = await runCliCapture(["safe-run", duplicateWhl, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for whl with ambiguous multiple dist-info metadata markers");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for duplicate whl dist-info metadata markers");
   }
 
   {
