@@ -1602,6 +1602,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const missingConfigTar = path.join(tmp, "container_missing_config_ref.tar");
+    writeSimpleTar(missingConfigTar, [
+      { name: "manifest.json", text: JSON.stringify([{ Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] }]) },
+      { name: "repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
+      { name: "layer.tar", text: "layer-bytes" },
+    ]);
+    const res = await runCliCapture(["safe-run", missingConfigTar, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit docker tar unresolved config reference");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for unresolved docker config reference");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const partialTar = path.join(tmp, "partial_container.tar");
     writeSimpleTar(partialTar, [
       { name: "manifest.json", text: "[]" },

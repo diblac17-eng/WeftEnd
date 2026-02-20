@@ -70,6 +70,7 @@ Included
 - Explicit Docker-style tar route now requires at least one `layer.tar` entry when `manifest.json` and `repositories` markers are present, preventing placeholder tar marker shells from passing strict container routing.
 - Explicit Docker-style tar route now also requires valid `manifest.json` and `repositories` JSON payload structure, and requires manifest layer references to resolve to tar entries.
 - Explicit Docker-style tar route now requires at least one repository/tag mapping in `repositories` JSON, preventing non-empty but non-usable repository shells from passing strict routing.
+- Explicit Docker-style tar route now requires manifest config references to resolve to tar entries, preventing marker-complete but incomplete config payload shells from passing strict routing.
 - Explicit compose route now fails closed when service placeholders exist without valid indented service entries or without `image`/`build` evidence, while still allowing build-only compose service definitions.
 - Explicit SBOM route now fails closed when package/component evidence is empty, preventing empty SBOM shells from passing strict container SBOM analysis.
 - SBOM JSON parsing now emits bounded package/component counts when present.

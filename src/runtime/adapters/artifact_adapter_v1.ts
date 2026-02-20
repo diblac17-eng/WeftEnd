@@ -2341,6 +2341,8 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let dockerManifestJsonValid = 0;
   let dockerRepositoriesJsonValid = 0;
   let dockerRepositoriesTagMapCount = 0;
+  let dockerManifestConfigRefCount = 0;
+  let dockerManifestConfigResolvedCount = 0;
   let dockerManifestLayerRefCount = 0;
   let dockerManifestLayerResolvedCount = 0;
   let composeImageRefCount = 0;
@@ -2432,6 +2434,12 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
             let resolved = 0;
             parsed.forEach((item: any) => {
               if (!item || typeof item !== "object") return;
+              const configRef = typeof item.Config === "string" ? String(item.Config || "") : "";
+              if (configRef.trim().length > 0) {
+                const normalizedConfig = configRef.replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase();
+                dockerManifestConfigRefCount += 1;
+                if (normalizedConfig.length > 0 && tarNameSet.has(normalizedConfig)) dockerManifestConfigResolvedCount += 1;
+              }
               const layers = Array.isArray(item.Layers) ? item.Layers : [];
               layers.forEach((layer: unknown) => {
                 if (typeof layer !== "string") return;
@@ -2484,6 +2492,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
           ok: false,
           failCode: "CONTAINER_FORMAT_MISMATCH",
           failMessage: "container adapter expected docker manifest layer references to resolve to tar entries for explicit docker tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
+      if (strictRoute && dockerManifestConfigRefCount > 0 && dockerManifestConfigResolvedCount === 0) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected docker manifest config references to resolve to tar entries for explicit docker tar analysis.",
           reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
         };
       }
@@ -2608,6 +2624,8 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       dockerManifestJsonValid,
       dockerRepositoriesJsonValid,
       dockerRepositoriesTagMapCount,
+      dockerManifestConfigRefCount,
+      dockerManifestConfigResolvedCount,
       dockerManifestLayerRefCount,
       dockerManifestLayerResolvedCount,
       composeImageRefCount,
