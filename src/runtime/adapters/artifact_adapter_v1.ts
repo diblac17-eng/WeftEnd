@@ -2269,6 +2269,9 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let ociManifestCount = 0;
   let ociBlobCount = 0;
   let tarEntryCount = 0;
+  let dockerLayerEntryCount = 0;
+  let dockerManifestMarkerPresent = 0;
+  let dockerRepositoriesMarkerPresent = 0;
   let composeImageRefCount = 0;
   let composeServiceHintCount = 0;
   let composeBuildHintCount = 0;
@@ -2339,11 +2342,29 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   if (isContainerTar) {
     tarEntryCount = tarEntries.entries.length;
     markers.push(...tarEntries.markers);
+    const tarNames = tarEntries.entries.map((name) => String(name || "").replace(/\\/g, "/").toLowerCase());
+    dockerManifestMarkerPresent = tarNames.some((name) => path.basename(name) === "manifest.json") ? 1 : 0;
+    dockerRepositoriesMarkerPresent = tarNames.some((name) => path.basename(name) === "repositories") ? 1 : 0;
+    dockerLayerEntryCount = tarNames.filter((name) => name === "layer.tar" || name.endsWith("/layer.tar")).length;
     if (strictRoute && tarEntries.markers.includes("ARCHIVE_METADATA_PARTIAL")) {
       return {
         ok: false,
         failCode: "CONTAINER_FORMAT_MISMATCH",
         failMessage: "container adapter expected complete tar metadata for explicit container tar analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+      };
+    }
+    if (
+      strictRoute &&
+      dockerManifestMarkerPresent > 0 &&
+      dockerRepositoriesMarkerPresent > 0 &&
+      dockerLayerEntryCount === 0 &&
+      !isOciTarByEntries
+    ) {
+      return {
+        ok: false,
+        failCode: "CONTAINER_FORMAT_MISMATCH",
+        failMessage: "container adapter expected docker layer tar evidence for explicit docker tar analysis.",
         reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
       };
     }
@@ -2438,6 +2459,9 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       ociManifestCount,
       ociBlobCount,
       tarEntryCount,
+      dockerLayerEntryCount,
+      dockerManifestMarkerPresent,
+      dockerRepositoriesMarkerPresent,
       composeImageRefCount,
       composeServiceHintCount,
       composeBuildHintCount,

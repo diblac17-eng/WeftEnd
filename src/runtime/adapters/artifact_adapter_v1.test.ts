@@ -1580,6 +1580,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tarPath = path.join(tmp, "container_no_layer.tar");
+    writeSimpleTar(tarPath, [
+      { name: "manifest.json", text: "[]" },
+      { name: "repositories", text: "{}" },
+      { name: "notes.txt", text: "placeholder" },
+    ]);
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit docker tar markers without layer tar evidence");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for docker tar markers without layer evidence");
+  }
+
+  {
+    const tmp = mkTmp();
     const tarPath = path.join(tmp, "container_partial.tar");
     writeSimpleTar(tarPath, [
       { name: "manifest.json", text: "[]" },

@@ -1530,6 +1530,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const noLayerTar = path.join(tmp, "container_no_layer.tar");
+    writeSimpleTar(noLayerTar, [
+      { name: "manifest.json", text: "[]" },
+      { name: "repositories", text: "{}" },
+      { name: "notes.txt", text: "placeholder" },
+    ]);
+    const res = await runCliCapture(["safe-run", noLayerTar, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit docker tar markers without layer tar evidence");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for docker tar missing layer evidence");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const partialTar = path.join(tmp, "partial_container.tar");
     writeSimpleTar(partialTar, [
       { name: "manifest.json", text: "[]" },
