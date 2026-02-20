@@ -1588,6 +1588,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const invalidRepositoriesTar = path.join(tmp, "container_invalid_repositories_map.tar");
+    writeSimpleTar(invalidRepositoriesTar, [
+      { name: "manifest.json", text: JSON.stringify([{ Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] }]) },
+      { name: "repositories", text: JSON.stringify({ demo: {} }) },
+      { name: "layer.tar", text: "layer-bytes" },
+    ]);
+    const res = await runCliCapture(["safe-run", invalidRepositoriesTar, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit docker tar invalid repositories tag map");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for invalid repositories tag map");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const partialTar = path.join(tmp, "partial_container.tar");
     writeSimpleTar(partialTar, [
       { name: "manifest.json", text: "[]" },

@@ -2340,6 +2340,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let dockerRepositoriesMarkerPresent = 0;
   let dockerManifestJsonValid = 0;
   let dockerRepositoriesJsonValid = 0;
+  let dockerRepositoriesTagMapCount = 0;
   let dockerManifestLayerRefCount = 0;
   let dockerManifestLayerResolvedCount = 0;
   let composeImageRefCount = 0;
@@ -2454,7 +2455,17 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
         try {
           const parsed = JSON.parse(String(repositoriesEntry.text || ""));
           if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && Object.keys(parsed).length > 0) {
-            dockerRepositoriesJsonValid = 1;
+            let tagMapCount = 0;
+            Object.values(parsed as Record<string, unknown>).forEach((repoValue) => {
+              if (!repoValue || typeof repoValue !== "object" || Array.isArray(repoValue)) return;
+              Object.keys(repoValue as Record<string, unknown>).forEach((tagKey) => {
+                if (typeof tagKey === "string" && tagKey.trim().length > 0) tagMapCount += 1;
+              });
+            });
+            if (tagMapCount > 0) {
+              dockerRepositoriesJsonValid = 1;
+              dockerRepositoriesTagMapCount = tagMapCount;
+            }
           }
         } catch {
           // strict route handles invalid marker payload below
@@ -2596,6 +2607,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       dockerRepositoriesMarkerPresent,
       dockerManifestJsonValid,
       dockerRepositoriesJsonValid,
+      dockerRepositoriesTagMapCount,
       dockerManifestLayerRefCount,
       dockerManifestLayerResolvedCount,
       composeImageRefCount,
