@@ -19,6 +19,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `verify:360` idempotence key context now includes strict-mode flags to avoid replay-key collisions between strict and non-strict runs.
 - Added `WEFTEND_360_FAIL_ON_PARTIAL=1` behavior and helper scripts to enforce non-zero exit on PARTIAL verify verdicts when required by release policy.
 - `verify_360_report.txt` now includes explicit policy and adapter-doctor strict summary lines for faster operator review (`policy.*`, `adapterDoctor.*`).
+- `verify:360:harness` now asserts those policy/adapter-doctor report lines are present across pass/replay/fail lanes.
 
 ### Adapter maintenance controls
 - Added `weftend adapter doctor` for deterministic adapter readiness/maintenance reporting.
