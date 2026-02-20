@@ -134,6 +134,7 @@ CLI examples
 
 Maintenance gate
 - Adapter lanes can be temporarily disabled with `WEFTEND_ADAPTER_DISABLE=<adapter[,adapter...]>` (or `all`).
+- Optional file policy source: `WEFTEND_ADAPTER_DISABLE_FILE=<path-to-json>` with `{"disabledAdapters":[...]}`.
 - Disabled lanes fail closed with `ADAPTER_TEMPORARILY_UNAVAILABLE` + `ADAPTER_DISABLED_BY_POLICY`.
 - Invalid disable tokens fail closed with `ADAPTER_POLICY_INVALID`.
 - Fail-closed adapter policy outcomes still produce deterministic safe-run evidence artifacts.

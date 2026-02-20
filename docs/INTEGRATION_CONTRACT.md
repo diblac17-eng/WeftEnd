@@ -197,6 +197,7 @@ Current adapter commands:
 
 Maintenance controls:
 - `WEFTEND_ADAPTER_DISABLE=<adapter[,adapter...]>` (or `all`) may temporarily disable adapter lanes.
+- Optional file policy source: `WEFTEND_ADAPTER_DISABLE_FILE=<path-to-json>` with `{"disabledAdapters":[...]}`.
 - Disabled lanes must fail closed with explicit reason codes.
 - Invalid disable-policy tokens must fail closed.
 - Fail-closed adapter policy outcomes must still preserve deterministic safe-run evidence artifacts.

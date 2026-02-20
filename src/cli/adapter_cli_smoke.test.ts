@@ -236,6 +236,34 @@ const run = async (): Promise<void> => {
   }
 
   {
+    const tmp = mkTmp();
+    const policyPath = path.join(tmp, "adapter_maintenance.json");
+    fs.writeFileSync(policyPath, JSON.stringify({ disabledAdapters: ["archive", "container"] }), "utf8");
+    const res = await runCliCapture(["adapter", "doctor"], {
+      env: { WEFTEND_ADAPTER_DISABLE_FILE: policyPath, WEFTEND_ADAPTER_DISABLE: undefined },
+    });
+    assertEq(res.status, 0, `adapter doctor with file policy should succeed\n${res.stderr}`);
+    const parsed = JSON.parse(res.stdout);
+    assertEq(parsed.policy?.source, "file", "adapter doctor policy source should be file");
+    const disabledAdapters = (parsed.policy?.disabledAdapters as string[]) || [];
+    assert(disabledAdapters.includes("archive"), "file policy should disable archive");
+    assert(disabledAdapters.includes("container"), "file policy should disable container");
+  }
+
+  {
+    const tmp = mkTmp();
+    const policyPath = path.join(tmp, "adapter_maintenance_invalid.json");
+    fs.writeFileSync(policyPath, "{ invalid-json", "utf8");
+    const res = await runCliCapture(["adapter", "doctor"], {
+      env: { WEFTEND_ADAPTER_DISABLE_FILE: policyPath, WEFTEND_ADAPTER_DISABLE: undefined },
+    });
+    assertEq(res.status, 0, `adapter doctor with invalid file policy should still report\n${res.stderr}`);
+    const parsed = JSON.parse(res.stdout);
+    assertEq(parsed.policy?.source, "file", "invalid file policy should still report file source");
+    assertEq(parsed.policy?.invalidReasonCode, "ADAPTER_POLICY_FILE_INVALID", "expected invalid file policy reason code");
+  }
+
+  {
     const outDir = mkTmp();
     const tmp = mkTmp();
     const input = path.join(tmp, "good.zip");
@@ -284,6 +312,23 @@ const run = async (): Promise<void> => {
     });
     assertEq(res.status, 40, "safe-run should fail closed for invalid adapter maintenance policy token");
     assert(res.stderr.includes("ADAPTER_POLICY_INVALID"), "expected ADAPTER_POLICY_INVALID on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const policyPath = path.join(tmp, "adapter_maintenance_invalid.json");
+    fs.writeFileSync(policyPath, "{ invalid-json", "utf8");
+    const input = path.join(tmp, "good.zip");
+    writeStoredZip(input, [
+      { name: "a.txt", text: "alpha" },
+      { name: "b/c.txt", text: "beta" },
+    ]);
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"], {
+      env: { WEFTEND_ADAPTER_DISABLE_FILE: policyPath, WEFTEND_ADAPTER_DISABLE: undefined },
+    });
+    assertEq(res.status, 40, "safe-run should fail closed for invalid adapter file policy");
+    assert(res.stderr.includes("ADAPTER_POLICY_INVALID"), "expected ADAPTER_POLICY_INVALID on stderr for invalid file policy");
   }
 
   {

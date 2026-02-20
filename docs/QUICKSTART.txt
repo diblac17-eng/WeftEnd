@@ -46,6 +46,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   - Set WEFTEND_ADAPTER_DISABLE to disable adapter lanes temporarily.
   - Example: WEFTEND_ADAPTER_DISABLE=archive,package
   - Use WEFTEND_ADAPTER_DISABLE=all to disable all adapter lanes.
+  - Optional file policy: WEFTEND_ADAPTER_DISABLE_FILE=<path-to-json> with {"disabledAdapters":["archive","container"]}.
   - Disabled lane result is fail-closed (ADAPTER_TEMPORARILY_UNAVAILABLE).
   - Invalid disable token is fail-closed (ADAPTER_POLICY_INVALID).
   - Fail-closed adapter-policy outcomes still write deterministic safe-run evidence artifacts.

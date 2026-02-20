@@ -20,6 +20,7 @@ const MAX_TEXT_BYTES = 256 * 1024;
 const MAX_AR_SCAN_BYTES = 8 * 1024 * 1024;
 const KNOWN_PLUGIN_NAMES = new Set<string>(["tar", "7z"]);
 export const ADAPTER_DISABLE_ENV_V1 = "WEFTEND_ADAPTER_DISABLE";
+export const ADAPTER_DISABLE_FILE_ENV_V1 = "WEFTEND_ADAPTER_DISABLE_FILE";
 
 const ARCHIVE_EXTS = new Set([".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tar.xz", ".txz", ".7z"]);
 const PACKAGE_EXTS = new Set([".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".tar.bz2", ".tar.xz", ".txz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"]);
@@ -160,9 +161,10 @@ export interface AdapterDoctorReportV1 {
   schema: "weftend.adapterDoctor/0";
   schemaVersion: 0;
   policy: {
-    source: "none" | "env" | "explicit";
+    source: "none" | "env" | "explicit" | "file";
     disabledAdapters: string[];
     unknownTokens: string[];
+    invalidReasonCode?: string;
   };
   adapters: AdapterDoctorItemV1[];
 }
@@ -3906,11 +3908,12 @@ const allowedPackagePluginsForExt = (ext: string): Set<string> | null => {
   return new Set<string>();
 };
 
-type AdapterDisablePolicySourceV1 = "none" | "env" | "explicit";
+type AdapterDisablePolicySourceV1 = "none" | "env" | "explicit" | "file";
 type AdapterDisablePolicyV1 = {
   source: AdapterDisablePolicySourceV1;
   disabledAdapters: Set<AdapterClassV1>;
   unknownTokens: string[];
+  invalidReasonCode?: string;
 };
 
 const tokenizeDisablePolicyV1 = (values: string[]): string[] => {
@@ -3924,6 +3927,37 @@ const tokenizeDisablePolicyV1 = (values: string[]): string[] => {
       });
   });
   return out;
+};
+
+const DEFAULT_ADAPTER_DISABLE_FILE_V1 = path.join(process.cwd(), "policies", "adapter_maintenance.json");
+
+const readDisabledAdaptersFromFileV1 = (filePath: string): { ok: true; tokens: string[] } | { ok: false; reasonCode: string } => {
+  let raw = "";
+  try {
+    raw = fs.readFileSync(filePath, "utf8");
+  } catch {
+    return { ok: false, reasonCode: "ADAPTER_POLICY_FILE_UNREADABLE" };
+  }
+  let parsed: any = null;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { ok: false, reasonCode: "ADAPTER_POLICY_FILE_INVALID" };
+  }
+  if (!parsed || typeof parsed !== "object") {
+    return { ok: false, reasonCode: "ADAPTER_POLICY_FILE_INVALID" };
+  }
+  const value = (parsed as any).disabledAdapters;
+  if (Array.isArray(value)) {
+    return { ok: true, tokens: tokenizeDisablePolicyV1(value.map((item) => String(item ?? ""))) };
+  }
+  if (typeof value === "string") {
+    return { ok: true, tokens: tokenizeDisablePolicyV1([value]) };
+  }
+  if (typeof value === "undefined") {
+    return { ok: false, reasonCode: "ADAPTER_POLICY_FILE_INVALID" };
+  }
+  return { ok: false, reasonCode: "ADAPTER_POLICY_FILE_INVALID" };
 };
 
 const resolveDisabledAdaptersPolicyV1 = (options?: { disabledAdapters?: string[] }): AdapterDisablePolicyV1 => {
@@ -3941,6 +3975,25 @@ const resolveDisabledAdaptersPolicyV1 = (options?: { disabledAdapters?: string[]
     if (envRaw.trim().length > 0) {
       source = "env";
       tokens = tokenizeDisablePolicyV1([envRaw]);
+    } else {
+      const fileFromEnv =
+        process && process.env && typeof process.env[ADAPTER_DISABLE_FILE_ENV_V1] === "string"
+          ? String(process.env[ADAPTER_DISABLE_FILE_ENV_V1] || "").trim()
+          : "";
+      const filePath = fileFromEnv.length > 0 ? fileFromEnv : fs.existsSync(DEFAULT_ADAPTER_DISABLE_FILE_V1) ? DEFAULT_ADAPTER_DISABLE_FILE_V1 : "";
+      if (filePath.length > 0) {
+        source = "file";
+        const fileRead = readDisabledAdaptersFromFileV1(filePath);
+        if (!fileRead.ok) {
+          return {
+            source,
+            disabledAdapters: new Set<AdapterClassV1>(),
+            unknownTokens: [],
+            invalidReasonCode: fileRead.reasonCode,
+          };
+        }
+        tokens = fileRead.tokens;
+      }
     }
   }
 
@@ -4046,6 +4099,14 @@ const buildAdapterCatalogV1 = (): AdapterListItemV1[] => {
 export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunResultV1 => {
   const selection = options.selection;
   const disablePolicy = resolveDisabledAdaptersPolicyV1({ disabledAdapters: options.disabledAdapters });
+  if (disablePolicy.invalidReasonCode) {
+    return {
+      ok: false,
+      failCode: "ADAPTER_POLICY_INVALID",
+      failMessage: `adapter disable policy invalid: ${disablePolicy.invalidReasonCode}`,
+      reasonCodes: stableSortUniqueReasonsV0(["ADAPTER_POLICY_INVALID", disablePolicy.invalidReasonCode]),
+    };
+  }
   if (disablePolicy.unknownTokens.length > 0) {
     return {
       ok: false,
@@ -4210,6 +4271,7 @@ export const runAdapterDoctorV1 = (options?: { disabledAdapters?: string[] }): A
       source: disablePolicy.source,
       disabledAdapters: Array.from(disablePolicy.disabledAdapters.values()).sort((a, b) => cmpStrV0(a, b)),
       unknownTokens: disablePolicy.unknownTokens,
+      ...(disablePolicy.invalidReasonCode ? { invalidReasonCode: disablePolicy.invalidReasonCode } : {}),
     },
     adapters,
   };

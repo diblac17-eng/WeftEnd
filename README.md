@@ -90,6 +90,7 @@ Adapter maintenance gate
 - Set `WEFTEND_ADAPTER_DISABLE` to temporarily disable adapter lanes without removing code.
 - Example: `WEFTEND_ADAPTER_DISABLE=archive,package`.
 - Use `WEFTEND_ADAPTER_DISABLE=all` to disable every adapter lane.
+- Optional file policy: set `WEFTEND_ADAPTER_DISABLE_FILE=<path-to-json>` with `{"disabledAdapters":["archive","container"]}`.
 - Disabled lanes fail closed with `ADAPTER_TEMPORARILY_UNAVAILABLE`.
 - Invalid policy tokens fail closed with `ADAPTER_POLICY_INVALID`.
 - Adapter policy failures still emit deterministic safe-run evidence artifacts.
