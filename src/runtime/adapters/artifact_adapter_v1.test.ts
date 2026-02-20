@@ -825,6 +825,19 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const nestedStructureMsix = path.join(tmp, "nested_structure.msix");
+    writeStoredZip(nestedStructureMsix, [
+      { name: "nested/[Content_Types].xml", text: "<Types></Types>" },
+      { name: "nested/AppxManifest.xml", text: "<Package></Package>" },
+    ]);
+    const capture = captureTreeV0(nestedStructureMsix, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: nestedStructureMsix, capture });
+    assert(!res.ok, "package adapter should fail closed for msix structure markers that are not at canonical root paths");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for nested msix structure markers");
+  }
+
+  {
+    const tmp = mkTmp();
     const msix = path.join(tmp, "demo.msix");
     writeStoredZip(msix, [
       {
@@ -882,6 +895,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const nestedNupkg = path.join(tmp, "nested_structure.nupkg");
+    writeStoredZip(nestedNupkg, [{ name: "nested/demo.nuspec", text: "<package>\n" + "x".repeat(384) + "\n</package>" }]);
+    const capture = captureTreeV0(nestedNupkg, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: nestedNupkg, capture });
+    assert(!res.ok, "package adapter should fail closed for nupkg nuspec markers that are not at canonical root paths");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for nested nupkg nuspec marker path");
+  }
+
+  {
+    const tmp = mkTmp();
     const nupkg = path.join(tmp, "demo.nupkg");
     writeStoredZip(nupkg, [{ name: "demo.nuspec", text: "<package>\n" + "x".repeat(384) + "\n</package>" }]);
     const capture = captureTreeV0(nupkg, limits);
@@ -923,6 +946,20 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: badStructureWhl, capture });
     assert(!res.ok, "package adapter should fail closed for whl missing dist-info metadata");
     assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for whl missing structure");
+  }
+
+  {
+    const tmp = mkTmp();
+    const nestedWhl = path.join(tmp, "nested_structure.whl");
+    writeStoredZip(nestedWhl, [
+      { name: "nested/demo-1.0.dist-info/METADATA", text: "Name: demo\nVersion: 1.0.0\n" + "x".repeat(320) + "\n" },
+      { name: "nested/demo-1.0.dist-info/WHEEL", text: "Wheel-Version: 1.0\nTag: py3-none-any\n" + "y".repeat(160) + "\n" },
+      { name: "nested/demo-1.0.dist-info/RECORD", text: "nested/demo-1.0.dist-info/METADATA,,\n" },
+    ]);
+    const capture = captureTreeV0(nestedWhl, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: nestedWhl, capture });
+    assert(!res.ok, "package adapter should fail closed for whl dist-info markers that are not at canonical root paths");
+    assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for nested whl dist-info marker paths");
   }
 
   {

@@ -1031,6 +1031,19 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const nestedStructureMsix = path.join(tmp, "nested_structure.msix");
+    writeStoredZip(nestedStructureMsix, [
+      { name: "nested/[Content_Types].xml", text: "<Types></Types>" },
+      { name: "nested/AppxManifest.xml", text: "<Package></Package>" },
+    ]);
+    const res = await runCliCapture(["safe-run", nestedStructureMsix, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for msix structure markers that are not at canonical root paths");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for nested msix structure markers");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const tinyMsix = path.join(tmp, "tiny.msix");
     writeStoredZip(tinyMsix, [{ name: "AppxManifest.xml", text: "<Package></Package>" }]);
     const res = await runCliCapture(["safe-run", tinyMsix, "--out", outDir, "--adapter", "package"]);
@@ -1046,6 +1059,16 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", badStructureNupkg, "--out", outDir, "--adapter", "package"]);
     assertEq(res.status, 40, "safe-run should fail closed for package nupkg missing structure");
     assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for nupkg missing structure");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const nestedNupkg = path.join(tmp, "nested_structure.nupkg");
+    writeStoredZip(nestedNupkg, [{ name: "nested/demo.nuspec", text: "<package>\n" + "x".repeat(384) + "\n</package>" }]);
+    const res = await runCliCapture(["safe-run", nestedNupkg, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for nupkg nuspec markers that are not at canonical root paths");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for nested nupkg nuspec marker path");
   }
 
   {
@@ -1069,6 +1092,20 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", tinyWhl, "--out", outDir, "--adapter", "package"]);
     assertEq(res.status, 40, "safe-run should fail closed for whl missing required dist-info structure");
     assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for whl missing required dist-info structure");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const nestedWhl = path.join(tmp, "nested_structure.whl");
+    writeStoredZip(nestedWhl, [
+      { name: "nested/demo-1.0.dist-info/METADATA", text: "Name: demo\nVersion: 1.0.0\n" + "x".repeat(320) + "\n" },
+      { name: "nested/demo-1.0.dist-info/WHEEL", text: "Wheel-Version: 1.0\nTag: py3-none-any\n" + "y".repeat(160) + "\n" },
+      { name: "nested/demo-1.0.dist-info/RECORD", text: "nested/demo-1.0.dist-info/METADATA,,\n" },
+    ]);
+    const res = await runCliCapture(["safe-run", nestedWhl, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for whl dist-info markers that are not at canonical root paths");
+    assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for nested whl dist-info marker paths");
   }
 
   {

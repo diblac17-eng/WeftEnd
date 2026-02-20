@@ -1530,21 +1530,18 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       };
     }
     if (strictRoute) {
-      const namesLower = entryNames.map((entry) => String(entry || "").replace(/\\/g, "/").toLowerCase());
+      const namesLower = entryNames.map((entry) => normalizeZipEntryPathV1(String(entry || "")).toLowerCase());
       let hasPackageStructure = true;
       if (ext === ".msix") {
-        const hasManifest = namesLower.some((name) => {
-          const base = path.basename(name);
-          return base === "appxmanifest.xml" || base === "appxbundlemanifest.xml";
-        });
-        const hasContentTypes = namesLower.some((name) => path.basename(name) === "[content_types].xml");
+        const hasManifest = namesLower.includes("appxmanifest.xml") || namesLower.includes("appxbundlemanifest.xml");
+        const hasContentTypes = namesLower.includes("[content_types].xml");
         hasPackageStructure = hasManifest && hasContentTypes;
       } else if (ext === ".nupkg") {
-        hasPackageStructure = namesLower.some((name) => path.basename(name).endsWith(".nuspec"));
+        hasPackageStructure = namesLower.some((name) => /^[^/]+\.nuspec$/.test(name));
       } else if (ext === ".whl") {
-        const hasMetadata = namesLower.some((name) => name.includes(".dist-info/metadata"));
-        const hasWheel = namesLower.some((name) => name.includes(".dist-info/wheel"));
-        const hasRecord = namesLower.some((name) => name.includes(".dist-info/record"));
+        const hasMetadata = namesLower.some((name) => /^[^/]+\.dist-info\/metadata$/.test(name));
+        const hasWheel = namesLower.some((name) => /^[^/]+\.dist-info\/wheel$/.test(name));
+        const hasRecord = namesLower.some((name) => /^[^/]+\.dist-info\/record$/.test(name));
         hasPackageStructure = hasMetadata && hasWheel && hasRecord;
       } else if (ext === ".jar") {
         hasPackageStructure = namesLower.some((name) => name === "meta-inf/manifest.mf");

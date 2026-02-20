@@ -42,6 +42,7 @@ Included
 - Package strict route now requires minimum structural byte-size evidence for `.appimage` beyond valid runtime marker bytes, preventing tiny synthetic placeholders from passing explicit package routing.
 - Package strict route now requires minimum structural byte-size evidence for `.rpm` beyond lead/header marker bytes, preventing tiny synthetic placeholders from passing explicit package routing.
 - Package strict route now fails closed on partial ZIP/AR metadata even when required structure markers are present, preventing mixed valid/corrupt package acceptance.
+- Package strict route now requires canonical ZIP marker paths for `.msix/.nupkg/.whl` structure checks, preventing nested lookalike marker paths from passing explicit package routing.
 - Archive/package tar coverage expanded:
 - `.tar.xz/.txz` now follow explicit tar-plugin, fail-closed handling in archive/package lanes.
 - Explicit `.tar` archive analysis now validates header checksum and octal size fields and fails closed on partial metadata even when earlier entries parsed, preventing mixed valid/corrupt tar acceptance.
