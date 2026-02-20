@@ -2757,11 +2757,27 @@ const analyzeSignature = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       looksAsn1Der &&
       (cmsSignedDataOidCount > 0 || ((ctx.ext === ".cer" || ctx.ext === ".crt") && bytes.length >= 128 && x509NameOidCount > 0));
     const strictEvidencePresent = strongEnvelopeEvidence || derEvidenceStrong;
+    const strictExtEvidenceOk =
+      ctx.ext === ".cer" || ctx.ext === ".crt"
+        ? pemCertificateCount > 0 || derEvidenceStrong
+        : ctx.ext === ".p7b"
+          ? pemPkcs7Count > 0 || cmsSignedDataOidCount > 0
+          : ctx.ext === ".sig"
+            ? pemSignatureCount > 0 || cmsSignedDataOidCount > 0
+            : true;
     if (!strictEvidencePresent) {
       return {
         ok: false,
         failCode: "SIGNATURE_FORMAT_MISMATCH",
         failMessage: "signature adapter expected certificate/signature envelope or ASN.1 signature material for explicit route.",
+        reasonCodes: stableSortUniqueReasonsV0(["SIGNATURE_ADAPTER_V1", "SIGNATURE_FORMAT_MISMATCH"]),
+      };
+    }
+    if (!strictExtEvidenceOk) {
+      return {
+        ok: false,
+        failCode: "SIGNATURE_FORMAT_MISMATCH",
+        failMessage: "signature adapter expected envelope evidence compatible with file extension for explicit route.",
         reasonCodes: stableSortUniqueReasonsV0(["SIGNATURE_ADAPTER_V1", "SIGNATURE_FORMAT_MISMATCH"]),
       };
     }

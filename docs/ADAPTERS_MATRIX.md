@@ -116,7 +116,7 @@ Adapter classes
   CHAIN_PRESENT
   TIMESTAMP_PRESENT
 - Route strictness:
-  explicit `--adapter signature` fails closed when no recognized certificate/signature envelope or strong ASN.1 signature evidence is present (unknown PEM envelope labels are rejected, malformed DER envelope lengths are rejected, malformed PEM payloads are rejected unless payload decodes to DER-like sequence data, generic DER fallback is limited to `.cer/.crt`, `.cer/.crt` DER fallback requires X.509 name OID evidence (`2.5.4.*`), tiny generic DER blobs are rejected, and text-only timestamp/chain hints are not treated as strict signature evidence).
+  explicit `--adapter signature` fails closed when no recognized certificate/signature envelope or strong ASN.1 signature evidence is present (unknown PEM envelope labels are rejected, malformed DER envelope lengths are rejected, malformed PEM payloads are rejected unless payload decodes to DER-like sequence data, strict envelope evidence must also match extension expectations for `.p7b/.sig`, generic DER fallback is limited to `.cer/.crt`, `.cer/.crt` DER fallback requires X.509 name OID evidence (`2.5.4.*`), tiny generic DER blobs are rejected, and text-only timestamp/chain hints are not treated as strict signature evidence).
 
 Operator output artifacts
 - analysis/adapter_summary_v0.json

@@ -1964,6 +1964,34 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const sigWithCertEnvelope = path.join(tmp, "sig_with_cert_envelope.sig");
+    fs.writeFileSync(
+      sigWithCertEnvelope,
+      ["-----BEGIN CERTIFICATE-----", "MIIB", "-----END CERTIFICATE-----"].join("\n"),
+      "utf8"
+    );
+    const capture = captureTreeV0(sigWithCertEnvelope, limits);
+    const res = runArtifactAdapterV1({ selection: "signature", enabledPlugins: [], inputPath: sigWithCertEnvelope, capture });
+    assert(!res.ok, "explicit signature adapter should fail closed for .sig input with certificate-only envelope evidence");
+    assertEq(res.failCode, "SIGNATURE_FORMAT_MISMATCH", "expected SIGNATURE_FORMAT_MISMATCH for .sig extension-envelope mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
+    const p7bWithCertEnvelope = path.join(tmp, "p7b_with_cert_envelope.p7b");
+    fs.writeFileSync(
+      p7bWithCertEnvelope,
+      ["-----BEGIN CERTIFICATE-----", "MIIB", "-----END CERTIFICATE-----"].join("\n"),
+      "utf8"
+    );
+    const capture = captureTreeV0(p7bWithCertEnvelope, limits);
+    const res = runArtifactAdapterV1({ selection: "signature", enabledPlugins: [], inputPath: p7bWithCertEnvelope, capture });
+    assert(!res.ok, "explicit signature adapter should fail closed for .p7b input with certificate-only envelope evidence");
+    assertEq(res.failCode, "SIGNATURE_FORMAT_MISMATCH", "expected SIGNATURE_FORMAT_MISMATCH for .p7b extension-envelope mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
     const unknownEnvelopePem = path.join(tmp, "unknown_envelope.pem");
     fs.writeFileSync(
       unknownEnvelopePem,

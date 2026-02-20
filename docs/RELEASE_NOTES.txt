@@ -72,6 +72,7 @@ Included
 - Signature/cert adapter extraction deepened:
 - Deterministic PEM block counting for certificate/PKCS7/signature material.
 - Strict PEM envelope evidence now requires decodable DER-like payload bytes; malformed PEM payload wrappers no longer pass explicit signature routing.
+- Strict signature routing now enforces extension-compatible envelope evidence (`.p7b` and `.sig` no longer pass with certificate-only PEM envelopes).
 - Binary OID hint counts added for CMS signedData and timestamp EKU indicators.
 - DER certificate fallback in explicit `.cer/.crt` strict mode now requires X.509 name OID evidence (`2.5.4.*`), preventing generic large DER blobs from passing as certificate evidence.
 - Explicit signature route now requires real envelope/OID/DER evidence; text-only timestamp/chain hints no longer satisfy strict signature validity checks.

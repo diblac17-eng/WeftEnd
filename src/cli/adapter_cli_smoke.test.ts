@@ -722,6 +722,34 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const sigWithCertEnvelope = path.join(tmp, "sig_with_cert_envelope.sig");
+    fs.writeFileSync(
+      sigWithCertEnvelope,
+      ["-----BEGIN CERTIFICATE-----", "MIIB", "-----END CERTIFICATE-----"].join("\n"),
+      "utf8"
+    );
+    const res = await runCliCapture(["safe-run", sigWithCertEnvelope, "--out", outDir, "--adapter", "signature"]);
+    assertEq(res.status, 40, "safe-run should fail closed for .sig input with certificate-only envelope evidence");
+    assert(res.stderr.includes("SIGNATURE_FORMAT_MISMATCH"), "expected SIGNATURE_FORMAT_MISMATCH on stderr for .sig extension-envelope mismatch");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const p7bWithCertEnvelope = path.join(tmp, "p7b_with_cert_envelope.p7b");
+    fs.writeFileSync(
+      p7bWithCertEnvelope,
+      ["-----BEGIN CERTIFICATE-----", "MIIB", "-----END CERTIFICATE-----"].join("\n"),
+      "utf8"
+    );
+    const res = await runCliCapture(["safe-run", p7bWithCertEnvelope, "--out", outDir, "--adapter", "signature"]);
+    assertEq(res.status, 40, "safe-run should fail closed for .p7b input with certificate-only envelope evidence");
+    assert(res.stderr.includes("SIGNATURE_FORMAT_MISMATCH"), "expected SIGNATURE_FORMAT_MISMATCH on stderr for .p7b extension-envelope mismatch");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const unknownEnvelopePem = path.join(tmp, "unknown_envelope.pem");
     fs.writeFileSync(
       unknownEnvelopePem,
