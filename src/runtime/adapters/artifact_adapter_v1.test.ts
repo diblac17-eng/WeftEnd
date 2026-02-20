@@ -855,6 +855,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tbz2 = path.join(tmp, "bad.tar.bz2");
+    fs.writeFileSync(tbz2, "not-a-real-tbz2", "utf8");
+    const capture = captureTreeV0(tbz2, limits);
+    const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: tbz2, capture });
+    assert(!res.ok, "package adapter should fail closed for bzip2 compressed tar package without tar plugin");
+    assertEq(res.failCode, "PACKAGE_PLUGIN_REQUIRED", "expected PACKAGE_PLUGIN_REQUIRED for package tar.bz2 without tar plugin");
+  }
+
+  {
+    const tmp = mkTmp();
     const tgz = path.join(tmp, "valid_package.tgz");
     writeSimpleTgz(tgz, [{ name: "pkg/install.sh", text: "echo ok" }]);
     const capture = captureTreeV0(tgz, limits);

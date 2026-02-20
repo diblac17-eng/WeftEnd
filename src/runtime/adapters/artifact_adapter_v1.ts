@@ -21,7 +21,7 @@ const MAX_AR_SCAN_BYTES = 8 * 1024 * 1024;
 const KNOWN_PLUGIN_NAMES = new Set<string>(["tar", "7z"]);
 
 const ARCHIVE_EXTS = new Set([".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tar.xz", ".txz", ".7z"]);
-const PACKAGE_EXTS = new Set([".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".tar.xz", ".txz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"]);
+const PACKAGE_EXTS = new Set([".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".tar.bz2", ".tar.xz", ".txz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"]);
 const EXTENSION_EXTS = new Set([".crx", ".vsix", ".xpi"]);
 const IAC_EXTS = new Set([".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep", ".template"]);
 const DOCUMENT_EXTS = new Set([".pdf", ".docm", ".xlsm", ".rtf", ".chm"]);
@@ -1664,7 +1664,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       if (/\b(permission|capabilit(?:y|ies)|allowe?d?capabilities|requestedexecutionlevel)\b/i.test(text)) textPermissionHints += 1;
       extractDomains(text).forEach((domain) => manifestTextDomainSet.add(domain));
     });
-  } else if (ext === ".tar.gz" || ext === ".tgz" || ext === ".tar.xz" || ext === ".txz") {
+  } else if (ext === ".tar.gz" || ext === ".tgz" || ext === ".tar.bz2" || ext === ".tar.xz" || ext === ".txz") {
     if (ctx.enabledPlugins.has("tar") && commandAvailable("tar")) {
       mode = "plugin";
       const tarList = runCommandLines("tar", ["-tf", ctx.inputPath]);
@@ -3840,7 +3840,7 @@ const allowedArchivePluginsForExt = (ext: string): Set<string> | null => {
 
 const allowedPackagePluginsForExt = (ext: string): Set<string> | null => {
   if (!PACKAGE_EXTS.has(ext)) return null;
-  if (ext === ".tar.gz" || ext === ".tgz" || ext === ".tar.xz" || ext === ".txz") {
+  if (ext === ".tar.gz" || ext === ".tgz" || ext === ".tar.bz2" || ext === ".tar.xz" || ext === ".txz") {
     return new Set<string>(["tar"]);
   }
   return new Set<string>();
@@ -3983,7 +3983,7 @@ export const listAdaptersV1 = (): AdapterListReportV1 => {
       adapter: "package",
       mode: "mixed",
       plugins: [{ name: "tar", available: tarAvailable }],
-      formats: [".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".tar.xz", ".txz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"],
+      formats: [".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".tar.bz2", ".tar.xz", ".txz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"],
     },
     {
       adapter: "extension",

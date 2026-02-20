@@ -1137,6 +1137,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const badTbz2 = path.join(tmp, "bad.tar.bz2");
+    fs.writeFileSync(badTbz2, "not-a-real-tbz2", "utf8");
+    const res = await runCliCapture(["safe-run", badTbz2, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for bzip2 compressed tar package without tar plugin");
+    assert(res.stderr.includes("PACKAGE_PLUGIN_REQUIRED"), "expected PACKAGE_PLUGIN_REQUIRED on stderr for bad tar.bz2 without plugin");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const input = path.join(tmp, "valid_package.tgz");
     writeSimpleTgz(input, [{ name: "pkg/install.sh", text: "echo ok" }]);
     if (tarAvailable()) {
