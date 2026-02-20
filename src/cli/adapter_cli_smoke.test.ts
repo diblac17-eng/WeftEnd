@@ -1260,6 +1260,25 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    fs.writeFileSync(path.join(tmp, "manifest.json"), JSON.stringify({}), "utf8");
+    const res = await runCliCapture(["safe-run", tmp, "--out", outDir, "--adapter", "extension"]);
+    assertEq(res.status, 40, "safe-run should fail closed for extension manifest missing core fields");
+    assert(res.stderr.includes("EXTENSION_MANIFEST_INVALID"), "expected EXTENSION_MANIFEST_INVALID on stderr for missing core fields");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const emptyManifestVsix = path.join(tmp, "empty_manifest.vsix");
+    writeStoredZip(emptyManifestVsix, [{ name: "manifest.json", text: "{}" }]);
+    const res = await runCliCapture(["safe-run", emptyManifestVsix, "--out", outDir, "--adapter", "extension"]);
+    assertEq(res.status, 40, "safe-run should fail closed for extension package manifest missing core fields");
+    assert(res.stderr.includes("EXTENSION_MANIFEST_INVALID"), "expected EXTENSION_MANIFEST_INVALID on stderr for extension package missing core fields");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const zipPath = path.join(tmp, "payload.zip");
     const crx = path.join(tmp, "demo.crx");
     writeStoredZip(zipPath, [

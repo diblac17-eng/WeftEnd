@@ -432,6 +432,25 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    fs.writeFileSync(path.join(tmp, "manifest.json"), JSON.stringify({}), "utf8");
+    const capture = captureTreeV0(tmp, limits);
+    const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: tmp, capture });
+    assert(!res.ok, "extension adapter should fail closed for manifest missing core fields");
+    assertEq(res.failCode, "EXTENSION_MANIFEST_INVALID", "expected EXTENSION_MANIFEST_INVALID for missing manifest core fields");
+  }
+
+  {
+    const tmp = mkTmp();
+    const emptyManifestVsix = path.join(tmp, "empty_manifest.vsix");
+    writeStoredZip(emptyManifestVsix, [{ name: "manifest.json", text: "{}" }]);
+    const capture = captureTreeV0(emptyManifestVsix, limits);
+    const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: emptyManifestVsix, capture });
+    assert(!res.ok, "extension adapter should fail closed for extension package manifest missing core fields");
+    assertEq(res.failCode, "EXTENSION_MANIFEST_INVALID", "expected EXTENSION_MANIFEST_INVALID for extension package manifest core-field mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
     fs.writeFileSync(
       path.join(tmp, "manifest.json"),
       JSON.stringify({

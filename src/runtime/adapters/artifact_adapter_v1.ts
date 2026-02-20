@@ -1683,6 +1683,7 @@ const analyzeExtensionDir = (inputPath: string): {
   hostMatchCount: number;
   updateDomains: string[];
   manifestInvalid: boolean;
+  manifestCoreValid: boolean;
 } => {
   const manifestPath = path.join(inputPath, "manifest.json");
   if (!fs.existsSync(manifestPath)) {
@@ -1693,6 +1694,7 @@ const analyzeExtensionDir = (inputPath: string): {
       hostMatchCount: 0,
       updateDomains: [],
       manifestInvalid: false,
+      manifestCoreValid: false,
     };
   }
   let parsed: any = null;
@@ -1706,8 +1708,14 @@ const analyzeExtensionDir = (inputPath: string): {
       contentScriptCount: 0,
       hostMatchCount: 0,
       updateDomains: [],
+      manifestCoreValid: false,
     };
   }
+  const manifestVersion = Number(parsed?.manifest_version ?? 0);
+  const hasManifestVersion = Number.isInteger(manifestVersion) && manifestVersion >= 2 && manifestVersion <= 3;
+  const hasName = typeof parsed?.name === "string" && parsed.name.trim().length > 0;
+  const hasVersion = typeof parsed?.version === "string" && parsed.version.trim().length > 0;
+  const manifestCoreValid = hasManifestVersion && hasName && hasVersion;
   const permissions = Array.isArray(parsed?.permissions) ? parsed.permissions : [];
   const hostPermissions = Array.isArray(parsed?.host_permissions) ? parsed.host_permissions : [];
   const contentScripts = Array.isArray(parsed?.content_scripts) ? parsed.content_scripts : [];
@@ -1722,6 +1730,7 @@ const analyzeExtensionDir = (inputPath: string): {
     contentScriptCount: contentScripts.length,
     hostMatchCount: hostPermissions.filter((value: unknown) => typeof value === "string").length + matchCount,
     updateDomains: updateDomain ? [updateDomain] : [],
+    manifestCoreValid,
   };
 };
 
@@ -1747,6 +1756,7 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let contentScriptCount = 0;
   let hostMatchCount = 0;
   let updateDomains: string[] = [];
+  let manifestCoreValid = false;
 
   if (isDir) {
     const dir = analyzeExtensionDir(ctx.inputPath);
@@ -1756,6 +1766,7 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     contentScriptCount = dir.contentScriptCount;
     hostMatchCount = dir.hostMatchCount;
     updateDomains = dir.updateDomains;
+    manifestCoreValid = dir.manifestCoreValid;
   } else {
     const isCrx = ext === ".crx";
     const zipEntries = isCrx ? { entries: [] as string[], markers: [] as string[] } : readZipEntries(ctx.inputPath);
@@ -1799,6 +1810,11 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       } else {
         try {
           const parsed = JSON.parse(manifestTexts.entries[0].text);
+          const manifestVersion = Number(parsed?.manifest_version ?? 0);
+          const hasManifestVersion = Number.isInteger(manifestVersion) && manifestVersion >= 2 && manifestVersion <= 3;
+          const hasName = typeof parsed?.name === "string" && parsed.name.trim().length > 0;
+          const hasVersion = typeof parsed?.version === "string" && parsed.version.trim().length > 0;
+          manifestCoreValid = hasManifestVersion && hasName && hasVersion;
           const permissions = Array.isArray(parsed?.permissions) ? parsed.permissions : [];
           const hostPermissions = Array.isArray(parsed?.host_permissions) ? parsed.host_permissions : [];
           const contentScripts = Array.isArray(parsed?.content_scripts) ? parsed.content_scripts : [];
@@ -1812,6 +1828,7 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
           updateDomains = updateDomain ? [updateDomain] : [];
         } catch {
           manifestInvalid = true;
+          manifestCoreValid = false;
         }
       }
     }
@@ -1830,6 +1847,14 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       ok: false,
       failCode: "EXTENSION_MANIFEST_INVALID",
       failMessage: "extension adapter requires a valid manifest.json for explicit extension analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_MANIFEST_INVALID"]),
+    };
+  }
+  if (strictRoute && !manifestCoreValid) {
+    return {
+      ok: false,
+      failCode: "EXTENSION_MANIFEST_INVALID",
+      failMessage: "extension adapter requires manifest core fields (manifest_version/name/version) for explicit extension analysis.",
       reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_MANIFEST_INVALID"]),
     };
   }
