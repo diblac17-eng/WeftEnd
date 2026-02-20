@@ -1804,6 +1804,24 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tarPath = path.join(tmp, "container_nested_markers.tar");
+    writeSimpleTar(tarPath, [
+      {
+        name: "nested/manifest.json",
+        text: JSON.stringify([{ Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] }]),
+      },
+      { name: "nested/repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
+      { name: "config.json", text: "{}" },
+      { name: "layer.tar", text: "layer-bytes" },
+    ]);
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for docker tar markers that are not at canonical root paths");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for docker tar nested marker paths");
+  }
+
+  {
+    const tmp = mkTmp();
     const tarPath = path.join(tmp, "container_partial.tar");
     writeSimpleTar(tarPath, [
       { name: "manifest.json", text: "[]" },

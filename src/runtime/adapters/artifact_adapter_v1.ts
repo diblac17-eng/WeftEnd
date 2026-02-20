@@ -2476,8 +2476,8 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   const tarEntryNames = tarEntries.entries.map((name) => String(name || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase());
   const isContainerTarByEntries =
     isTarInput &&
-    tarEntryNames.some((name) => path.basename(name) === "manifest.json") &&
-    tarEntryNames.some((name) => path.basename(name) === "repositories");
+    tarEntryNames.includes("manifest.json") &&
+    tarEntryNames.includes("repositories");
   const isOciTarByEntries =
     isTarInput &&
     tarEntryNames.includes("oci-layout") &&
@@ -2665,14 +2665,18 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
         };
       }
     }
-    dockerManifestMarkerPresent = tarNames.some((name) => path.basename(name) === "manifest.json") ? 1 : 0;
-    dockerRepositoriesMarkerPresent = tarNames.some((name) => path.basename(name) === "repositories") ? 1 : 0;
+    dockerManifestMarkerPresent = tarNameSet.has("manifest.json") ? 1 : 0;
+    dockerRepositoriesMarkerPresent = tarNameSet.has("repositories") ? 1 : 0;
     dockerLayerEntryCount = tarNames.filter((name) => name === "layer.tar" || name.endsWith("/layer.tar")).length;
     if (dockerManifestMarkerPresent > 0 && dockerRepositoriesMarkerPresent > 0 && !isOciTarByEntries) {
-      const dockerTexts = readTarTextEntriesByBaseName(ctx.inputPath, ["manifest.json", "repositories"]);
+      const dockerTexts = readTarTextEntriesByExactPath(ctx.inputPath, ["manifest.json", "repositories"]);
       markers.push(...dockerTexts.markers);
-      const manifestEntry = dockerTexts.entries.find((entry) => path.basename(entry.name).toLowerCase() === "manifest.json");
-      const repositoriesEntry = dockerTexts.entries.find((entry) => path.basename(entry.name).toLowerCase() === "repositories");
+      const manifestEntry = dockerTexts.entries.find(
+        (entry) => String(entry.name || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase() === "manifest.json"
+      );
+      const repositoriesEntry = dockerTexts.entries.find(
+        (entry) => String(entry.name || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase() === "repositories"
+      );
       if (manifestEntry) {
         try {
           const parsed = JSON.parse(String(manifestEntry.text || ""));
