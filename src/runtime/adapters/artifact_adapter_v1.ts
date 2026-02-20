@@ -2139,6 +2139,15 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
           reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
         };
       }
+      const pdfStartXrefOk = /\bstartxref\b/i.test(tail);
+      if (!pdfStartXrefOk) {
+        return {
+          ok: false,
+          failCode: "DOC_FORMAT_MISMATCH",
+          failMessage: "document adapter expected PDF startxref marker for explicit document analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+        };
+      }
     } else if (ctx.ext === ".rtf") {
       const window = readFileHeadTailBounded(ctx.inputPath, 64, 512);
       const head = Buffer.from(window.head).toString("latin1");

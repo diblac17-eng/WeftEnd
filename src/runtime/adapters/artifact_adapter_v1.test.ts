@@ -1356,7 +1356,7 @@ const run = (): void => {
     const pdf = path.join(tmp, "demo.pdf");
     fs.writeFileSync(
       pdf,
-      "%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\nmacro javascript EmbeddedFile http://example.test\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n",
+      "%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\nmacro javascript EmbeddedFile http://example.test\nxref\n0 2\n0000000000 65535 f \n0000000010 00000 n \ntrailer\n<< /Root 1 0 R /Size 2 >>\nstartxref\n42\n%%EOF\n",
       "utf8"
     );
     const capture = captureTreeV0(pdf, limits);
@@ -1384,6 +1384,16 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: noStructurePdf, capture });
     assert(!res.ok, "document adapter should fail closed for explicit pdf without structural markers");
     assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for explicit pdf without structural markers");
+  }
+
+  {
+    const tmp = mkTmp();
+    const noStartxrefPdf = path.join(tmp, "no_startxref.pdf");
+    fs.writeFileSync(noStartxrefPdf, "%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n", "utf8");
+    const capture = captureTreeV0(noStartxrefPdf, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: noStartxrefPdf, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit pdf missing startxref marker");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for explicit pdf missing startxref marker");
   }
 
   {

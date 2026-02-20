@@ -561,7 +561,7 @@ const run = async (): Promise<void> => {
     const input = path.join(tmp, "doc_with_signals.pdf");
     fs.writeFileSync(
       input,
-      "%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\nmacro javascript EmbeddedFile http://example.test\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n",
+      "%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\nmacro javascript EmbeddedFile http://example.test\nxref\n0 2\n0000000000 65535 f \n0000000010 00000 n \ntrailer\n<< /Root 1 0 R /Size 2 >>\nstartxref\n42\n%%EOF\n",
       "utf8"
     );
     const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "document"]);
@@ -588,6 +588,16 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", noStructurePdf, "--out", outDir, "--adapter", "document"]);
     assertEq(res.status, 40, "safe-run should fail closed for explicit document pdf without structural markers");
     assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr for pdf without structural markers");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const noStartxrefPdf = path.join(tmp, "no_startxref.pdf");
+    fs.writeFileSync(noStartxrefPdf, "%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n", "utf8");
+    const res = await runCliCapture(["safe-run", noStartxrefPdf, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit document pdf missing startxref marker");
+    assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr for pdf missing startxref marker");
   }
 
   {
