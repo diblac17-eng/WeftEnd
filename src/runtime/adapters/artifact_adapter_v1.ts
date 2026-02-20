@@ -3988,13 +3988,13 @@ export const listAdaptersV1 = (): AdapterListReportV1 => {
         { name: "tar", available: tarAvailable },
         { name: "7z", available: sevenAvailable },
       ],
-      formats: [".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tar.xz", ".txz", ".7z"],
+      formats: [".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tbz2", ".tbz", ".tar.xz", ".txz", ".7z"],
     },
     {
       adapter: "package",
       mode: "mixed",
       plugins: [{ name: "tar", available: tarAvailable }],
-      formats: [".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".tar.bz2", ".tar.xz", ".txz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"],
+      formats: [".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar", ".tar.gz", ".tgz", ".tar.bz2", ".tbz2", ".tbz", ".tar.xz", ".txz", ".deb", ".rpm", ".appimage", ".pkg", ".dmg"],
     },
     {
       adapter: "extension",

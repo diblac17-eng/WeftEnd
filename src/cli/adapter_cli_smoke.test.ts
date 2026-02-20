@@ -183,6 +183,16 @@ const run = async (): Promise<void> => {
     for (const name of required) {
       assert(names.includes(name), `adapter list missing ${name}`);
     }
+    const byName = new Map<string, { formats: string[] }>();
+    for (const item of parsed.adapters as Array<{ adapter: string; formats?: string[] }>) {
+      byName.set(item.adapter, { formats: Array.isArray(item.formats) ? item.formats : [] });
+    }
+    const archiveFormats = byName.get("archive")?.formats ?? [];
+    const packageFormats = byName.get("package")?.formats ?? [];
+    assert(archiveFormats.includes(".tbz2"), "adapter list archive formats should include .tbz2 alias");
+    assert(archiveFormats.includes(".tbz"), "adapter list archive formats should include .tbz alias");
+    assert(packageFormats.includes(".tbz2"), "adapter list package formats should include .tbz2 alias");
+    assert(packageFormats.includes(".tbz"), "adapter list package formats should include .tbz alias");
   }
 
   {

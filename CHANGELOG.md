@@ -43,6 +43,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Strict `.deb` structure checks now require non-ambiguous required-entry cardinality (duplicate required structure entries fail strict routing).
 - Strict compressed package-tar plugin route now requires non-ambiguous entry-path sets from plugin listing output (duplicate or case-colliding entry paths fail strict routing).
 - Archive/package compressed tar coverage now includes `.tar.bz2` (and `.tbz2/.tbz` aliases) under the same explicit tar-plugin fail-closed policy as other compressed tar formats.
+- `weftend adapter list` now explicitly includes `.tbz2/.tbz` alias formats for archive/package lanes.
 - Strict `.appimage` package routing now requires valid ELF ident fields (class/data/version) in addition to ELF magic/runtime markers.
 - Package adapter plugin applicability now accepts `--enable-plugin tar` for compressed package-tar formats and still fails closed on non-applicable package formats.
 - Added regression coverage for package tar-plugin routing (accepted compressed package-tar path and non-applicable plugin rejection).
