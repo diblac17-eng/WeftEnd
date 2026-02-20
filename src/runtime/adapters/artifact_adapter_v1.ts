@@ -2240,11 +2240,22 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
       namesLower.includes("_rels/.rels") ||
       namesLower.includes("word/_rels/document.xml.rels") ||
       namesLower.includes("xl/_rels/workbook.xml.rels");
+    const hasPrimaryPart =
+      (ctx.ext === ".docm" && namesLower.includes("word/document.xml")) ||
+      (ctx.ext === ".xlsm" && namesLower.includes("xl/workbook.xml"));
     if (strictRoute && (!hasContentTypes || !hasRelationshipPart)) {
       return {
         ok: false,
         failCode: "DOC_FORMAT_MISMATCH",
         failMessage: "document adapter expected OOXML document structure for explicit office-document analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+      };
+    }
+    if (strictRoute && !hasPrimaryPart) {
+      return {
+        ok: false,
+        failCode: "DOC_FORMAT_MISMATCH",
+        failMessage: "document adapter expected OOXML primary document part for explicit office-document analysis.",
         reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
       };
     }

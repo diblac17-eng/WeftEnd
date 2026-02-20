@@ -1353,6 +1353,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const missingPrimaryDocm = path.join(tmp, "missing_primary.docm");
+    writeStoredZip(missingPrimaryDocm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "_rels/.rels", text: "<Relationships></Relationships>" },
+      { name: "word/_rels/document.xml.rels", text: "<Relationships></Relationships>" },
+    ]);
+    const capture = captureTreeV0(missingPrimaryDocm, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: missingPrimaryDocm, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit docm missing primary document part");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for explicit docm missing primary document part");
+  }
+
+  {
+    const tmp = mkTmp();
     const pdf = path.join(tmp, "demo.pdf");
     fs.writeFileSync(
       pdf,
@@ -1499,6 +1513,23 @@ const run = (): void => {
     assert((res.summary?.counts.activeContentCount ?? 0) > 0, "docm active content count missing");
     assert((res.summary?.counts.embeddedObjectCount ?? 0) > 0, "docm embedded object count missing");
     assert((res.summary?.counts.externalLinkCount ?? 0) > 0, "docm external link count missing");
+  }
+
+  {
+    const tmp = mkTmp();
+    const xlsm = path.join(tmp, "demo.xlsm");
+    writeStoredZip(xlsm, [
+      { name: "[Content_Types].xml", text: "<Types></Types>" },
+      { name: "_rels/.rels", text: "<Relationships></Relationships>" },
+      { name: "xl/workbook.xml", text: "<workbook/>" },
+      { name: "xl/_rels/workbook.xml.rels", text: "<Relationships></Relationships>" },
+      { name: "xl/vbaProject.bin", text: "macro-data" },
+    ]);
+    const capture = captureTreeV0(xlsm, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: xlsm, capture });
+    assert(res.ok, "document adapter should parse xlsm zip signals");
+    assertEq(res.summary?.sourceClass, "document", "xlsm source class mismatch");
+    assert((res.summary?.counts.activeContentCount ?? 0) > 0, "xlsm active content count missing");
   }
 
   {
