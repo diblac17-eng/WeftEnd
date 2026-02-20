@@ -1950,6 +1950,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const malformedPemPayload = path.join(tmp, "malformed_payload.pem");
+    fs.writeFileSync(
+      malformedPemPayload,
+      ["-----BEGIN CERTIFICATE-----", "%%%%", "-----END CERTIFICATE-----"].join("\n"),
+      "utf8"
+    );
+    const capture = captureTreeV0(malformedPemPayload, limits);
+    const res = runArtifactAdapterV1({ selection: "signature", enabledPlugins: [], inputPath: malformedPemPayload, capture });
+    assert(!res.ok, "explicit signature adapter should fail closed for malformed PEM envelope payload");
+    assertEq(res.failCode, "SIGNATURE_FORMAT_MISMATCH", "expected SIGNATURE_FORMAT_MISMATCH for malformed PEM envelope payload");
+  }
+
+  {
+    const tmp = mkTmp();
     const unknownEnvelopePem = path.join(tmp, "unknown_envelope.pem");
     fs.writeFileSync(
       unknownEnvelopePem,

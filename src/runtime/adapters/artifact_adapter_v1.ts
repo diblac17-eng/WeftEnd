@@ -926,10 +926,32 @@ const countBufferPatternV1 = (haystack: any, needle: any): number => {
   return count;
 };
 
-const countPemBlocksV1 = (text: string, label: string): number => {
+const pemEnvelopeEvidenceV1 = (text: string, label: string): { valid: number; invalid: number } => {
   const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`-----BEGIN\\s+${escaped}-----[\\s\\S]*?-----END\\s+${escaped}-----`, "g");
-  return countMatchesV1(text, re);
+  const re = new RegExp(`-----BEGIN\\s+${escaped}-----([\\s\\S]*?)-----END\\s+${escaped}-----`, "g");
+  let valid = 0;
+  let invalid = 0;
+  let match: RegExpExecArray | null = null;
+  while ((match = re.exec(text)) !== null) {
+    const payloadRaw = String(match[1] || "");
+    const payload = payloadRaw.replace(/[\r\n\t ]+/g, "");
+    if (payload.length === 0 || payload.length % 4 !== 0 || !/^[A-Za-z0-9+/=]+$/.test(payload)) {
+      invalid += 1;
+      continue;
+    }
+    let decoded: any = null;
+    try {
+      decoded = Buffer.from(payload, "base64");
+    } catch {
+      decoded = null;
+    }
+    if (!decoded || decoded.length < 3 || decoded[0] !== 0x30) {
+      invalid += 1;
+      continue;
+    }
+    valid += 1;
+  }
+  return { valid, invalid };
 };
 
 const countMatchesV1 = (text: string, pattern: RegExp): number => {
@@ -2708,9 +2730,13 @@ const analyzeSignature = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   }
   const text = readTextBounded(ctx.inputPath);
   const bytes = readBytesBounded(ctx.inputPath);
-  const pemCertificateCount = countPemBlocksV1(text, "CERTIFICATE");
-  const pemPkcs7Count = countPemBlocksV1(text, "PKCS7");
-  const pemSignatureCount = countPemBlocksV1(text, "SIGNATURE");
+  const pemCertificateEnvelope = pemEnvelopeEvidenceV1(text, "CERTIFICATE");
+  const pemPkcs7Envelope = pemEnvelopeEvidenceV1(text, "PKCS7");
+  const pemSignatureEnvelope = pemEnvelopeEvidenceV1(text, "SIGNATURE");
+  const pemCertificateCount = pemCertificateEnvelope.valid;
+  const pemPkcs7Count = pemPkcs7Envelope.valid;
+  const pemSignatureCount = pemSignatureEnvelope.valid;
+  const pemEnvelopeInvalidCount = pemCertificateEnvelope.invalid + pemPkcs7Envelope.invalid + pemSignatureEnvelope.invalid;
   const textualTimestampCount = countMatchesV1(text, /\b(timestamp|time[\s_-]?stamp|tsa|countersignature)\b/gi);
   const textualChainHintCount = countMatchesV1(text, /\b(certificate[\s_-]?chain|intermediate|root[\s_-]?ca)\b/gi);
 
@@ -2743,6 +2769,7 @@ const analyzeSignature = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   const reasons = ["SIGNATURE_EVIDENCE_V1"];
   const markers: string[] = [];
   if (bytes.length >= MAX_TEXT_BYTES) markers.push("SIGNATURE_BOUNDED");
+  if (pemEnvelopeInvalidCount > 0) markers.push("SIGNATURE_ENVELOPE_PARTIAL");
   if (!signerPresent && text.length === 0 && bytes.length > 0) markers.push("SIGNATURE_PARSE_PARTIAL");
   if (signerPresent) reasons.push("SIGNER_PRESENT");
   if (chainPresent) reasons.push("CHAIN_PRESENT");

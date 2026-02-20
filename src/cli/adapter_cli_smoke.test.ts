@@ -708,6 +708,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const malformedPemPayload = path.join(tmp, "malformed_payload.pem");
+    fs.writeFileSync(
+      malformedPemPayload,
+      ["-----BEGIN CERTIFICATE-----", "%%%%", "-----END CERTIFICATE-----"].join("\n"),
+      "utf8"
+    );
+    const res = await runCliCapture(["safe-run", malformedPemPayload, "--out", outDir, "--adapter", "signature"]);
+    assertEq(res.status, 40, "safe-run should fail closed for malformed PEM envelope payload");
+    assert(res.stderr.includes("SIGNATURE_FORMAT_MISMATCH"), "expected SIGNATURE_FORMAT_MISMATCH on stderr for malformed PEM payload");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const unknownEnvelopePem = path.join(tmp, "unknown_envelope.pem");
     fs.writeFileSync(
       unknownEnvelopePem,
