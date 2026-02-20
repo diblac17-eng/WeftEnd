@@ -32,6 +32,8 @@ const normalizeExtV1 = (inputPath: string): string => {
   const base = path.basename(String(inputPath || "")).toLowerCase();
   if (base.endsWith(".tar.gz")) return ".tar.gz";
   if (base.endsWith(".tar.bz2")) return ".tar.bz2";
+  if (base.endsWith(".tbz2")) return ".tar.bz2";
+  if (base.endsWith(".tbz")) return ".tar.bz2";
   if (base.endsWith(".tar.xz")) return ".tar.xz";
   if (base.endsWith(".tgz")) return ".tgz";
   if (base.endsWith(".txz")) return ".txz";

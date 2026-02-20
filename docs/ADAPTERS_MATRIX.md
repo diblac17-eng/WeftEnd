@@ -25,7 +25,7 @@ Adapter classes
   explicit `--adapter archive` fails closed on invalid `.zip` signature bytes and invalid `.tar` structure/metadata (`ARCHIVE_FORMAT_MISMATCH`) rather than returning partial archive summaries. `.zip` strict mode validates central-directory integrity, rejects partial metadata even when some entries parsed, and requires non-ambiguous entry paths (duplicate or case-colliding entry paths fail strict routing). `.tar` strict mode validates header checksum and octal size fields, rejects partial metadata even when some entries parsed, and requires non-ambiguous entry paths (duplicate or case-colliding entry paths fail strict routing). Strict plugin archive routes (`.tgz/.tar.gz/.txz/.tar.xz/.7z`) also enforce non-ambiguous entry-path sets from plugin listing output (duplicate or case-colliding entry paths fail strict routing).
 
 2) package
-- Formats: .msi, .msix, .exe, .nupkg, .whl, .jar, .tar.gz/.tgz/.tar.bz2/.tar.xz/.txz, .deb, .rpm, .appimage, .pkg, .dmg
+- Formats: .msi, .msix, .exe, .nupkg, .whl, .jar, .tar.gz/.tgz/.tar.bz2(.tbz2/.tbz)/.tar.xz/.txz, .deb, .rpm, .appimage, .pkg, .dmg
 - Key reason codes:
   PACKAGE_ADAPTER_V1
   PACKAGE_METADATA_PARTIAL

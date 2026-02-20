@@ -54,6 +54,7 @@ Included
 - Package strict route now requires non-ambiguous package entry-path sets (duplicate or case-colliding package entry paths fail strict routing), preventing ambiguous package archives from passing explicit package analysis.
 - Archive/package tar coverage expanded:
 - `.tar.bz2/.tar.xz/.txz` now follow explicit tar-plugin, fail-closed handling in archive/package lanes.
+- `.tbz2/.tbz` aliases now normalize to `.tar.bz2` for deterministic package/archive adapter routing and plugin gating.
 - Explicit `.tar` archive analysis now validates header checksum and octal size fields and fails closed on partial metadata even when earlier entries parsed, preventing mixed valid/corrupt tar acceptance.
 - Explicit `.zip` archive analysis now validates central-directory integrity in strict route and fails closed on partial metadata even when earlier entries parsed, preventing mixed valid/corrupt ZIP acceptance.
 - Explicit `.zip` and `.tar` strict archive routes now require non-ambiguous entry paths, preventing duplicate or case-colliding entry-path ambiguity from passing strict archive routing.

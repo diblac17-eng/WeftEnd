@@ -1147,6 +1147,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const badTbzAlias = path.join(tmp, "bad.tbz2");
+    fs.writeFileSync(badTbzAlias, "not-a-real-tbz2", "utf8");
+    const res = await runCliCapture(["safe-run", badTbzAlias, "--out", outDir, "--adapter", "package"]);
+    assertEq(res.status, 40, "safe-run should fail closed for tbz2 alias compressed tar package without tar plugin");
+    assert(res.stderr.includes("PACKAGE_PLUGIN_REQUIRED"), "expected PACKAGE_PLUGIN_REQUIRED on stderr for bad tbz2 alias without plugin");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const input = path.join(tmp, "valid_package.tgz");
     writeSimpleTgz(input, [{ name: "pkg/install.sh", text: "echo ok" }]);
     if (tarAvailable()) {
