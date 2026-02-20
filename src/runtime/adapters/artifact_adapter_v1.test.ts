@@ -11,6 +11,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const childProcess = require("child_process");
+const zlib = require("zlib");
 
 const assert = (cond: boolean, msg: string): void => {
   if (!cond) throw new Error(msg);
@@ -135,6 +136,15 @@ const writeSimpleTar = (outPath: string, files: Array<{ name: string; text: stri
   fs.writeFileSync(outPath, Buffer.concat(blocks));
 };
 
+const writeSimpleTgz = (outPath: string, files: Array<{ name: string; text: string }>): void => {
+  const tmp = mkTmp();
+  const tarPath = path.join(tmp, "payload.tar");
+  writeSimpleTar(tarPath, files);
+  const bytes = fs.readFileSync(tarPath);
+  const gz = zlib.gzipSync(bytes);
+  fs.writeFileSync(outPath, gz);
+};
+
 const writeSimpleAr = (outPath: string, files: Array<{ name: string; bytes: any }>): void => {
   const parts: any[] = [Buffer.from("!<arch>\n", "ascii")];
   files.forEach((file) => {
@@ -207,6 +217,22 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: tgz, capture });
     assert(!res.ok, "archive tgz without plugin should fail closed");
     assertEq(res.failCode, "ARCHIVE_PLUGIN_REQUIRED", "expected plugin required code");
+  }
+
+  {
+    const tmp = mkTmp();
+    const tgz = path.join(tmp, "case_collision_plugin.tgz");
+    writeSimpleTgz(tgz, [
+      { name: "A.txt", text: "alpha-a" },
+      { name: "a.txt", text: "alpha-b" },
+    ]);
+    const capture = captureTreeV0(tgz, limits);
+    const tarAvailable = runCmd("tar", ["--help"]).ok;
+    if (tarAvailable) {
+      const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: ["tar"], inputPath: tgz, capture });
+      assert(!res.ok, "archive adapter should fail closed for strict plugin route with case-colliding entry paths");
+      assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for case-colliding plugin archive entries");
+    }
   }
 
   {
@@ -769,6 +795,22 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: [], inputPath: tgz, capture });
     assert(!res.ok, "package adapter should fail closed for compressed tar package without tar plugin");
     assertEq(res.failCode, "PACKAGE_PLUGIN_REQUIRED", "expected PACKAGE_PLUGIN_REQUIRED for package tgz without tar plugin");
+  }
+
+  {
+    const tmp = mkTmp();
+    const tgz = path.join(tmp, "case_collision_package.tgz");
+    writeSimpleTgz(tgz, [
+      { name: "PKG/Install.sh", text: "echo a" },
+      { name: "pkg/install.sh", text: "echo b" },
+    ]);
+    const capture = captureTreeV0(tgz, limits);
+    const tarAvailable = runCmd("tar", ["--help"]).ok;
+    if (tarAvailable) {
+      const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: ["tar"], inputPath: tgz, capture });
+      assert(!res.ok, "package adapter should fail closed for strict package plugin route with case-colliding entry paths");
+      assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for case-colliding package plugin entries");
+    }
   }
 
   {

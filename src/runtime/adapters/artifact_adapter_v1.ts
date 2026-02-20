@@ -1700,6 +1700,15 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
           reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
         };
       }
+      const uniqueCaseFoldedEntries = stableSortUniqueStringsV0(uniqueEntries.map((entry) => entry.toLowerCase()));
+      if (uniqueCaseFoldedEntries.length < uniqueEntries.length) {
+        return {
+          ok: false,
+          failCode: "PACKAGE_FORMAT_MISMATCH",
+          failMessage: "package adapter expected case-unambiguous package archive entry paths for explicit package analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["PACKAGE_ADAPTER_V1", "PACKAGE_FORMAT_MISMATCH"]),
+        };
+      }
     }
   } else if (ext === ".deb") {
     const ar = readArEntriesV1(ctx.inputPath, strictRoute ? { dedupe: false } : undefined);
@@ -3627,7 +3636,7 @@ const analyzeByClass = (adapterClass: AdapterClassV1, ctx: AnalyzeCtx, strictRou
   };
 };
 
-const adapterSupportsPlugins = (adapterClass: AdapterClassV1): boolean => adapterClass === "archive";
+const adapterSupportsPlugins = (adapterClass: AdapterClassV1): boolean => adapterClass === "archive" || adapterClass === "package";
 
 const allowedArchivePluginsForExt = (ext: string): Set<string> | null => {
   if (ext === ".zip" || ext === ".tar") return new Set<string>();
@@ -3636,6 +3645,14 @@ const allowedArchivePluginsForExt = (ext: string): Set<string> | null => {
   }
   if (ext === ".7z") return new Set<string>(["7z"]);
   return null;
+};
+
+const allowedPackagePluginsForExt = (ext: string): Set<string> | null => {
+  if (!PACKAGE_EXTS.has(ext)) return null;
+  if (ext === ".tar.gz" || ext === ".tgz" || ext === ".tar.xz" || ext === ".txz") {
+    return new Set<string>(["tar"]);
+  }
+  return new Set<string>();
 };
 
 export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunResultV1 => {
@@ -3711,15 +3728,15 @@ export const runArtifactAdapterV1 = (options: AdapterRunOptionsV1): AdapterRunRe
       reasonCodes: stableSortUniqueReasonsV0(["ADAPTER_PLUGIN_UNUSED"]),
     };
   }
-  if (requestedPlugins.length > 0 && adapterClass === "archive") {
-    const allowedPlugins = allowedArchivePluginsForExt(ctx.ext);
+  if (requestedPlugins.length > 0 && (adapterClass === "archive" || adapterClass === "package")) {
+    const allowedPlugins = adapterClass === "archive" ? allowedArchivePluginsForExt(ctx.ext) : allowedPackagePluginsForExt(ctx.ext);
     if (allowedPlugins !== null) {
       const unusedPlugins = requestedPlugins.filter((name) => !allowedPlugins.has(name));
       if (unusedPlugins.length > 0) {
         return {
           ok: false,
           failCode: "ADAPTER_PLUGIN_UNUSED",
-          failMessage: `plugin name(s) are not applicable for this archive format: ${unusedPlugins.join(", ")}`,
+          failMessage: `plugin name(s) are not applicable for this ${adapterClass} format: ${unusedPlugins.join(", ")}`,
           reasonCodes: stableSortUniqueReasonsV0(["ADAPTER_PLUGIN_UNUSED"]),
         };
       }

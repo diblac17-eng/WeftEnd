@@ -10,6 +10,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const zlib = require("zlib");
+const childProcess = require("child_process");
 
 const assert = (cond: boolean, msg: string): void => {
   if (!cond) throw new Error(msg);
@@ -149,6 +150,27 @@ const writeSimpleTar = (outPath: string, files: Array<{ name: string; text: stri
   fs.writeFileSync(outPath, Buffer.concat(blocks));
 };
 
+const writeSimpleTgz = (outPath: string, files: Array<{ name: string; text: string }>): void => {
+  const tmp = mkTmp();
+  const tarPath = path.join(tmp, "payload.tar");
+  writeSimpleTar(tarPath, files);
+  const bytes = fs.readFileSync(tarPath);
+  const gz = zlib.gzipSync(bytes);
+  fs.writeFileSync(outPath, gz);
+};
+
+const tarAvailable = (): boolean => {
+  const probe = childProcess.spawnSync("tar", ["--help"], {
+    encoding: "utf8",
+    windowsHide: true,
+    timeout: 3000,
+  });
+  if (probe?.error?.code === "ENOENT") return false;
+  if (probe?.error?.code === "ENOTFOUND") return false;
+  if (probe?.error?.code === "UNKNOWN") return false;
+  return true;
+};
+
 const run = async (): Promise<void> => {
   {
     const res = await runCliCapture(["adapter", "list"]);
@@ -192,6 +214,21 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"]);
     assertEq(res.status, 40, "safe-run archive should fail closed for tgz without tar plugin");
     assert(res.stderr.includes("ARCHIVE_PLUGIN_REQUIRED"), "expected ARCHIVE_PLUGIN_REQUIRED on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "case_collision_plugin.tgz");
+    writeSimpleTgz(input, [
+      { name: "A.txt", text: "alpha-a" },
+      { name: "a.txt", text: "alpha-b" },
+    ]);
+    if (tarAvailable()) {
+      const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive", "--enable-plugin", "tar"]);
+      assertEq(res.status, 40, "safe-run archive should fail closed for strict plugin route with case-colliding entry paths");
+      assert(res.stderr.includes("ARCHIVE_FORMAT_MISMATCH"), "expected ARCHIVE_FORMAT_MISMATCH on stderr for case-colliding plugin archive entries");
+    }
   }
 
   {
@@ -1079,6 +1116,21 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", badTgz, "--out", outDir, "--adapter", "package"]);
     assertEq(res.status, 40, "safe-run should fail closed for compressed tar package without tar plugin");
     assert(res.stderr.includes("PACKAGE_PLUGIN_REQUIRED"), "expected PACKAGE_PLUGIN_REQUIRED on stderr for bad tgz without plugin");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "case_collision_package.tgz");
+    writeSimpleTgz(input, [
+      { name: "PKG/Install.sh", text: "echo a" },
+      { name: "pkg/install.sh", text: "echo b" },
+    ]);
+    if (tarAvailable()) {
+      const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "package", "--enable-plugin", "tar"]);
+      assertEq(res.status, 40, "safe-run should fail closed for strict package plugin route with case-colliding entry paths");
+      assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for case-colliding package plugin entries");
+    }
   }
 
   {
