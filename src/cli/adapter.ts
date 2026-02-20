@@ -73,6 +73,10 @@ export const runAdapterCli = (args: string[]): number => {
     printUsage();
     return 1;
   }
+  if (command === "doctor" && includeMissingPlugins && writePolicyPath.length === 0) {
+    printUsage();
+    return 1;
+  }
   const report = command === "doctor" ? runAdapterDoctorV1() : listAdaptersV1();
   if (command === "doctor" && writePolicyPath.length > 0) {
     const disabled = new Set<string>();

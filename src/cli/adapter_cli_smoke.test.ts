@@ -323,6 +323,22 @@ const run = async (): Promise<void> => {
   }
 
   {
+    const res = await runCliCapture(["adapter", "doctor", "--include-missing-plugins"]);
+    assertEq(res.status, 1, "adapter doctor --include-missing-plugins without --write-policy should fail usage");
+  }
+
+  {
+    const tmp = mkTmp();
+    const outPath = path.join(tmp, "existing_dir");
+    fs.mkdirSync(outPath, { recursive: true });
+    const stagePath = `${outPath}.stage`;
+    const res = await runCliCapture(["adapter", "doctor", "--write-policy", outPath]);
+    assertEq(res.status, 1, "adapter doctor --write-policy should fail closed when output path is not writable as file");
+    assert(res.stderr.includes("[ADAPTER_POLICY_WRITE_FAILED]"), "expected ADAPTER_POLICY_WRITE_FAILED on write failure");
+    assert(!fs.existsSync(stagePath), "failed policy write should clean staged temp file");
+  }
+
+  {
     const outDir = mkTmp();
     const tmp = mkTmp();
     const input = path.join(tmp, "good.zip");
