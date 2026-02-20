@@ -97,6 +97,7 @@ Included
 - Container scan now emits adapter metadata/signals plus adapter artifacts using the same deterministic contract as safe-run adapters.
 - Container scan evidence remains local-only inspect data and excludes unstable fields (timestamps/raw env/path values).
 - Container scan now requires immutable image digest refs (`name@sha256:...` or `sha256:...`) and fails closed on mutable tag refs.
+- Container scan now fails closed when Docker inspect resolves to a digest that does not match the immutable input digest ref.
 - Privacy lint coverage now includes wildcard `analysis/*.json` artifacts so new adapter JSON outputs cannot bypass privacy scanning by filename drift.
 - Wave coverage now includes:
 - Wave 1: archives, packages/installers, extensions

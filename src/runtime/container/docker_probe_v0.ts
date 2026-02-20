@@ -85,6 +85,15 @@ const parseDigestFromRepoDigest = (value: string): string | null => {
   return normalizeDigestV0(value.slice(idx + 1));
 };
 
+const parseDigestFromImageRef = (value: string): string | null => {
+  const ref = normalizeImageRefV0(value);
+  if (!ref) return null;
+  if (ref.startsWith("sha256:")) return normalizeDigestV0(ref);
+  const idx = ref.lastIndexOf("@");
+  if (idx < 0) return null;
+  return normalizeDigestV0(ref.slice(idx + 1));
+};
+
 export const normalizeImageRefV0 = (value: unknown): string | null => {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -186,6 +195,15 @@ const parseInspectJson = (normalizedInputRef: string, inspectStdout: string): Do
         id: String(inspect.Id ?? ""),
       })
     );
+  const inputDigest = parseDigestFromImageRef(normalizedInputRef);
+  if (inputDigest && resolvedDigest !== inputDigest) {
+    return {
+      ok: false,
+      code: "DOCKER_IMAGE_DIGEST_MISMATCH",
+      message: "docker inspect digest does not match immutable input reference.",
+      reasonCodes: ["DOCKER_IMAGE_DIGEST_MISMATCH"],
+    };
+  }
 
   const repoTagsRaw = Array.isArray(inspect.RepoTags)
     ? inspect.RepoTags.filter((v: unknown) => typeof v === "string").map((v: string) => v.trim())

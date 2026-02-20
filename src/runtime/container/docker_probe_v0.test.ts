@@ -41,6 +41,25 @@ const run = (): void => {
     if (!res.ok) assertEq(res.code, "DOCKER_REMOTE_CONTEXT_UNSUPPORTED", "remote context code mismatch");
   }
 
+  {
+    const inspectMismatch = JSON.stringify([
+      {
+        Id: "sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        RepoDigests: ["ghcr.io/acme/app@sha256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"],
+        RepoTags: ["ghcr.io/acme/app:1.0.0"],
+        Size: 12345,
+        RootFS: { Layers: ["sha256:l1"] },
+        Config: { Env: [], ExposedPorts: {}, Entrypoint: [], Cmd: [] },
+      },
+    ]);
+    const res = probeDockerImageLocalV0(`ghcr.io/acme/app@sha256:${"c".repeat(64)}`, {
+      runDocker: makeRunner(inspectMismatch),
+      env: { dockerHost: "", dockerContext: "default" },
+    });
+    assert(!res.ok, "digest mismatch should fail closed");
+    if (!res.ok) assertEq(res.code, "DOCKER_IMAGE_DIGEST_MISMATCH", "digest mismatch code mismatch");
+  }
+
   const inspect = JSON.stringify([
     {
       Id: "sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
