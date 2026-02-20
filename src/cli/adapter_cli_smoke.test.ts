@@ -2296,6 +2296,26 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const caseCollisionTar = path.join(tmp, "container_case_collision_paths.tar");
+    writeSimpleTar(caseCollisionTar, [
+      {
+        name: "manifest.json",
+        text: JSON.stringify([{ Config: "config.json", RepoTags: ["demo:latest"], Layers: ["layer.tar"] }]),
+      },
+      { name: "repositories", text: JSON.stringify({ demo: { latest: "sha256:abc" } }) },
+      { name: "config.json", text: "{}" },
+      { name: "layer.tar", text: "layer-bytes" },
+      { name: "extra/Alpha.txt", text: "a" },
+      { name: "extra/alpha.txt", text: "b" },
+    ]);
+    const res = await runCliCapture(["safe-run", caseCollisionTar, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit docker tar case-colliding top-level entry paths");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for case-colliding container tar entry paths");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const partialManifestEntryShapeTar = path.join(tmp, "container_partial_manifest_entry_shape.tar");
     writeSimpleTar(partialManifestEntryShapeTar, [
       {

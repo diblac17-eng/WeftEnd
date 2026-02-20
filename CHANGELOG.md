@@ -10,6 +10,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Container strict tar routes now require canonical root markers and unique root marker entries for Docker/OCI marker files.
 - Container strict Docker tar routes now require complete manifest entries (config plus layers) and full reference resolution.
 - Container strict Docker/OCI tar routes now require non-ambiguous reference resolution (duplicate referenced tar paths fail strict routing).
+- Container strict tar routes now require non-ambiguous tar entry-path sets (duplicate or case-colliding tar paths fail strict routing).
 - Container strict classification now uses tar entry evidence only and no longer accepts tar filename hints.
 - Container strict SBOM routes now require meaningful identity evidence (`name`, `purl`, `SPDXID`, or `bom-ref`).
 - Compose strict routing now requires in-service `image` or `build` evidence (out-of-service hints do not satisfy strict checks).

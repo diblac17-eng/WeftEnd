@@ -2748,7 +2748,28 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   const tarEntries = isTarInput
     ? readTarEntries(ctx.inputPath, strictRoute ? { dedupe: false } : undefined)
     : { entries: [] as string[], markers: [] as string[] };
-  const tarEntryNames = tarEntries.entries.map((name) => String(name || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase());
+  const tarEntryPaths = tarEntries.entries.map((name) => String(name || "").replace(/\\/g, "/").replace(/^\.\/+/, ""));
+  if (strictRoute && isTarInput) {
+    const uniqueEntryPaths = stableSortUniqueStringsV0(tarEntryPaths);
+    if (uniqueEntryPaths.length < tarEntryPaths.length) {
+      return {
+        ok: false,
+        failCode: "CONTAINER_FORMAT_MISMATCH",
+        failMessage: "container adapter expected non-ambiguous tar entry paths for explicit container tar analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+      };
+    }
+    const uniqueCaseFoldedPaths = stableSortUniqueStringsV0(uniqueEntryPaths.map((name) => name.toLowerCase()));
+    if (uniqueCaseFoldedPaths.length < uniqueEntryPaths.length) {
+      return {
+        ok: false,
+        failCode: "CONTAINER_FORMAT_MISMATCH",
+        failMessage: "container adapter expected case-unambiguous tar entry paths for explicit container tar analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+      };
+    }
+  }
+  const tarEntryNames = tarEntryPaths.map((name) => name.toLowerCase());
   const tarNameCountMap = tarEntryNames.reduce((map, name) => {
     map.set(name, (map.get(name) ?? 0) + 1);
     return map;

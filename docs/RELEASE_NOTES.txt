@@ -93,6 +93,7 @@ Included
 - Explicit Docker-style tar route now requires at least one repository/tag mapping in `repositories` JSON, preventing non-empty but non-usable repository shells from passing strict routing.
 - Explicit Docker-style tar route now requires all manifest config references to resolve to tar entries, preventing partial config payload shells from passing strict routing.
 - Explicit Docker-style tar route now requires non-ambiguous config/layer reference resolution, preventing duplicate referenced tar paths from passing strict docker tar routing.
+- Explicit container tar strict route now requires non-ambiguous tar entry-path sets, preventing duplicate or case-colliding tar entry paths from passing explicit container tar analysis.
 - Explicit Docker-style tar route now requires canonical root marker paths (`manifest.json`, `repositories`), preventing nested lookalike marker paths from satisfying strict Docker tar routing.
 - Explicit Docker/OCI tar strict routes now require unique canonical root marker entries, preventing duplicate marker-entry ambiguity from satisfying strict tar routing.
 - Explicit Docker-style tar route now requires each manifest entry to include config and layer references, preventing mixed complete/incomplete manifest arrays from passing strict routing.
