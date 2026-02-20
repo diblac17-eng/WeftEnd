@@ -5,6 +5,11 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 
 ## [Unreleased]
 
+### Safe-run evidence corridor
+- `safe-run` now verifies expected receipt artifacts for presence and digest consistency before completion.
+- `safe-run` now flags unmanaged pre-existing output files as deterministic orphan-evidence warnings.
+- Analysis is not blocked by these checks; warning codes are recorded in `operator_receipt.json` (`SAFE_RUN_EVIDENCE_*`).
+
 ### Adapter strict-route hardening
 - Container strict OCI routes now require digest refs on every manifest entry and require digest refs to resolve to local blob entries.
 - Container strict tar routes now require canonical root markers and unique root marker entries for Docker/OCI marker files.

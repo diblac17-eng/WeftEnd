@@ -163,6 +163,23 @@ suite("cli/safe-run", () => {
     assertEq(privacy.report.verdict, "PASS", "expected privacy lint pass");
   });
 
+  register("safe-run records orphan evidence warning without blocking analysis", async () => {
+    const host = setupHostRoot();
+    const outDir = makeTempDir();
+    fs.mkdirSync(path.join(outDir, "analysis"), { recursive: true });
+    fs.writeFileSync(path.join(outDir, "analysis", "stale.txt"), "stale", "utf8");
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "safe_no_caps");
+    const policyPath = path.join(process.cwd(), "policies", "web_component_default.json");
+    const result = await runCliCapture(
+      ["safe-run", inputPath, "--policy", policyPath, "--out", outDir],
+      { env: { WEFTEND_HOST_ROOT: host.hostRoot, WEFTEND_HOST_TRUST_ROOT: host.trustRootPath } }
+    );
+    assertEq(result.status, 0, `expected analyze-only exit code with orphan warning\n${result.stderr}`);
+    const operator = readJson(outDir, "operator_receipt.json");
+    const warnings = Array.isArray(operator.warnings) ? operator.warnings : [];
+    assert(warnings.includes("SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"), "expected orphan evidence warning in operator receipt");
+  });
+
   register("safe-run auto policy selection uses web default for html", async () => {
     const host = setupHostRoot();
     const outDir = makeTempDir();

@@ -40,7 +40,7 @@ import { runHostStrictV0 } from "../runtime/host/host_runner";
 import { deriveDemoPublicKey, makeDemoCryptoPort } from "../ports/crypto-demo";
 import { computeWeftendBuildV0, formatBuildDigestSummaryV0 } from "../runtime/weftend_build";
 import { runPrivacyLintV0 } from "../runtime/privacy_lint";
-import { writeReceiptReadmeV0 } from "../runtime/receipt_readme";
+import { buildReceiptReadmeV0 } from "../runtime/receipt_readme";
 import { buildOperatorReceiptV0, writeOperatorReceiptV0 } from "../runtime/operator_receipt";
 import { classifyArtifactKindV0 } from "../runtime/classify/artifact_kind_v0";
 import { updateLibraryViewFromRunV0 } from "./library_state";
@@ -82,6 +82,89 @@ const writeFile = (filePath: string, contents: string) => {
 };
 
 const digestText = (value: string): string => computeArtifactDigestV0(value ?? "");
+
+const listFilesRecursiveRel = (root: string, relStart: string): string[] => {
+  const startPath = path.join(root, relStart);
+  if (!fs.existsSync(startPath)) return [];
+  const out: string[] = [];
+  const stack: string[] = [relStart];
+  while (stack.length > 0) {
+    const rel = String(stack.pop() || "");
+    const abs = path.join(root, rel);
+    let stat: any = null;
+    try {
+      stat = fs.statSync(abs);
+    } catch {
+      continue;
+    }
+    if (stat && stat.isDirectory && stat.isDirectory()) {
+      let entries: string[] = [];
+      try {
+        entries = fs.readdirSync(abs).map((n: string) => String(n));
+      } catch {
+        entries = [];
+      }
+      entries.sort((a, b) => cmpStrV0(a, b));
+      for (let i = entries.length - 1; i >= 0; i -= 1) {
+        const nextRel = path.join(rel, entries[i]).replace(/\\/g, "/");
+        stack.push(nextRel);
+      }
+      continue;
+    }
+    if (stat && stat.isFile && stat.isFile()) {
+      out.push(rel.replace(/\\/g, "/"));
+    }
+  }
+  out.sort((a, b) => cmpStrV0(a, b));
+  return out;
+};
+
+const evaluateEvidenceWarnings = (input: {
+  outDir: string;
+  receipt: SafeRunReceiptV0;
+  operatorReceiptDigest: string;
+  readmeText: string;
+}): string[] => {
+  const expected = new Map<string, string>();
+  expected.set("safe_run_receipt.json", input.receipt.receiptDigest);
+  expected.set("operator_receipt.json", input.operatorReceiptDigest);
+  expected.set("weftend/README.txt", digestText(input.readmeText));
+  (input.receipt.subReceipts ?? []).forEach((entry) => {
+    const relPath = String(entry.name || "").replace(/\\/g, "/");
+    if (!relPath) return;
+    expected.set(relPath, String(entry.digest || ""));
+  });
+
+  const actualSet = new Set<string>();
+  if (fs.existsSync(path.join(input.outDir, "safe_run_receipt.json"))) actualSet.add("safe_run_receipt.json");
+  if (fs.existsSync(path.join(input.outDir, "operator_receipt.json"))) actualSet.add("operator_receipt.json");
+  listFilesRecursiveRel(input.outDir, "weftend").forEach((rel) => actualSet.add(rel));
+  listFilesRecursiveRel(input.outDir, "analysis").forEach((rel) => actualSet.add(rel));
+  listFilesRecursiveRel(input.outDir, "host").forEach((rel) => actualSet.add(rel));
+
+  const warnings: string[] = [];
+  expected.forEach((digest, relPath) => {
+    const abs = path.join(input.outDir, relPath);
+    if (!fs.existsSync(abs)) {
+      warnings.push("SAFE_RUN_EVIDENCE_MISSING");
+      return;
+    }
+    let raw = "";
+    try {
+      raw = fs.readFileSync(abs, "utf8");
+    } catch {
+      warnings.push("SAFE_RUN_EVIDENCE_MISSING");
+      return;
+    }
+    if (digestText(raw) !== digest) warnings.push("SAFE_RUN_EVIDENCE_DIGEST_MISMATCH");
+  });
+
+  actualSet.forEach((relPath) => {
+    if (!expected.has(relPath)) warnings.push("SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT");
+  });
+
+  return stableSortUniqueReasonsV0(warnings);
+};
 
 const readTextBounded = (filePath: string, reasons: string[], missingCode: string, invalidCode: string) => {
   if (!fs.existsSync(filePath)) {
@@ -563,25 +646,41 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
       return { ok: false as const, code: 1 };
     }
 
+    const baseWarnings = stableSortUniqueReasonsV0([
+      ...(receipt.weftendBuild.reasonCodes ?? []),
+      ...(receipt.execution.reasonCodes ?? []),
+      ...extraWarnings,
+    ]);
+    const readmeText = buildReceiptReadmeV0(receipt.weftendBuild, receipt.schemaVersion);
+
     writeFile(path.join(outDir, "safe_run_receipt.json"), `${canonicalJSON(receipt)}\n`);
-    writeReceiptReadmeV0(outDir, receipt.weftendBuild, receipt.schemaVersion);
+    writeFile(path.join(outDir, "weftend", "README.txt"), readmeText);
     const entries = [
       { kind: "safe_run_receipt", relPath: "safe_run_receipt.json", digest: receipt.receiptDigest },
       ...(receipt.hostReceiptDigest ? [{ kind: "host_run_receipt", relPath: "host/host_run_receipt.json", digest: receipt.hostReceiptDigest }] : []),
     ];
-    const operatorReceipt = buildOperatorReceiptV0({
-      command: "safe-run",
-      weftendBuild: receipt.weftendBuild,
-      schemaVersion: receipt.schemaVersion,
-      entries,
-      warnings: stableSortUniqueReasonsV0([
-        ...(receipt.weftendBuild.reasonCodes ?? []),
-        ...(receipt.execution.reasonCodes ?? []),
-        ...extraWarnings,
-      ]),
-      contentSummary: receipt.contentSummary,
+    const buildAndWriteOperator = (warnings: string[]) => {
+      const operatorReceipt = buildOperatorReceiptV0({
+        command: "safe-run",
+        weftendBuild: receipt.weftendBuild,
+        schemaVersion: receipt.schemaVersion,
+        entries,
+        warnings,
+        contentSummary: receipt.contentSummary,
+      });
+      writeOperatorReceiptV0(outDir, operatorReceipt);
+      return operatorReceipt;
+    };
+    let operatorReceipt = buildAndWriteOperator(baseWarnings);
+    const evidenceWarnings = evaluateEvidenceWarnings({
+      outDir,
+      receipt,
+      operatorReceiptDigest: operatorReceipt.receiptDigest,
+      readmeText,
     });
-    writeOperatorReceiptV0(outDir, operatorReceipt);
+    if (evidenceWarnings.length > 0) {
+      operatorReceipt = buildAndWriteOperator(stableSortUniqueReasonsV0([...baseWarnings, ...evidenceWarnings]));
+    }
     const privacy = runPrivacyLintV0({ root: outDir, weftendBuild: receipt.weftendBuild });
     try {
       updateLibraryViewFromRunV0({
