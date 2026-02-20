@@ -10,6 +10,8 @@ Short, strict release checklist (alpha).
   - npm run verify:360
   - Optional stricter adapter maintenance gate:
     - npm run verify:360:adapter:strict
+  - Optional enforced no-partial gate:
+    - npm run verify:360:adapter:strict:enforced
   - Confirm receipt exists:
     - out\\verify_360\\latest.txt
     - out\\verify_360\\history\\run_<seq>\\verify_360_receipt.json

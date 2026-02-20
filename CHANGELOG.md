@@ -17,6 +17,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `verify:360` now captures adapter doctor output quietly to keep gate console output focused while preserving adapter doctor evidence in verify receipts/reports.
 - Added `npm run verify:360:adapter:strict` helper to run full verify with strict adapter doctor mode enabled.
 - `verify:360` idempotence key context now includes strict-mode flags to avoid replay-key collisions between strict and non-strict runs.
+- Added `WEFTEND_360_FAIL_ON_PARTIAL=1` behavior and helper scripts to enforce non-zero exit on PARTIAL verify verdicts when required by release policy.
 
 ### Adapter maintenance controls
 - Added `weftend adapter doctor` for deterministic adapter readiness/maintenance reporting.

@@ -628,6 +628,7 @@ const main = () => {
   const deterministicInputAbs = path.resolve(root, deterministicInputEnv);
   const auditStrictMode = process.env.WEFTEND_360_AUDIT_STRICT === "1" ? 1 : 0;
   const adapterDoctorStrictMode = process.env.WEFTEND_360_ADAPTER_DOCTOR_STRICT === "1" ? 1 : 0;
+  const failOnPartialMode = process.env.WEFTEND_360_FAIL_ON_PARTIAL === "1" ? 1 : 0;
   const changedFiles = gitChangedFiles();
   const head = safeGitHead();
   const idempotenceContext = {
@@ -635,6 +636,7 @@ const main = () => {
     gateVersion: "v2",
     auditStrictMode,
     adapterDoctorStrictMode,
+    failOnPartialMode,
     releaseDir: fs.existsSync(releaseDirAbs) ? releaseDirEnv : "MISSING",
     deterministicInput: fs.existsSync(deterministicInputAbs) ? deterministicInputEnv : "MISSING",
     gitHead: head,
@@ -1029,9 +1031,10 @@ const main = () => {
   const hasFail = statuses.includes("FAIL");
   const hasPartial = statuses.includes("PARTIAL") || statuses.includes("SKIP");
   const verdict = hasFail ? "FAIL" : hasPartial ? "PARTIAL" : "PASS";
-  const reasonCodes = stableSortUnique(
+  const reasonCodesBase = stableSortUnique(
     steps.flatMap((s) => (Array.isArray(s.reasonCodes) ? s.reasonCodes : []))
   );
+  const reasonCodes = failOnPartialMode === 1 && verdict === "PARTIAL" ? stableSortUnique([...reasonCodesBase, "VERIFY360_PARTIAL_BLOCKED_BY_POLICY"]) : reasonCodesBase;
   recordCapability("output.write_receipt", true, []);
   const stepStatusSummary = summarizeStepStatuses(steps);
   const capabilityDecisions = buildCapabilityDecisions(capabilityMap);
@@ -1087,6 +1090,9 @@ const main = () => {
       reasonCodes,
       idempotenceMode,
       idempotencePointerPolicy,
+      policy: {
+        failOnPartialMode,
+      },
       expectedStateTarget: "RECORDED",
     },
     explain,
@@ -1140,7 +1146,7 @@ const main = () => {
   advanceState("RECORDED");
   console.log(`verify:360 ${verdict} receipt=${rel(path.join(runDir, "verify_360_receipt.json"))}`);
 
-  if (verdict === "FAIL") process.exit(1);
+  if (verdict === "FAIL" || (failOnPartialMode === 1 && verdict === "PARTIAL")) process.exit(1);
   process.exit(0);
   } catch (error) {
     const errorDigest = sha256Text(String(error?.message || error || "UNKNOWN"));

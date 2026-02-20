@@ -120,6 +120,10 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   npm run verify:360
 - Verify with strict adapter-maintenance gating enabled:
   npm run verify:360:adapter:strict
+- Enforce non-zero exit on PARTIAL verdicts:
+  npm run verify:360:enforce-partial
+- Enforce both strict adapter gating and fail-on-partial:
+  npm run verify:360:adapter:strict:enforced
 - Optional corridor harness (pass/replay/forced-exception):
   npm run verify:360:harness
 - Optional history audit:
@@ -135,6 +139,8 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   WEFTEND_360_AUDIT_STRICT=1
 - To enforce strict adapter maintenance/plugin checks inside `verify:360`, set:
   WEFTEND_360_ADAPTER_DOCTOR_STRICT=1
+- To force non-zero exit on PARTIAL verdicts, set:
+  WEFTEND_360_FAIL_ON_PARTIAL=1
 - It always writes a verification receipt/report, including PARTIAL/FAIL outcomes:
   - out/verify_360/history/run_<seq>/verify_360_receipt.json
   - out/verify_360/history/run_<seq>/verify_360_report.txt

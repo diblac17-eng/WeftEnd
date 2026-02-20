@@ -14,6 +14,7 @@ Included
 - `verify:360` now captures adapter doctor output quietly (no raw doctor JSON console dump) while preserving step evidence in the verify receipt/report.
 - Added `npm run verify:360:adapter:strict` helper for full verify runs with strict adapter doctor gating enabled.
 - `verify:360` idempotence context now includes strict-mode flags, preventing replay-key collisions between strict and non-strict runs.
+- Added `WEFTEND_360_FAIL_ON_PARTIAL=1` policy support (and helper commands) to force non-zero exit when verify ends in PARTIAL.
 - Safe-run now enforces a non-blocking evidence corridor check before completion:
 - Expected receipt artifacts are verified for presence and digest consistency.
 - Pre-existing/stale unmanaged output files anywhere under the run out-root are flagged as orphan evidence.
