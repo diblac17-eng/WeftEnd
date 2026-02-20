@@ -36,6 +36,11 @@ What's new in the latest alpha
   - internal test/harness payloads are pruned from release bundles
   - unsigned demo native stub binary is excluded from release bundles
 
+Release history and immutable notes
+- Release assets are immutable once published.
+- Ongoing changes and hardening deltas are tracked in CHANGELOG.md under Unreleased.
+- Snapshot release detail is kept in docs/RELEASE_NOTES.txt.
+
 Core behaviors
 - Analysis-first posture: native binaries are WITHHELD by default.
 - Deterministic receipts: canonical JSON, stable ordering, bounded outputs.
