@@ -68,6 +68,8 @@ Included
 - Pre-existing/stale unmanaged output files anywhere under the run out-root are flagged as orphan evidence.
 - Analysis still completes; warnings are recorded deterministically in `operator_receipt.json` (`SAFE_RUN_EVIDENCE_*` codes).
 - Added explicit smoke-test coverage for root-level stale output detection under the same non-blocking evidence-corridor behavior.
+- Safe-run output now stages/finalizes (`<out>.stage` -> `<out>`), replacing stale out-roots and preventing partial output residue from appearing as finalized run evidence.
+- Safe-run staged finalize preserves deterministic stale-output signaling by carrying `SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT` when unmanaged pre-existing out-root files were present before write.
 - `operator_receipt.json` now includes additive digest links for `weftend/README.txt` and run sub-receipts (`analysis/*`, `host/*`) to strengthen evidence-chain traceability.
 - Universal artifact adapter expansion (analysis-only, deterministic, fail-closed):
 - New safe-run adapter flags: `--adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`

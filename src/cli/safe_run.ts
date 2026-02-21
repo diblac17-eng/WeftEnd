@@ -120,6 +120,30 @@ const listFilesRecursiveRel = (root: string, relStart: string): string[] => {
   return out;
 };
 
+const prepareStagedOutRoot = (outDir: string): { ok: true; stageOutDir: string; hadPreexistingOutput: boolean } | { ok: false } => {
+  const stageOutDir = `${outDir}.stage`;
+  let hadPreexistingOutput = false;
+  try {
+    if (fs.existsSync(outDir)) hadPreexistingOutput = listFilesRecursiveRel(outDir, ".").length > 0;
+    fs.rmSync(stageOutDir, { recursive: true, force: true });
+    fs.mkdirSync(path.dirname(stageOutDir), { recursive: true });
+    fs.mkdirSync(stageOutDir, { recursive: true });
+    return { ok: true, stageOutDir, hadPreexistingOutput };
+  } catch {
+    return { ok: false };
+  }
+};
+
+const finalizeStagedOutRoot = (stageOutDir: string, outDir: string): boolean => {
+  try {
+    fs.rmSync(outDir, { recursive: true, force: true });
+    fs.renameSync(stageOutDir, outDir);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const evaluateEvidenceWarnings = (input: {
   outDir: string;
   receipt: SafeRunReceiptV0;
@@ -743,7 +767,14 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
     reasonCodes: selected.reasonCodes ?? [],
   };
 
-  const outDir = options.outDir;
+  const finalOutDir = options.outDir;
+  const stage = prepareStagedOutRoot(finalOutDir);
+  if (!stage.ok) {
+    console.error("[SAFE_RUN_STAGE_INIT_FAILED] unable to initialize staged output path.");
+    return 1;
+  }
+  const outDir = stage.stageOutDir;
+  const hadPreexistingOutput = stage.hadPreexistingOutput;
   const hostDir = path.join(outDir, "host");
   const analysisDir = path.join(outDir, "analysis");
   const releaseDir = path.join(outDir, "release");
@@ -758,6 +789,7 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
     const baseWarnings = stableSortUniqueReasonsV0([
       ...(receipt.weftendBuild.reasonCodes ?? []),
       ...(receipt.execution.reasonCodes ?? []),
+      ...(hadPreexistingOutput ? ["SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"] : []),
       ...extraWarnings,
     ]);
     const readmeText = buildReceiptReadmeV0(receipt.weftendBuild, receipt.schemaVersion);
@@ -810,9 +842,13 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
       operatorReceipt = buildAndWriteOperator(stableSortUniqueReasonsV0([...baseWarnings, ...evidenceWarnings]));
     }
     const privacy = runPrivacyLintV0({ root: outDir, weftendBuild: receipt.weftendBuild });
+    if (!finalizeStagedOutRoot(outDir, finalOutDir)) {
+      console.error("[SAFE_RUN_FINALIZE_FAILED] unable to finalize staged output.");
+      return { ok: false as const, code: 1 };
+    }
     try {
       updateLibraryViewFromRunV0({
-        outDir,
+        outDir: finalOutDir,
         privacyVerdict: privacy.report.verdict,
         hostSelfStatus: receipt.hostSelfStatus,
         hostSelfReasonCodes: receipt.hostSelfReasonCodes ?? [],
@@ -827,6 +863,7 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
   if (classified.artifactKind === "RELEASE_DIR") {
     const meta = loadReleaseMeta(options.inputPath);
     if (!meta.ok) {
+      fs.rmSync(outDir, { recursive: true, force: true });
       console.error("[INPUT_INVALID] release input invalid.");
       meta.reasonCodes.forEach((code) => console.error(`[${code}] release input invalid.`));
       return 40;
@@ -933,6 +970,7 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
     try {
       scriptText = readTextFile(options.scriptPath);
     } catch {
+      fs.rmSync(outDir, { recursive: true, force: true });
       console.error("[SCRIPT_INVALID] unable to read script file.");
       return 40;
     }
@@ -945,6 +983,7 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
   const classifiedRaw = classifyArtifactKindV0(options.inputPath, result.capture);
   const mintIssues = validateMintPackageV1(result.mint, "mint");
   if (mintIssues.length > 0) {
+    fs.rmSync(outDir, { recursive: true, force: true });
     console.error("[MINT_INVALID]");
     mintIssues.forEach((issue) => {
       const loc = issue.path ? ` (${issue.path})` : "";

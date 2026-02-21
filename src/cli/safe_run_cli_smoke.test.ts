@@ -184,6 +184,8 @@ suite("cli/safe-run", () => {
     const operator = readJson(outDir, "operator_receipt.json");
     const warnings = Array.isArray(operator.warnings) ? operator.warnings : [];
     assert(warnings.includes("SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"), "expected orphan evidence warning in operator receipt");
+    assert(!fs.existsSync(path.join(outDir, "analysis", "stale.txt")), "stale analysis output must be replaced during finalize");
+    assert(!fs.existsSync(`${outDir}.stage`), "safe-run stage directory must not remain after finalize");
   });
 
   register("safe-run records orphan evidence warning for root-level stale outputs", async () => {
@@ -200,6 +202,8 @@ suite("cli/safe-run", () => {
     const operator = readJson(outDir, "operator_receipt.json");
     const warnings = Array.isArray(operator.warnings) ? operator.warnings : [];
     assert(warnings.includes("SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"), "expected root-level orphan evidence warning in operator receipt");
+    assert(!fs.existsSync(path.join(outDir, "stale_root.txt")), "stale root output must be replaced during finalize");
+    assert(!fs.existsSync(`${outDir}.stage`), "safe-run stage directory must not remain after finalize");
   });
 
   register("safe-run auto policy selection uses web default for html", async () => {
