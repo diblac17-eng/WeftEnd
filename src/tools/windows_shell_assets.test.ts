@@ -217,6 +217,8 @@ suite("tools/windows shell assets", () => {
     assert(/Is-OpaqueNativeArtifact/.test(text), "expected native-artifact hard guard helper");
     assert(/Is-EmailArtifact/.test(text), "expected email-artifact routing helper");
     assert(/input=inputType:/.test(text), "expected input/adapter report-card line");
+    assert(/adapterMeta=class:/.test(text), "expected adapter metadata report-card line");
+    assert(/capabilities=requested:/.test(text), "expected capability summary report-card line");
     assert(/\.sys/.test(text) && /\.drv/.test(text), "expected sys/drv native guard coverage");
     assert(/ARTIFACT_SHORTCUT_UNSUPPORTED/.test(text), "expected shortcut unsupported reason");
     assert(/Alias\("Target"\)/.test(text), "expected legacy -Target alias compatibility");

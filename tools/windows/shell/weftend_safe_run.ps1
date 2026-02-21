@@ -334,6 +334,70 @@ function Extract-MetricValue {
   return $null
 }
 
+function Get-StringArray {
+  param([object]$Value)
+  $out = @()
+  if ($null -eq $Value) { return ,$out }
+  foreach ($item in @($Value)) {
+    if ($null -eq $item) { continue }
+    $text = ([string]$item).Trim()
+    if ($text -eq "") { continue }
+    $out += $text
+  }
+  return ,$out
+}
+
+function Get-PropertyValue {
+  param(
+    [object]$ObjectValue,
+    [string]$Name
+  )
+  if ($null -eq $ObjectValue -or -not $Name) { return $null }
+  if ($ObjectValue -is [System.Collections.IDictionary]) {
+    if ($ObjectValue.Contains($Name)) { return $ObjectValue[$Name] }
+    return $null
+  }
+  try {
+    $prop = $ObjectValue.PSObject.Properties[$Name]
+    if ($prop) { return $prop.Value }
+  } catch {
+    return $null
+  }
+  return $null
+}
+
+function Format-ReasonPreview {
+  param(
+    [object]$ReasonCodes,
+    [int]$MaxItems = 4
+  )
+  $codes = Get-StringArray -Value $ReasonCodes
+  if ($codes.Count -le 0) { return "-" }
+  if ($MaxItems -lt 1) { $MaxItems = 1 }
+  $take = [Math]::Min($codes.Count, $MaxItems)
+  $shown = @()
+  for ($i = 0; $i -lt $take; $i++) {
+    $shown += $codes[$i]
+  }
+  $preview = $shown -join ","
+  if ($codes.Count -gt $take) {
+    $preview += ",+" + [string]($codes.Count - $take)
+  }
+  return $preview
+}
+
+function Get-AdapterClassLabel {
+  param(
+    [string]$AdapterIdValue,
+    [string]$ArtifactKindValue
+  )
+  $id = if ($AdapterIdValue) { [string]$AdapterIdValue } else { "" }
+  if ($id -match "^([a-z0-9_]+)_adapter_v[0-9]+$") { return [string]$matches[1] }
+  if ($id.ToLowerInvariant() -eq "docker.local.inspect.v0") { return "container" }
+  if ($ArtifactKindValue -and ([string]$ArtifactKindValue).ToUpperInvariant() -eq "CONTAINER_IMAGE") { return "container" }
+  return "-"
+}
+
 function To-Int64OrZero {
   param([object]$Value)
   if ($null -eq $Value) { return 0 }
@@ -620,6 +684,27 @@ function Write-ReportCard {
     elseif ($targetKind -eq "directory") { $inputType = "directory" }
     elseif ($targetKind -eq "nativeBinary") { $inputType = "nativeBinary" }
     elseif ($Summary.rawArtifactKind -eq "ZIP") { $inputType = "archive"; $adapter = "zip_v0" }
+    if ($Summary.adapterId -and [string]$Summary.adapterId -ne "-") {
+      $adapter = [string]$Summary.adapterId
+    }
+    $adapterClass = if ($Summary.adapterClass -and [string]$Summary.adapterClass -ne "") { [string]$Summary.adapterClass } else { "-" }
+    if (-not $adapterClass -or $adapterClass -eq "-") {
+      $adapterClass = Get-AdapterClassLabel -AdapterIdValue $adapter -ArtifactKindValue $Summary.rawArtifactKind
+    }
+    $adapterMode = if ($Summary.adapterMode -and [string]$Summary.adapterMode -ne "") { [string]$Summary.adapterMode } else { "-" }
+    $adapterSourceFormat = if ($Summary.adapterSourceFormat -and [string]$Summary.adapterSourceFormat -ne "") { [string]$Summary.adapterSourceFormat } else { "-" }
+    $adapterReasons = if ($Summary.adapterReasons -and [string]$Summary.adapterReasons -ne "") { [string]$Summary.adapterReasons } else { "-" }
+    $adapterSignalMarkers = if ($Summary.adapterSignalMarkers -and [string]$Summary.adapterSignalMarkers -ne "") { [string]$Summary.adapterSignalMarkers } else { "-" }
+    $capabilityRequested = To-Int64OrZero -Value $Summary.capabilityRequested
+    $capabilityGranted = To-Int64OrZero -Value $Summary.capabilityGranted
+    $capabilityDenied = To-Int64OrZero -Value $Summary.capabilityDenied
+    $hasAdapterEvidence = (
+      ($adapter -and $adapter -ne "filesystem_v0") -or
+      ($adapterClass -and $adapterClass -ne "-") -or
+      ($capabilityRequested -gt 0) -or
+      ($capabilityGranted -gt 0) -or
+      ($capabilityDenied -gt 0)
+    )
     if ($stateLines.Count -gt 0 -and $ViewState) {
       if ($ViewState.blocked -and $ViewState.blocked.runId) {
         $meaning = "Blocked. Review change before proceeding."
@@ -647,8 +732,17 @@ function Write-ReportCard {
         $meaning = "Denied by policy or trust gate."
       }
     }
+    $adapterLines = @()
+    if ($hasAdapterEvidence) {
+      $adapterLines += "adapterMeta=class:$adapterClass mode:$adapterMode source:$adapterSourceFormat reasons:$adapterReasons"
+      if ($adapterSignalMarkers -and $adapterSignalMarkers -ne "-") {
+        $adapterLines += "adapterSignals=markers:$adapterSignalMarkers"
+      }
+      $adapterLines += "capabilities=requested:$capabilityRequested granted:$capabilityGranted denied:$capabilityDenied"
+    }
     $lines = @(
-      "input=inputType:$inputType adapter:$adapter",
+      "input=inputType:$inputType adapter:$adapter"
+    ) + $adapterLines + @(
       "classification=target:$targetKind artifact:$artifactKind entryHints=$entry",
       "targets=requested:$requestedLabel scan:$scanLabel",
       "artifactFingerprint=$artifactFingerprint",
@@ -729,6 +823,20 @@ function Write-ReportCard {
       receipt = "safe_run_receipt.json"
       operator = "operator_receipt.json"
       lines = $lines
+    }
+    if ($hasAdapterEvidence) {
+      $reportJson.adapter = [ordered]@{
+        class = $adapterClass
+        adapterId = $adapter
+        mode = $adapterMode
+        sourceFormat = $adapterSourceFormat
+        reasons = $adapterReasons
+        capabilities = [ordered]@{
+          requested = $capabilityRequested
+          granted = $capabilityGranted
+          denied = $capabilityDenied
+        }
+      }
     }
     ($reportJson | ConvertTo-Json -Depth 6) | Set-Content -Path $reportJsonPath -Encoding UTF8
   } catch {
@@ -818,52 +926,128 @@ function Write-ReportCard {
   }
 }
 
+function New-DefaultReceiptSummary {
+  return @{
+    topReason = ""
+    analysisVerdict = ""
+    executionVerdict = ""
+    rawArtifactKind = "UNKNOWN"
+    inputDigest = ""
+    targetKind = "unknown"
+    artifactKind = "unknown"
+    totalFiles = "?"
+    totalBytesBounded = "?"
+    hasScripts = "?"
+    hasHtml = $false
+    hasNativeBinaries = "?"
+    externalRefCount = "?"
+    externalDomainCount = 0
+    entryHints = @()
+    boundednessMarkers = @()
+    adapterId = "-"
+    adapterMode = "-"
+    adapterSourceFormat = "-"
+    adapterClass = "-"
+    adapterReasons = "-"
+    adapterSignalMarkers = "-"
+    capabilityRequested = 0
+    capabilityGranted = 0
+    capabilityDenied = 0
+  }
+}
+
 function Read-ReceiptSummaryFromPath {
   param([string]$SafeReceipt)
-  if (Test-Path $safeReceipt) {
-    try {
-      $json = Get-Content -Path $safeReceipt -Raw | ConvertFrom-Json
-      $top = [string]$json.topReasonCode
-      if (-not $top -or $top.Trim() -eq "") {
-        $codes = $json.execution.reasonCodes
-        if ($codes -and $codes.Count -gt 0) {
-          $top = [string]$codes[0]
-        }
-      }
-      $analysis = [string]$json.analysisVerdict
-      $execution = [string]$json.executionVerdict
-      $content = $json.contentSummary
-      $summary = @{
-        topReason = $top
-        analysisVerdict = $analysis
-        executionVerdict = $execution
-        rawArtifactKind = [string]$json.artifactKind
-        inputDigest = [string]$json.inputDigest
-      }
-      if ($content) {
-        $summary.targetKind = [string]$content.targetKind
-        $summary.artifactKind = [string]$content.artifactKind
-        $summary.totalFiles = $content.totalFiles
-        $summary.totalBytesBounded = $content.totalBytesBounded
-        $summary.hasScripts = $content.hasScripts
-        $summary.hasHtml = $content.hasHtml
-        $summary.hasNativeBinaries = $content.hasNativeBinaries
-        $summary.externalRefCount = $content.externalRefs.count
-        $summary.externalDomainCount = if ($content.externalRefs.topDomains) { $content.externalRefs.topDomains.Count } else { 0 }
-        $summary.entryHints = $content.entryHints
-        $summary.boundednessMarkers = $content.boundednessMarkers
-        if ($content.hashFamily) {
-          if ($content.hashFamily.sha256) {
-            $summary.hashSha256 = [string]$content.hashFamily.sha256
-          }
-        }
-      }
-      return $summary
-    } catch {
-      return @{ topReason = $null; analysisVerdict = $null }
-    }
+  $summary = New-DefaultReceiptSummary
+  if (-not (Test-Path -LiteralPath $SafeReceipt)) {
+    return $summary
   }
-  return @{ topReason = $null; analysisVerdict = $null }
+  try {
+    $json = Get-Content -Path $SafeReceipt -Raw | ConvertFrom-Json
+    $top = [string](Get-PropertyValue -ObjectValue $json -Name "topReasonCode")
+    if (-not $top -or $top.Trim() -eq "") {
+      $executionObj = Get-PropertyValue -ObjectValue $json -Name "execution"
+      $codes = Get-PropertyValue -ObjectValue $executionObj -Name "reasonCodes"
+      $codeList = Get-StringArray -Value $codes
+      if ($codeList.Count -gt 0) { $top = [string]$codeList[0] }
+    }
+    $summary.topReason = $top
+    $summary.analysisVerdict = [string](Get-PropertyValue -ObjectValue $json -Name "analysisVerdict")
+    $summary.executionVerdict = [string](Get-PropertyValue -ObjectValue $json -Name "executionVerdict")
+    $summary.rawArtifactKind = [string](Get-PropertyValue -ObjectValue $json -Name "artifactKind")
+    $summary.inputDigest = [string](Get-PropertyValue -ObjectValue $json -Name "inputDigest")
+
+    $content = Get-PropertyValue -ObjectValue $json -Name "contentSummary"
+    if ($content) {
+      $targetKindValue = Get-PropertyValue -ObjectValue $content -Name "targetKind"
+      $artifactKindValue = Get-PropertyValue -ObjectValue $content -Name "artifactKind"
+      if ($targetKindValue) { $summary.targetKind = [string]$targetKindValue }
+      if ($artifactKindValue) { $summary.artifactKind = [string]$artifactKindValue }
+      $summary.totalFiles = Get-PropertyValue -ObjectValue $content -Name "totalFiles"
+      $summary.totalBytesBounded = Get-PropertyValue -ObjectValue $content -Name "totalBytesBounded"
+      $summary.hasScripts = Get-PropertyValue -ObjectValue $content -Name "hasScripts"
+      $summary.hasHtml = Get-PropertyValue -ObjectValue $content -Name "hasHtml"
+      $summary.hasNativeBinaries = Get-PropertyValue -ObjectValue $content -Name "hasNativeBinaries"
+      $summary.entryHints = Get-StringArray -Value (Get-PropertyValue -ObjectValue $content -Name "entryHints")
+      $summary.boundednessMarkers = Get-StringArray -Value (Get-PropertyValue -ObjectValue $content -Name "boundednessMarkers")
+
+      $externalRefs = Get-PropertyValue -ObjectValue $content -Name "externalRefs"
+      if ($externalRefs) {
+        $summary.externalRefCount = Get-PropertyValue -ObjectValue $externalRefs -Name "count"
+        $topDomains = Get-StringArray -Value (Get-PropertyValue -ObjectValue $externalRefs -Name "topDomains")
+        $summary.externalDomainCount = $topDomains.Count
+      }
+
+      $hashFamily = Get-PropertyValue -ObjectValue $content -Name "hashFamily"
+      if ($hashFamily) {
+        $hashSha = Get-PropertyValue -ObjectValue $hashFamily -Name "sha256"
+        if ($hashSha) { $summary.hashSha256 = [string]$hashSha }
+      }
+
+      $adapterSignals = Get-PropertyValue -ObjectValue $content -Name "adapterSignals"
+      if ($adapterSignals) {
+        $adapterSignalClass = Get-PropertyValue -ObjectValue $adapterSignals -Name "class"
+        if ($adapterSignalClass) { $summary.adapterClass = [string]$adapterSignalClass }
+        $adapterSignalMarkers = Get-PropertyValue -ObjectValue $adapterSignals -Name "markers"
+        if ($adapterSignalMarkers) {
+          $summary.adapterSignalMarkers = Format-ReasonPreview -ReasonCodes $adapterSignalMarkers -MaxItems 4
+        }
+      }
+    }
+
+    $adapterObj = Get-PropertyValue -ObjectValue $json -Name "adapter"
+    if ($adapterObj) {
+      $adapterId = Get-PropertyValue -ObjectValue $adapterObj -Name "adapterId"
+      $adapterMode = Get-PropertyValue -ObjectValue $adapterObj -Name "mode"
+      $adapterSourceFormat = Get-PropertyValue -ObjectValue $adapterObj -Name "sourceFormat"
+      if ($adapterId) { $summary.adapterId = [string]$adapterId }
+      if ($adapterMode) { $summary.adapterMode = [string]$adapterMode }
+      if ($adapterSourceFormat) { $summary.adapterSourceFormat = [string]$adapterSourceFormat }
+      $summary.adapterReasons = Format-ReasonPreview -ReasonCodes (Get-PropertyValue -ObjectValue $adapterObj -Name "reasonCodes") -MaxItems 4
+    }
+
+    if (-not $summary.adapterClass -or $summary.adapterClass -eq "-") {
+      $summary.adapterClass = Get-AdapterClassLabel -AdapterIdValue $summary.adapterId -ArtifactKindValue $summary.rawArtifactKind
+    }
+
+    $runDir = Split-Path -Parent $SafeReceipt
+    if ($runDir) {
+      $capabilityPath = Join-Path (Join-Path $runDir "analysis") "capability_ledger_v0.json"
+      if (Test-Path -LiteralPath $capabilityPath) {
+        try {
+          $capability = Get-Content -Path $capabilityPath -Raw | ConvertFrom-Json
+          $summary.capabilityRequested = @((Get-PropertyValue -ObjectValue $capability -Name "requestedCaps")).Count
+          $summary.capabilityGranted = @((Get-PropertyValue -ObjectValue $capability -Name "grantedCaps")).Count
+          $summary.capabilityDenied = @((Get-PropertyValue -ObjectValue $capability -Name "deniedCaps")).Count
+        } catch {
+          # best effort only
+        }
+      }
+    }
+    return $summary
+  } catch {
+    return $summary
+  }
 }
 
 function Read-ReceiptSummary {

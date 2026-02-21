@@ -248,6 +248,9 @@ Included
 - Launchpad History UX improvements: direct View Report action and keyboard open behavior (double-click/Enter).
 - Report viewer now includes a collapsed Adapter Evidence section (shown only when adapter/capability artifacts exist), with quick-open buttons for capability, summary, and findings JSON artifacts.
 - Launchpad History now shows an Adapter tag column (including plugin usage and denied-capability marker) derived from the latest run receipt.
+- Windows shell `report_card.txt` and `report_card_v0.json` now include adapter metadata and capability counts when adapter evidence exists:
+- `adapterMeta=class:<class> mode:<mode> source:<format> reasons:<codes>`
+- `capabilities=requested:<n> granted:<n> denied:<n>`
 - New bind/unbind right-click flow:
 - Bind to WeftEnd and Unbind from WeftEnd verbs for files, shortcuts, and folders.
 - .lnk rewrap mode preserves icon and stores an original shortcut backup for safe restoration.
