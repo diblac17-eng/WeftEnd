@@ -118,6 +118,23 @@ suite("cli/compare", () => {
     assertEq(receipt.verdict, "SAME", "expected SAME verdict");
   });
 
+  register("compare finalize replaces stale output roots", async () => {
+    const root = makeTempDir();
+    const leftDir = path.join(root, "left");
+    const rightDir = path.join(root, "right");
+    const outDir = path.join(root, "cmp");
+    await runSafeRunFixture("safe_no_caps", leftDir);
+    await runSafeRunFixture("net_attempt", rightDir);
+    fs.mkdirSync(outDir, { recursive: true });
+    fs.writeFileSync(path.join(outDir, "stale_marker.txt"), "old", "utf8");
+
+    const result = await runCliCapture(["compare", leftDir, rightDir, "--out", outDir]);
+    assertEq(result.status, 0, `expected compare success\n${result.stderr}`);
+    assert(fs.existsSync(path.join(outDir, "compare_receipt.json")), "expected compare_receipt.json after finalize");
+    assert(!fs.existsSync(path.join(outDir, "stale_marker.txt")), "stale out-root files must be replaced during finalize");
+    assert(!fs.existsSync(`${outDir}.stage`), "compare stage directory must not remain after finalize");
+  });
+
   register("compare reports content buckets for divergent inputs", async () => {
     const root = makeTempDir();
     const leftDir = path.join(root, "left");
