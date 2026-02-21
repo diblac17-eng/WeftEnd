@@ -26,6 +26,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Launchpad shell doctor fail-code parsing now anchors to full `ShellDoctorStatus: FAIL code=...` lines for stricter deterministic code extraction.
 - Launchpad adapter doctor `strict.reasons=` fallback parsing now accepts spaced reason lists and validates extracted code tokens before surfacing them.
 - Release ops script now enforces `Set-StrictMode -Version Latest` for fail-closed handling of unbound/implicit script-state issues.
+- Release zip wrapper and Windows icon-regeneration paths now invoke resolved PowerShell executable paths (`$powershellExe` / `$iconHostExe`) instead of command-name `powershell` lookup.
 - Updated Windows shell asset contract coverage to pin startup failure-counter behavior.
 - Launchpad History report-open success now resets viewer startup state (`UseReportViewer=1`, `ReportViewerAutoOpen=1`, `ReportViewerStartFailCount=0`) so operator manual opens can self-heal auto-open disable state.
 

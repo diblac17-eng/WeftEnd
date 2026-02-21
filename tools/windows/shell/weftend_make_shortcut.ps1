@@ -57,7 +57,9 @@ function Resolve-WeftEndIcon {
     $iconScript = Join-Path $Root "tools\windows\gen_icon.ps1"
     if (Test-Path $iconScript) {
       try {
-        & powershell -NoProfile -ExecutionPolicy Bypass -File $iconScript -PngPath $pngPath -OutIco $icoPath | Out-Null
+        $iconHostExe = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
+        if (-not (Test-Path -LiteralPath $iconHostExe)) { $iconHostExe = "powershell.exe" }
+        & $iconHostExe -NoProfile -ExecutionPolicy Bypass -File $iconScript -PngPath $pngPath -OutIco $icoPath | Out-Null
       } catch {
         # fall back to PNG
       }

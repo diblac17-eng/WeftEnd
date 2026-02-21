@@ -13,5 +13,7 @@ if (-not (Test-Path $zipScript)) {
   exit 1
 }
 
-& powershell -ExecutionPolicy Bypass -File $zipScript -OutDir $OutDir
+$powershellExe = Join-Path $env:WINDIR "System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+if (-not (Test-Path -LiteralPath $powershellExe)) { $powershellExe = "powershell.exe" }
+& $powershellExe -ExecutionPolicy Bypass -File $zipScript -OutDir $OutDir
 exit $LASTEXITCODE

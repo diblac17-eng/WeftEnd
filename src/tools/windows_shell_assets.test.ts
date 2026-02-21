@@ -105,6 +105,7 @@ suite("tools/windows shell assets", () => {
     );
     assert(/launchpad_panel\.ps1/.test(text), "expected launchpad panel script reference");
     assert(/open_release_folder\.ps1/.test(text), "expected open_release_folder script reference");
+    assert(/\$iconHostExe -NoProfile -ExecutionPolicy Bypass -File \$iconScript/.test(text), "expected install script icon generation to use resolved powershell executable path");
     assert(/WScript\.Shell/.test(text), "expected shortcut creation via WScript.Shell");
     assert(/\$shortcut\.WindowStyle = 7/.test(text), "expected minimized shortcut window style");
   });
@@ -141,6 +142,14 @@ suite("tools/windows shell assets", () => {
     assert(/function Get-StableSortKey/.test(text), "expected release ops stable sort-key helper");
     assert(/Sort-Object @{ Expression = \{ Get-StableSortKey -value \$_.FullName \} }/.test(text), "expected release ops deterministic publish.json sort");
     assert(!/Sort-Object FullName/.test(text), "release ops must avoid locale-sensitive Sort-Object FullName");
+  });
+
+  register("release zip wrapper uses resolved powershell executable", () => {
+    const wrapperPath = path.join(repoRoot, "scripts", "weftend_release_zip.ps1");
+    const text = fs.readFileSync(wrapperPath, "utf8");
+    assert(/\$powershellExe = Join-Path \$env:WINDIR/.test(text), "expected release zip wrapper powershell path resolution");
+    assert(/& \$powershellExe -ExecutionPolicy Bypass -File \$zipScript -OutDir \$OutDir/.test(text), "expected release zip wrapper to invoke resolved powershell executable path");
+    assert(!/& powershell -ExecutionPolicy Bypass -File/.test(text), "release zip wrapper must avoid command-name powershell invocation");
   });
 
   register("shell doctor checks expected registry keys", () => {
@@ -345,6 +354,7 @@ suite("tools/windows shell assets", () => {
 
     const shortcutPath = path.join(shellDir, "weftend_make_shortcut.ps1");
     const shortcutText = fs.readFileSync(shortcutPath, "utf8");
+    assert(/\$iconHostExe -NoProfile -ExecutionPolicy Bypass -File \$iconScript/.test(shortcutText), "expected shortcut icon generation to use resolved powershell executable path");
     assert(/LaunchpadMode/.test(shortcutText), "expected LaunchpadMode flag in shortcut tool");
     assert(/-Open 0/.test(shortcutText), "expected quiet mode for launchpad shortcuts");
     assert(/WindowStyle = 7/.test(shortcutText), "expected minimized shortcut window style");
