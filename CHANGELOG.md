@@ -133,6 +133,8 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Updated release bundle manifest contract to require `scripts/proofcheck_release.js` presence.
 - `verify:360:harness` now validates strict-mode idempotence separation (`NEW` then `REPLAY`) to prevent strict/non-strict replay-key regression.
 - Emergency verify report output now includes policy summary lines (`policy.*`) and failure receipts carry interpreted policy fields for consistent fail-closed readability.
+- `privacy_lint` report output now uses staged atomic finalize (`privacy_lint_v0.json.stage` -> `privacy_lint_v0.json`) to prevent partial report residue.
+- Added runtime test coverage that asserts privacy-lint staged finalize behavior and no leftover `.stage` file.
 
 ### Adapter maintenance controls
 - Added `weftend adapter doctor` for deterministic adapter readiness/maintenance reporting.

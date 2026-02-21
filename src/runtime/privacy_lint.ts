@@ -226,7 +226,10 @@ export const runPrivacyLintV0 = (options: {
   const reportPath = path.join(root, REPORT_PATH);
   if (options.writeReport !== false) {
     fs.mkdirSync(path.dirname(reportPath), { recursive: true });
-    fs.writeFileSync(reportPath, `${canonicalJSON(report)}\n`, "utf8");
+    const stagePath = `${reportPath}.stage`;
+    fs.rmSync(stagePath, { recursive: true, force: true });
+    fs.writeFileSync(stagePath, `${canonicalJSON(report)}\n`, "utf8");
+    fs.renameSync(stagePath, reportPath);
   }
   const summary = formatPrivacyLintSummary(report);
   const exitCode = report.verdict === "PASS" ? 0 : 40;

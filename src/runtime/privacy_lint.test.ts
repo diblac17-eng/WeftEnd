@@ -157,6 +157,28 @@ suite("runtime/privacy lint", () => {
     assertEq(result.report.verdict, "FAIL", "expected FAIL verdict for path in key");
     assert(result.report.violations.some((v) => v.code === "ABS_PATH_WIN"), "expected ABS_PATH_WIN");
   });
+
+  register("report write uses staged finalize with no leftover stage file", () => {
+    const root = makeTempDir();
+    const readmeDir = path.join(root, "weftend");
+    fs.mkdirSync(readmeDir, { recursive: true });
+    const readmePath = path.join(readmeDir, "README.txt");
+    fs.writeFileSync(readmePath, "schemaVersion=0\n", "utf8");
+
+    const reportPath = path.join(root, "weftend", "privacy_lint_v0.json");
+    const stagePath = `${reportPath}.stage`;
+    fs.writeFileSync(reportPath, "stale", "utf8");
+    fs.writeFileSync(stagePath, "stale-stage", "utf8");
+
+    const fixedBuild = { algo: "sha256", digest: "sha256:33333333", source: "NODE_MAIN_JS" } as any;
+    const result = runPrivacyLintV0({ root, weftendBuild: fixedBuild });
+    assertEq(result.report.verdict, "PASS", "expected PASS verdict");
+    assert(fs.existsSync(reportPath), "expected final report to exist");
+    assert(!fs.existsSync(stagePath), "stage file must not remain after finalize");
+
+    const written = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+    assertEq(written.schema, "weftend.privacyLint/0", "expected privacy lint report schema");
+  });
 });
 
 if (!hasBDD) {

@@ -63,6 +63,8 @@ Included
 - Added Green Team contract coverage for strict proofcheck wrapper behavior (`scripts/proofcheck_release.js`).
 - Release bundle manifest contract now requires `scripts/proofcheck_release.js` presence.
 - Emergency verify report path now preserves policy context lines (`policy.*`) so fail-closed receipts remain operator-readable under write-path fallback.
+- `privacy_lint` report output now uses staged atomic finalize (`privacy_lint_v0.json.stage` -> `privacy_lint_v0.json`) to prevent partial report residue.
+- Added runtime test coverage that asserts privacy-lint staged finalize behavior and no leftover `.stage` file.
 - Safe-run now enforces a non-blocking evidence corridor check before completion:
 - Expected receipt artifacts are verified for presence and digest consistency.
 - Pre-existing/stale unmanaged output files anywhere under the run out-root are flagged as orphan evidence.
