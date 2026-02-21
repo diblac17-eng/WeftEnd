@@ -102,6 +102,16 @@ const ensureDir = (dir: string): void => {
   fs.mkdirSync(dir, { recursive: true });
 };
 
+const resolvePowerShellExe = (): string => {
+  if (process.platform !== "win32") return "powershell.exe";
+  const windir = String(process.env?.WINDIR || "").trim();
+  if (windir.length > 0) {
+    const candidate = path.join(windir, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return "powershell.exe";
+};
+
 const resolveShortcutToolPath = (): string => {
   const cwdCandidate = path.join(process.cwd(), "tools", "windows", "shell", "weftend_make_shortcut.ps1");
   if (fs.existsSync(cwdCandidate)) return cwdCandidate;
@@ -138,7 +148,7 @@ const createShortcut = (
   if (allowLaunch) args.push("-AllowLaunch");
   if (openLibrary) args.push("-OpenLibrary");
   args.push("-LaunchpadMode");
-  const result = spawnSync("powershell.exe", args, { stdio: ["ignore", "pipe", "pipe"], encoding: "utf8" });
+  const result = spawnSync(resolvePowerShellExe(), args, { stdio: ["ignore", "pipe", "pipe"], encoding: "utf8" });
   if (result.status === 0) {
     return { ok: true };
   }

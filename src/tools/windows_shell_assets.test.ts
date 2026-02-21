@@ -137,6 +137,23 @@ suite("tools/windows shell assets", () => {
     });
   });
 
+  register("windows cli commands resolve powershell host path before spawn", () => {
+    const launchpadCli = fs.readFileSync(path.join(repoRoot, "src", "cli", "launchpad.ts"), "utf8");
+    assert(/const resolvePowerShellExe = \(\): string =>/.test(launchpadCli), "launchpad cli missing powershell host resolver helper");
+    assert(/spawnSync\(resolvePowerShellExe\(\), args/.test(launchpadCli), "launchpad cli must use resolved powershell host path");
+    assert(!/spawnSync\("powershell\.exe"/.test(launchpadCli), "launchpad cli must avoid command-name powershell spawn");
+
+    const shortcutCli = fs.readFileSync(path.join(repoRoot, "src", "cli", "shortcut.ts"), "utf8");
+    assert(/const resolvePowerShellExe = \(\): string =>/.test(shortcutCli), "shortcut cli missing powershell host resolver helper");
+    assert(/spawnSync\(resolvePowerShellExe\(\), args/.test(shortcutCli), "shortcut cli must use resolved powershell host path");
+    assert(!/spawnSync\("powershell\.exe"/.test(shortcutCli), "shortcut cli must avoid command-name powershell spawn");
+
+    const watchCli = fs.readFileSync(path.join(repoRoot, "src", "cli", "watch.ts"), "utf8");
+    assert(/const resolvePowerShellExe = \(\): string =>/.test(watchCli), "watch cli missing powershell host resolver helper");
+    assert(/spawnSync\(resolvePowerShellExe\(\), \["-NoProfile", "-Command", script\]/.test(watchCli), "watch cli must use resolved powershell host path for popup flow");
+    assert(!/spawnSync\("powershell\.exe", \["-NoProfile", "-Command", script\]/.test(watchCli), "watch cli must avoid command-name powershell spawn");
+  });
+
   register("windows tools scripts resolve powershell host path in wrappers", () => {
     const openFolderPs1 = fs.readFileSync(path.join(windowsDir, "open_release_folder.ps1"), "utf8");
     assert(/\$powershellExe = Join-Path \$env:WINDIR/.test(openFolderPs1), "expected open_release_folder script powershell path resolution");

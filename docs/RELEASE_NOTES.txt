@@ -32,6 +32,8 @@ Included
 - Windows helper wrappers (`OPEN_RELEASE_FOLDER.cmd`, `INSTALL_WINDOWS.cmd`, `UNINSTALL_WINDOWS.cmd`, `FIRST_5_MINUTES.cmd`) now resolve `%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe` first (with fallback) before invocation.
 - `tools/windows/open_release_folder.ps1` and `tools/windows/weftend_release_zip.ps1` now invoke resolved `$powershellExe` path and avoid command-name `powershell` lookup drift.
 - Windows shell contract tests now pin context-menu host-command and CMD wrapper host-path resolution invariants.
+- CLI `launchpad`, `shortcut`, and `watch` commands now resolve PowerShell host path (`%WINDIR%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe` when available) before spawn instead of direct command-name lookup.
+- Windows shell contract tests now also pin CLI PowerShell host-path resolution invariants to prevent regression to literal `spawnSync("powershell.exe", ...)` usage.
 - Launchpad History successful report open now resets viewer startup state (`UseReportViewer=1`, `ReportViewerAutoOpen=1`, `ReportViewerStartFailCount=0`) so manual viewer opens self-heal auto-open disable state.
 - Evidence typing added to operator reports (additive, non-breaking):
 - `report_card.txt` now includes an evidence legend and claim mapping lines:

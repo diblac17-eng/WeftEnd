@@ -92,6 +92,16 @@ const normalizeLibraryRoot = (base: string): string => {
   return path.join(trimmed, "Library");
 };
 
+const resolvePowerShellExe = (): string => {
+  if (process.platform !== "win32") return "powershell.exe";
+  const windir = String(process.env?.WINDIR || "").trim();
+  if (windir.length > 0) {
+    const candidate = path.join(windir, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return "powershell.exe";
+};
+
 
 const isOpaqueNativeArtifact = (value: string): boolean => {
   const ext = path.extname(value || "").toLowerCase();
@@ -196,7 +206,7 @@ const showChangePopup = (targetKey: string, libraryRoot: string): void => {
     "if ($res -eq [System.Windows.Forms.DialogResult]::Yes) { exit 0 }",
     "exit 1",
   ].join(";");
-  const result = spawnSync("powershell.exe", ["-NoProfile", "-Command", script], { stdio: "ignore" });
+  const result = spawnSync(resolvePowerShellExe(), ["-NoProfile", "-Command", script], { stdio: "ignore" });
   if (result.status === 0) {
     openExternalV0(libraryRoot);
   }

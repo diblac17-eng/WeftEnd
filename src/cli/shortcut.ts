@@ -61,6 +61,16 @@ const printUsage = (): void => {
   console.log("  weftend shortcut create --target <path> [--out <shortcut.lnk>] [--allow-launch]");
 };
 
+const resolvePowerShellExe = (): string => {
+  if (process.platform !== "win32") return "powershell.exe";
+  const windir = String(process.env?.WINDIR || "").trim();
+  if (windir.length > 0) {
+    const candidate = path.join(windir, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return "powershell.exe";
+};
+
 const resolveDesktopShortcutPath = (targetPath: string): string => {
   const desktop = path.join(os.homedir(), "Desktop");
   const base = path.basename(targetPath || "WeftEnd Run");
@@ -109,7 +119,7 @@ export const runShortcutCli = (argv: string[]): number => {
   ];
   if (parsed.allowLaunch) args.push("-AllowLaunch");
 
-  const result = spawnSync("powershell.exe", args, { stdio: ["ignore", "pipe", "pipe"] });
+  const result = spawnSync(resolvePowerShellExe(), args, { stdio: ["ignore", "pipe", "pipe"] });
   if (result.error && (result.error.code === "EPERM" || result.error.code === "EACCES")) {
     console.error("[SHORTCUT_POWERSHELL_BLOCKED]");
     return 40;
