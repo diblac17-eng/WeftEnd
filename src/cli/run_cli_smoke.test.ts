@@ -92,6 +92,12 @@ suite("cli/run", () => {
     const operator = JSON.parse(fs.readFileSync(operatorPath, "utf8"));
     const opIssues = validateOperatorReceiptV0(operator, "operatorReceipt");
     assertEq(opIssues.length, 0, "expected operator receipt to validate");
+    const opEntries = Array.isArray(operator?.receipts) ? operator.receipts : [];
+    assert(opEntries.some((entry: any) => entry?.relPath === "weftend/README.txt"), "expected README entry in operator receipt");
+    assert(opEntries.some((entry: any) => entry?.relPath === "intake_decision.json"), "expected intake decision entry in operator receipt");
+    assert(opEntries.some((entry: any) => entry?.relPath === "appeal_bundle.json"), "expected appeal bundle entry in operator receipt");
+    const opWarnings = Array.isArray(operator?.warnings) ? operator.warnings : [];
+    assert(!opWarnings.includes("SAFE_RUN_EVIDENCE_DIGEST_MISMATCH"), "run evidence verification must not emit digest mismatch warnings in nominal flow");
 
     const privacy = runPrivacyLintV0({ root: outDir, weftendBuild: receipt.weftendBuild });
     assertEq(privacy.report.verdict, "PASS", "expected privacy lint pass");

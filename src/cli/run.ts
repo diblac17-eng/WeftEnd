@@ -39,7 +39,7 @@ import { devkitLoadStrict } from "../devkit/strict_loader";
 import { deriveDemoPublicKey, isDemoCryptoAllowed, makeDemoCryptoPort } from "../ports/crypto-demo";
 import { computeWeftendBuildV0, formatBuildDigestSummaryV0 } from "../runtime/weftend_build";
 import { runPrivacyLintV0 } from "../runtime/privacy_lint";
-import { writeReceiptReadmeV0 } from "../runtime/receipt_readme";
+import { buildReceiptReadmeV0 } from "../runtime/receipt_readme";
 import { buildOperatorReceiptV0, writeOperatorReceiptV0 } from "../runtime/operator_receipt";
 import { buildContentSummaryV0 } from "../runtime/examiner/content_summary_v0";
 import { classifyArtifactKindV0 } from "../runtime/classify/artifact_kind_v0";
@@ -117,6 +117,34 @@ const finalizeStagedOutRoot = (stageOutDir: string, outDir: string): boolean => 
 };
 
 const digestText = (value: string): string => computeArtifactDigestV0(value ?? "");
+const evaluateEvidenceWarnings = (input: { outDir: string; expected: Map<string, string> }): string[] => {
+  const actualSet = new Set<string>();
+  listFilesRecursiveRel(input.outDir, ".").forEach((rel) => actualSet.add(rel));
+
+  const warnings: string[] = [];
+  input.expected.forEach((digest, relPath) => {
+    const abs = path.join(input.outDir, relPath);
+    if (!fs.existsSync(abs)) {
+      warnings.push("SAFE_RUN_EVIDENCE_MISSING");
+      return;
+    }
+    if (!digest) return;
+    let raw = "";
+    try {
+      raw = fs.readFileSync(abs, "utf8");
+    } catch {
+      warnings.push("SAFE_RUN_EVIDENCE_MISSING");
+      return;
+    }
+    if (digestText(raw) !== digest) warnings.push("SAFE_RUN_EVIDENCE_DIGEST_MISMATCH");
+  });
+
+  actualSet.forEach((relPath) => {
+    if (!input.expected.has(relPath)) warnings.push("SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT");
+  });
+
+  return stableSortUniqueReasonsV0(warnings);
+};
 
 const pickStrictEntry = (capture: ReturnType<typeof examineArtifactV1>["capture"]) => {
   if (capture.kind === "zip") return null;
@@ -538,9 +566,10 @@ export const runWeftendRun = async (options: RunCliOptionsV0): Promise<number> =
   writeFile(path.join(outDir, "disclosure.txt"), disclosureTxt);
   writeFile(path.join(outDir, "appeal_bundle.json"), appealJson);
   writeFile(path.join(outDir, "run_receipt.json"), `${canonicalJSON(receipt)}\n`);
-  writeReceiptReadmeV0(outDir, receipt.weftendBuild, receipt.schemaVersion);
+  const readmeText = buildReceiptReadmeV0(receipt.weftendBuild, receipt.schemaVersion);
+  writeFile(path.join(outDir, "weftend", "README.txt"), readmeText);
 
-  const warnings = [
+  const baseWarnings = [
     ...(receipt.weftendBuild.reasonCodes ?? []),
     ...(envGates.strictExecAllowed ? [] : ["STRICT_EXEC_DISABLED"]),
     ...(envGates.demoCryptoAllowed ? [] : ["DEMO_CRYPTO_DISABLED"]),
@@ -549,21 +578,37 @@ export const runWeftendRun = async (options: RunCliOptionsV0): Promise<number> =
       : []),
     ...(hadPreexistingOutput ? ["SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"] : []),
   ];
-  const operatorReceipt = buildOperatorReceiptV0({
-    command: "run",
-    weftendBuild: receipt.weftendBuild,
-    schemaVersion: receipt.schemaVersion,
-    entries: [
-      {
-        kind: "run_receipt",
-        relPath: "run_receipt.json",
-        digest: receipt.receiptDigest,
-      },
-    ],
-    warnings,
-    contentSummary,
+  const entries = [
+    { kind: "run_receipt", relPath: "run_receipt.json", digest: receipt.receiptDigest },
+    { kind: "mint_package", relPath: "weftend_mint_v1.json", digest: digestText(mintJson) },
+    { kind: "run_artifact", relPath: "weftend_mint_v1.txt", digest: digestText(mintTxt) },
+    { kind: "intake_decision", relPath: "intake_decision.json", digest: digestText(decisionJson) },
+    { kind: "disclosure", relPath: "disclosure.txt", digest: digestText(disclosureTxt) },
+    { kind: "appeal_bundle", relPath: "appeal_bundle.json", digest: digestText(appealJson) },
+    { kind: "receipt_readme", relPath: "weftend/README.txt", digest: digestText(readmeText) },
+  ];
+  const buildAndWriteOperator = (warnings: string[]) => {
+    const operatorReceipt = buildOperatorReceiptV0({
+      command: "run",
+      weftendBuild: receipt.weftendBuild,
+      schemaVersion: receipt.schemaVersion,
+      entries,
+      warnings,
+      contentSummary,
+    });
+    writeOperatorReceiptV0(outDir, operatorReceipt);
+    return operatorReceipt;
+  };
+  let operatorReceipt = buildAndWriteOperator(baseWarnings);
+  const expected = new Map<string, string>();
+  entries.forEach((entry) => {
+    expected.set(entry.relPath, entry.relPath === "run_receipt.json" ? "" : entry.digest);
   });
-  writeOperatorReceiptV0(outDir, operatorReceipt);
+  expected.set("operator_receipt.json", "");
+  const evidenceWarnings = evaluateEvidenceWarnings({ outDir, expected });
+  if (evidenceWarnings.length > 0) {
+    operatorReceipt = buildAndWriteOperator(stableSortUniqueReasonsV0([...baseWarnings, ...evidenceWarnings]));
+  }
 
   const buildSummary = formatBuildDigestSummaryV0(receipt.weftendBuild);
   const privacy = runPrivacyLintV0({ root: outDir, weftendBuild: receipt.weftendBuild });
