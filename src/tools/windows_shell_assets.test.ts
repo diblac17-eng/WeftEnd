@@ -269,6 +269,8 @@ suite("tools/windows shell assets", () => {
     assert(/Open-HistoryAdapterEvidenceFolder/.test(panelText), "expected history evidence-folder helper");
     assert(/Update-HistoryActionButtons/.test(panelText), "expected history action-button state helper");
     assert(/Open Evidence/.test(panelText), "expected launchpad history Open Evidence action");
+    assert(/Copy Details/.test(panelText), "expected launchpad history Copy Details action");
+    assert(/Clipboard\]::SetText/.test(panelText), "expected history details clipboard copy action");
     assert(/Columns\.Add\("Adapter"/.test(panelText), "expected launchpad history Adapter column");
     assert(/\+plugin/.test(panelText), "expected launchpad adapter plugin marker");
     assert(/capability_ledger_v0\.json/.test(panelText), "expected launchpad adapter tag capability ledger lookup");

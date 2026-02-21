@@ -671,7 +671,7 @@ function Get-LatestRunIdForTargetDir {
         ForEach-Object { [string]$_.Name }
     )
     if (-not $runs -or $runs.Count -le 0) { return "-" }
-    $runs = @($runs | Sort-Object)
+    [System.Array]::Sort($runs, [System.StringComparer]::Ordinal)
     return [string]$runs[$runs.Count - 1]
   } catch {
     return "-"
@@ -1213,6 +1213,13 @@ $btnHistoryEvidence.Enabled = $false
 Style-Button -Button $btnHistoryEvidence -Primary:$false
 $historyActions.Controls.Add($btnHistoryEvidence) | Out-Null
 
+$btnHistoryCopy = New-Object System.Windows.Forms.Button
+$btnHistoryCopy.Text = "Copy Details"
+$btnHistoryCopy.Width = 98
+$btnHistoryCopy.Height = 30
+Style-Button -Button $btnHistoryCopy -Primary:$false
+$historyActions.Controls.Add($btnHistoryCopy) | Out-Null
+
 $historyList = New-Object System.Windows.Forms.ListView
 $historyList.Dock = "Fill"
 $historyList.View = [System.Windows.Forms.View]::Details
@@ -1369,6 +1376,19 @@ $btnHistoryRun.Add_Click({
 })
 $btnHistoryEvidence.Add_Click({
   Open-HistoryAdapterEvidenceFolder -ListView $historyList -StatusLabel $statusLabel
+})
+$btnHistoryCopy.Add_Click({
+  try {
+    $text = if ($historyDetail -and $historyDetail.Text) { [string]$historyDetail.Text } else { "" }
+    if (-not $text -or $text.Trim() -eq "") {
+      Set-StatusLine -StatusLabel $statusLabel -Message "No history details to copy." -IsError $true
+      return
+    }
+    [System.Windows.Forms.Clipboard]::SetText($text)
+    Set-StatusLine -StatusLabel $statusLabel -Message "Copied history details." -IsError $false
+  } catch {
+    Set-StatusLine -StatusLabel $statusLabel -Message "Copy failed." -IsError $true
+  }
 })
 $historyList.Add_DoubleClick({
   Open-ReportViewerFromHistory -ListView $historyList -StatusLabel $statusLabel
