@@ -22,8 +22,8 @@ Commit style
 
 Gate enforcement
 - `npm run verify:360` runs etiquette checks on:
+  - `CHANGELOG.md`
   - `README.md`
   - `docs/RELEASE_ANNOUNCEMENT.txt`
   - `docs/RELEASE_NOTES.txt`
 - Fails with `VERIFY360_GIT_ETIQUETTE_FAILED` if violations are detected.
-

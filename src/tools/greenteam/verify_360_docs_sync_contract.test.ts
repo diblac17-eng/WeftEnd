@@ -43,6 +43,13 @@ const readScript = (): string => {
   return String(fs.readFileSync(full, "utf8"));
 };
 
+const readText = (relPath: string): string => {
+  const full = path.join(process.cwd(), relPath);
+  assert(fs.existsSync(full), `missing file: ${relPath}`);
+  assert(fs.statSync(full).isFile(), `expected file: ${relPath}`);
+  return String(fs.readFileSync(full, "utf8"));
+};
+
 suite("greenteam/verify360-docs-sync-contract", () => {
   register("verify:360 keeps docs-sync and etiquette targets for immutable release discipline", () => {
     const text = readScript();
@@ -57,6 +64,17 @@ suite("greenteam/verify360-docs-sync-contract", () => {
       "verify_360 docs-sync/etiquette contract missing release notes target"
     );
     assert(text.includes("VERIFY360_DOC_SYNC_MISSING"), "verify_360 docs-sync fail code missing");
+  });
+
+  register("posting etiquette doc stays aligned with verify:360 etiquette targets", () => {
+    const doc = readText("docs/GIT_POSTING_ETIQUETTE.md");
+    assert(doc.includes("CHANGELOG.md"), "posting etiquette doc missing CHANGELOG target");
+    assert(doc.includes("README.md"), "posting etiquette doc missing README target");
+    assert(
+      doc.includes("docs/RELEASE_ANNOUNCEMENT.txt"),
+      "posting etiquette doc missing release announcement target"
+    );
+    assert(doc.includes("docs/RELEASE_NOTES.txt"), "posting etiquette doc missing release notes target");
   });
 });
 

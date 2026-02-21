@@ -16,6 +16,7 @@ Included
 - Release announcement draft (`docs/RELEASE_ANNOUNCEMENT.txt`) refreshed to align with current adapter/verify/workflow scope.
 - Release bundle sidecar set now includes `CHANGELOG.md` so immutable history is shipped with release uploads.
 - `verify:360` docs-sync/etiquette coverage now includes `CHANGELOG.md` and release announcement references.
+- `docs/GIT_POSTING_ETIQUETTE.md` now matches verify etiquette target set (includes `CHANGELOG.md`).
 - 360 commit gate added:
 - `npm run verify:360` now performs compile/test/proofcheck + deterministic replay + privacy lint + compare smoke.
 - Gate now always writes evidence artifacts (`verify_360_receipt.json` and `verify_360_report.txt`) for PASS/PARTIAL/FAIL outcomes.

@@ -18,6 +18,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Refreshed `docs/RELEASE_ANNOUNCEMENT.txt` to match current adapter expansion, verify-gate, and workflow scope.
 - Updated release packaging to include `CHANGELOG.md` in staged bundle and copied release-sidecar artifacts.
 - Updated `verify:360` docs-sync and etiquette targets to include `CHANGELOG.md` and release announcement references.
+- Updated `docs/GIT_POSTING_ETIQUETTE.md` to match verify etiquette target set (includes `CHANGELOG.md`).
 
 ### Safe-run evidence corridor
 - `safe-run` now verifies expected receipt artifacts for presence and digest consistency before completion.
