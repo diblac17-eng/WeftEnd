@@ -454,6 +454,11 @@ const listStageResidue = (dir) => {
   return out;
 };
 
+const collectTmpStageResidues = (tmpRoot) => {
+  if (!tmpRoot || !fs.existsSync(tmpRoot)) return [];
+  return stableSortUnique(listStageResidue(tmpRoot).map((relPath) => `tmp:${relPath}`));
+};
+
 const findPriorRunByIdempotenceKey = (idempotenceKey) => {
   ensureDir(HISTORY_ROOT);
   const runs = fs
@@ -742,6 +747,23 @@ const main = () => {
   const addStep = (step) => {
     if (steps.length < MAX_STEPS) steps.push(step);
   };
+  const addStageResidueStep = () => {
+    const stageResidues = collectTmpStageResidues(tmpRoot);
+    const hasStageResidue = stageResidues.length > 0;
+    addStep({
+      id: "stage_residue",
+      status: hasStageResidue ? "FAIL" : "PASS",
+      reasonCodes: hasStageResidue ? ["VERIFY360_STAGE_RESIDUE_PRESENT"] : [],
+      details: hasStageResidue
+        ? {
+            count: stageResidues.length,
+            samples: stageResidues.slice(0, 5),
+          }
+        : {
+            count: 0,
+          },
+    });
+  };
   const capabilityMap = new Map();
   const recordCapability = (capability, granted, reasonCodes = []) => {
     if (typeof capability !== "string" || capability.length === 0) return;
@@ -963,11 +985,7 @@ const main = () => {
       status: "SKIP",
       reasonCodes: ["VERIFY360_DEPENDENCY_MISSING"],
     });
-    addStep({
-      id: "stage_residue",
-      status: "SKIP",
-      reasonCodes: ["VERIFY360_DEPENDENCY_MISSING"],
-    });
+    addStageResidueStep();
     recordCapability("fixture.deterministic_input", false, ["VERIFY360_INPUT_FIXTURE_MISSING"]);
     recordCapability("cli.safe_run", false, ["VERIFY360_DEPENDENCY_MISSING"]);
     recordCapability("runtime.privacy_lint", false, ["VERIFY360_DEPENDENCY_MISSING"]);
@@ -1074,25 +1092,6 @@ const main = () => {
         reasonCodes: stableSortUnique(cmpReasons),
       });
       recordCapability("cli.compare", cmpOk, cmpReasons);
-
-      const stageResidues = []
-        .concat(listStageResidue(outA).map((relPath) => `runA:${relPath}`))
-        .concat(listStageResidue(outB).map((relPath) => `runB:${relPath}`))
-        .concat(listStageResidue(outCompare).map((relPath) => `compare:${relPath}`));
-      const hasStageResidue = stageResidues.length > 0;
-      addStep({
-        id: "stage_residue",
-        status: hasStageResidue ? "FAIL" : "PASS",
-        reasonCodes: hasStageResidue ? ["VERIFY360_STAGE_RESIDUE_PRESENT"] : [],
-        details: hasStageResidue
-          ? {
-              count: stageResidues.length,
-              samples: stageResidues.slice(0, 5),
-            }
-          : {
-              count: 0,
-            },
-      });
     } else {
       addStep({
         id: "privacy_lint_pair",
@@ -1104,14 +1103,10 @@ const main = () => {
         status: "SKIP",
         reasonCodes: ["VERIFY360_DEPENDENCY_MISSING"],
       });
-      addStep({
-        id: "stage_residue",
-        status: "SKIP",
-        reasonCodes: ["VERIFY360_DEPENDENCY_MISSING"],
-      });
       recordCapability("runtime.privacy_lint", false, ["VERIFY360_DEPENDENCY_MISSING"]);
       recordCapability("cli.compare", false, ["VERIFY360_DEPENDENCY_MISSING"]);
     }
+    addStageResidueStep();
   }
   advanceState("DETERMINISM_DONE");
 
