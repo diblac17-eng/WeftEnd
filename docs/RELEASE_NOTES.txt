@@ -77,6 +77,7 @@ Included
 - Release announcement draft (`docs/RELEASE_ANNOUNCEMENT.txt`) refreshed to align with current adapter/verify/workflow scope.
 - Release bundle sidecar set now includes `CHANGELOG.md` so immutable history is shipped with release uploads.
 - Release bundle sidecar set now includes `RELEASE_HISTORY.md`.
+- Root release packaging script (`weftend_release_zip.ps1`) now enforces `Set-StrictMode -Version Latest`.
 - `verify:360` docs-sync/etiquette coverage now includes `CHANGELOG.md`, release notes, release announcement, and release history references.
 - `docs/GIT_POSTING_ETIQUETTE.md` now matches verify etiquette target set (includes `CHANGELOG.md` and `docs/RELEASE_HISTORY.md`).
 - 360 commit gate added:

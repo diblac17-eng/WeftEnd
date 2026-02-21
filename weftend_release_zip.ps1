@@ -2,6 +2,7 @@ param(
   [string]$OutDir = "out\\release"
 )
 
+Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 function Write-Section($title) {

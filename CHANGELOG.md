@@ -86,6 +86,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Refreshed `docs/RELEASE_ANNOUNCEMENT.txt` to match current adapter expansion, verify-gate, and workflow scope.
 - Updated release packaging to include `CHANGELOG.md` in staged bundle and copied release-sidecar artifacts.
 - Updated release packaging to include `RELEASE_HISTORY.md` in copied release-sidecar artifacts.
+- Root release packaging script (`weftend_release_zip.ps1`) now enforces `Set-StrictMode -Version Latest`.
 - Updated `verify:360` docs-sync and etiquette targets to include `CHANGELOG.md`, release notes, release announcement, and release history references.
 - Updated `docs/GIT_POSTING_ETIQUETTE.md` to match verify etiquette target set (includes `CHANGELOG.md` and `docs/RELEASE_HISTORY.md`).
 
