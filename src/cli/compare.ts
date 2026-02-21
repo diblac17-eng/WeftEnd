@@ -454,7 +454,13 @@ export const runCompareCliV0 = (options: RunCompareCliOptionsV0): number => {
   const rightNorm = normalizeCompareSourceV0(rightLoaded.value);
   const compared = compareSummariesV0(leftNorm.summary, rightNorm.summary);
 
+  const leftRoot = path.resolve(process.cwd(), options.leftRoot);
+  const rightRoot = path.resolve(process.cwd(), options.rightRoot);
   const outRoot = path.resolve(process.cwd(), options.outRoot);
+  if (outRoot === leftRoot || outRoot === rightRoot) {
+    console.error("[COMPARE_OUT_CONFLICTS_INPUT] --out must differ from left and right roots.");
+    return 40;
+  }
   const outParent = path.dirname(outRoot);
   const outName = path.basename(outRoot);
   const stageRoot = path.join(outParent, `${outName}.stage`);

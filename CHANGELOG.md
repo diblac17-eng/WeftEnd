@@ -61,6 +61,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - On Windows `--zip`, ticket-pack archive output now also stages/finalizes (`ticket_pack.zip.stage` -> `ticket_pack.zip`) so partial zip artifacts do not appear as finalized bundles.
 - Compare now writes to a staged output root (`<out>.stage`) and finalizes atomically to `<out>` after receipt/report/privacy checks, preventing partial compare output residue from appearing as finalized evidence.
 - Compare CLI smoke tests now pin staged-finalize replacement behavior (pre-existing stale output roots are replaced and no `.stage` residue remains on success).
+- Compare now fails closed when `--out` conflicts with either input root (`COMPARE_OUT_CONFLICTS_INPUT`), preventing destructive finalize collisions.
 - Ticket-pack contract tests now pin report-state parsing from `report_card_v0.json` and enforce digest-line format (`sha256:<64hex>`) for ticket summary identity fields.
 - Ticket-pack contract tests now also pin text fallback parsing from `report_card.txt` (`STATUS/BASELINE/LATEST/BUCKETS` and key-value lines) when structured report JSON is absent.
 - Windows shell report card outputs now surface adapter evidence directly:

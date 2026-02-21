@@ -195,6 +195,22 @@ suite("cli/compare", () => {
     assert(result.stderr.includes("COMPARE_LEFT_RECEIPT_MISSING"), "expected left missing reason code");
   });
 
+  register("compare fails closed when out root equals input root", async () => {
+    const root = makeTempDir();
+    const leftDir = path.join(root, "left");
+    const rightDir = path.join(root, "right");
+    await runSafeRunFixture("safe_no_caps", leftDir);
+    await runSafeRunFixture("net_attempt", rightDir);
+
+    const outAsLeft = await runCliCapture(["compare", leftDir, rightDir, "--out", leftDir]);
+    assertEq(outAsLeft.status, 40, "expected fail-closed exit when out equals left root");
+    assert(outAsLeft.stderr.includes("COMPARE_OUT_CONFLICTS_INPUT"), "expected out/input conflict reason for left");
+
+    const outAsRight = await runCliCapture(["compare", leftDir, rightDir, "--out", rightDir]);
+    assertEq(outAsRight.status, 40, "expected fail-closed exit when out equals right root");
+    assert(outAsRight.stderr.includes("COMPARE_OUT_CONFLICTS_INPUT"), "expected out/input conflict reason for right");
+  });
+
   register("compare fails closed on old-contract receipts", async () => {
     const root = makeTempDir();
     const oldDir = path.join(root, "old");
