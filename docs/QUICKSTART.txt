@@ -92,6 +92,12 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - This executes deterministic `safe-run` (analysis-only, `--withhold-exec`) and optional compare.
 - Workflow artifacts are uploaded under:
   out/ci_meter
+- Included strict verify gate workflow:
+  .github/workflows/weftend_verify360.yml
+- Run from Actions UI (`workflow_dispatch`) to execute:
+  npm run verify:360:release:managed
+- Verify artifacts are uploaded under:
+  out/verify_360_release_managed
 - Details:
   docs/GITHUB_ACTIONS.md
 
