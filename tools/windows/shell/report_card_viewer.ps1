@@ -180,6 +180,11 @@ function Load-ReportModel {
   $jsonPath = Join-Path $ResolvedRunDir "report_card_v0.json"
   $safeReceiptDigest = Compute-FileSha256Digest -PathValue (Join-Path $ResolvedRunDir "safe_run_receipt.json")
   $operatorReceiptDigest = Compute-FileSha256Digest -PathValue (Join-Path $ResolvedRunDir "operator_receipt.json")
+  $reportCardDigest = if (Test-Path -LiteralPath $jsonPath) {
+    Compute-FileSha256Digest -PathValue $jsonPath
+  } else {
+    Compute-FileSha256Digest -PathValue $txtPath
+  }
   $lines = @()
   if (Test-Path -LiteralPath $txtPath) {
     try {
@@ -215,6 +220,7 @@ function Load-ReportModel {
         reportTextPath = $txtPath
         safeReceiptDigest = $safeReceiptDigest
         operatorReceiptDigest = $operatorReceiptDigest
+        reportCardDigest = $reportCardDigest
       }
     } catch {
       # Fall through to text parsing.
@@ -245,6 +251,7 @@ function Load-ReportModel {
     reportTextPath = $txtPath
     safeReceiptDigest = $safeReceiptDigest
     operatorReceiptDigest = $operatorReceiptDigest
+    reportCardDigest = $reportCardDigest
   }
 }
 
@@ -329,6 +336,7 @@ function Build-SummaryClipboardText {
     "result=" + (Get-StringValue -Value $Model.result),
     "artifactFingerprint=" + (Get-StringValue -Value $Model.artifactFingerprint),
     "artifactDigest=" + (Get-StringValue -Value $Model.artifactDigest),
+    "reportCardDigest=" + (Get-StringValue -Value $Model.reportCardDigest),
     "safeReceiptDigest=" + (Get-StringValue -Value $Model.safeReceiptDigest),
     "operatorReceiptDigest=" + (Get-StringValue -Value $Model.operatorReceiptDigest),
     "reason=" + (Get-StringValue -Value $Model.reason),
@@ -356,6 +364,7 @@ function Build-DigestClipboardText {
     "runId=" + (Get-StringValue -Value $Model.runId),
     "artifactFingerprint=" + (Get-StringValue -Value $Model.artifactFingerprint),
     "artifactDigest=" + (Get-StringValue -Value $Model.artifactDigest),
+    "reportCardDigest=" + (Get-StringValue -Value $Model.reportCardDigest),
     "safeReceiptDigest=" + (Get-StringValue -Value $Model.safeReceiptDigest),
     "operatorReceiptDigest=" + (Get-StringValue -Value $Model.operatorReceiptDigest)
   ) -join [Environment]::NewLine)
@@ -507,6 +516,7 @@ function Add-SummaryLine {
 Add-SummaryLine -TextValue ("Result: " + (Get-StringValue -Value $model.result))
 Add-SummaryLine -TextValue ("Fingerprint: " + (Get-StringValue -Value $model.artifactFingerprint))
 Add-SummaryLine -TextValue ("Artifact Digest: " + (Get-StringValue -Value $model.artifactDigest))
+Add-SummaryLine -TextValue ("Report Card Digest: " + (Get-StringValue -Value $model.reportCardDigest))
 Add-SummaryLine -TextValue ("Safe Receipt Digest: " + (Get-StringValue -Value $model.safeReceiptDigest))
 Add-SummaryLine -TextValue ("Operator Receipt Digest: " + (Get-StringValue -Value $model.operatorReceiptDigest))
 Add-SummaryLine -TextValue ("Reason: " + (Get-StringValue -Value $model.reason))

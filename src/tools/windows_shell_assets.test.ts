@@ -293,6 +293,7 @@ suite("tools/windows shell assets", () => {
     assert(/Adapter Class:/.test(panelText), "expected adapter detail text in history pane");
     assert(/Safe Receipt Digest:/.test(panelText), "expected safe receipt digest detail in history pane");
     assert(/Operator Receipt Digest:/.test(panelText), "expected operator receipt digest detail in history pane");
+    assert(/Report Card Digest:/.test(panelText), "expected report card digest detail in history pane");
 
     const shortcutPath = path.join(shellDir, "weftend_make_shortcut.ps1");
     const shortcutText = fs.readFileSync(shortcutPath, "utf8");
@@ -317,9 +318,11 @@ suite("tools/windows shell assets", () => {
     assert(/adapter_summary_v0\.json/.test(viewerText), "expected adapter summary artifact support");
     assert(/adapter_findings_v0\.json/.test(viewerText), "expected adapter findings artifact support");
     assert(/Capabilities: requested=/.test(viewerText), "expected capability summary line");
+    assert(/Report Card Digest:/.test(viewerText), "expected report card digest summary line");
     assert(/Safe Receipt Digest:/.test(viewerText), "expected safe receipt digest summary line");
     assert(/Operator Receipt Digest:/.test(viewerText), "expected operator receipt digest summary line");
     assert(/Copy Digests/.test(viewerText), "expected report viewer copy digests action");
+    assert(/reportCardDigest=/.test(viewerText), "expected report card digest copy payload fields");
     assert(/safeReceiptDigest=/.test(viewerText), "expected digest copy payload fields");
     assert(/operatorReceiptDigest=/.test(viewerText), "expected digest copy payload fields");
     assert(/KeyPreview = \$true/.test(viewerText), "expected report viewer key preview enabled");

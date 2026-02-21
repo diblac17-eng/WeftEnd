@@ -556,6 +556,7 @@ function Read-RunEvidenceSnapshot {
     runId = if ($RunId) { [string]$RunId } else { "-" }
     artifactFingerprint = "-"
     artifactDigest = "-"
+    reportCardDigest = "-"
     safeReceiptDigest = "-"
     operatorReceiptDigest = "-"
   }
@@ -604,6 +605,13 @@ function Read-RunEvidenceSnapshot {
 
   $safeReceiptPath = Join-Path $runDir "safe_run_receipt.json"
   $operatorReceiptPath = Join-Path $runDir "operator_receipt.json"
+  $reportCardJsonPath = Join-Path $runDir "report_card_v0.json"
+  $reportCardTxtPath = Join-Path $runDir "report_card.txt"
+  if (Test-Path -LiteralPath $reportCardJsonPath) {
+    $out.reportCardDigest = Compute-FileSha256Digest -PathValue $reportCardJsonPath
+  } else {
+    $out.reportCardDigest = Compute-FileSha256Digest -PathValue $reportCardTxtPath
+  }
   $out.safeReceiptDigest = Compute-FileSha256Digest -PathValue $safeReceiptPath
   $out.operatorReceiptDigest = Compute-FileSha256Digest -PathValue $operatorReceiptPath
   return $out
@@ -969,6 +977,7 @@ function Update-HistoryDetailsBox {
     $lines += "RunId: " + [string]$snapshot.runId
     $lines += "Artifact Fingerprint: " + [string]$snapshot.artifactFingerprint
     $lines += "Artifact Digest: " + [string]$snapshot.artifactDigest
+    $lines += "Report Card Digest: " + [string]$snapshot.reportCardDigest
     $lines += "Safe Receipt Digest: " + [string]$snapshot.safeReceiptDigest
     $lines += "Operator Receipt Digest: " + [string]$snapshot.operatorReceiptDigest
 
@@ -1055,6 +1064,7 @@ function Copy-HistoryDigestText {
       "RunId:",
       "Artifact Fingerprint:",
       "Artifact Digest:",
+      "Report Card Digest:",
       "Safe Receipt Digest:",
       "Operator Receipt Digest:"
     )
