@@ -411,12 +411,21 @@ const run = async (): Promise<void> => {
     const safePath = path.join(outDir, "safe_run_receipt.json");
     const summaryPath = path.join(outDir, "analysis", "adapter_summary_v0.json");
     const findingsPath = path.join(outDir, "analysis", "adapter_findings_v0.json");
+    const capabilityPath = path.join(outDir, "analysis", "capability_ledger_v0.json");
     assert(fs.existsSync(safePath), "safe_run_receipt.json missing");
     assert(fs.existsSync(summaryPath), "adapter_summary_v0.json missing");
     assert(fs.existsSync(findingsPath), "adapter_findings_v0.json missing");
+    assert(fs.existsSync(capabilityPath), "capability_ledger_v0.json missing");
     const safe = JSON.parse(fs.readFileSync(safePath, "utf8"));
+    const capability = JSON.parse(fs.readFileSync(capabilityPath, "utf8"));
     assert(safe.adapter && safe.adapter.adapterId === "archive_adapter_v1", "safe receipt adapter metadata missing");
     assert(safe.contentSummary && safe.contentSummary.adapterSignals, "contentSummary.adapterSignals missing");
+    assertEq(capability.schema, "weftend.capabilityLedger/0", "capability ledger schema mismatch");
+    assert(
+      Array.isArray(capability.grantedCaps) &&
+        capability.grantedCaps.some((entry: any) => entry?.capId === "adapter.selection.archive"),
+      "capability ledger missing adapter selection grant"
+    );
   }
 
   {

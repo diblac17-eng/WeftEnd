@@ -349,9 +349,21 @@ suite("cli/safe-run", () => {
     assert(fs.existsSync(path.join(runRoot, "safe_run_receipt.json")), "expected safe_run_receipt.json on adapter-disabled failure");
     assert(fs.existsSync(path.join(runRoot, "operator_receipt.json")), "expected operator_receipt.json on adapter-disabled failure");
     assert(fs.existsSync(path.join(runRoot, "analysis", "intake_decision.json")), "expected analysis intake decision artifact");
+    assert(fs.existsSync(path.join(runRoot, "analysis", "capability_ledger_v0.json")), "expected capability ledger artifact");
     const receipt = readJson(runRoot, "safe_run_receipt.json");
+    const capability = readJson(path.join(runRoot, "analysis"), "capability_ledger_v0.json");
     assertEq(receipt.analysisVerdict, "DENY", "expected DENY analysis verdict on adapter-disabled failure");
     assert(receipt.execution.reasonCodes.includes("ADAPTER_TEMPORARILY_UNAVAILABLE"), "expected adapter fail code in execution reasons");
+    assert(
+      Array.isArray(capability.deniedCaps) &&
+        capability.deniedCaps.some(
+          (entry: any) =>
+            entry?.capId === "adapter.selection.archive" &&
+            Array.isArray(entry?.reasonCodes) &&
+            entry.reasonCodes.includes("ADAPTER_TEMPORARILY_UNAVAILABLE")
+        ),
+      "expected denied adapter capability in capability ledger"
+    );
   });
 
   register("safe-run invalid adapter disable policy still writes deterministic receipts", async () => {

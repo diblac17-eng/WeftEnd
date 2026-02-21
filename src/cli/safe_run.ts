@@ -46,7 +46,7 @@ import { buildOperatorReceiptV0, writeOperatorReceiptV0 } from "../runtime/opera
 import { classifyArtifactKindV0 } from "../runtime/classify/artifact_kind_v0";
 import { updateLibraryViewFromRunV0 } from "./library_state";
 import { validateNormalizedArtifactV0 } from "../runtime/adapters/intake_adapter_v0";
-import { runArtifactAdapterV1, type AdapterSelectionV1 } from "../runtime/adapters/artifact_adapter_v1";
+import { runArtifactAdapterV1, type AdapterRunResultV1, type AdapterSelectionV1 } from "../runtime/adapters/artifact_adapter_v1";
 
 const fs = require("fs");
 const path = require("path");
@@ -559,6 +559,118 @@ const topReason = (...arrays: Array<string[] | undefined>): string => {
   return "-";
 };
 
+type CapabilityLedgerEntryV0 = {
+  capId: string;
+  reasonCodes: string[];
+};
+
+type CapabilityLedgerV0 = {
+  schema: "weftend.capabilityLedger/0";
+  schemaVersion: 0;
+  mode: "analysis_only";
+  requestedCaps: CapabilityLedgerEntryV0[];
+  grantedCaps: CapabilityLedgerEntryV0[];
+  deniedCaps: CapabilityLedgerEntryV0[];
+  reasonCodes: string[];
+};
+
+const sortSubReceipts = (items: Array<{ name: string; digest: string }>): Array<{ name: string; digest: string }> =>
+  items
+    .slice()
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : cmpStrV0(a.digest, b.digest)));
+
+const normalizePluginList = (plugins: string[]): string[] =>
+  Array.from(
+    new Set(
+      (Array.isArray(plugins) ? plugins : [])
+        .map((value) => String(value || "").trim().toLowerCase())
+        .filter((value) => value.length > 0)
+    )
+  ).sort((a, b) => cmpStrV0(a, b));
+
+const sortLedgerEntries = (entries: CapabilityLedgerEntryV0[]): CapabilityLedgerEntryV0[] =>
+  entries
+    .slice()
+    .sort((a, b) => cmpStrV0(a.capId, b.capId))
+    .map((entry) => ({ capId: entry.capId, reasonCodes: stableSortUniqueReasonsV0(entry.reasonCodes) }));
+
+const mergeLedgerEntry = (map: Map<string, Set<string>>, capId: string, reasonCodes: string[] = []) => {
+  if (!capId || capId.length === 0) return;
+  if (!map.has(capId)) map.set(capId, new Set<string>());
+  const bag = map.get(capId);
+  if (!bag) return;
+  reasonCodes.forEach((code) => {
+    const normalized = String(code || "").trim();
+    if (normalized.length > 0) bag.add(normalized);
+  });
+};
+
+const materializeLedgerEntries = (map: Map<string, Set<string>>): CapabilityLedgerEntryV0[] => {
+  const out: CapabilityLedgerEntryV0[] = [];
+  map.forEach((reasons, capId) => {
+    out.push({ capId, reasonCodes: stableSortUniqueReasonsV0(Array.from(reasons.values())) });
+  });
+  return sortLedgerEntries(out);
+};
+
+const adapterClassFromMeta = (adapterResult: AdapterRunResultV1, selection: AdapterSelectionV1): string => {
+  const adapterId = String(adapterResult.adapter?.adapterId || "").trim().toLowerCase();
+  if (adapterId.endsWith("_adapter_v1")) return adapterId.slice(0, -"_adapter_v1".length);
+  if (selection === "auto") return "auto";
+  return String(selection);
+};
+
+const buildCapabilityLedgerV0 = (input: {
+  selection: AdapterSelectionV1;
+  enabledPlugins: string[];
+  adapterResult: AdapterRunResultV1;
+}): CapabilityLedgerV0 => {
+  const requested = new Map<string, Set<string>>();
+  const granted = new Map<string, Set<string>>();
+  const denied = new Map<string, Set<string>>();
+  const selectionCapId = `adapter.selection.${input.selection}`;
+  const resultReasons = stableSortUniqueReasonsV0(input.adapterResult.reasonCodes ?? []);
+  const failCode = String(input.adapterResult.failCode || "").trim();
+  const plugins = normalizePluginList(input.enabledPlugins);
+
+  mergeLedgerEntry(requested, selectionCapId, []);
+  if (input.selection !== "none") {
+    mergeLedgerEntry(requested, `adapter.route.${adapterClassFromMeta(input.adapterResult, input.selection)}`, []);
+  }
+  plugins.forEach((name) => mergeLedgerEntry(requested, `plugin.command.${name}`, []));
+
+  if (input.adapterResult.ok) {
+    mergeLedgerEntry(granted, selectionCapId, ["ADAPTER_SELECTION_GRANTED"]);
+    if (input.selection !== "none") {
+      mergeLedgerEntry(granted, `adapter.route.${adapterClassFromMeta(input.adapterResult, input.selection)}`, resultReasons);
+    }
+    plugins.forEach((name) => {
+      if (input.adapterResult.adapter?.mode === "plugin") {
+        mergeLedgerEntry(granted, `plugin.command.${name}`, ["ADAPTER_PLUGIN_USED"]);
+      } else {
+        mergeLedgerEntry(denied, `plugin.command.${name}`, ["ADAPTER_PLUGIN_UNUSED"]);
+      }
+    });
+  } else {
+    const deniedReasons = stableSortUniqueReasonsV0([...(failCode ? [failCode] : []), ...resultReasons]);
+    mergeLedgerEntry(denied, selectionCapId, deniedReasons);
+    if (input.selection !== "none") {
+      mergeLedgerEntry(denied, `adapter.route.${adapterClassFromMeta(input.adapterResult, input.selection)}`, deniedReasons);
+    }
+    plugins.forEach((name) => mergeLedgerEntry(denied, `plugin.command.${name}`, deniedReasons));
+  }
+
+  return {
+    schema: "weftend.capabilityLedger/0",
+    schemaVersion: 0,
+    mode: "analysis_only",
+    requestedCaps: materializeLedgerEntries(requested),
+    grantedCaps: materializeLedgerEntries(granted),
+    deniedCaps: materializeLedgerEntries(denied),
+    reasonCodes: stableSortUniqueReasonsV0([...(failCode ? [failCode] : []), ...resultReasons]),
+  };
+};
+
 export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> => {
   const weftendBuild = computeWeftendBuildV0({ filePath: process?.argv?.[1], source: "NODE_MAIN_JS" }).build;
   const withholdExec = Boolean(options.withholdExec);
@@ -847,13 +959,13 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
   const decisionJson = `${canonicalJSON(output.decision)}\n`;
   const disclosureTxt = `${output.disclosure}\n`;
   const appealJson = `${canonicalJSON(output.appeal)}\n`;
-  const baseSubReceipts: Array<{ name: string; digest: string }> = [
+  const baseSubReceipts: Array<{ name: string; digest: string }> = sortSubReceipts([
     { name: "analysis/appeal_bundle.json", digest: digestText(appealJson) },
     { name: "analysis/disclosure.txt", digest: digestText(disclosureTxt) },
     { name: "analysis/intake_decision.json", digest: digestText(decisionJson) },
     { name: "analysis/weftend_mint_v1.json", digest: digestText(mintJson) },
     { name: "analysis/weftend_mint_v1.txt", digest: digestText(mintTxt) },
-  ];
+  ]);
 
   writeFile(path.join(analysisDir, "weftend_mint_v1.json"), mintJson);
   writeFile(path.join(analysisDir, "weftend_mint_v1.txt"), mintTxt);
@@ -867,6 +979,17 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
     inputPath: options.inputPath,
     capture: result.capture,
   });
+  const capabilityLedger = buildCapabilityLedgerV0({
+    selection: adapterSelection,
+    enabledPlugins,
+    adapterResult,
+  });
+  const capabilityLedgerJson = `${canonicalJSON(capabilityLedger)}\n`;
+  writeFile(path.join(analysisDir, "capability_ledger_v0.json"), capabilityLedgerJson);
+  const capabilityLedgerSubReceipt = {
+    name: "analysis/capability_ledger_v0.json",
+    digest: digestText(capabilityLedgerJson),
+  };
   if (!adapterResult.ok) {
     const code = adapterResult.failCode || "ADAPTER_PRECONDITION_FAILED";
     const message = adapterResult.failMessage || "adapter precondition failed.";
@@ -903,7 +1026,7 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
       intakeDecisionDigest: output.decision.decisionDigest,
       contentSummary,
       execution: { result: toExecutionResult(executionVerdict), reasonCodes: executionReasonCodes },
-      subReceipts: baseSubReceipts,
+      subReceipts: sortSubReceipts([...baseSubReceipts, capabilityLedgerSubReceipt]),
     });
     const out = finalize(receipt, [...classifiedRaw.reasonCodes, ...output.decision.topReasonCodes, code, ...(adapterResult.reasonCodes ?? [])]);
     console.error(`[${code}] ${message}`);
@@ -914,7 +1037,7 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
   const adapterFindingsJson = adapterResult.findings ? `${canonicalJSON(adapterResult.findings)}\n` : "";
   if (adapterSummaryJson) writeFile(path.join(analysisDir, "adapter_summary_v0.json"), adapterSummaryJson);
   if (adapterFindingsJson) writeFile(path.join(analysisDir, "adapter_findings_v0.json"), adapterFindingsJson);
-  const subReceipts: Array<{ name: string; digest: string }> = [...baseSubReceipts];
+  const subReceipts: Array<{ name: string; digest: string }> = sortSubReceipts([...baseSubReceipts, capabilityLedgerSubReceipt]);
   if (adapterSummaryJson) {
     subReceipts.push({ name: "analysis/adapter_summary_v0.json", digest: digestText(adapterSummaryJson) });
   }
@@ -1018,7 +1141,7 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
     );
   }
 
-  subReceipts.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : cmpStrV0(a.digest, b.digest)));
+  const sortedSubReceipts = sortSubReceipts(subReceipts);
 
   const contentSummary = buildContentSummaryV0({
     inputPath: options.inputPath,
@@ -1050,7 +1173,7 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
     ...(adapterResult.adapter ? { adapter: adapterResult.adapter } : {}),
     contentSummary,
     execution: { result: toExecutionResult(executionVerdict), reasonCodes: executionReasonCodes },
-    subReceipts,
+    subReceipts: sortedSubReceipts,
   });
 
   const out = finalize(receipt, [...classifiedRaw.reasonCodes, ...output.decision.topReasonCodes, ...adapterResult.reasonCodes]);

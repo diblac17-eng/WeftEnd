@@ -96,6 +96,7 @@ Included
 - `safe_run_receipt.json` optional `adapter` metadata block
 - `contentSummary.adapterSignals` optional deterministic adapter signal block
 - Optional adapter artifacts in run output:
+- `analysis/capability_ledger_v0.json` (deterministic requested/granted/denied adapter/plugin capability ledger)
 - `analysis/adapter_summary_v0.json`
 - `analysis/adapter_findings_v0.json`
 - Package/extension ZIP metadata extraction deepened for deterministic manifest signals:
