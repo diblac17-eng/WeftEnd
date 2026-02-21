@@ -38,6 +38,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Launchpad History now falls back to newest `run_*` folder detection when `view_state.json` latest pointers are missing/stale.
 - Launchpad History now provides `Copy Details` for selected inline adapter evidence summaries.
 - Ticket-pack test coverage now enforces adapter evidence artifact carry-through (`analysis/capability_ledger_v0.json`, `analysis/adapter_summary_v0.json`, `analysis/adapter_findings_v0.json`) when those artifacts are present in a run.
+- Ticket-pack default extras now include `report_card_v0.json` so structured report output is carried with ticket bundles when available.
 - Windows shell report card outputs now surface adapter evidence directly:
   - `report_card.txt` includes additive `adapterMeta=` and `capabilities=` lines when adapter evidence exists.
   - `report_card_v0.json` includes additive `adapter` metadata/capability object for automation and UI parity.

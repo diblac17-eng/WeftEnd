@@ -253,6 +253,7 @@ Included
 - Launchpad History now falls back to newest `run_*` folder detection when `view_state.json` is missing or stale, so report/evidence actions still work on older libraries.
 - Launchpad History now includes `Copy Details` to copy selected inline evidence summary text for ticket/share workflows.
 - Ticket-pack regression coverage now enforces inclusion of adapter evidence artifacts (`analysis/capability_ledger_v0.json`, `analysis/adapter_summary_v0.json`, `analysis/adapter_findings_v0.json`) when present in run output.
+- Ticket-pack default extras now include `report_card_v0.json` so structured report data is always included in support bundles when available.
 - Windows shell `report_card.txt` and `report_card_v0.json` now include adapter metadata and capability counts when adapter evidence exists:
 - `adapterMeta=class:<class> mode:<mode> source:<format> reasons:<codes>`
 - `capabilities=requested:<n> granted:<n> denied:<n>`

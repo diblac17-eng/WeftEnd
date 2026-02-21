@@ -27,6 +27,7 @@ const testTicketPack = async () => {
 
   const run = await runCliCapture(["safe-run", input, "--out", runDir]);
   assert(run.status === 0, `safe-run failed: ${run.stderr}`);
+  fs.writeFileSync(path.join(runDir, "report_card_v0.json"), JSON.stringify({ schema: "weftend.reportCard/0", v: 0 }), "utf8");
 
   const pack = await runCliCapture(["ticket-pack", runDir, "--out", packDir]);
   assert(pack.status === 0, `ticket-pack failed: ${pack.stderr}`);
@@ -38,6 +39,7 @@ const testTicketPack = async () => {
   assert(fs.existsSync(path.join(ticketRoot, "ticket_pack_manifest.json")), "ticket_pack_manifest.json missing");
   assert(fs.existsSync(path.join(ticketRoot, "operator_receipt.json")), "operator_receipt.json missing");
   assert(fs.existsSync(path.join(ticketRoot, "safe_run_receipt.json")), "safe_run_receipt.json missing");
+  assert(fs.existsSync(path.join(ticketRoot, "report_card_v0.json")), "report_card_v0.json missing");
 
   const summary = readText(path.join(ticketRoot, "ticket_summary.txt"));
   assert(summary.includes("ticketPack=weftend"), "ticket summary missing header");

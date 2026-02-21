@@ -136,6 +136,7 @@ export const runTicketPackCli = (options: {
   const extras = [
     "operator_receipt.json",
     "report_card.txt",
+    "report_card_v0.json",
     "compare_report.txt",
     "compare_receipt.json",
     "weftend/README.txt",
