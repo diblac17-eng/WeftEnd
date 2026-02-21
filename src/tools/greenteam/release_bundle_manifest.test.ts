@@ -41,10 +41,25 @@ const expectFile = (relPath: string) => {
   assert(fs.statSync(full).isFile(), `expected file: ${relPath}`);
 };
 
+const readText = (relPath: string): string => {
+  const full = path.join(process.cwd(), relPath);
+  assert(fs.existsSync(full), `missing required file: ${relPath}`);
+  return String(fs.readFileSync(full, "utf8"));
+};
+
 suite("greenteam/release-bundle", () => {
   register("release bundle script and checklist exist", () => {
     expectFile("tools/windows/weftend_release_zip.ps1");
     expectFile("docs/RELEASE_CHECKLIST_ALPHA.md");
+  });
+
+  register("release zip script keeps immutable change-log sidecar contract", () => {
+    const script = readText("weftend_release_zip.ps1");
+    assert(script.includes("\"CHANGELOG.md\","), "release zip includeSingles must include CHANGELOG.md");
+    assert(script.includes("CHANGELOG.md copied"), "release zip sidecar copy must include CHANGELOG.md");
+
+    const checklist = readText("docs/RELEASE_CHECKLIST_ALPHA.md");
+    assert(checklist.includes("CHANGELOG.md"), "release checklist required artifact set must include CHANGELOG.md");
   });
 });
 

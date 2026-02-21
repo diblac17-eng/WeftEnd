@@ -129,6 +129,7 @@ suite("greenteam/docs-release-contract", () => {
       releaseAnnouncement.includes("npm run verify:360:release:managed"),
       "RELEASE_ANNOUNCEMENT missing managed verify command reference"
     );
+    assert(releaseAnnouncement.includes("CHANGELOG.md"), "RELEASE_ANNOUNCEMENT missing changelog reference");
   });
 });
 

@@ -260,6 +260,7 @@ $includeSingles = @(
   "package.json",
   "package-lock.json",
   "README.md",
+  "CHANGELOG.md",
   "LICENSE",
   "NOTICE.md",
   "SECURITY.md",
@@ -418,4 +419,12 @@ if (Test-Path $releaseChecklist) {
   Write-Ok "RELEASE_CHECKLIST_ALPHA.md copied"
 } else {
   Write-Warn "docs/RELEASE_CHECKLIST_ALPHA.md not found, skipping"
+}
+
+$changelog = Join-Path $root "CHANGELOG.md"
+if (Test-Path $changelog) {
+  Copy-Item -Path $changelog -Destination (Join-Path $outAbs "CHANGELOG.md") -Force
+  Write-Ok "CHANGELOG.md copied"
+} else {
+  Write-Warn "CHANGELOG.md not found, skipping"
 }

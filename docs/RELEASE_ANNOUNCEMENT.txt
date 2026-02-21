@@ -41,4 +41,5 @@ Reference docs
 - docs/ADAPTERS_MATRIX.md
 - docs/REASON_CODES_ADAPTERS.md
 - docs/RELEASE_CHECKLIST_ALPHA.md
+- CHANGELOG.md
 - docs/DISCLAIMER.md

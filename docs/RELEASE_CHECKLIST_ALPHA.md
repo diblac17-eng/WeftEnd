@@ -57,6 +57,7 @@ Short, strict release checklist (alpha).
 - RELEASE_ANNOUNCEMENT.txt
 - QUICKSTART.txt
 - RELEASE_CHECKLIST_ALPHA.md
+- CHANGELOG.md
 
 5) Verify SHA256
 - Get-Content out\\release\\weftend_*.sha256
