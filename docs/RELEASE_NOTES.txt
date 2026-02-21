@@ -46,6 +46,7 @@ Included
 - `report_card_v0.json` now includes additive `evidence` metadata (`legend` and `claims`) aligned with the text report.
 - `compare_report.txt` now includes additive evidence legend/claim mapping lines (including `verdict=[POL]`, `buckets=[INF]`, `artifactDigest=[OBS]`).
 - Contracts updated to pin this behavior (`report_card_contract` and `compare_cli_smoke`).
+- Report-card contract now also enforces no wall-clock timestamp strings and no `createdAt`/`updatedAt` fields in `report_card.txt` and `report_card_v0.json`.
 - Additional output finalize hardening (current unreleased batch):
 - Compare text artifacts now use per-file stage/finalize writes within staged out-root finalize.
 - Ticket-pack text artifacts now use per-file stage/finalize writes within `ticket_pack.stage` finalize flow.

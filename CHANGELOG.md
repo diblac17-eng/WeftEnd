@@ -51,6 +51,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added/updated contract coverage:
   - Blue Team report card contract now requires evidence legend/mapping presence.
   - Compare CLI smoke now requires compare-report evidence legend/mapping presence.
+  - Blue Team report card contract now also enforces no wall-clock timestamp strings or `createdAt`/`updatedAt` fields in `report_card.txt` and `report_card_v0.json`.
 
 ### Per-file staged finalize hardening
 - Compare output text artifacts now write with per-file stage/finalize (`<file>.stage -> <file>`) inside the existing staged out-root flow.

@@ -116,6 +116,13 @@ suite("blueteam/report-card", () => {
     assert(report.includes("evidence.buildDigest=[SYS]"), "expected build evidence mapping in report card");
     assert(!/[A-Za-z]:\\/.test(report), "report card must not include absolute Windows paths");
     assert(!/\/Users\//.test(report), "report card must not include user paths");
+    assert(!/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/.test(report), "report card must not include wall-clock timestamp strings");
+    assert(!/\btimestampMs=/.test(report), "report card must not include runtime timestamp counters");
+
+    const reportJson = fs.readFileSync(path.join(latestRun, "report_card_v0.json"), "utf8");
+    assert(!/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/.test(reportJson), "report card json must not include wall-clock timestamp strings");
+    assert(!/"createdAt"\s*:/.test(reportJson), "report card json must not include createdAt fields");
+    assert(!/"updatedAt"\s*:/.test(reportJson), "report card json must not include updatedAt fields");
   });
 });
 
