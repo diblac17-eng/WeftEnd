@@ -11,6 +11,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Successful report viewer startup resets failure counter to `0`.
 - Wrapper diagnostics now include additive `reportViewerStartupFailures=<count>` when startup fails but threshold disable has not been reached.
 - Shell doctor now reports `ReportViewerStartFailCount` to simplify local startup triage.
+- Shell doctor now supports `-RepairReportViewer` to reset viewer state (`UseReportViewer=1`, `ReportViewerAutoOpen=1`, `ReportViewerStartFailCount=0`) in one command.
 - Updated Windows shell asset contract coverage to pin startup failure-counter behavior.
 - Launchpad History report-open success now resets viewer startup state (`UseReportViewer=1`, `ReportViewerAutoOpen=1`, `ReportViewerStartFailCount=0`) so operator manual opens can self-heal auto-open disable state.
 

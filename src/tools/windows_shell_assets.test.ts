@@ -137,6 +137,9 @@ suite("tools/windows shell assets", () => {
   register("shell doctor checks expected registry keys", () => {
     const doctorPath = path.join(shellDir, "weftend_shell_doctor.ps1");
     const text = fs.readFileSync(doctorPath, "utf8");
+    assert(/RepairReportViewer/.test(text), "expected report-viewer repair switch in shell doctor");
+    assert(/Set-ItemProperty -Path \$configKey -Name "ReportViewerAutoOpen" -Value "1"/.test(text), "expected shell doctor to repair ReportViewerAutoOpen");
+    assert(/Set-ItemProperty -Path \$configKey -Name "ReportViewerStartFailCount" -Value "0"/.test(text), "expected shell doctor to reset startup failure counter");
     assert(/HKCU:\\Software\\WeftEnd\\Shell/.test(text), "expected config registry key");
     assert(/HKCU:\\Software\\Classes\\\*\\shell\\WeftEndSafeRun\\command/.test(text), "expected star command key");
     assert(/HKCU:\\Software\\Classes\\lnkfile\\shell\\WeftEndSafeRun\\command/.test(text), "expected lnk command key");
@@ -204,6 +207,10 @@ suite("tools/windows shell assets", () => {
     assert(/ReportViewerStartFailCount/.test(text), "expected report viewer failure-count diagnostic");
     assert(/%1/.test(text), "expected %1 token check");
     assert(/%V/.test(text), "expected %V token check");
+
+    const doctorCmdPath = path.join(shellDir, "weftend_shell_doctor.cmd");
+    const doctorCmdText = fs.readFileSync(doctorCmdPath, "utf8");
+    assert(doctorCmdText.includes("%*"), "expected shell doctor cmd wrapper to forward arguments");
   });
 
   register("wrapper emits deterministic result fields", () => {

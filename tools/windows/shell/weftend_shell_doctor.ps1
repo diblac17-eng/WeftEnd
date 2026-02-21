@@ -1,8 +1,13 @@
 # tools/windows/shell/weftend_shell_doctor.ps1
 # Sanity check WeftEnd Safe-Run registry wiring (per-user).
 
+param(
+  [switch]$RepairReportViewer
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+$configKey = "HKCU:\Software\WeftEnd\Shell"
 
 function Read-RegistryValue {
   param([string]$Path, [string]$Name)
@@ -66,7 +71,18 @@ function Check-CommandKey {
   return $ok
 }
 
-$configKey = "HKCU:\Software\WeftEnd\Shell"
+if ($RepairReportViewer.IsPresent) {
+  try {
+    New-Item -Path $configKey -Force | Out-Null
+    Set-ItemProperty -Path $configKey -Name "UseReportViewer" -Value "1" -ErrorAction Stop
+    Set-ItemProperty -Path $configKey -Name "ReportViewerAutoOpen" -Value "1" -ErrorAction Stop
+    Set-ItemProperty -Path $configKey -Name "ReportViewerStartFailCount" -Value "0" -ErrorAction Stop
+    Write-Host "RepairReportViewer: OK"
+  } catch {
+    Write-Host "RepairReportViewer: FAILED"
+  }
+}
+
 $repoRoot = Read-RegistryValue -Path $configKey -Name "RepoRoot"
 $outRoot = Read-RegistryValue -Path $configKey -Name "OutRoot"
 $useReportViewer = Read-RegistryValue -Path $configKey -Name "UseReportViewer"
