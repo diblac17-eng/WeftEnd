@@ -96,6 +96,7 @@ suite("runtime/host status", () => {
       outRootSource: "ARG_OUT",
       outRootEffective: outRoot,
     });
+    assert(!fs.existsSync(`${emitted.receiptPath}.stage`), "host status stage file must not remain after finalize");
     const after = getStatusReceipts(outRoot).length;
     assertEq(after - before, 1, "expected exactly one receipt");
     const readmePath = path.join(outRoot, "weftend", "README.txt");

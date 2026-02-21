@@ -135,6 +135,9 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Emergency verify report output now includes policy summary lines (`policy.*`) and failure receipts carry interpreted policy fields for consistent fail-closed readability.
 - `privacy_lint` report output now uses staged atomic finalize (`privacy_lint_v0.json.stage` -> `privacy_lint_v0.json`) to prevent partial report residue.
 - Added runtime test coverage that asserts privacy-lint staged finalize behavior and no leftover `.stage` file.
+- `host_status` receipt emission now uses staged atomic finalize (`host_status_*.json.stage` -> `host_status_*.json`).
+- `host_update` receipt emission now uses staged atomic finalize (`host_update_receipt.json.stage` -> `host_update_receipt.json`).
+- Added host runtime test assertions that no host receipt `.stage` files remain after finalize.
 
 ### Adapter maintenance controls
 - Added `weftend adapter doctor` for deterministic adapter readiness/maintenance reporting.

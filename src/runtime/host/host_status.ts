@@ -256,7 +256,10 @@ export const emitHostStatusReceiptV0 = (options: HostStatusOptionsV0) => {
       ? path.resolve(options.hostRoot)
       : process.cwd();
   const receiptPath = nextReceiptPath(outRoot);
-  fs.writeFileSync(receiptPath, `${canonicalJSON(receipt)}\n`, "utf8");
+  const stagePath = `${receiptPath}.stage`;
+  fs.rmSync(stagePath, { recursive: true, force: true });
+  fs.writeFileSync(stagePath, `${canonicalJSON(receipt)}\n`, "utf8");
+  fs.renameSync(stagePath, receiptPath);
   writeReceiptReadmeV0(outRoot, receipt.weftendBuild, receipt.schemaVersion);
   return { receipt, ok, receiptPath };
 };

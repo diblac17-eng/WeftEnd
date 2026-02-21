@@ -71,6 +71,9 @@ suite("runtime/host update", () => {
     assert(res.receipt.apply.result !== "APPLIED", "apply must not be APPLIED when verify is UNVERIFIED");
     assertEq(res.receipt.schemaVersion, 0, "expected schemaVersion 0");
     assert(res.receipt.weftendBuild && res.receipt.weftendBuild.algo === "sha256", "expected weftendBuild block");
+    const receiptPath = path.join(outDir, "host_update_receipt.json");
+    assert(fs.existsSync(receiptPath), "expected host update receipt output");
+    assert(!fs.existsSync(`${receiptPath}.stage`), "host update stage file must not remain after finalize");
 
     const mutated = { ...res.receipt } as any;
     delete mutated.schemaVersion;

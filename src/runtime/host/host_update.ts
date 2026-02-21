@@ -374,7 +374,11 @@ export const installHostUpdateV0 = (options: HostInstallOptionsV0): { receipt: H
   }
 
   fs.mkdirSync(outDir, { recursive: true });
-  fs.writeFileSync(path.join(outDir, RECEIPT_NAME), `${canonicalJSON(receipt)}\n`, "utf8");
+  const receiptPath = path.join(outDir, RECEIPT_NAME);
+  const stagePath = `${receiptPath}.stage`;
+  fs.rmSync(stagePath, { recursive: true, force: true });
+  fs.writeFileSync(stagePath, `${canonicalJSON(receipt)}\n`, "utf8");
+  fs.renameSync(stagePath, receiptPath);
 
   const exitCode = receipt.decision === "ALLOW" && applyResult === "APPLIED" ? 0 : 40;
   return { receipt, exitCode };
