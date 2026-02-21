@@ -51,6 +51,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Ticket-pack default extras now include `report_card_v0.json` so structured report output is carried with ticket bundles when available.
 - Ticket-pack summaries now include adapter evidence fields (`adapterEvidence`, adapter identity, capability counts) for faster operator/support triage.
 - Ticket-pack summaries now also include digest identity fields (`operatorReceiptFileDigest`, `safeReceiptFileDigest`, `reportCardFileDigest`) and artifact fingerprint/digest.
+- Ticket-pack summaries now include report state context fields (`reportRunId`, `reportLibraryKey`, `reportStatus`, `reportBaseline`, `reportLatest`, `reportBuckets`) for faster triage without opening report files.
 - Windows shell report card outputs now surface adapter evidence directly:
   - `report_card.txt` includes additive `adapterMeta=` and `capabilities=` lines when adapter evidence exists.
   - `report_card_v0.json` includes additive `adapter` metadata/capability object for automation and UI parity.

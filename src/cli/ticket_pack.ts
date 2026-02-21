@@ -65,6 +65,13 @@ const getObjProp = (obj: any, key: string): any => {
   return (obj as any)[key];
 };
 
+const firstWordToken = (value: string): string => {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  const m = text.match(/^([A-Za-z0-9_]+)/);
+  return m ? m[1] : "";
+};
+
 const collectOperatorEntries = (outRoot: string): { entries: string[]; issues: string[] } => {
   const operatorPath = path.join(outRoot, "operator_receipt.json");
   if (!fs.existsSync(operatorPath)) {
@@ -213,6 +220,12 @@ export const runTicketPackCli = (options: {
   let capDenied = 0;
   let artifactFingerprint = "-";
   let artifactDigest = "-";
+  let reportRunId = "-";
+  let reportLibraryKey = "-";
+  let reportStatus = "-";
+  let reportBaseline = "-";
+  let reportLatest = "-";
+  let reportBuckets = "-";
   const safePath = path.join(outRoot, "safe_run_receipt.json");
   const operatorFileDigest = readFileDigest(operatorPath);
   const safeFileDigest = readFileDigest(safePath);
@@ -253,6 +266,18 @@ export const runTicketPackCli = (options: {
   try {
     if (fs.existsSync(reportCardJsonPath)) {
       const report = readJson(reportCardJsonPath);
+      const runId = String(getObjProp(report, "runId") ?? "").trim();
+      const libraryKey = String(getObjProp(report, "libraryKey") ?? "").trim();
+      const status = String(getObjProp(report, "status") ?? "").trim();
+      const baseline = String(getObjProp(report, "baseline") ?? "").trim();
+      const latest = String(getObjProp(report, "latest") ?? "").trim();
+      const buckets = String(getObjProp(report, "buckets") ?? "").trim();
+      if (runId) reportRunId = runId;
+      if (libraryKey) reportLibraryKey = libraryKey;
+      if (status) reportStatus = status;
+      if (baseline) reportBaseline = baseline;
+      if (latest) reportLatest = latest;
+      if (buckets) reportBuckets = buckets;
       if (artifactFingerprint === "-") {
         const fp = String(getObjProp(report, "artifactFingerprint") ?? "").trim();
         if (fp) artifactFingerprint = fp;
@@ -260,6 +285,52 @@ export const runTicketPackCli = (options: {
       if (artifactDigest === "-") {
         const dg = String(getObjProp(report, "artifactDigest") ?? "").trim();
         if (dg) artifactDigest = dg;
+      }
+    }
+  } catch {
+    // best effort summary
+  }
+  try {
+    if (
+      (reportRunId === "-" || reportLibraryKey === "-" || reportStatus === "-" || reportBaseline === "-" || reportLatest === "-" || reportBuckets === "-") &&
+      fs.existsSync(reportCardTxtPath)
+    ) {
+      const lines = String(fs.readFileSync(reportCardTxtPath, "utf8") || "")
+        .replace(/\r/g, "")
+        .split("\n");
+      for (const lineRaw of lines) {
+        const line = String(lineRaw || "").trim();
+        if (!line) continue;
+        if (reportRunId === "-" && line.startsWith("runId=")) {
+          const value = line.slice("runId=".length).trim();
+          if (value) reportRunId = value;
+          continue;
+        }
+        if (reportLibraryKey === "-" && line.startsWith("libraryKey=")) {
+          const value = line.slice("libraryKey=".length).trim();
+          if (value) reportLibraryKey = value;
+          continue;
+        }
+        if (reportStatus === "-" && line.startsWith("STATUS:")) {
+          const value = firstWordToken(line.slice("STATUS:".length));
+          if (value) reportStatus = value;
+          continue;
+        }
+        if (reportBaseline === "-" && line.startsWith("BASELINE:")) {
+          const value = line.slice("BASELINE:".length).trim();
+          if (value) reportBaseline = value;
+          continue;
+        }
+        if (reportLatest === "-" && line.startsWith("LATEST:")) {
+          const value = line.slice("LATEST:".length).trim();
+          if (value) reportLatest = value;
+          continue;
+        }
+        if (reportBuckets === "-" && line.startsWith("BUCKETS:")) {
+          const value = line.slice("BUCKETS:".length).trim();
+          if (value) reportBuckets = value;
+          continue;
+        }
       }
     }
   } catch {
@@ -289,6 +360,12 @@ export const runTicketPackCli = (options: {
     `operatorReceiptFileDigest=${operatorFileDigest}`,
     `safeReceiptFileDigest=${safeFileDigest}`,
     `reportCardFileDigest=${reportCardFileDigest}`,
+    `reportRunId=${reportRunId}`,
+    `reportLibraryKey=${reportLibraryKey}`,
+    `reportStatus=${reportStatus}`,
+    `reportBaseline=${reportBaseline}`,
+    `reportLatest=${reportLatest}`,
+    `reportBuckets=${reportBuckets}`,
     `artifactFingerprint=${artifactFingerprint}`,
     `artifactDigest=${artifactDigest}`,
     `adapterEvidence=${adapterEvidence}`,

@@ -46,6 +46,12 @@ const testTicketPack = async () => {
   assert(summary.includes("operatorReceiptFileDigest=sha256:"), "ticket summary missing operator receipt file digest");
   assert(summary.includes("safeReceiptFileDigest=sha256:"), "ticket summary missing safe receipt file digest");
   assert(summary.includes("reportCardFileDigest=sha256:"), "ticket summary missing report card file digest");
+  assert(summary.includes("reportRunId="), "ticket summary missing report run id");
+  assert(summary.includes("reportLibraryKey="), "ticket summary missing report library key");
+  assert(summary.includes("reportStatus="), "ticket summary missing report status");
+  assert(summary.includes("reportBaseline="), "ticket summary missing report baseline");
+  assert(summary.includes("reportLatest="), "ticket summary missing report latest");
+  assert(summary.includes("reportBuckets="), "ticket summary missing report buckets");
   assert(summary.includes("artifactFingerprint="), "ticket summary missing artifact fingerprint");
   assert(summary.includes("artifactDigest="), "ticket summary missing artifact digest");
   assert(summary.includes("adapterEvidence="), "ticket summary missing adapterEvidence");
