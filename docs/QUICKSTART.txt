@@ -51,6 +51,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - Report viewer UI (when adapter evidence exists):
   - `Show Adapter Evidence` toggle reveals adapter class/mode, capability counts, and quick-open buttons for capability/summary/findings artifacts.
   - `Copy Digests` copies run digest identity lines (`runId`, artifact fingerprint/digest, safe/operator receipt digests) for fast verification sharing.
+  - Keyboard: `Ctrl+C` copies summary text and `Ctrl+Shift+C` copies digest-only text.
 - Launchpad History UI:
   - `Adapter` column shows adapter tag from latest run (`+plugin` marker and `!` marker when denied capabilities are present).
   - Selecting a history row now shows inline adapter details (class/id/mode/source/reasons/capability counts) in Launchpad.

@@ -247,6 +247,7 @@ Included
 - Report viewer startup hardened: host console launches hidden while the report viewer opens in normal visible state for review.
 - Report viewer summary now includes `safe_run_receipt.json` and `operator_receipt.json` digests for fast cross-verification.
 - Report viewer now includes `Copy Digests` for digest-only clipboard export (`runId`, artifact fingerprint/digest, safe/operator receipt digests).
+- Report viewer now supports keyboard copy shortcuts: `Ctrl+C` for summary copy and `Ctrl+Shift+C` for digest-only copy.
 - Launchpad History UX improvements: direct View Report action and keyboard open behavior (double-click/Enter).
 - Report viewer now includes a collapsed Adapter Evidence section (shown only when adapter/capability artifacts exist), with quick-open buttons for capability, summary, and findings JSON artifacts.
 - Launchpad History now shows an Adapter tag column (including plugin usage and denied-capability marker) derived from the latest run receipt.

@@ -310,6 +310,9 @@ suite("tools/windows shell assets", () => {
     assert(/Show Adapter Evidence/.test(viewerText), "expected adapter evidence toggle label");
     assert(/Hide Adapter Evidence/.test(viewerText), "expected adapter evidence hide label");
     assert(/Compute-FileSha256Digest/.test(viewerText), "expected report viewer digest helper");
+    assert(/Build-SummaryClipboardText/.test(viewerText), "expected report viewer summary clipboard builder");
+    assert(/Build-DigestClipboardText/.test(viewerText), "expected report viewer digest clipboard builder");
+    assert(/Try-CopyClipboardText/.test(viewerText), "expected report viewer clipboard helper");
     assert(/capability_ledger_v0\.json/.test(viewerText), "expected capability ledger artifact support");
     assert(/adapter_summary_v0\.json/.test(viewerText), "expected adapter summary artifact support");
     assert(/adapter_findings_v0\.json/.test(viewerText), "expected adapter findings artifact support");
@@ -319,6 +322,9 @@ suite("tools/windows shell assets", () => {
     assert(/Copy Digests/.test(viewerText), "expected report viewer copy digests action");
     assert(/safeReceiptDigest=/.test(viewerText), "expected digest copy payload fields");
     assert(/operatorReceiptDigest=/.test(viewerText), "expected digest copy payload fields");
+    assert(/KeyPreview = \$true/.test(viewerText), "expected report viewer key preview enabled");
+    assert(/if \(\$e\.Control -and \$e\.KeyCode -eq \[System\.Windows\.Forms\.Keys\]::C\)/.test(viewerText), "expected report viewer Ctrl+C binding");
+    assert(/if \(\$e\.Shift\)/.test(viewerText), "expected report viewer digest shortcut branch");
   });
 });
 

@@ -322,6 +322,56 @@ function Style-Button {
   }
 }
 
+function Build-SummaryClipboardText {
+  param([object]$Model)
+  $summary = @(
+    "status=" + (Get-StringValue -Value $Model.status),
+    "result=" + (Get-StringValue -Value $Model.result),
+    "artifactFingerprint=" + (Get-StringValue -Value $Model.artifactFingerprint),
+    "artifactDigest=" + (Get-StringValue -Value $Model.artifactDigest),
+    "safeReceiptDigest=" + (Get-StringValue -Value $Model.safeReceiptDigest),
+    "operatorReceiptDigest=" + (Get-StringValue -Value $Model.operatorReceiptDigest),
+    "reason=" + (Get-StringValue -Value $Model.reason),
+    "runId=" + (Get-StringValue -Value $Model.runId),
+    "baseline=" + (Get-StringValue -Value $Model.baseline),
+    "latest=" + (Get-StringValue -Value $Model.latest),
+    "buckets=" + (Get-StringValue -Value $Model.buckets)
+  ) -join [Environment]::NewLine
+  if ($Model.adapterEvidence -and $Model.adapterEvidence.available) {
+    $summary = $summary + [Environment]::NewLine + (
+      @(
+        "adapterClass=" + (Get-StringValue -Value $Model.adapterEvidence.class),
+        "adapterId=" + (Get-StringValue -Value $Model.adapterEvidence.adapterId),
+        "adapterMode=" + (Get-StringValue -Value $Model.adapterEvidence.mode),
+        "capabilities=requested:" + [string]$Model.adapterEvidence.requested + ",granted:" + [string]$Model.adapterEvidence.granted + ",denied:" + [string]$Model.adapterEvidence.denied
+      ) -join [Environment]::NewLine
+    )
+  }
+  return $summary
+}
+
+function Build-DigestClipboardText {
+  param([object]$Model)
+  return (@(
+    "runId=" + (Get-StringValue -Value $Model.runId),
+    "artifactFingerprint=" + (Get-StringValue -Value $Model.artifactFingerprint),
+    "artifactDigest=" + (Get-StringValue -Value $Model.artifactDigest),
+    "safeReceiptDigest=" + (Get-StringValue -Value $Model.safeReceiptDigest),
+    "operatorReceiptDigest=" + (Get-StringValue -Value $Model.operatorReceiptDigest)
+  ) -join [Environment]::NewLine)
+}
+
+function Try-CopyClipboardText {
+  param([string]$Text)
+  if (-not $Text -or $Text.Trim() -eq "") { return $false }
+  try {
+    [System.Windows.Forms.Clipboard]::SetText($Text)
+    return $true
+  } catch {
+    return $false
+  }
+}
+
 $statusValue = Get-StringValue -Value $model.status
 $statusBack = [System.Drawing.Color]::FromArgb(68, 88, 100)
 if ($statusValue -eq "SAME") {
@@ -341,6 +391,7 @@ $form.StartPosition = "CenterScreen"
 $form.BackColor = $colorBg
 $form.ForeColor = $colorText
 $form.Font = $fontMain
+$form.KeyPreview = $true
 $form.FormBorderStyle = "Sizable"
 $form.SizeGripStyle = [System.Windows.Forms.SizeGripStyle]::Hide
 
@@ -663,30 +714,7 @@ $btnCopy.Width = 110
 $btnCopy.Height = 30
 Style-Button -Button $btnCopy -Primary:$false
 $btnCopy.Add_Click({
-  $summary = @(
-    "status=" + (Get-StringValue -Value $model.status),
-    "result=" + (Get-StringValue -Value $model.result),
-    "artifactFingerprint=" + (Get-StringValue -Value $model.artifactFingerprint),
-    "artifactDigest=" + (Get-StringValue -Value $model.artifactDigest),
-    "safeReceiptDigest=" + (Get-StringValue -Value $model.safeReceiptDigest),
-    "operatorReceiptDigest=" + (Get-StringValue -Value $model.operatorReceiptDigest),
-    "reason=" + (Get-StringValue -Value $model.reason),
-    "runId=" + (Get-StringValue -Value $model.runId),
-    "baseline=" + (Get-StringValue -Value $model.baseline),
-    "latest=" + (Get-StringValue -Value $model.latest),
-    "buckets=" + (Get-StringValue -Value $model.buckets)
-  ) -join [Environment]::NewLine
-  if ($model.adapterEvidence -and $model.adapterEvidence.available) {
-    $summary = $summary + [Environment]::NewLine + (
-      @(
-        "adapterClass=" + (Get-StringValue -Value $model.adapterEvidence.class),
-        "adapterId=" + (Get-StringValue -Value $model.adapterEvidence.adapterId),
-        "adapterMode=" + (Get-StringValue -Value $model.adapterEvidence.mode),
-        "capabilities=requested:" + [string]$model.adapterEvidence.requested + ",granted:" + [string]$model.adapterEvidence.granted + ",denied:" + [string]$model.adapterEvidence.denied
-      ) -join [Environment]::NewLine
-    )
-  }
-  [System.Windows.Forms.Clipboard]::SetText($summary)
+  [void](Try-CopyClipboardText -Text (Build-SummaryClipboardText -Model $model))
 })
 $footer.Controls.Add($btnCopy) | Out-Null
 
@@ -696,14 +724,7 @@ $btnCopyDigests.Width = 104
 $btnCopyDigests.Height = 30
 Style-Button -Button $btnCopyDigests -Primary:$false
 $btnCopyDigests.Add_Click({
-  $summary = @(
-    "runId=" + (Get-StringValue -Value $model.runId),
-    "artifactFingerprint=" + (Get-StringValue -Value $model.artifactFingerprint),
-    "artifactDigest=" + (Get-StringValue -Value $model.artifactDigest),
-    "safeReceiptDigest=" + (Get-StringValue -Value $model.safeReceiptDigest),
-    "operatorReceiptDigest=" + (Get-StringValue -Value $model.operatorReceiptDigest)
-  ) -join [Environment]::NewLine
-  [System.Windows.Forms.Clipboard]::SetText($summary)
+  [void](Try-CopyClipboardText -Text (Build-DigestClipboardText -Model $model))
 })
 $footer.Controls.Add($btnCopyDigests) | Out-Null
 
@@ -723,6 +744,18 @@ $btnOpenRun.Height = 30
 Style-Button -Button $btnOpenRun -Primary:$false
 $btnOpenRun.Add_Click({ Open-InExplorer -PathValue $resolvedRunDir })
 $footer.Controls.Add($btnOpenRun) | Out-Null
+
+$form.Add_KeyDown({
+  param($sender, $e)
+  if ($e.Control -and $e.KeyCode -eq [System.Windows.Forms.Keys]::C) {
+    $e.Handled = $true
+    if ($e.Shift) {
+      [void](Try-CopyClipboardText -Text (Build-DigestClipboardText -Model $model))
+    } else {
+      [void](Try-CopyClipboardText -Text (Build-SummaryClipboardText -Model $model))
+    }
+  }
+})
 
 $form.Add_Shown({
   try {
