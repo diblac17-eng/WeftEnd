@@ -11,6 +11,7 @@ Included
 - When startup fails but threshold disable has not been reached, wrapper diagnostics now include `reportViewerStartupFailures=<count>` for deterministic triage.
 - Shell doctor output now includes `ReportViewerStartFailCount` so operator triage can confirm current startup-failure state.
 - Shell doctor now supports `-RepairReportViewer` to reset viewer state (`UseReportViewer=1`, `ReportViewerAutoOpen=1`, `ReportViewerStartFailCount=0`) in one command.
+- Shell doctor repair mode now fails closed with exit `40` when repair writes cannot be applied.
 - Launchpad Doctor now includes `Repair Viewer`, which runs shell-doctor repair mode and reports deterministic repair output headers/status.
 - Launchpad History successful report open now resets viewer startup state (`UseReportViewer=1`, `ReportViewerAutoOpen=1`, `ReportViewerStartFailCount=0`) so manual viewer opens self-heal auto-open disable state.
 - Evidence typing added to operator reports (additive, non-breaking):

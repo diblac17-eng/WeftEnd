@@ -72,15 +72,20 @@ function Check-CommandKey {
 }
 
 if ($RepairReportViewer.IsPresent) {
+  $repairOk = $false
   try {
-    New-Item -Path $configKey -Force | Out-Null
+    if (-not (Test-Path -Path $configKey)) {
+      New-Item -Path $configKey | Out-Null
+    }
     Set-ItemProperty -Path $configKey -Name "UseReportViewer" -Value "1" -ErrorAction Stop
     Set-ItemProperty -Path $configKey -Name "ReportViewerAutoOpen" -Value "1" -ErrorAction Stop
     Set-ItemProperty -Path $configKey -Name "ReportViewerStartFailCount" -Value "0" -ErrorAction Stop
+    $repairOk = $true
     Write-Host "RepairReportViewer: OK"
   } catch {
     Write-Host "RepairReportViewer: FAILED"
   }
+  if (-not $repairOk) { exit 40 }
 }
 
 $repoRoot = Read-RegistryValue -Path $configKey -Name "RepoRoot"

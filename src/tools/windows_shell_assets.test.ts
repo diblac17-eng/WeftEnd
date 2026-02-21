@@ -138,8 +138,10 @@ suite("tools/windows shell assets", () => {
     const doctorPath = path.join(shellDir, "weftend_shell_doctor.ps1");
     const text = fs.readFileSync(doctorPath, "utf8");
     assert(/RepairReportViewer/.test(text), "expected report-viewer repair switch in shell doctor");
+    assert(/if \(-not \(Test-Path -Path \$configKey\)\)/.test(text), "expected shell doctor repair path to create missing config key");
     assert(/Set-ItemProperty -Path \$configKey -Name "ReportViewerAutoOpen" -Value "1"/.test(text), "expected shell doctor to repair ReportViewerAutoOpen");
     assert(/Set-ItemProperty -Path \$configKey -Name "ReportViewerStartFailCount" -Value "0"/.test(text), "expected shell doctor to reset startup failure counter");
+    assert(/if \(-not \$repairOk\) \{ exit 40 \}/.test(text), "expected shell doctor repair mode to fail closed on write failure");
     assert(/HKCU:\\Software\\WeftEnd\\Shell/.test(text), "expected config registry key");
     assert(/HKCU:\\Software\\Classes\\\*\\shell\\WeftEndSafeRun\\command/.test(text), "expected star command key");
     assert(/HKCU:\\Software\\Classes\\lnkfile\\shell\\WeftEndSafeRun\\command/.test(text), "expected lnk command key");
