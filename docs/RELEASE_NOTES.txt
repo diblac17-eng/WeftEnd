@@ -41,6 +41,7 @@ Included
 - Added `npm run verify:360:release:cleanout` helper to run the same strict release gate against a freshly reset dedicated out-root.
 - Clean out-root removes legacy-history warning noise, but strict release gate still fails by design when adapter-doctor strict requirements remain unresolved.
 - Added `npm run verify:360:release:managed` helper to auto-generate a temporary adapter maintenance policy (disabling missing-plugin lanes), run strict adapter-doctor preflight with that policy, then run strict `verify:360` without global adapter-disable env leakage into full test lanes.
+- Managed strict release helper now captures adapter-doctor preflight output quietly (raw JSON is printed only on failure), keeping release-gate console output operator-focused.
 - Managed strict release helper now forces explicit release fixture smoke (`WEFTEND_RELEASE_DIR`) and clears skip override (`WEFTEND_ALLOW_SKIP_RELEASE`) to prevent silent release-smoke skip.
 - Managed strict release helper now fails closed with exit 40 when strict release fixture directory is missing.
 - Managed strict release helper default fixture path is now canonical forward-slash (`tests/fixtures/release_demo`) to avoid Windows backslash/UNC privacy-lint false positives.

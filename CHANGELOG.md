@@ -48,6 +48,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added `npm run verify:360:release:cleanout` helper to execute the strict release gate after resetting a dedicated verify out-root.
 - Documented expected strict-gate behavior: clean out-root removes history-noise, but unresolved strict adapter-doctor requirements still block release gate.
 - Added `npm run verify:360:release:managed` helper to generate a temporary adapter maintenance policy for missing-plugin lanes, run strict adapter-doctor preflight with that policy, then run strict verify gate without leaking adapter-disable policy into full test env.
+- Managed strict release helper now captures adapter-doctor preflight output quietly and only prints captured output on failure.
 - Managed strict release helper now enforces explicit release fixture smoke (`WEFTEND_RELEASE_DIR`), clears skip override (`WEFTEND_ALLOW_SKIP_RELEASE`), and fails closed if release fixture directory is missing.
 - Managed strict release helper default fixture path is now canonical forward-slash (`tests/fixtures/release_demo`) to avoid Windows backslash/UNC privacy-lint false positives.
 - Added Green Team contract test for `.github/workflows/weftend_artifact_meter.yml` to enforce analysis-only workflow behavior (`--withhold-exec`) and deterministic artifact upload path invariants.

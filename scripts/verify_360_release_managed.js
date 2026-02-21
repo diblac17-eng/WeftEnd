@@ -19,13 +19,19 @@ const policyPath = path.join(outRoot, "adapter_maintenance.generated.json");
 const releaseDirEnv = process.env.WEFTEND_RELEASE_DIR || "tests/fixtures/release_demo";
 const releaseDirAbs = path.resolve(root, releaseDirEnv);
 
-const run = (cmd, args, envExtra = {}) => {
+const run = (cmd, args, envExtra = {}, options = {}) => {
+  const quiet = Boolean(options && options.quiet);
   const res = spawnSync(cmd, args, {
     cwd: root,
-    stdio: "inherit",
+    stdio: quiet ? "pipe" : "inherit",
+    encoding: "utf8",
     windowsHide: true,
     env: { ...process.env, ...envExtra },
   });
+  if (quiet && (typeof res.status !== "number" || res.status !== 0)) {
+    if (res.stdout) process.stdout.write(String(res.stdout));
+    if (res.stderr) process.stderr.write(String(res.stderr));
+  }
   return typeof res.status === "number" ? res.status : 1;
 };
 
@@ -53,13 +59,14 @@ const doctorStatus = run(process.execPath, [
   "--write-policy",
   policyPath,
   "--include-missing-plugins",
-]);
+], {}, { quiet: true });
 if (doctorStatus !== 0) process.exit(doctorStatus);
 
 const strictDoctorStatus = run(
   process.execPath,
   [path.join("dist", "src", "cli", "main.js"), "adapter", "doctor", "--strict"],
-  { WEFTEND_ADAPTER_DISABLE_FILE: policyPath }
+  { WEFTEND_ADAPTER_DISABLE_FILE: policyPath },
+  { quiet: true }
 );
 if (strictDoctorStatus !== 0) process.exit(strictDoctorStatus);
 
