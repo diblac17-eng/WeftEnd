@@ -140,7 +140,10 @@ const ensureDir = (dir: string) => fs.mkdirSync(dir, { recursive: true });
 
 const writeText = (filePath: string, text: string) => {
   ensureDir(path.dirname(filePath));
-  fs.writeFileSync(filePath, text, "utf8");
+  const stagePath = `${filePath}.stage`;
+  fs.rmSync(stagePath, { recursive: true, force: true });
+  fs.writeFileSync(stagePath, text, "utf8");
+  fs.renameSync(stagePath, filePath);
 };
 
 const collectRelativeFiles = (root: string): string[] => {

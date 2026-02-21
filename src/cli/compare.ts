@@ -373,7 +373,10 @@ export const renderCompareReportV0 = (input: {
 
 const writeText = (filePath: string, text: string) => {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, text, "utf8");
+  const stagePath = `${filePath}.stage`;
+  fs.rmSync(stagePath, { recursive: true, force: true });
+  fs.writeFileSync(stagePath, text, "utf8");
+  fs.renameSync(stagePath, filePath);
 };
 
 const sha256FileHex = (filePath: string): string => {

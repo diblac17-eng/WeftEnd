@@ -129,6 +129,14 @@ const listBlocksFromPlan = (bundle: RuntimeBundle | null): string[] => {
   );
 };
 
+const writeTextAtomic = (filePath: string, text: string): void => {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const stagePath = `${filePath}.stage`;
+  fs.rmSync(stagePath, { recursive: true, force: true });
+  fs.writeFileSync(stagePath, text, "utf8");
+  fs.renameSync(stagePath, filePath);
+};
+
 const buildHostSelfManifest = (
   releaseManifest: ReleaseManifestV0,
   runtimeBundle: RuntimeBundle,
@@ -320,7 +328,7 @@ export const installHostUpdateV0 = (options: HostInstallOptionsV0): { receipt: H
         copy(bundlePath, path.join(stagingDir, "runtime_bundle.json"));
         copy(evidencePath, path.join(stagingDir, "evidence.json"));
         copy(publicKeyPath, path.join(stagingDir, "release_public_key.json"));
-        fs.writeFileSync(path.join(stagingDir, "host_self_manifest.json"), `${canonicalJSON(hostSelf)}\n`, "utf8");
+        writeTextAtomic(path.join(stagingDir, "host_self_manifest.json"), `${canonicalJSON(hostSelf)}\n`);
 
         fs.rmSync(backupDir, { recursive: true, force: true });
         if (fs.existsSync(currentDir)) fs.renameSync(currentDir, backupDir);

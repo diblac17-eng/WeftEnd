@@ -370,7 +370,18 @@ const parseMsg = (input: any): ParsedEmailV0 => {
 
 const writeText = (filePath: string, text: string): void => {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, text, "utf8");
+  const stagePath = `${filePath}.stage`;
+  fs.rmSync(stagePath, { recursive: true, force: true });
+  fs.writeFileSync(stagePath, text, "utf8");
+  fs.renameSync(stagePath, filePath);
+};
+
+const writeBytes = (filePath: string, bytes: any): void => {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const stagePath = `${filePath}.stage`;
+  fs.rmSync(stagePath, { recursive: true, force: true });
+  fs.writeFileSync(stagePath, bytes);
+  fs.renameSync(stagePath, filePath);
 };
 
 const prepareStagedOutRoot = (outDir: string): { ok: true; stageOutDir: string } | { ok: false } => {
@@ -463,7 +474,7 @@ const writeEmailExport = (parsed: ParsedEmailV0, outDir: string, format: EmailFo
       counter += 1;
     }
     seenNames.add(unique.toLowerCase());
-    fs.writeFileSync(path.join(attachDir, unique), attachment.bytes);
+    writeBytes(path.join(attachDir, unique), attachment.bytes);
     return {
       name: unique,
       bytes: Number(attachment.bytes.length || 0),

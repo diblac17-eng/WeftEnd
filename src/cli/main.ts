@@ -258,12 +258,18 @@ const runIntakeCli = (args: string[]): number => {
 
   const output = buildIntakeDecisionV1(mint, policy, { scriptText });
   const stageOutDir = `${outDir}.stage`;
+  const writeStageText = (filePath: string, text: string) => {
+    const stagePath = `${filePath}.stage`;
+    fs.rmSync(stagePath, { recursive: true, force: true });
+    fs.writeFileSync(stagePath, text, "utf8");
+    fs.renameSync(stagePath, filePath);
+  };
   try {
     fs.rmSync(stageOutDir, { recursive: true, force: true });
     fs.mkdirSync(stageOutDir, { recursive: true });
-    fs.writeFileSync(path.join(stageOutDir, "intake_decision.json"), `${canonicalJSON(output.decision)}\n`, "utf8");
-    fs.writeFileSync(path.join(stageOutDir, "disclosure.txt"), `${output.disclosure}\n`, "utf8");
-    fs.writeFileSync(path.join(stageOutDir, "appeal_bundle.json"), `${canonicalJSON(output.appeal)}\n`, "utf8");
+    writeStageText(path.join(stageOutDir, "intake_decision.json"), `${canonicalJSON(output.decision)}\n`);
+    writeStageText(path.join(stageOutDir, "disclosure.txt"), `${output.disclosure}\n`);
+    writeStageText(path.join(stageOutDir, "appeal_bundle.json"), `${canonicalJSON(output.appeal)}\n`);
     fs.rmSync(outDir, { recursive: true, force: true });
     fs.renameSync(stageOutDir, outDir);
   } catch {

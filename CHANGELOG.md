@@ -5,6 +5,16 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 
 ## [Unreleased]
 
+### Per-file staged finalize hardening
+- Compare output text artifacts now write with per-file stage/finalize (`<file>.stage -> <file>`) inside the existing staged out-root flow.
+- Ticket-pack summary/manifest/checksum artifacts now write with per-file stage/finalize inside `ticket_pack.stage`.
+- `safe-run`, `run`, and `examine` text artifact writers now use per-file stage/finalize semantics.
+- `email unpack` export text artifacts and attachment file writes now use per-file stage/finalize semantics.
+- `intake` staged outputs (`intake_decision.json`, `disclosure.txt`, `appeal_bundle.json`) now write with per-file stage/finalize before out-root finalize.
+- `container scan` staged artifacts (`safe_run_receipt.json`, README, capability/adapter analysis JSON) now use per-file stage/finalize writes.
+- Host update staging now writes `host_self_manifest.json` with per-file stage/finalize semantics before host root swap.
+- Validation status for this hardening batch: `npm run compile --silent` pass, `npm test` pass.
+
 ### GitHub Actions integration
 - Added `.github/workflows/weftend_artifact_meter.yml` for manual CI artifact-meter runs (`workflow_dispatch`).
 - Workflow executes deterministic `safe-run` (analysis-only, `--withhold-exec`) with optional baseline compare.

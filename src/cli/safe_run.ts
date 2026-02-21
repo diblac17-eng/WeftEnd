@@ -79,7 +79,10 @@ const readTextFile = (filePath: string): string => fs.readFileSync(filePath, "ut
 
 const writeFile = (filePath: string, contents: string) => {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, contents, "utf8");
+  const stagePath = `${filePath}.stage`;
+  fs.rmSync(stagePath, { recursive: true, force: true });
+  fs.writeFileSync(stagePath, contents, "utf8");
+  fs.renameSync(stagePath, filePath);
 };
 
 const digestText = (value: string): string => computeArtifactDigestV0(value ?? "");

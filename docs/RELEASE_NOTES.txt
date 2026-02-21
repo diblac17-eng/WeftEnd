@@ -4,6 +4,14 @@ Scope: Deterministic artifact intake, baseline/compare workflows, operator-facin
 Liability scope: WeftEnd is an evidence and change-tracking engine, not a malware oracle or compliance guarantee.
 
 Included
+- Additional output finalize hardening (current unreleased batch):
+- Compare text artifacts now use per-file stage/finalize writes within staged out-root finalize.
+- Ticket-pack text artifacts now use per-file stage/finalize writes within `ticket_pack.stage` finalize flow.
+- `safe-run`, `run`, and `examine` text artifact writers now use per-file stage/finalize writes.
+- `email unpack` export text artifacts and attachment file writes now use per-file stage/finalize writes.
+- `intake` staged outputs now write per-file stage/finalize before out-root finalize.
+- `container scan` staged artifacts (`safe_run_receipt.json`, README, capability/adapter analysis JSON) now use per-file stage/finalize writes.
+- Host update staging now writes `host_self_manifest.json` with per-file stage/finalize semantics before host-root swap.
 - GitHub Actions integration added for deterministic CI artifact-meter runs:
 - Added workflow: `.github/workflows/weftend_artifact_meter.yml`
 - Workflow runs `safe-run` (analysis-only, `--withhold-exec`) with optional compare and uploads `out/ci_meter` artifacts.

@@ -107,6 +107,13 @@ const buildSafeRunReceipt = (input: Omit<SafeRunReceiptV0, "receiptDigest">): Sa
 };
 
 const digestText = (value: string): string => computeArtifactDigestV0(value ?? "");
+const writeText = (filePath: string, text: string): void => {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const stagePath = `${filePath}.stage`;
+  fs.rmSync(stagePath, { recursive: true, force: true });
+  fs.writeFileSync(stagePath, text, "utf8");
+  fs.renameSync(stagePath, filePath);
+};
 const sortSubReceipts = (items: Array<{ name: string; digest: string }>): Array<{ name: string; digest: string }> =>
   items
     .slice()
@@ -325,7 +332,7 @@ const finalizeFailure = (options: {
 
   const capabilityLedger = buildContainerCapabilityLedgerV0(reasonCodes, false);
   const capabilityLedgerJson = `${canonicalJSON(capabilityLedger)}\n`;
-  fs.writeFileSync(path.join(analysisDir, "capability_ledger_v0.json"), capabilityLedgerJson, "utf8");
+  writeText(path.join(analysisDir, "capability_ledger_v0.json"), capabilityLedgerJson);
   const subReceipts = sortSubReceipts([{ name: "analysis/capability_ledger_v0.json", digest: digestText(capabilityLedgerJson) }]);
 
   const receipt = buildSafeRunReceipt({
@@ -355,11 +362,10 @@ const finalizeFailure = (options: {
     return 1;
   }
 
-  fs.writeFileSync(path.join(options.stageOutDir, "safe_run_receipt.json"), `${canonicalJSON(receipt)}\n`, "utf8");
+  writeText(path.join(options.stageOutDir, "safe_run_receipt.json"), `${canonicalJSON(receipt)}\n`);
   const readmeText = buildReceiptReadmeV0(receipt.weftendBuild, receipt.schemaVersion);
   const readmePath = path.join(options.stageOutDir, "weftend", "README.txt");
-  fs.mkdirSync(path.dirname(readmePath), { recursive: true });
-  fs.writeFileSync(readmePath, readmeText, "utf8");
+  writeText(readmePath, readmeText);
 
   const baseWarnings = stableSortUniqueReasonsV0([
     ...(receipt.weftendBuild.reasonCodes ?? []),
@@ -536,14 +542,13 @@ const finalizeSuccess = (options: {
 
   const analysisDir = path.join(options.stageOutDir, "analysis");
   fs.mkdirSync(analysisDir, { recursive: true });
-  fs.writeFileSync(path.join(analysisDir, "capability_ledger_v0.json"), capabilityLedgerJson, "utf8");
-  fs.writeFileSync(path.join(analysisDir, "adapter_summary_v0.json"), adapterSummaryJson, "utf8");
-  fs.writeFileSync(path.join(analysisDir, "adapter_findings_v0.json"), adapterFindingsJson, "utf8");
-  fs.writeFileSync(path.join(options.stageOutDir, "safe_run_receipt.json"), `${canonicalJSON(receipt)}\n`, "utf8");
+  writeText(path.join(analysisDir, "capability_ledger_v0.json"), capabilityLedgerJson);
+  writeText(path.join(analysisDir, "adapter_summary_v0.json"), adapterSummaryJson);
+  writeText(path.join(analysisDir, "adapter_findings_v0.json"), adapterFindingsJson);
+  writeText(path.join(options.stageOutDir, "safe_run_receipt.json"), `${canonicalJSON(receipt)}\n`);
   const readmeText = buildReceiptReadmeV0(receipt.weftendBuild, receipt.schemaVersion);
   const readmePath = path.join(options.stageOutDir, "weftend", "README.txt");
-  fs.mkdirSync(path.dirname(readmePath), { recursive: true });
-  fs.writeFileSync(readmePath, readmeText, "utf8");
+  writeText(readmePath, readmeText);
 
   const baseWarnings = stableSortUniqueReasonsV0([
     ...(receipt.weftendBuild.reasonCodes ?? []),
