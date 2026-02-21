@@ -299,6 +299,10 @@ suite("tools/windows shell assets", () => {
     assert(/Report Card Digest:/.test(panelText), "expected report card digest detail in history pane");
     assert(/Compare Receipt Digest:/.test(panelText), "expected compare receipt digest detail in history pane");
     assert(/Compare Report Digest:/.test(panelText), "expected compare report digest detail in history pane");
+    assert(/Compare Verdict:/.test(panelText), "expected compare verdict detail in history pane");
+    assert(/Compare Buckets:/.test(panelText), "expected compare buckets detail in history pane");
+    assert(/Compare Bucket Count:/.test(panelText), "expected compare bucket count detail in history pane");
+    assert(/Compare Change Count:/.test(panelText), "expected compare change count detail in history pane");
 
     const shortcutPath = path.join(shellDir, "weftend_make_shortcut.ps1");
     const shortcutText = fs.readFileSync(shortcutPath, "utf8");
@@ -331,6 +335,10 @@ suite("tools/windows shell assets", () => {
     assert(/Operator Receipt Digest:/.test(viewerText), "expected operator receipt digest summary line");
     assert(/Compare Receipt Digest:/.test(viewerText), "expected compare receipt digest summary line");
     assert(/Compare Report Digest:/.test(viewerText), "expected compare report digest summary line");
+    assert(/Compare Verdict:/.test(viewerText), "expected compare verdict summary line");
+    assert(/Compare Buckets:/.test(viewerText), "expected compare buckets summary line");
+    assert(/Compare Bucket Count:/.test(viewerText), "expected compare bucket count summary line");
+    assert(/Compare Change Count:/.test(viewerText), "expected compare change count summary line");
     assert(/Copy Digests/.test(viewerText), "expected report viewer copy digests action");
     assert(/libraryKey=/.test(viewerText), "expected library key in summary clipboard payload");
     assert(/reportCardDigest=/.test(viewerText), "expected report card digest copy payload fields");
@@ -338,6 +346,10 @@ suite("tools/windows shell assets", () => {
     assert(/operatorReceiptDigest=/.test(viewerText), "expected digest copy payload fields");
     assert(/compareReceiptDigest=/.test(viewerText), "expected compare receipt digest copy payload fields");
     assert(/compareReportDigest=/.test(viewerText), "expected compare report digest copy payload fields");
+    assert(/compareVerdict=/.test(viewerText), "expected compare verdict copy payload field");
+    assert(/compareBuckets=/.test(viewerText), "expected compare buckets copy payload field");
+    assert(/compareBucketCount=/.test(viewerText), "expected compare bucket count copy payload field");
+    assert(/compareChangeCount=/.test(viewerText), "expected compare change count copy payload field");
     assert(/KeyPreview = \$true/.test(viewerText), "expected report viewer key preview enabled");
     assert(/if \(\$e\.Control -and \$e\.KeyCode -eq \[System\.Windows\.Forms\.Keys\]::C\)/.test(viewerText), "expected report viewer Ctrl+C binding");
     assert(/if \(\$e\.Shift\)/.test(viewerText), "expected report viewer digest shortcut branch");

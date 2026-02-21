@@ -579,6 +579,72 @@ function Format-ReasonPreview {
   return $preview
 }
 
+function Get-NormalizedBucketList {
+  param([object]$Value)
+  $items = @()
+  foreach ($entry in @($Value)) {
+    if ($null -eq $entry) { continue }
+    $text = ([string]$entry).Trim()
+    if ($text -eq "") { continue }
+    if ($items -contains $text) { continue }
+    $items += $text
+  }
+  if ($items.Count -gt 1) {
+    [System.Array]::Sort($items, [System.StringComparer]::Ordinal)
+  }
+  return $items
+}
+
+function Read-CompareFallbackFromReportText {
+  param([string]$TextValue)
+  $out = @{
+    verdict = "-"
+    buckets = "-"
+    bucketCount = "-"
+  }
+  if (-not $TextValue -or $TextValue.Trim() -eq "") { return $out }
+  $lines = @([string]$TextValue -split "`r?`n")
+  foreach ($lineObj in $lines) {
+    $line = ([string]$lineObj).Trim()
+    if ($line -eq "") { continue }
+    if ($out.verdict -eq "-" -and $line.StartsWith("verdict=")) {
+      $token = $line.Substring("verdict=".Length).Trim()
+      if ($token -match "^([A-Za-z0-9_]+)") {
+        $candidate = [string]$matches[1]
+        if ($candidate -eq "SAME" -or $candidate -eq "CHANGED") { $out.verdict = $candidate }
+      }
+      continue
+    }
+    if ($out.verdict -eq "-" -and $line.StartsWith("COMPARE ")) {
+      $token = $line.Substring("COMPARE ".Length).Trim()
+      if ($token -match "^([A-Za-z0-9_]+)") {
+        $candidate = [string]$matches[1]
+        if ($candidate -eq "SAME" -or $candidate -eq "CHANGED") { $out.verdict = $candidate }
+      }
+      continue
+    }
+    if ($out.buckets -eq "-" -and $line.StartsWith("buckets=")) {
+      $payload = $line.Substring("buckets=".Length).Trim()
+      $match = [System.Text.RegularExpressions.Regex]::Match($payload, "^([0-9]+)\s*\((.*)\)$")
+      if (-not $match.Success) { continue }
+      $countValue = [int]$match.Groups[1].Value
+      $bucketBody = [string]$match.Groups[2].Value
+      $bucketList = @()
+      if ($bucketBody -and $bucketBody.Trim() -ne "-" -and $bucketBody.Trim() -ne "") {
+        $bucketList = Get-NormalizedBucketList -Value ($bucketBody -split ",")
+      }
+      $out.buckets = if ($bucketList.Count -gt 0) { $bucketList -join "," } else { "-" }
+      $out.bucketCount = [string]$countValue
+      continue
+    }
+  }
+  if ($out.bucketCount -eq "-" -and $out.buckets -ne "-") {
+    $parts = @($out.buckets -split ",")
+    $out.bucketCount = [string]$parts.Count
+  }
+  return $out
+}
+
 function Read-RunEvidenceSnapshot {
   param(
     [string]$TargetDir,
@@ -593,6 +659,10 @@ function Read-RunEvidenceSnapshot {
     operatorReceiptDigest = "-"
     compareReceiptDigest = "-"
     compareReportDigest = "-"
+    compareVerdict = "-"
+    compareBuckets = "-"
+    compareBucketCount = "-"
+    compareChangeCount = "-"
   }
   if (-not $TargetDir -or -not $RunId -or $RunId -eq "-") { return $out }
   $runDir = Join-Path $TargetDir $RunId
@@ -652,6 +722,35 @@ function Read-RunEvidenceSnapshot {
   $out.operatorReceiptDigest = Compute-FileSha256Digest -PathValue $operatorReceiptPath
   $out.compareReceiptDigest = Compute-FileSha256Digest -PathValue $compareReceiptPath
   $out.compareReportDigest = Compute-FileSha256Digest -PathValue $compareReportPath
+  if (Test-Path -LiteralPath $compareReceiptPath) {
+    try {
+      $compareObj = Get-Content -LiteralPath $compareReceiptPath -Raw -Encoding UTF8 | ConvertFrom-Json
+      $compareVerdict = [string](Get-ObjectProperty -ObjectValue $compareObj -Name "verdict")
+      if ($compareVerdict -eq "SAME" -or $compareVerdict -eq "CHANGED") { $out.compareVerdict = $compareVerdict }
+      $bucketList = Get-NormalizedBucketList -Value (Get-ObjectProperty -ObjectValue $compareObj -Name "changeBuckets")
+      $out.compareBuckets = if ($bucketList.Count -gt 0) { $bucketList -join "," } else { "-" }
+      $out.compareBucketCount = [string]$bucketList.Count
+      $changes = Get-ObjectProperty -ObjectValue $compareObj -Name "changes"
+      if ($changes -is [System.Array]) {
+        $out.compareChangeCount = [string]$changes.Count
+      }
+    } catch {
+      # best effort only
+    }
+  }
+  if (($out.compareVerdict -eq "-" -or $out.compareBuckets -eq "-" -or $out.compareBucketCount -eq "-") -and (Test-Path -LiteralPath $compareReportPath)) {
+    try {
+      $fallback = Read-CompareFallbackFromReportText -TextValue (Get-Content -LiteralPath $compareReportPath -Raw -Encoding UTF8)
+      if ($out.compareVerdict -eq "-" -and $fallback.verdict -and $fallback.verdict -ne "-") { $out.compareVerdict = [string]$fallback.verdict }
+      if ($out.compareBuckets -eq "-" -and $fallback.buckets -and $fallback.buckets -ne "-") { $out.compareBuckets = [string]$fallback.buckets }
+      if ($out.compareBucketCount -eq "-" -and $fallback.bucketCount -and $fallback.bucketCount -ne "-") { $out.compareBucketCount = [string]$fallback.bucketCount }
+    } catch {
+      # best effort only
+    }
+  }
+  if ($out.compareChangeCount -eq "-" -and $out.compareBucketCount -ne "-") {
+    $out.compareChangeCount = [string]$out.compareBucketCount
+  }
   return $out
 }
 
@@ -1020,6 +1119,10 @@ function Update-HistoryDetailsBox {
     $lines += "Operator Receipt Digest: " + [string]$snapshot.operatorReceiptDigest
     $lines += "Compare Receipt Digest: " + [string]$snapshot.compareReceiptDigest
     $lines += "Compare Report Digest: " + [string]$snapshot.compareReportDigest
+    $lines += "Compare Verdict: " + [string]$snapshot.compareVerdict
+    $lines += "Compare Buckets: " + [string]$snapshot.compareBuckets
+    $lines += "Compare Bucket Count: " + [string]$snapshot.compareBucketCount
+    $lines += "Compare Change Count: " + [string]$snapshot.compareChangeCount
 
     $ev = Read-AdapterEvidenceForRun -TargetDir $targetDir -RunId $latestRun
     if ($ev.available) {
