@@ -13,6 +13,10 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $runnerPath = Join-Path $scriptDir "weftend_safe_run.ps1"
 $bindPath = Join-Path $scriptDir "weftend_bind.ps1"
+$psMenuHostExe = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
+if (-not (Test-Path -LiteralPath $psMenuHostExe)) {
+  $psMenuHostExe = "powershell.exe"
+}
 
 if (-not $RepoRoot -or $RepoRoot.Trim() -eq "") {
   $guess = Join-Path $scriptDir "..\..\.."
@@ -122,7 +126,7 @@ function Set-ContextMenu {
   $menuKey = "$baseClean\shell\$KeyName"
   $commandKey = "$menuKey\command"
   $suffix = if ($ExtraArgs -and $ExtraArgs.Trim() -ne "") { " $ExtraArgs" } else { "" }
-  $command = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$ScriptPath`" -Target `"$TargetToken`"$suffix"
+  $command = "`"$psMenuHostExe`" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$ScriptPath`" -Target `"$TargetToken`"$suffix"
   $root = [Microsoft.Win32.Registry]::CurrentUser
   $menuKeyObj = $root.CreateSubKey($menuKey)
   if ($menuKeyObj) {

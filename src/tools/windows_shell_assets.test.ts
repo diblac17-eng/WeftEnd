@@ -105,6 +105,8 @@ suite("tools/windows shell assets", () => {
     );
     assert(/launchpad_panel\.ps1/.test(text), "expected launchpad panel script reference");
     assert(/open_release_folder\.ps1/.test(text), "expected open_release_folder script reference");
+    assert(/`"\$psMenuHostExe`" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File/.test(text), "expected context menu command to use resolved powershell host path");
+    assert(!/\$command = "powershell\.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File/.test(text), "context menu command must avoid bare powershell command-name invocation");
     assert(/\$iconHostExe -NoProfile -ExecutionPolicy Bypass -File \$iconScript/.test(text), "expected install script icon generation to use resolved powershell executable path");
     assert(/WScript\.Shell/.test(text), "expected shortcut creation via WScript.Shell");
     assert(/\$shortcut\.WindowStyle = 7/.test(text), "expected minimized shortcut window style");
@@ -132,6 +134,29 @@ suite("tools/windows shell assets", () => {
       assert(!/C:\\\\Users\\\\/i.test(text), `${name} must not contain user path hints`);
       assert(!/D:\\\\/.test(text), `${name} must not contain drive hints`);
       assert(/runtime\\node\\node\.exe/i.test(text), `${name} must prefer bundled runtime`);
+    });
+  });
+
+  register("windows tools scripts resolve powershell host path in wrappers", () => {
+    const openFolderPs1 = fs.readFileSync(path.join(windowsDir, "open_release_folder.ps1"), "utf8");
+    assert(/\$powershellExe = Join-Path \$env:WINDIR/.test(openFolderPs1), "expected open_release_folder script powershell path resolution");
+    assert(/& \$powershellExe -NoProfile -ExecutionPolicy Bypass -File \$zipScript -OutDir \$outDir/.test(openFolderPs1), "expected open_release_folder script to invoke resolved powershell path");
+    assert(!/& powershell -NoProfile -ExecutionPolicy Bypass -File/.test(openFolderPs1), "open_release_folder script must avoid command-name powershell invocation");
+
+    const zipWrapperPs1 = fs.readFileSync(path.join(windowsDir, "weftend_release_zip.ps1"), "utf8");
+    assert(/Set-StrictMode -Version Latest/.test(zipWrapperPs1), "expected tools/windows release zip wrapper strict mode enforcement");
+    assert(/\$powershellExe = Join-Path \$env:WINDIR/.test(zipWrapperPs1), "expected tools/windows release zip wrapper powershell path resolution");
+    assert(/& \$powershellExe -ExecutionPolicy Bypass -File \$zipScript -OutDir \$OutDir/.test(zipWrapperPs1), "expected tools/windows release zip wrapper to invoke resolved powershell path");
+    assert(!/& powershell -ExecutionPolicy Bypass -File/.test(zipWrapperPs1), "tools/windows release zip wrapper must avoid command-name powershell invocation");
+  });
+
+  register("windows cmd wrappers resolve powershell host path", () => {
+    const cmdWrappers = ["OPEN_RELEASE_FOLDER.cmd", "INSTALL_WINDOWS.cmd", "UNINSTALL_WINDOWS.cmd", "FIRST_5_MINUTES.cmd"];
+    cmdWrappers.forEach((name) => {
+      const text = fs.readFileSync(path.join(windowsDir, name), "utf8");
+      assert(/set "PS_EXE=%SystemRoot%\\System32\\WindowsPowerShell\\v1\.0\\powershell\.exe"/i.test(text), `${name} must resolve system powershell path first`);
+      assert(/if not exist "%PS_EXE%" set "PS_EXE=powershell\.exe"/i.test(text), `${name} must include resolved powershell fallback`);
+      assert(/"%PS_EXE%" -NoProfile -ExecutionPolicy Bypass -File/i.test(text), `${name} must invoke resolved powershell executable`);
     });
   });
 

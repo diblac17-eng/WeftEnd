@@ -29,6 +29,10 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Release zip wrapper and Windows icon-regeneration paths now invoke resolved PowerShell executable paths (`$powershellExe` / `$iconHostExe`) instead of command-name `powershell` lookup.
 - Release zip wrapper now enforces strict mode and normalizes repo-root resolution to explicit `.Path` for stable script-path handling.
 - Shell doctor CMD wrapper now resolves `%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe` first (with fallback) instead of direct command-name invocation.
+- Windows context-menu command registration now uses resolved PowerShell host path (`$psMenuHostExe`) instead of bare `powershell.exe` command-name lookup.
+- Windows helper wrappers (`OPEN_RELEASE_FOLDER.cmd`, `INSTALL_WINDOWS.cmd`, `UNINSTALL_WINDOWS.cmd`, `FIRST_5_MINUTES.cmd`) now resolve `%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe` first (with fallback) before invocation.
+- `tools/windows/open_release_folder.ps1` and `tools/windows/weftend_release_zip.ps1` now invoke resolved `$powershellExe` path and avoid command-name `powershell` lookup drift.
+- Added/updated Windows shell asset contract coverage for context-menu host command resolution and Windows CMD wrapper PowerShell host-path resolution invariants.
 - Updated Windows shell asset contract coverage to pin startup failure-counter behavior.
 - Launchpad History report-open success now resets viewer startup state (`UseReportViewer=1`, `ReportViewerAutoOpen=1`, `ReportViewerStartFailCount=0`) so operator manual opens can self-heal auto-open disable state.
 
