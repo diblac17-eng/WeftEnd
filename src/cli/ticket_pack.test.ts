@@ -119,6 +119,7 @@ const testTicketPack = async () => {
   assert(summary.includes("ticketPack=weftend"), "ticket summary missing header");
   assert(summary.includes("operatorReceiptFileDigest=sha256:"), "ticket summary missing operator receipt file digest");
   assert(summary.includes("safeReceiptFileDigest=sha256:"), "ticket summary missing safe receipt file digest");
+  assert(summary.includes("privacyLintReportFileDigest=sha256:"), "ticket summary missing privacy lint report file digest");
   assert(summary.includes("reportCardFileDigest=sha256:"), "ticket summary missing report card file digest");
   assert(summary.includes("reportRunId="), "ticket summary missing report run id");
   assert(summary.includes("reportLibraryKey="), "ticket summary missing report library key");
@@ -140,6 +141,7 @@ const testTicketPack = async () => {
   assert(!containsAbsPath(summary), "ticket summary contains absolute path");
   assert(isSha256Line(summaryMap.operatorReceiptFileDigest), "operatorReceiptFileDigest must be sha256:<64hex>");
   assert(isSha256Line(summaryMap.safeReceiptFileDigest), "safeReceiptFileDigest must be sha256:<64hex>");
+  assert(isSha256Line(summaryMap.privacyLintReportFileDigest), "privacyLintReportFileDigest must be sha256:<64hex>");
   assert(isSha256Line(summaryMap.reportCardFileDigest), "reportCardFileDigest must be sha256:<64hex>");
   assert(String(summaryMap.compareArtifacts || "") === "present", "compareArtifacts must be present when compare files exist");
   assert(isSha256Line(summaryMap.compareReceiptFileDigest), "compareReceiptFileDigest must be sha256:<64hex>");

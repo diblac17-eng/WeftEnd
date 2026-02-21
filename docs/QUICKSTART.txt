@@ -159,6 +159,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - Ticket packs include `report_card_v0.json` when present, alongside `report_card.txt`.
 - `ticket_summary.txt` now includes adapter evidence summary lines (`adapterEvidence`, adapter identity, and capability counts).
 - `ticket_summary.txt` now also includes file-digest identity lines (`operatorReceiptFileDigest`, `safeReceiptFileDigest`, `reportCardFileDigest`) and artifact fingerprint/digest.
+- `ticket_summary.txt` now also includes `privacyLintReportFileDigest` (`weftend/privacy_lint_v0.json`) with the other digest identity lines.
 - `ticket_summary.txt` now includes report state lines (`reportRunId`, `reportLibraryKey`, `reportStatus`, `reportBaseline`, `reportLatest`, `reportBuckets`).
 - `ticket_summary.txt` now includes compare artifact identity lines (`compareArtifacts`, `compareReceiptFileDigest`, `compareReportFileDigest`).
 - `ticket_summary.txt` now also includes compare semantics lines (`compareVerdict`, `compareBuckets`, `compareBucketCount`, `compareChangeCount`) with deterministic text-report fallback when `compare_receipt.json` is absent.

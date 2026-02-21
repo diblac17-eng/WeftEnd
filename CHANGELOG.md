@@ -54,6 +54,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Ticket-pack default extras now include `report_card_v0.json` so structured report output is carried with ticket bundles when available.
 - Ticket-pack summaries now include adapter evidence fields (`adapterEvidence`, adapter identity, capability counts) for faster operator/support triage.
 - Ticket-pack summaries now also include digest identity fields (`operatorReceiptFileDigest`, `safeReceiptFileDigest`, `reportCardFileDigest`) and artifact fingerprint/digest.
+- Ticket-pack digest identity lines now also include `privacyLintReportFileDigest` (`weftend/privacy_lint_v0.json`) for stronger cross-verification.
 - Ticket-pack summaries now include report state context fields (`reportRunId`, `reportLibraryKey`, `reportStatus`, `reportBaseline`, `reportLatest`, `reportBuckets`) for faster triage without opening report files.
 - Ticket-pack summaries now include compare artifact identity fields (`compareArtifacts`, `compareReceiptFileDigest`, `compareReportFileDigest`) for quick compare-evidence triage.
 - Ticket-pack summaries now also include compare semantics fields (`compareVerdict`, `compareBuckets`, `compareBucketCount`, `compareChangeCount`) with deterministic `compare_report.txt` fallback when `compare_receipt.json` is absent.
