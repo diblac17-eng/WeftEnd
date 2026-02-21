@@ -7,6 +7,7 @@
 )
 
 $ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
 
 function Write-Section($title) {
   Write-Host ""

@@ -137,6 +137,7 @@ suite("tools/windows shell assets", () => {
   register("release ops script uses deterministic candidate sorting", () => {
     const releaseOpsPath = path.join(repoRoot, "scripts", "weftend_release_ops.ps1");
     const text = fs.readFileSync(releaseOpsPath, "utf8");
+    assert(/Set-StrictMode -Version Latest/.test(text), "expected release ops strict mode enforcement");
     assert(/function Get-StableSortKey/.test(text), "expected release ops stable sort-key helper");
     assert(/Sort-Object @{ Expression = \{ Get-StableSortKey -value \$_.FullName \} }/.test(text), "expected release ops deterministic publish.json sort");
     assert(!/Sort-Object FullName/.test(text), "release ops must avoid locale-sensitive Sort-Object FullName");
