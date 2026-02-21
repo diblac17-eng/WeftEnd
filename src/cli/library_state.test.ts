@@ -59,6 +59,11 @@ const copyDir = (src: string, dst: string) => {
 };
 
 const readJson = (filePath: string) => JSON.parse(fs.readFileSync(filePath, "utf8"));
+const assertNoStageFiles = (dir: string) => {
+  const entries = fs.readdirSync(dir);
+  const stage = entries.filter((name: string) => name.endsWith(".stage"));
+  assert(stage.length === 0, `expected no staged files in ${dir}, found: ${stage.join(",")}`);
+};
 
 suite("library state view", () => {
   register("baseline compare + accept/reject flow", async () => {
@@ -105,6 +110,7 @@ suite("library state view", () => {
     assertEq(accept.status, 0, `expected accept baseline exit 0\n${accept.stderr}`);
     const state3 = readJson(viewPath);
     assertEq(state3.baselineRunId, state3.latestRunId, "expected baseline advanced to latest");
+    assertNoStageFiles(viewDir);
 
     const reject = await runCliCapture(["library", "reject-baseline", targetKey], {
       env: { WEFTEND_LIBRARY_ROOT: libraryRoot },
@@ -112,6 +118,7 @@ suite("library state view", () => {
     assertEq(reject.status, 0, `expected reject baseline exit 0\n${reject.stderr}`);
     const state4 = readJson(viewPath);
     assert(state4.blocked && state4.blocked.runId, "expected blocked state set");
+    assertNoStageFiles(viewDir);
   });
 });
 

@@ -60,9 +60,25 @@ const readPointer = (filePath: string): string | null => {
   }
 };
 
-const writePointer = (filePath: string, value: string): void => {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, `${value}\n`, "utf8");
+const writeTextAtomic = (filePath: string, value: string): boolean => {
+  const stagePath = `${filePath}.stage`;
+  try {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(stagePath, value, "utf8");
+    fs.renameSync(stagePath, filePath);
+    return true;
+  } catch {
+    try {
+      if (fs.existsSync(stagePath)) fs.unlinkSync(stagePath);
+    } catch {
+      // best-effort cleanup only
+    }
+    return false;
+  }
+};
+
+const writePointer = (filePath: string, value: string): boolean => {
+  return writeTextAtomic(filePath, `${value}\n`);
 };
 
 const parseBlockedLine = (line: string): { runId: string; reasonCodes: string[] } | null => {
@@ -89,11 +105,10 @@ const readBlocked = (filePath: string): { runId: string; reasonCodes: string[] }
   }
 };
 
-const writeBlocked = (filePath: string, runId: string, reasonCodes: string[]): void => {
+const writeBlocked = (filePath: string, runId: string, reasonCodes: string[]): boolean => {
   const codes = stableSortUniqueStringsV0(reasonCodes).slice(0, MAX_BLOCKED_REASONS);
   const line = `runId=${runId} reasons=${codes.join(",")}`;
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, `${line}\n`, "utf8");
+  return writeTextAtomic(filePath, `${line}\n`);
 };
 
 const loadViewState = (filePath: string): LibraryViewStateV0 | null => {
@@ -219,9 +234,8 @@ const buildViewState = (input: {
   };
 };
 
-const writeViewState = (viewDir: string, state: LibraryViewStateV0): void => {
-  fs.mkdirSync(viewDir, { recursive: true });
-  fs.writeFileSync(path.join(viewDir, "view_state.json"), `${canonicalJSON(state)}\n`, "utf8");
+const writeViewState = (viewDir: string, state: LibraryViewStateV0): boolean => {
+  return writeTextAtomic(path.join(viewDir, "view_state.json"), `${canonicalJSON(state)}\n`);
 };
 
 export const updateLibraryViewFromRunV0 = (options: {
@@ -229,7 +243,7 @@ export const updateLibraryViewFromRunV0 = (options: {
   privacyVerdict: "PASS" | "FAIL";
   hostSelfStatus?: "OK" | "UNVERIFIED" | "MISSING";
   hostSelfReasonCodes?: string[];
-}): { ok: boolean; skipped?: boolean; viewState?: LibraryViewStateV0 } => {
+}): { ok: boolean; code?: string; skipped?: boolean; viewState?: LibraryViewStateV0 } => {
   const ctx = resolveViewContext(options.outDir);
   if (!ctx.ok || !ctx.targetDir || !ctx.viewDir || !ctx.runId || !ctx.targetKey) return { ok: false, skipped: true };
 
@@ -243,8 +257,8 @@ export const updateLibraryViewFromRunV0 = (options: {
   if (!runIds.includes(baseline)) {
     baseline = ctx.runId;
   }
-  writePointer(baselinePath, baseline);
-  writePointer(latestPath, ctx.runId);
+  if (!writePointer(baselinePath, baseline)) return { ok: false, code: "LIBRARY_BASELINE_WRITE_FAILED" };
+  if (!writePointer(latestPath, ctx.runId)) return { ok: false, code: "LIBRARY_LATEST_WRITE_FAILED" };
 
   const existingBlocked = readBlocked(blockedPath);
   let blocked = existingBlocked;
@@ -257,7 +271,7 @@ export const updateLibraryViewFromRunV0 = (options: {
     }
     const normalized = stableSortUniqueStringsV0(reasons).slice(0, MAX_BLOCKED_REASONS);
     if (normalized.length > 0) {
-      writeBlocked(blockedPath, ctx.runId, normalized);
+      if (!writeBlocked(blockedPath, ctx.runId, normalized)) return { ok: false, code: "LIBRARY_BLOCKED_WRITE_FAILED" };
       blocked = { runId: ctx.runId, reasonCodes: normalized };
     }
   }
@@ -276,7 +290,7 @@ export const updateLibraryViewFromRunV0 = (options: {
     blocked,
     lastN,
   });
-  writeViewState(ctx.viewDir, state);
+  if (!writeViewState(ctx.viewDir, state)) return { ok: false, code: "LIBRARY_VIEWSTATE_WRITE_FAILED" };
   return { ok: true, viewState: state };
 };
 
@@ -301,8 +315,12 @@ export const updateLibraryViewForTargetV0 = (options: {
 
   const latest = readPointer(latestPath) ?? runIds[runIds.length - 1];
   if (options.setBaselineToLatest) {
-    writePointer(baselinePath, latest);
-    if (fs.existsSync(blockedPath)) fs.unlinkSync(blockedPath);
+    if (!writePointer(baselinePath, latest)) return { ok: false, code: "LIBRARY_BASELINE_WRITE_FAILED" };
+    try {
+      if (fs.existsSync(blockedPath)) fs.unlinkSync(blockedPath);
+    } catch {
+      return { ok: false, code: "LIBRARY_BLOCKED_CLEAR_FAILED" };
+    }
   }
 
   if (options.setBlockedFromLatest) {
@@ -310,12 +328,12 @@ export const updateLibraryViewForTargetV0 = (options: {
       0,
       MAX_BLOCKED_REASONS
     );
-    writeBlocked(blockedPath, latest, reasonCodes);
+    if (!writeBlocked(blockedPath, latest, reasonCodes)) return { ok: false, code: "LIBRARY_BLOCKED_WRITE_FAILED" };
   }
 
   const baseline = ensureBaseline(runIds, latest, readPointer(baselinePath));
-  writePointer(baselinePath, baseline);
-  writePointer(latestPath, latest);
+  if (!writePointer(baselinePath, baseline)) return { ok: false, code: "LIBRARY_BASELINE_WRITE_FAILED" };
+  if (!writePointer(latestPath, latest)) return { ok: false, code: "LIBRARY_LATEST_WRITE_FAILED" };
 
   const blocked = readBlocked(blockedPath);
   const prior = loadViewState(viewStatePath);
@@ -331,6 +349,6 @@ export const updateLibraryViewForTargetV0 = (options: {
     blocked,
     lastN,
   });
-  writeViewState(viewDir, state);
+  if (!writeViewState(viewDir, state)) return { ok: false, code: "LIBRARY_VIEWSTATE_WRITE_FAILED" };
   return { ok: true, viewState: state };
 };
