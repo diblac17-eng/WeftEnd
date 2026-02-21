@@ -58,6 +58,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   - Keyboard: `Ctrl+C` also copies current history details text.
   - If old entries are missing `view_state.json` latest pointers, Launchpad falls back to newest `run_*` folder automatically.
   - If view-state metadata is incomplete, Launchpad uses `report_card_v0.json`/`report_card.txt` fallback for status/buckets/baseline.
+  - History details include artifact fingerprint/digest and safe/operator receipt digests for quick verification.
 - Report card text/json (when adapter evidence exists):
   - `report_card.txt` includes `adapterMeta=` and `capabilities=` lines.
   - `report_card_v0.json` includes additive `adapter` object with class/id/mode/source/reasons/capability counts.

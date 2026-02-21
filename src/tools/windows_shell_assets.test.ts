@@ -262,6 +262,8 @@ suite("tools/windows shell assets", () => {
     assert(/-OpenLibrary/.test(panelText), "expected launchpad shortcut args to reject OpenLibrary");
     assert(/Read-AdapterTagForRun/.test(panelText), "expected history adapter-tag helper");
     assert(/Read-AdapterEvidenceForRun/.test(panelText), "expected history adapter-evidence helper");
+    assert(/Read-RunEvidenceSnapshot/.test(panelText), "expected history evidence snapshot helper");
+    assert(/Compute-FileSha256Digest/.test(panelText), "expected history file digest helper");
     assert(/Get-LatestRunIdForTargetDir/.test(panelText), "expected history latest-run fallback helper");
     assert(/Read-ReportCardSummaryForRun/.test(panelText), "expected history report-card fallback helper");
     assert(/Update-HistoryDetailsBox/.test(panelText), "expected history details update helper");
@@ -278,6 +280,8 @@ suite("tools/windows shell assets", () => {
     assert(/\+plugin/.test(panelText), "expected launchpad adapter plugin marker");
     assert(/capability_ledger_v0\.json/.test(panelText), "expected launchpad adapter tag capability ledger lookup");
     assert(/Adapter Class:/.test(panelText), "expected adapter detail text in history pane");
+    assert(/Safe Receipt Digest:/.test(panelText), "expected safe receipt digest detail in history pane");
+    assert(/Operator Receipt Digest:/.test(panelText), "expected operator receipt digest detail in history pane");
 
     const shortcutPath = path.join(shellDir, "weftend_make_shortcut.ps1");
     const shortcutText = fs.readFileSync(shortcutPath, "utf8");

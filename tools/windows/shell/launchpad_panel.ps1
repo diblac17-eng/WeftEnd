@@ -472,6 +472,18 @@ function Get-ObjectProperty {
   return $null
 }
 
+function Compute-FileSha256Digest {
+  param([string]$PathValue)
+  if (-not $PathValue -or -not (Test-Path -LiteralPath $PathValue)) { return "-" }
+  try {
+    $hash = Get-FileHash -LiteralPath $PathValue -Algorithm SHA256 -ErrorAction Stop
+    if (-not $hash -or -not $hash.Hash) { return "-" }
+    return "sha256:" + ([string]$hash.Hash).ToLowerInvariant()
+  } catch {
+    return "-"
+  }
+}
+
 function Format-ReasonPreview {
   param(
     [object]$ReasonCodes,
@@ -496,6 +508,68 @@ function Format-ReasonPreview {
     $preview += ",+" + [string]($codes.Count - $take)
   }
   return $preview
+}
+
+function Read-RunEvidenceSnapshot {
+  param(
+    [string]$TargetDir,
+    [string]$RunId
+  )
+  $out = @{
+    runId = if ($RunId) { [string]$RunId } else { "-" }
+    artifactFingerprint = "-"
+    artifactDigest = "-"
+    safeReceiptDigest = "-"
+    operatorReceiptDigest = "-"
+  }
+  if (-not $TargetDir -or -not $RunId -or $RunId -eq "-") { return $out }
+  $runDir = Join-Path $TargetDir $RunId
+  if (-not (Test-Path -LiteralPath $runDir)) { return $out }
+
+  $reportJsonPath = Join-Path $runDir "report_card_v0.json"
+  if (Test-Path -LiteralPath $reportJsonPath) {
+    try {
+      $reportObj = Get-Content -LiteralPath $reportJsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
+      $rid = [string](Get-ObjectProperty -ObjectValue $reportObj -Name "runId")
+      $fp = [string](Get-ObjectProperty -ObjectValue $reportObj -Name "artifactFingerprint")
+      $fd = [string](Get-ObjectProperty -ObjectValue $reportObj -Name "artifactDigest")
+      if ($rid -and $rid.Trim() -ne "") { $out.runId = $rid }
+      if ($fp -and $fp.Trim() -ne "") { $out.artifactFingerprint = $fp }
+      if ($fd -and $fd.Trim() -ne "") { $out.artifactDigest = $fd }
+    } catch {
+      # best effort only
+    }
+  }
+
+  if ($out.artifactFingerprint -eq "-" -or $out.artifactDigest -eq "-") {
+    $reportTxtPath = Join-Path $runDir "report_card.txt"
+    if (Test-Path -LiteralPath $reportTxtPath) {
+      try {
+        $lines = @(Get-Content -LiteralPath $reportTxtPath -Encoding UTF8)
+        foreach ($lineObj in $lines) {
+          $line = [string]$lineObj
+          if ($out.artifactFingerprint -eq "-" -and $line.StartsWith("artifactFingerprint=")) {
+            $value = $line.Substring("artifactFingerprint=".Length).Trim()
+            if ($value -ne "") { $out.artifactFingerprint = $value }
+          } elseif ($out.artifactDigest -eq "-" -and $line.StartsWith("artifactDigest=")) {
+            $value = $line.Substring("artifactDigest=".Length).Trim()
+            if ($value -ne "") { $out.artifactDigest = $value }
+          } elseif ($out.runId -eq "-" -and $line.StartsWith("runId=")) {
+            $value = $line.Substring("runId=".Length).Trim()
+            if ($value -ne "") { $out.runId = $value }
+          }
+        }
+      } catch {
+        # best effort only
+      }
+    }
+  }
+
+  $safeReceiptPath = Join-Path $runDir "safe_run_receipt.json"
+  $operatorReceiptPath = Join-Path $runDir "operator_receipt.json"
+  $out.safeReceiptDigest = Compute-FileSha256Digest -PathValue $safeReceiptPath
+  $out.operatorReceiptDigest = Compute-FileSha256Digest -PathValue $operatorReceiptPath
+  return $out
 }
 
 function Read-AdapterTagForRun {
@@ -853,6 +927,14 @@ function Update-HistoryDetailsBox {
   )
 
   if ($targetDir -and $latestRun -and $latestRun -ne "-") {
+    $snapshot = Read-RunEvidenceSnapshot -TargetDir $targetDir -RunId $latestRun
+    $lines += ""
+    $lines += "RunId: " + [string]$snapshot.runId
+    $lines += "Artifact Fingerprint: " + [string]$snapshot.artifactFingerprint
+    $lines += "Artifact Digest: " + [string]$snapshot.artifactDigest
+    $lines += "Safe Receipt Digest: " + [string]$snapshot.safeReceiptDigest
+    $lines += "Operator Receipt Digest: " + [string]$snapshot.operatorReceiptDigest
+
     $ev = Read-AdapterEvidenceForRun -TargetDir $targetDir -RunId $latestRun
     if ($ev.available) {
       $lines += ""
