@@ -678,16 +678,71 @@ function Get-LatestRunIdForTargetDir {
   }
 }
 
+function Read-ReportCardSummaryForRun {
+  param(
+    [string]$TargetDir,
+    [string]$RunId
+  )
+  $out = @{
+    status = "UNKNOWN"
+    baseline = "-"
+    buckets = "-"
+  }
+  if (-not $TargetDir -or -not $RunId -or $RunId -eq "-") { return $out }
+  $runDir = Join-Path $TargetDir $RunId
+  if (-not (Test-Path -LiteralPath $runDir)) { return $out }
+
+  $jsonPath = Join-Path $runDir "report_card_v0.json"
+  if (Test-Path -LiteralPath $jsonPath) {
+    try {
+      $obj = Get-Content -LiteralPath $jsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
+      $status = [string](Get-ObjectProperty -ObjectValue $obj -Name "status")
+      $baseline = [string](Get-ObjectProperty -ObjectValue $obj -Name "baseline")
+      $buckets = [string](Get-ObjectProperty -ObjectValue $obj -Name "buckets")
+      if ($status -and $status.Trim() -ne "") { $out.status = $status }
+      if ($baseline -and $baseline.Trim() -ne "") { $out.baseline = $baseline }
+      if ($buckets -and $buckets.Trim() -ne "") { $out.buckets = $buckets }
+      return $out
+    } catch {
+      # best effort only
+    }
+  }
+
+  $txtPath = Join-Path $runDir "report_card.txt"
+  if (Test-Path -LiteralPath $txtPath) {
+    try {
+      $lines = @(Get-Content -LiteralPath $txtPath -Encoding UTF8)
+      foreach ($lineObj in $lines) {
+        $line = [string]$lineObj
+        if ($line.StartsWith("STATUS:")) {
+          $m = [System.Text.RegularExpressions.Regex]::Match($line, "STATUS:\s*([A-Z_]+)")
+          if ($m.Success -and $m.Groups.Count -gt 1) { $out.status = [string]$m.Groups[1].Value }
+        } elseif ($line.StartsWith("BASELINE:")) {
+          $value = $line.Substring("BASELINE:".Length).Trim()
+          if ($value -ne "") { $out.baseline = $value }
+        } elseif ($line.StartsWith("BUCKETS:")) {
+          $value = $line.Substring("BUCKETS:".Length).Trim()
+          if ($value -ne "") { $out.buckets = $value }
+        }
+      }
+    } catch {
+      # best effort only
+    }
+  }
+  return $out
+}
+
 function Read-ViewStateSummary {
   param([string]$TargetDir)
   $viewPath = Join-Path $TargetDir "view\view_state.json"
   if (-not (Test-Path -LiteralPath $viewPath)) {
     $latestFallback = Get-LatestRunIdForTargetDir -TargetDir $TargetDir
+    $reportFallback = Read-ReportCardSummaryForRun -TargetDir $TargetDir -RunId $latestFallback
     return @{
-      status = "UNKNOWN"
-      baseline = "-"
+      status = $reportFallback.status
+      baseline = $reportFallback.baseline
       latest = $latestFallback
-      buckets = "-"
+      buckets = $reportFallback.buckets
       adapter = (Read-AdapterTagForRun -TargetDir $TargetDir -RunId $latestFallback)
     }
   }
@@ -733,6 +788,18 @@ function Read-ViewStateSummary {
     if (-not $latest -or $latest -eq "-") {
       $latest = Get-LatestRunIdForTargetDir -TargetDir $TargetDir
     }
+    if ($latest -and $latest -ne "-" -and ($status -eq "UNKNOWN" -or $buckets -eq "-" -or $baseline -eq "-")) {
+      $reportFallback = Read-ReportCardSummaryForRun -TargetDir $TargetDir -RunId $latest
+      if ($status -eq "UNKNOWN" -and $reportFallback.status -and $reportFallback.status -ne "UNKNOWN") {
+        $status = [string]$reportFallback.status
+      }
+      if ($baseline -eq "-" -and $reportFallback.baseline -and $reportFallback.baseline -ne "-") {
+        $baseline = [string]$reportFallback.baseline
+      }
+      if ($buckets -eq "-" -and $reportFallback.buckets -and $reportFallback.buckets -ne "-") {
+        $buckets = [string]$reportFallback.buckets
+      }
+    }
     return @{
       status = $status
       baseline = $baseline
@@ -742,11 +809,12 @@ function Read-ViewStateSummary {
     }
   } catch {
     $latestFallback = Get-LatestRunIdForTargetDir -TargetDir $TargetDir
+    $reportFallback = Read-ReportCardSummaryForRun -TargetDir $TargetDir -RunId $latestFallback
     return @{
-      status = "UNKNOWN"
-      baseline = "-"
+      status = $reportFallback.status
+      baseline = $reportFallback.baseline
       latest = $latestFallback
-      buckets = "-"
+      buckets = $reportFallback.buckets
       adapter = (Read-AdapterTagForRun -TargetDir $TargetDir -RunId $latestFallback)
     }
   }
@@ -821,6 +889,9 @@ function Update-HistoryActionButtons {
   $meta = $selected.Tag
   $targetDir = if ($meta -and $meta.targetDir) { [string]$meta.targetDir } else { "" }
   $latestRun = if ($meta -and $meta.latestRun) { [string]$meta.latestRun } else { "-" }
+  if ($latestRun -eq "-" -and $targetDir) {
+    $latestRun = Get-LatestRunIdForTargetDir -TargetDir $targetDir
+  }
   if ($RunButton -and $targetDir -and (Test-Path -LiteralPath $targetDir)) {
     $RunButton.Enabled = $true
   }

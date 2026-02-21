@@ -36,6 +36,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Launchpad History now includes an inline details pane for the selected row, surfacing adapter class/id/mode/source/reasons and capability counts without opening the full report viewer.
 - Launchpad History now provides direct actions to open selected latest run folders and adapter evidence (`analysis`) folders.
 - Launchpad History now falls back to newest `run_*` folder detection when `view_state.json` latest pointers are missing/stale.
+- Launchpad History fallback now reads `report_card_v0.json`/`report_card.txt` to recover status/buckets/baseline when view-state metadata is incomplete.
 - Launchpad History now provides `Copy Details` for selected inline adapter evidence summaries.
 - Launchpad History now supports `Ctrl+C` copy from history list/details for faster evidence sharing.
 - Ticket-pack test coverage now enforces adapter evidence artifact carry-through (`analysis/capability_ledger_v0.json`, `analysis/adapter_summary_v0.json`, `analysis/adapter_findings_v0.json`) when those artifacts are present in a run.

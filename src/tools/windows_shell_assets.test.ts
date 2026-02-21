@@ -263,6 +263,7 @@ suite("tools/windows shell assets", () => {
     assert(/Read-AdapterTagForRun/.test(panelText), "expected history adapter-tag helper");
     assert(/Read-AdapterEvidenceForRun/.test(panelText), "expected history adapter-evidence helper");
     assert(/Get-LatestRunIdForTargetDir/.test(panelText), "expected history latest-run fallback helper");
+    assert(/Read-ReportCardSummaryForRun/.test(panelText), "expected history report-card fallback helper");
     assert(/Update-HistoryDetailsBox/.test(panelText), "expected history details update helper");
     assert(/SelectedIndexChanged/.test(panelText), "expected history selection details wiring");
     assert(/Open-HistoryRunFolder/.test(panelText), "expected history open-run helper");
