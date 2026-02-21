@@ -31,6 +31,16 @@ const MAX_TOP_DOMAINS = 10;
 const MAX_REASON_CODES = 64;
 
 type ContainerFlags = Record<string, string | boolean>;
+type CapabilityLedgerEntryV0 = { capId: string; reasonCodes: string[] };
+type CapabilityLedgerV0 = {
+  schema: "weftend.capabilityLedger/0";
+  schemaVersion: 0;
+  mode: "analysis_only";
+  requestedCaps: CapabilityLedgerEntryV0[];
+  grantedCaps: CapabilityLedgerEntryV0[];
+  deniedCaps: CapabilityLedgerEntryV0[];
+  reasonCodes: string[];
+};
 
 const printUsage = () => {
   console.log("Usage:");
@@ -97,6 +107,46 @@ const buildSafeRunReceipt = (input: Omit<SafeRunReceiptV0, "receiptDigest">): Sa
 };
 
 const digestText = (value: string): string => computeArtifactDigestV0(value ?? "");
+const sortSubReceipts = (items: Array<{ name: string; digest: string }>): Array<{ name: string; digest: string }> =>
+  items
+    .slice()
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : cmpStrV0(a.digest, b.digest)));
+
+const buildContainerCapabilityLedgerV0 = (reasonCodesInput: string[], ok: boolean): CapabilityLedgerV0 => {
+  const reasonCodes = stableSortUniqueReasonsV0(reasonCodesInput).slice(0, MAX_REASON_CODES);
+  const requestedCaps: CapabilityLedgerEntryV0[] = [
+    { capId: "adapter.selection.container", reasonCodes: [] },
+    { capId: "adapter.route.container", reasonCodes: [] },
+    { capId: "docker.command.version", reasonCodes: [] },
+    { capId: "docker.command.image.inspect", reasonCodes: [] },
+  ];
+  if (ok) {
+    return {
+      schema: "weftend.capabilityLedger/0",
+      schemaVersion: 0,
+      mode: "analysis_only",
+      requestedCaps,
+      grantedCaps: [
+        { capId: "adapter.selection.container", reasonCodes: ["ADAPTER_SELECTION_GRANTED"] },
+        { capId: "adapter.route.container", reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_SCAN_ADAPTER_V0", ...reasonCodes]) },
+        { capId: "docker.command.version", reasonCodes: ["CONTAINER_SCAN_DOCKER_LOCAL_ONLY"] },
+        { capId: "docker.command.image.inspect", reasonCodes: ["CONTAINER_SCAN_DOCKER_LOCAL_ONLY"] },
+      ],
+      deniedCaps: [],
+      reasonCodes,
+    };
+  }
+  const deniedReasons = stableSortUniqueReasonsV0(reasonCodes.length > 0 ? reasonCodes : ["CONTAINER_SCAN_FAILED"]).slice(0, MAX_REASON_CODES);
+  return {
+    schema: "weftend.capabilityLedger/0",
+    schemaVersion: 0,
+    mode: "analysis_only",
+    requestedCaps,
+    grantedCaps: [],
+    deniedCaps: requestedCaps.map((entry) => ({ capId: entry.capId, reasonCodes: deniedReasons })),
+    reasonCodes: deniedReasons,
+  };
+};
 
 const listFilesRecursiveRel = (root: string, relStart: string): string[] => {
   const startPath = path.join(root, relStart);
@@ -192,6 +242,8 @@ const finalizeFailure = (options: {
   const reasonCodes = stableSortUniqueReasonsV0(options.reasonCodes).slice(0, MAX_REASON_CODES);
   const weftendBuild = computeWeftendBuildV0({ filePath: process?.argv?.[1], source: "NODE_MAIN_JS" }).build;
   fs.mkdirSync(options.outDir, { recursive: true });
+  const analysisDir = path.join(options.outDir, "analysis");
+  fs.mkdirSync(analysisDir, { recursive: true });
 
   const selectedPolicy = path.basename(options.policyPath || POLICY_GENERIC);
   const contentSummary = {
@@ -241,6 +293,11 @@ const finalizeFailure = (options: {
     },
   };
 
+  const capabilityLedger = buildContainerCapabilityLedgerV0(reasonCodes, false);
+  const capabilityLedgerJson = `${canonicalJSON(capabilityLedger)}\n`;
+  fs.writeFileSync(path.join(analysisDir, "capability_ledger_v0.json"), capabilityLedgerJson, "utf8");
+  const subReceipts = sortSubReceipts([{ name: "analysis/capability_ledger_v0.json", digest: digestText(capabilityLedgerJson) }]);
+
   const receipt = buildSafeRunReceipt({
     schema: "weftend.safeRunReceipt/0",
     v: 0,
@@ -259,7 +316,7 @@ const finalizeFailure = (options: {
       result: "WITHHELD",
       reasonCodes: reasonCodes.length > 0 ? reasonCodes : ["CONTAINER_SCAN_FAILED"],
     },
-    subReceipts: [],
+    subReceipts,
   });
 
   const issues = validateSafeRunReceiptV0(receipt, "safeRunReceipt");
@@ -278,6 +335,7 @@ const finalizeFailure = (options: {
   const entries = [
     { kind: "safe_run_receipt", relPath: "safe_run_receipt.json", digest: receipt.receiptDigest },
     { kind: "receipt_readme", relPath: "weftend/README.txt", digest: digestText(readmeText) },
+    { kind: "capability_ledger", relPath: "analysis/capability_ledger_v0.json", digest: digestText(capabilityLedgerJson) },
   ];
   const buildAndWriteOperator = (warnings: string[]) => {
     const operatorReceipt = buildOperatorReceiptV0({
@@ -395,10 +453,13 @@ const finalizeSuccess = (options: {
   const reasonCodes = options.probe.reasonCodes;
   const adapterSummaryJson = `${canonicalJSON(adapterEvidence.summary)}\n`;
   const adapterFindingsJson = `${canonicalJSON(adapterEvidence.findings)}\n`;
-  const subReceipts = [
+  const capabilityLedger = buildContainerCapabilityLedgerV0(reasonCodes, true);
+  const capabilityLedgerJson = `${canonicalJSON(capabilityLedger)}\n`;
+  const subReceipts = sortSubReceipts([
+    { name: "analysis/capability_ledger_v0.json", digest: digestText(capabilityLedgerJson) },
     { name: "analysis/adapter_summary_v0.json", digest: digestText(adapterSummaryJson) },
     { name: "analysis/adapter_findings_v0.json", digest: digestText(adapterFindingsJson) },
-  ];
+  ]);
 
   const receipt = buildSafeRunReceipt({
     schema: "weftend.safeRunReceipt/0",
@@ -430,6 +491,7 @@ const finalizeSuccess = (options: {
 
   const analysisDir = path.join(options.outDir, "analysis");
   fs.mkdirSync(analysisDir, { recursive: true });
+  fs.writeFileSync(path.join(analysisDir, "capability_ledger_v0.json"), capabilityLedgerJson, "utf8");
   fs.writeFileSync(path.join(analysisDir, "adapter_summary_v0.json"), adapterSummaryJson, "utf8");
   fs.writeFileSync(path.join(analysisDir, "adapter_findings_v0.json"), adapterFindingsJson, "utf8");
   fs.writeFileSync(path.join(options.outDir, "safe_run_receipt.json"), `${canonicalJSON(receipt)}\n`, "utf8");
@@ -442,6 +504,7 @@ const finalizeSuccess = (options: {
   const entries = [
     { kind: "safe_run_receipt", relPath: "safe_run_receipt.json", digest: receipt.receiptDigest },
     { kind: "receipt_readme", relPath: "weftend/README.txt", digest: digestText(readmeText) },
+    { kind: "capability_ledger", relPath: "analysis/capability_ledger_v0.json", digest: digestText(capabilityLedgerJson) },
     { kind: "adapter_summary", relPath: "analysis/adapter_summary_v0.json", digest: digestText(adapterSummaryJson) },
     { kind: "adapter_findings", relPath: "analysis/adapter_findings_v0.json", digest: digestText(adapterFindingsJson) },
   ];

@@ -53,8 +53,21 @@ suite("cli/container-scan", () => {
     assert(text.includes("[DOCKER_IMAGE_REF_NOT_IMMUTABLE]"), "expected immutable-ref denial");
     assert(fs.existsSync(path.join(outDir, "safe_run_receipt.json")), "receipt must be written when ref is mutable");
     assert(fs.existsSync(path.join(outDir, "operator_receipt.json")), "operator receipt must be written when ref is mutable");
+    assert(fs.existsSync(path.join(outDir, "analysis", "capability_ledger_v0.json")), "capability ledger must be written when ref is mutable");
     const receipt = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
+    const capability = JSON.parse(fs.readFileSync(path.join(outDir, "analysis", "capability_ledger_v0.json"), "utf8"));
     assertEq(receipt.analysisVerdict, "DENY", "expected DENY analysis verdict for mutable ref");
+    assertEq(capability.schema, "weftend.capabilityLedger/0", "expected capability ledger schema");
+    assert(
+      Array.isArray(capability.deniedCaps) &&
+        capability.deniedCaps.some(
+          (entry: any) =>
+            entry?.capId === "adapter.selection.container" &&
+            Array.isArray(entry?.reasonCodes) &&
+            entry.reasonCodes.includes("DOCKER_IMAGE_REF_NOT_IMMUTABLE")
+        ),
+      "expected denied adapter selection capability for mutable ref"
+    );
     const operator = JSON.parse(fs.readFileSync(path.join(outDir, "operator_receipt.json"), "utf8"));
     const entries = Array.isArray(operator?.receipts) ? operator.receipts : [];
     const hasReadmeEntry = entries.some((entry: any) => entry?.relPath === "weftend/README.txt");
