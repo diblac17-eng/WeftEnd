@@ -71,7 +71,9 @@ const testTicketPack = async () => {
   assert(pack.status === 0, `ticket-pack failed: ${pack.stderr}`);
 
   const ticketRoot = path.join(packDir, "ticket_pack");
+  const stageRoot = path.join(packDir, "ticket_pack.stage");
   assert(fs.existsSync(ticketRoot), "ticket_pack directory missing");
+  assert(!fs.existsSync(stageRoot), "ticket_pack.stage must not remain after finalize");
   assert(fs.existsSync(path.join(ticketRoot, "ticket_summary.txt")), "ticket_summary.txt missing");
   assert(fs.existsSync(path.join(ticketRoot, "checksums.txt")), "checksums.txt missing");
   assert(fs.existsSync(path.join(ticketRoot, "ticket_pack_manifest.json")), "ticket_pack_manifest.json missing");

@@ -193,8 +193,10 @@ export const runTicketPackCli = (options: {
   ensureDir(outDir);
 
   const packDir = path.join(outDir, "ticket_pack");
+  const stagePackDir = path.join(outDir, "ticket_pack.stage");
   fs.rmSync(packDir, { recursive: true, force: true });
-  ensureDir(packDir);
+  fs.rmSync(stagePackDir, { recursive: true, force: true });
+  ensureDir(stagePackDir);
 
   const collected = collectOperatorEntries(outRoot);
   if (collected.issues.length > 0) {
@@ -244,7 +246,7 @@ export const runTicketPackCli = (options: {
   }
 
   copied.forEach((entry) => {
-    const dest = path.join(packDir, entry.relPath);
+    const dest = path.join(stagePackDir, entry.relPath);
     ensureDir(path.dirname(dest));
     fs.copyFileSync(entry.absPath, dest);
   });
@@ -470,7 +472,7 @@ export const runTicketPackCli = (options: {
     `adapterMode=${adapterMode}`,
     `capabilities=requested:${String(capRequested)} granted:${String(capGranted)} denied:${String(capDenied)}`,
   ];
-  writeText(path.join(packDir, "ticket_summary.txt"), `${summaryLines.join("\n")}\n`);
+  writeText(path.join(stagePackDir, "ticket_summary.txt"), `${summaryLines.join("\n")}\n`);
 
   const baseEntries: TicketPackEntry[] = copied.map((entry) => ({
     relPath: entry.relPath,
@@ -479,25 +481,33 @@ export const runTicketPackCli = (options: {
   }));
   const summaryEntry: TicketPackEntry = {
     relPath: "ticket_summary.txt",
-    sha256: sha256File(path.join(packDir, "ticket_summary.txt")),
-    bytes: fs.statSync(path.join(packDir, "ticket_summary.txt")).size,
+    sha256: sha256File(path.join(stagePackDir, "ticket_summary.txt")),
+    bytes: fs.statSync(path.join(stagePackDir, "ticket_summary.txt")).size,
   };
   const manifest = buildManifest([...baseEntries, summaryEntry]);
-  writeText(path.join(packDir, "ticket_pack_manifest.json"), `${canonicalJSON(manifest)}\n`);
+  writeText(path.join(stagePackDir, "ticket_pack_manifest.json"), `${canonicalJSON(manifest)}\n`);
 
   const checksumFiles = [...baseEntries, summaryEntry, { relPath: "ticket_pack_manifest.json", sha256: "", bytes: 0 }]
     .map((entry) => {
-      const abs = path.join(packDir, entry.relPath);
+      const abs = path.join(stagePackDir, entry.relPath);
       const sha = sha256File(abs);
       return { relPath: entry.relPath, sha256: sha, bytes: fs.statSync(abs).size };
     })
     .sort((a, b) => cmpStrV0(a.relPath, b.relPath));
   const checksumLines = checksumFiles.map((entry) => `sha256:${entry.sha256} ${entry.relPath}`);
-  writeText(path.join(packDir, "checksums.txt"), `${checksumLines.join("\n")}\n`);
+  writeText(path.join(stagePackDir, "checksums.txt"), `${checksumLines.join("\n")}\n`);
 
-  const lint = runPrivacyLintV0({ root: packDir, writeReport: false });
+  const lint = runPrivacyLintV0({ root: stagePackDir, writeReport: false });
   if (lint.report.verdict !== "PASS") {
     console.error("[TICKET_PACK_PRIVACY_FAIL] ticket pack failed privacy lint.");
+    return 40;
+  }
+
+  try {
+    fs.rmSync(packDir, { recursive: true, force: true });
+    fs.renameSync(stagePackDir, packDir);
+  } catch {
+    console.error("[TICKET_PACK_FINALIZE_FAILED] unable to finalize staged ticket pack.");
     return 40;
   }
 
