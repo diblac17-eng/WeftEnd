@@ -302,7 +302,7 @@ suite("tools/windows shell assets", () => {
     assert(/Copy Digests/.test(panelText), "expected launchpad history Copy Digests action");
     assert(/Run Adapter Doctor/.test(panelText), "expected launchpad doctor adapter action");
     assert(/Run Adapter Doctor \(Strict\)/.test(panelText), "expected launchpad doctor strict adapter action");
-    assert(panelText.includes("\\[([A-Z0-9_]+)\\]"), "expected adapter doctor reason-code parsing from bracketed output");
+    assert(panelText.includes("(?m)^\\[([A-Z0-9_]+)\\]"), "expected adapter doctor reason-code parsing from bracketed output");
     assert(panelText.includes("strict\\.reasons=([A-Z0-9_,-]+)"), "expected adapter doctor strict.reasons parsing fallback");
     assert(/Repair Viewer/.test(panelText), "expected launchpad doctor repair viewer action");
     assert(/Copy Doctor Output/.test(panelText), "expected launchpad doctor copy action");

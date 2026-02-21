@@ -358,7 +358,7 @@ function Invoke-AdapterDoctorText {
     $code = "OK"
     if (-not $ok) {
       $code = "ADAPTER_DOCTOR_FAILED"
-      $reasonMatch = [System.Text.RegularExpressions.Regex]::Match($outputText, "\[([A-Z0-9_]+)\]")
+      $reasonMatch = [System.Text.RegularExpressions.Regex]::Match($outputText, "(?m)^\[([A-Z0-9_]+)\]")
       if ($reasonMatch.Success -and $reasonMatch.Groups.Count -gt 1) {
         $parsedCode = [string]$reasonMatch.Groups[1].Value
         if ($parsedCode -and $parsedCode.Trim() -ne "") {
