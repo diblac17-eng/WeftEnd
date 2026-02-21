@@ -1340,6 +1340,13 @@ function Open-ReportViewerFromHistory {
       Set-StatusLine -StatusLabel $StatusLabel -Message "Viewer failed to start. Opened target history folder." -IsError $true
       return
     }
+    try {
+      Set-ItemProperty -Path $configPath -Name "UseReportViewer" -Value "1" -ErrorAction Stop
+      Set-ItemProperty -Path $configPath -Name "ReportViewerAutoOpen" -Value "1" -ErrorAction Stop
+      Set-ItemProperty -Path $configPath -Name "ReportViewerStartFailCount" -Value "0" -ErrorAction Stop
+    } catch {
+      # best effort only
+    }
     $statusText = if ($latestRun -and $latestRun -ne "-") { "Opened report: " + $targetKey + " / " + $latestRun } else { "Opened report viewer: " + $targetKey }
     Set-StatusLine -StatusLabel $StatusLabel -Message $statusText -IsError $false
   } catch {

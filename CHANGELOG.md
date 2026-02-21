@@ -12,6 +12,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Wrapper diagnostics now include additive `reportViewerStartupFailures=<count>` when startup fails but threshold disable has not been reached.
 - Shell doctor now reports `ReportViewerStartFailCount` to simplify local startup triage.
 - Updated Windows shell asset contract coverage to pin startup failure-counter behavior.
+- Launchpad History report-open success now resets viewer startup state (`UseReportViewer=1`, `ReportViewerAutoOpen=1`, `ReportViewerStartFailCount=0`) so operator manual opens can self-heal auto-open disable state.
 
 ### Evidence typing in reports
 - Windows `report_card.txt` now includes an additive evidence legend and claim mapping block:

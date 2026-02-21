@@ -270,6 +270,7 @@ suite("tools/windows shell assets", () => {
     assert(/Compute-FileSha256Digest/.test(panelText), "expected history file digest helper");
     assert(/Get-LatestRunIdForTargetDir/.test(panelText), "expected history latest-run fallback helper");
     assert(/Read-ReportCardSummaryForRun/.test(panelText), "expected history report-card fallback helper");
+    assert(/ReportViewerStartFailCount/.test(panelText), "expected launchpad viewer startup counter reset support");
     assert(/Invoke-AdapterDoctorText/.test(panelText), "expected adapter doctor helper");
     assert(/Invoke-ShellDoctorText/.test(panelText), "expected shell doctor helper");
     assert(/Copy-DoctorOutputText/.test(panelText), "expected doctor output copy helper");
@@ -280,6 +281,8 @@ suite("tools/windows shell assets", () => {
     assert(/Update-HistoryActionButtons/.test(panelText), "expected history action-button state helper");
     assert(/Copy-HistoryDetailsText/.test(panelText), "expected history copy helper");
     assert(/Copy-HistoryDigestText/.test(panelText), "expected history digest copy helper");
+    assert(/Set-ItemProperty -Path \$configPath -Name "ReportViewerAutoOpen" -Value "1"/.test(panelText), "expected launchpad viewer auto-open reset on successful open");
+    assert(/Set-ItemProperty -Path \$configPath -Name "ReportViewerStartFailCount" -Value "0"/.test(panelText), "expected launchpad viewer failure counter reset on successful open");
     assert(/Open Evidence/.test(panelText), "expected launchpad history Open Evidence action");
     assert(/Copy Details/.test(panelText), "expected launchpad history Copy Details action");
     assert(/Copy Digests/.test(panelText), "expected launchpad history Copy Digests action");
