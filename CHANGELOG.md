@@ -23,6 +23,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Launchpad adapter doctor bracket-code parsing now anchors to line-start reason format (`[CODE]`) to avoid accidental non-reason bracket token extraction.
 - Launchpad shortcut/history list ordering now uses deterministic UTF-8 byte-key sorting (`Get-StableSortKey`) instead of locale-sensitive `Sort-Object Name`.
 - Release ops publish candidate discovery now uses deterministic UTF-8 byte-key sorting (`Get-StableSortKey`) instead of locale-sensitive `Sort-Object FullName`.
+- Launchpad shell doctor fail-code parsing now anchors to full `ShellDoctorStatus: FAIL code=...` lines for stricter deterministic code extraction.
 - Updated Windows shell asset contract coverage to pin startup failure-counter behavior.
 - Launchpad History report-open success now resets viewer startup state (`UseReportViewer=1`, `ReportViewerAutoOpen=1`, `ReportViewerStartFailCount=0`) so operator manual opens can self-heal auto-open disable state.
 
