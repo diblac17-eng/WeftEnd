@@ -314,6 +314,7 @@ const main = () => {
   const reportF = readText(reportFPath);
   assertStateReceipt(receiptF, "FAIL");
   assertReportPolicyLines(reportF);
+  assertReportStepLine(reportF, "stage_residue");
   assertSortedUnique(receiptF.reasonCodes, "VERIFY360_HARNESS_REASON_CODES");
   assertCapabilityLedger(receiptF);
   const reasonCodes = Array.isArray(receiptF.reasonCodes) ? receiptF.reasonCodes : [];
@@ -341,6 +342,7 @@ const main = () => {
   const reportG = readText(reportGPath);
   assertStateReceipt(receiptG, "FAIL");
   assertReportPolicyLines(reportG);
+  assertReportStepLine(reportG, "stage_residue");
   assertSortedUnique(receiptG.reasonCodes, "VERIFY360_HARNESS_REASON_CODES");
   assertCapabilityLedger(receiptG);
   const reasonCodesG = Array.isArray(receiptG.reasonCodes) ? receiptG.reasonCodes : [];

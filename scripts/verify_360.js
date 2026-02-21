@@ -1256,6 +1256,7 @@ const main = () => {
   if (verdict === "FAIL" || partialBlockedByPolicy) process.exit(1);
   process.exit(0);
   } catch (error) {
+    addStageResidueStep();
     const errorDigest = sha256Text(String(error?.message || error || "UNKNOWN"));
     const failClosedAtReason = `VERIFY360_FAIL_CLOSED_AT_${String(corridorState || "UNKNOWN")
       .toUpperCase()
