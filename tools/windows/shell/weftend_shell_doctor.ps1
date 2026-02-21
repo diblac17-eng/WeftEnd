@@ -71,12 +71,15 @@ $repoRoot = Read-RegistryValue -Path $configKey -Name "RepoRoot"
 $outRoot = Read-RegistryValue -Path $configKey -Name "OutRoot"
 $useReportViewer = Read-RegistryValue -Path $configKey -Name "UseReportViewer"
 $reportViewerAutoOpen = Read-RegistryValue -Path $configKey -Name "ReportViewerAutoOpen"
+$reportViewerFailCount = Read-RegistryValue -Path $configKey -Name "ReportViewerStartFailCount"
 
 $allOk = $true
 if (-not (Print-ConfigStatus -Name "RepoRoot" -Value $repoRoot)) { $allOk = $false }
 if (-not (Print-ConfigStatus -Name "OutRoot" -Value $outRoot)) { $allOk = $false }
 if (-not (Print-ConfigStatus -Name "UseReportViewer" -Value $useReportViewer)) { $allOk = $false }
 if (-not (Print-ConfigStatus -Name "ReportViewerAutoOpen" -Value $reportViewerAutoOpen)) { $allOk = $false }
+if (-not $reportViewerFailCount -or [string]$reportViewerFailCount -eq "") { $reportViewerFailCount = "0" }
+Write-Host ("ReportViewerStartFailCount: " + [string]$reportViewerFailCount)
 
 $starKey = "HKCU:\Software\Classes\*\shell\WeftEndSafeRun\command"
 $lnkKey = "HKCU:\Software\Classes\lnkfile\shell\WeftEndSafeRun\command"

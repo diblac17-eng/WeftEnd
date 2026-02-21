@@ -5,6 +5,14 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 
 ## [Unreleased]
 
+### Report Viewer Startup Resilience
+- Windows shell report viewer startup now tracks consecutive startup failures in registry (`ReportViewerStartFailCount`).
+- Auto-open is no longer disabled on first startup failure; disable now occurs only after thresholded consecutive failures.
+- Successful report viewer startup resets failure counter to `0`.
+- Wrapper diagnostics now include additive `reportViewerStartupFailures=<count>` when startup fails but threshold disable has not been reached.
+- Shell doctor now reports `ReportViewerStartFailCount` to simplify local startup triage.
+- Updated Windows shell asset contract coverage to pin startup failure-counter behavior.
+
 ### Evidence typing in reports
 - Windows `report_card.txt` now includes an additive evidence legend and claim mapping block:
   - `EVIDENCE TAGS: ...`

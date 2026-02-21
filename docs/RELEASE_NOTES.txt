@@ -4,6 +4,12 @@ Scope: Deterministic artifact intake, baseline/compare workflows, operator-facin
 Liability scope: WeftEnd is an evidence and change-tracking engine, not a malware oracle or compliance guarantee.
 
 Included
+- Report viewer startup reliability hardening:
+- Windows shell now tracks consecutive report-viewer startup failures via `ReportViewerStartFailCount`.
+- `ReportViewerAutoOpen` is no longer disabled on first startup failure; disable now happens only after thresholded consecutive startup failures.
+- Successful viewer startup resets the startup-failure counter to `0`.
+- When startup fails but threshold disable has not been reached, wrapper diagnostics now include `reportViewerStartupFailures=<count>` for deterministic triage.
+- Shell doctor output now includes `ReportViewerStartFailCount` so operator triage can confirm current startup-failure state.
 - Evidence typing added to operator reports (additive, non-breaking):
 - `report_card.txt` now includes an evidence legend and claim mapping lines:
 - `EVIDENCE TAGS: ...`

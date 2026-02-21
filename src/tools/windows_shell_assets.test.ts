@@ -201,6 +201,7 @@ suite("tools/windows shell assets", () => {
     );
     assert(/RepoRoot/.test(text), "expected RepoRoot check");
     assert(/OutRoot/.test(text), "expected OutRoot check");
+    assert(/ReportViewerStartFailCount/.test(text), "expected report viewer failure-count diagnostic");
     assert(/%1/.test(text), "expected %1 token check");
     assert(/%V/.test(text), "expected %V token check");
   });
@@ -229,6 +230,9 @@ suite("tools/windows shell assets", () => {
     assert(/run_/.test(text), "expected deterministic run id prefix");
     assert(/Library/.test(text), "expected Library output subfolder");
     assert(/Start-ReportCardViewer/.test(text), "expected report viewer launch");
+    assert(/ReportViewerStartFailCount/.test(text), "expected report viewer startup failure counter");
+    assert(/reportViewerDisableThreshold/.test(text), "expected report viewer disable threshold");
+    assert(/reportViewerStartupFailures=/.test(text), "expected report viewer startup-failure diagnostics");
     assert(/Start-Process -FilePath \$explorerPath/.test(text), "expected explorer open for output folder");
     assert(/AllowLaunch/.test(text), "expected AllowLaunch gate");
     assert(/Start-Process -FilePath \$TargetPath/.test(text), "expected launch support");

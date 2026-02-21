@@ -31,6 +31,19 @@ function Read-RegistryValue {
   }
 }
 
+function Read-RegistryIntValue {
+  param(
+    [string]$Path,
+    [string]$Name,
+    [int]$DefaultValue = 0
+  )
+  $raw = Read-RegistryValue -Path $Path -Name $Name
+  if ($null -eq $raw) { return $DefaultValue }
+  $parsed = 0
+  if ([int]::TryParse([string]$raw, [ref]$parsed)) { return $parsed }
+  return $DefaultValue
+}
+
 function Resolve-ExecutablePath {
   param(
     [string]$Preferred,
@@ -1238,6 +1251,8 @@ function Start-ReportCardViewer {
     [string]$TargetKey
   )
   $script:reportViewerAutoDisabled = $false
+  $script:reportViewerFailureCount = 0
+  $reportViewerDisableThreshold = 3
   if (-not $RunDir -or -not (Test-Path -LiteralPath $RunDir)) { return $false }
   $viewerScript = Join-Path $scriptDir "report_card_viewer.ps1"
   if (-not (Test-Path -LiteralPath $viewerScript)) { return $false }
@@ -1264,6 +1279,10 @@ function Start-ReportCardViewer {
     $args += @("-LibraryKey", $TargetKey)
   }
   $attempted = $false
+  $failureCountBefore = 0
+  if ($configPath -and $configPath.Trim() -ne "") {
+    $failureCountBefore = Read-RegistryIntValue -Path $configPath -Name "ReportViewerStartFailCount" -DefaultValue 0
+  }
   foreach ($hostExe in $hostCandidates) {
     try {
       $proc = Start-Process -FilePath $hostExe -ArgumentList $args -WindowStyle Hidden -PassThru -ErrorAction Stop
@@ -1276,16 +1295,29 @@ function Start-ReportCardViewer {
           continue
         }
       }
+      if ($configPath -and $configPath.Trim() -ne "") {
+        try {
+          Set-ItemProperty -Path $configPath -Name "ReportViewerStartFailCount" -Value "0"
+        } catch {
+          # best effort only
+        }
+      }
+      $script:reportViewerFailureCount = 0
       return $true
     } catch {
       continue
     }
   }
   if ($attempted) {
+    $nextFailureCount = [Math]::Min(100, [Math]::Max(0, $failureCountBefore) + 1)
+    $script:reportViewerFailureCount = $nextFailureCount
     try {
       if ($configPath -and $configPath.Trim() -ne "") {
-        Set-ItemProperty -Path $configPath -Name "ReportViewerAutoOpen" -Value "0"
-        $script:reportViewerAutoDisabled = $true
+        Set-ItemProperty -Path $configPath -Name "ReportViewerStartFailCount" -Value ([string]$nextFailureCount)
+        if ($nextFailureCount -ge $reportViewerDisableThreshold) {
+          Set-ItemProperty -Path $configPath -Name "ReportViewerAutoOpen" -Value "0"
+          $script:reportViewerAutoDisabled = $true
+        }
       }
     } catch {
       # best effort only
@@ -1895,6 +1927,12 @@ if ($shouldHandleUi) {
       }
       try {
         Add-Content -Path (Join-Path $outDir "report_card.txt") -Value "reportViewerAutoOpen=DISABLED_STARTUP_FAIL" -Encoding UTF8
+      } catch {
+        # best effort only
+      }
+    } elseif (-not $reportViewerOpened -and $script:reportViewerFailureCount -gt 0) {
+      try {
+        Add-Content -Path (Join-Path $outDir "wrapper_result.txt") -Value ("reportViewerStartupFailures=" + [string]$script:reportViewerFailureCount) -Encoding UTF8
       } catch {
         # best effort only
       }
