@@ -54,6 +54,22 @@ function Resolve-UnderRoot($root, $path, $mustExist = $true) {
   return $resolved
 }
 
+function Get-StableSortKey($value) {
+  if ([string]::IsNullOrWhiteSpace($value)) { return "" }
+  $normalized = [string]$value
+  try {
+    $normalized = $normalized.Normalize([Text.NormalizationForm]::FormKC)
+  } catch {
+    # keep original value if normalization is unavailable
+  }
+  $bytes = [System.Text.Encoding]::UTF8.GetBytes($normalized)
+  $sb = New-Object System.Text.StringBuilder
+  foreach ($b in $bytes) {
+    [void]$sb.AppendFormat("{0:x2}", $b)
+  }
+  return $sb.ToString()
+}
+
 Write-Section "Repo Root"
 $root = Get-RepoRoot
 Set-Location $root
@@ -81,7 +97,7 @@ Write-Section "Publish Input"
 if (-not $PublishDir) {
   $candidates = Get-ChildItem -Path $root -Recurse -File -Filter "publish.json" -ErrorAction SilentlyContinue |
     Where-Object { $_.FullName -notmatch "\\\\node_modules\\\\" -and $_.FullName -notmatch "\\\\dist\\\\" -and $_.FullName -notmatch "\\\\out\\\\" } |
-    Sort-Object FullName
+    Sort-Object @{ Expression = { Get-StableSortKey -value $_.FullName } }
   if (-not $candidates -or $candidates.Count -eq 0) {
     Write-Fail "No publish.json found under repo." "Create a publish.json or pass -PublishDir <dir>"
   }
