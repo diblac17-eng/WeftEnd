@@ -278,7 +278,9 @@ suite("tools/windows shell assets", () => {
     assert(/Copy Details/.test(panelText), "expected launchpad history Copy Details action");
     assert(/Copy Digests/.test(panelText), "expected launchpad history Copy Digests action");
     assert(/Run Adapter Doctor/.test(panelText), "expected launchpad doctor adapter action");
+    assert(/Run Adapter Doctor \(Strict\)/.test(panelText), "expected launchpad doctor strict adapter action");
     assert(/"adapter", "doctor", "--text"/.test(panelText), "expected launchpad adapter doctor text-mode command");
+    assert(/\$args \+= "--strict"/.test(panelText), "expected launchpad adapter doctor strict flag wiring");
     assert(/Clipboard\]::SetText/.test(panelText), "expected history details clipboard copy action");
     assert(/Control -and \$e\.KeyCode -eq \[System\.Windows\.Forms\.Keys\]::C/.test(panelText), "expected history Ctrl+C copy binding");
     assert(/if \(\$e\.Shift\)\s*\{\s*Copy-HistoryDigestText/.test(panelText), "expected history Ctrl+Shift+C digest copy binding");

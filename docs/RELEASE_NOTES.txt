@@ -260,6 +260,7 @@ Included
 - Launchpad History now supports keyboard digest copy (`Ctrl+Shift+C`) from history list/details pane.
 - Launchpad History details now include artifact fingerprint/digest and receipt digests (`safe_run_receipt.json`, `operator_receipt.json`) for quick cross-verification.
 - Launchpad Doctor tab now includes `Run Adapter Doctor`, executing deterministic text-mode adapter health checks (`adapter doctor --text`) directly from UI.
+- Launchpad Doctor tab now includes `Run Adapter Doctor (Strict)`, executing fail-closed adapter health checks (`adapter doctor --text --strict`) directly from UI.
 - Ticket-pack regression coverage now enforces inclusion of adapter evidence artifacts (`analysis/capability_ledger_v0.json`, `analysis/adapter_summary_v0.json`, `analysis/adapter_findings_v0.json`) when present in run output.
 - Ticket-pack default extras now include `report_card_v0.json` so structured report data is always included in support bundles when available.
 - Ticket-pack summary now includes adapter evidence fields (`adapterEvidence`, `adapterClass`, `adapterId`, `adapterMode`, and capability counts) for faster support triage.

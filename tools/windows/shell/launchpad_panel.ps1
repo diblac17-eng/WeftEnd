@@ -336,6 +336,7 @@ function Invoke-LaunchpadSync {
 }
 
 function Invoke-AdapterDoctorText {
+  param([switch]$Strict)
   if (-not $nodePath -or -not $mainJs -or -not (Test-Path -LiteralPath $mainJs)) {
     return @{
       ok = $false
@@ -346,6 +347,9 @@ function Invoke-AdapterDoctorText {
   }
   try {
     $args = @($mainJs, "adapter", "doctor", "--text")
+    if ($Strict.IsPresent) {
+      $args += "--strict"
+    }
     $outputRaw = & $nodePath @args 2>&1
     $outputText = [string]($outputRaw | Out-String)
     if (-not $outputText) { $outputText = "" }
@@ -1528,6 +1532,13 @@ $btnAdapterDoctorRun.Height = 30
 Style-Button -Button $btnAdapterDoctorRun -Primary:$false
 $doctorActions.Controls.Add($btnAdapterDoctorRun) | Out-Null
 
+$btnAdapterDoctorStrictRun = New-Object System.Windows.Forms.Button
+$btnAdapterDoctorStrictRun.Text = "Run Adapter Doctor (Strict)"
+$btnAdapterDoctorStrictRun.Width = 176
+$btnAdapterDoctorStrictRun.Height = 30
+Style-Button -Button $btnAdapterDoctorStrictRun -Primary:$false
+$doctorActions.Controls.Add($btnAdapterDoctorStrictRun) | Out-Null
+
 $doctorText = New-Object System.Windows.Forms.TextBox
 $doctorText.Dock = "Fill"
 $doctorText.Multiline = $true
@@ -1704,6 +1715,25 @@ $btnAdapterDoctorRun.Add_Click({
     Set-StatusLine -StatusLabel $statusLabel -Message "Adapter doctor completed." -IsError $false
   } else {
     Set-StatusLine -StatusLabel $statusLabel -Message ("Adapter doctor failed (" + [string]$result.code + ").") -IsError $true
+  }
+})
+$btnAdapterDoctorStrictRun.Add_Click({
+  $result = Invoke-AdapterDoctorText -Strict
+  $header = @(
+    "Adapter doctor strict=true",
+    "Adapter doctor exitCode=" + [string]$result.exitCode,
+    "Adapter doctor code=" + [string]$result.code
+  )
+  $body = if ($result.output -and [string]$result.output -ne "") {
+    [string]$result.output
+  } else {
+    "(no adapter doctor output)"
+  }
+  $doctorText.Text = (($header + @("", $body)) -join [Environment]::NewLine)
+  if ($result.ok) {
+    Set-StatusLine -StatusLabel $statusLabel -Message "Adapter doctor strict check passed." -IsError $false
+  } else {
+    Set-StatusLine -StatusLabel $statusLabel -Message ("Adapter doctor strict check failed (" + [string]$result.code + ").") -IsError $true
   }
 })
 
