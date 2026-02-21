@@ -53,6 +53,24 @@ const readJson = (dir: string, name: string) => {
   return JSON.parse(raw);
 };
 
+const listStageResidue = (root: string): string[] => {
+  if (!fs.existsSync(root)) return [];
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    const entries = fs.readdirSync(dir, { withFileTypes: true }) as Array<{ name: string; isDirectory: () => boolean }>;
+    entries.forEach((entry) => {
+      const full = path.join(dir, entry.name);
+      if (entry.name.endsWith(".stage")) {
+        out.push(path.relative(root, full).split(path.sep).join("/"));
+      }
+      if (entry.isDirectory()) walk(full);
+    });
+  };
+  walk(root);
+  out.sort();
+  return out;
+};
+
 suite("cli/run", () => {
   register("run produces receipt even on deny", async () => {
     const outDir = makeTempDir();
@@ -165,6 +183,7 @@ suite("cli/run", () => {
     assert(fs.existsSync(path.join(outDir, "run_receipt.json")), "expected run_receipt.json after finalize");
     assert(!fs.existsSync(path.join(outDir, "stale_root.txt")), "stale out-root files must be replaced during finalize");
     assert(!fs.existsSync(`${outDir}.stage`), "run stage directory must not remain after finalize");
+    assertEq(listStageResidue(outDir).length, 0, "run output must not include staged file residue");
     const operator = readJson(outDir, "operator_receipt.json");
     const warnings = Array.isArray(operator?.warnings) ? operator.warnings : [];
     assert(warnings.includes("SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"), "expected stale-output warning in operator receipt");
@@ -180,6 +199,7 @@ suite("cli/run", () => {
     assert(fs.existsSync(path.join(outDir, "weftend_mint_v1.txt")), "expected weftend_mint_v1.txt after finalize");
     assert(!fs.existsSync(path.join(outDir, "stale_root.txt")), "stale out-root files must be replaced during finalize");
     assert(!fs.existsSync(`${outDir}.stage`), "examine stage directory must not remain after finalize");
+    assertEq(listStageResidue(outDir).length, 0, "examine output must not include staged file residue");
   });
 
   register("intake finalizes staged output and replaces stale roots", async () => {
@@ -194,6 +214,7 @@ suite("cli/run", () => {
     assert(fs.existsSync(path.join(outDir, "appeal_bundle.json")), "expected appeal_bundle.json after finalize");
     assert(!fs.existsSync(path.join(outDir, "stale_root.txt")), "stale out-root files must be replaced during finalize");
     assert(!fs.existsSync(`${outDir}.stage`), "intake stage directory must not remain after finalize");
+    assertEq(listStageResidue(outDir).length, 0, "intake output must not include staged file residue");
   });
 });
 

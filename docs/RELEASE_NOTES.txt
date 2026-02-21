@@ -13,6 +13,7 @@ Included
 - `container scan` staged artifacts (`safe_run_receipt.json`, README, capability/adapter analysis JSON) now use per-file stage/finalize writes.
 - Host update staging now writes `host_self_manifest.json` with per-file stage/finalize semantics before host-root swap.
 - Added compare/ticket-pack regression assertions that fail on any finalized-output `*.stage` file residue.
+- Added run/examine/intake smoke assertions that fail on any finalized-output `*.stage` file residue.
 - GitHub Actions integration added for deterministic CI artifact-meter runs:
 - Added workflow: `.github/workflows/weftend_artifact_meter.yml`
 - Workflow runs `safe-run` (analysis-only, `--withhold-exec`) with optional compare and uploads `out/ci_meter` artifacts.
