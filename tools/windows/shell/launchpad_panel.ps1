@@ -48,6 +48,23 @@ function Resolve-LibraryRoot {
   return (Join-Path $trimmed "Library")
 }
 
+function Get-StableSortKey {
+  param([string]$Value)
+  if (-not $Value) { return "" }
+  $normalized = [string]$Value
+  try {
+    $normalized = $normalized.Normalize([Text.NormalizationForm]::FormKC)
+  } catch {
+    # keep original text when normalization is unavailable
+  }
+  $bytes = [System.Text.Encoding]::UTF8.GetBytes($normalized)
+  $sb = New-Object System.Text.StringBuilder
+  foreach ($b in $bytes) {
+    [void]$sb.AppendFormat("{0:x2}", $b)
+  }
+  return $sb.ToString()
+}
+
 function Get-RepoRoot {
   $scriptPath = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
   $current = Split-Path -Parent $scriptPath
@@ -453,7 +470,11 @@ function Load-Shortcuts {
   param([System.Windows.Forms.FlowLayoutPanel]$Panel)
   $Panel.Controls.Clear()
 
-  $files = @(Get-ChildItem -LiteralPath $launchpadRoot -Filter "*.lnk" -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "* (WeftEnd).lnk" } | Sort-Object Name)
+  $files = @(
+    Get-ChildItem -LiteralPath $launchpadRoot -Filter "*.lnk" -File -ErrorAction SilentlyContinue |
+      Where-Object { $_.Name -like "* (WeftEnd).lnk" } |
+      Sort-Object @{ Expression = { Get-StableSortKey -Value $_.Name } }
+  )
   $trustedFiles = @()
   foreach ($f in $files) {
     $meta = Get-LaunchpadShortcutMetadata -ShortcutPath $f.FullName
@@ -1311,7 +1332,7 @@ function Load-HistoryRows {
   $dirs = @(
     Get-ChildItem -LiteralPath $libraryRoot -Directory -ErrorAction SilentlyContinue |
       Where-Object { $_.Name -ne "Launchpad" } |
-      Sort-Object Name
+      Sort-Object @{ Expression = { Get-StableSortKey -Value $_.Name } }
   )
   foreach ($dir in $dirs) {
     $s = Read-ViewStateSummary -TargetDir $dir.FullName

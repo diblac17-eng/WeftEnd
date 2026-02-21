@@ -270,6 +270,9 @@ suite("tools/windows shell assets", () => {
     assert(!/--open-library"\)/.test(panelText), "launchpad sync must not force --open-library");
     assert(/\* \(WeftEnd\)\.lnk/.test(panelText), "expected launchpad to list only WeftEnd shortcuts");
     assert(/Invoke-LaunchpadSync -Silent/.test(panelText), "expected launchpad refresh/auto-refresh silent sync");
+    assert(/function Get-StableSortKey/.test(panelText), "expected deterministic launchpad sort-key helper");
+    assert(/Get-StableSortKey -Value \$_.Name/.test(panelText), "expected launchpad name sorting to use stable sort key");
+    assert(!/Sort-Object Name/.test(panelText), "launchpad must avoid locale-sensitive Sort-Object Name");
     assert(/Get-LaunchpadShortcutMetadata/.test(panelText), "expected launchpad shortcut metadata validation");
     assert(/WeftEnd Launchpad Shortcut v1/.test(panelText), "expected launchpad shortcut description trust marker");
     assert(/-LaunchpadMode/.test(panelText), "expected launchpad shortcut args to require LaunchpadMode");
