@@ -174,6 +174,43 @@ const testTicketPack = async () => {
   assert(adapterSummary.includes("adapterClass=archive"), "expected adapterClass=archive in adapter ticket summary");
   assert(adapterSummary.includes("safeReceiptFileDigest=sha256:"), "expected safe receipt file digest in adapter ticket summary");
   assert(isSha256Line(adapterSummaryMap.safeReceiptFileDigest), "adapter safeReceiptFileDigest must be sha256:<64hex>");
+
+  const txtOnlyRunDir = path.join(root, "txt_only_run");
+  const txtOnlyPackDir = path.join(root, "txt_only_pack");
+  const txtOnlyRun = await runCliCapture(["safe-run", input, "--out", txtOnlyRunDir]);
+  assert(txtOnlyRun.status === 0, `txt-only safe-run failed: ${txtOnlyRun.stderr}`);
+  const txtReport = [
+    "STATUS: CHANGED (vs baseline)",
+    "BASELINE: run_txt_baseline",
+    "LATEST: run_txt_latest",
+    "BUCKETS: C",
+    "runId=run_txtonlydeadbeef",
+    "libraryKey=txt_only_key",
+    "artifactFingerprint=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "artifactDigest=sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  ].join("\n") + "\n";
+  fs.writeFileSync(path.join(txtOnlyRunDir, "report_card.txt"), txtReport, "utf8");
+  const txtOnlyPack = await runCliCapture(["ticket-pack", txtOnlyRunDir, "--out", txtOnlyPackDir]);
+  assert(txtOnlyPack.status === 0, `ticket-pack txt-only run failed: ${txtOnlyPack.stderr}`);
+  const txtOnlySummary = readText(path.join(txtOnlyPackDir, "ticket_pack", "ticket_summary.txt"));
+  const txtOnlySummaryMap = parseKeyValueSummary(txtOnlySummary);
+  assert(String(txtOnlySummaryMap.reportRunId || "") === "run_txtonlydeadbeef", "txt-only reportRunId fallback failed");
+  assert(String(txtOnlySummaryMap.reportLibraryKey || "") === "txt_only_key", "txt-only reportLibraryKey fallback failed");
+  assert(String(txtOnlySummaryMap.reportStatus || "") === "CHANGED", "txt-only reportStatus fallback failed");
+  assert(String(txtOnlySummaryMap.reportBaseline || "") === "run_txt_baseline", "txt-only reportBaseline fallback failed");
+  assert(String(txtOnlySummaryMap.reportLatest || "") === "run_txt_latest", "txt-only reportLatest fallback failed");
+  assert(String(txtOnlySummaryMap.reportBuckets || "") === "C", "txt-only reportBuckets fallback failed");
+  assert(
+    String(txtOnlySummaryMap.artifactFingerprint || "") ===
+      "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "txt-only artifactFingerprint fallback failed"
+  );
+  assert(
+    String(txtOnlySummaryMap.artifactDigest || "") ===
+      "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "txt-only artifactDigest fallback failed"
+  );
+  assert(isSha256Line(txtOnlySummaryMap.reportCardFileDigest), "txt-only reportCardFileDigest must be sha256:<64hex>");
 };
 
 testTicketPack()
