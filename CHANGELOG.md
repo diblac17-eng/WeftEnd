@@ -32,6 +32,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `safe-run` now writes `analysis/capability_ledger_v0.json` for raw-input adapter lanes, recording deterministic requested/granted/denied adapter and plugin capability decisions.
 - `container scan` now writes the same deterministic `analysis/capability_ledger_v0.json` artifact in success and fail-closed paths for consistent container capability evidence.
 - Windows report viewer now renders adapter evidence as an optional collapsed section (only when adapter/capability artifacts are present) with quick-open artifact actions.
+- Report viewer summary now includes safe/operator receipt digests and provides `Copy Digests` for digest-only share/export text.
 - Launchpad History now shows a compact adapter tag (including plugin marker and denied-capability marker) from the latest run evidence.
 - Launchpad History now includes an inline details pane for the selected row, surfacing adapter class/id/mode/source/reasons and capability counts without opening the full report viewer.
 - Launchpad History now provides direct actions to open selected latest run folders and adapter evidence (`analysis`) folders.

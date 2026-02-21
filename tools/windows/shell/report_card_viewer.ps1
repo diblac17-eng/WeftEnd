@@ -66,6 +66,27 @@ function Read-JsonFile {
   }
 }
 
+function Compute-FileSha256Digest {
+  param([string]$PathValue)
+  if (-not $PathValue -or -not (Test-Path -LiteralPath $PathValue)) { return "-" }
+  try {
+    $hasher = [System.Security.Cryptography.SHA256]::Create()
+    try {
+      $stream = [System.IO.File]::OpenRead($PathValue)
+      try {
+        $hashBytes = $hasher.ComputeHash($stream)
+      } finally {
+        $stream.Dispose()
+      }
+    } finally {
+      $hasher.Dispose()
+    }
+    return ([System.BitConverter]::ToString($hashBytes).Replace("-", "").ToLowerInvariant())
+  } catch {
+    return "-"
+  }
+}
+
 function Format-ReasonPreview {
   param([object]$ReasonCodes, [int]$MaxItems = 4)
   if (-not $ReasonCodes -or -not ($ReasonCodes -is [System.Array])) { return "-" }
@@ -157,6 +178,8 @@ function Load-ReportModel {
   param([string]$ResolvedRunDir)
   $txtPath = Join-Path $ResolvedRunDir "report_card.txt"
   $jsonPath = Join-Path $ResolvedRunDir "report_card_v0.json"
+  $safeReceiptDigest = Compute-FileSha256Digest -PathValue (Join-Path $ResolvedRunDir "safe_run_receipt.json")
+  $operatorReceiptDigest = Compute-FileSha256Digest -PathValue (Join-Path $ResolvedRunDir "operator_receipt.json")
   $lines = @()
   if (Test-Path -LiteralPath $txtPath) {
     try {
@@ -190,6 +213,8 @@ function Load-ReportModel {
         adapterEvidence = $adapterEvidence
         lines = if ($json.lines) { @($json.lines | ForEach-Object { [string]$_ }) } else { $lines }
         reportTextPath = $txtPath
+        safeReceiptDigest = $safeReceiptDigest
+        operatorReceiptDigest = $operatorReceiptDigest
       }
     } catch {
       # Fall through to text parsing.
@@ -218,6 +243,8 @@ function Load-ReportModel {
     adapterEvidence = $adapterEvidence
     lines = $lines
     reportTextPath = $txtPath
+    safeReceiptDigest = $safeReceiptDigest
+    operatorReceiptDigest = $operatorReceiptDigest
   }
 }
 
@@ -429,6 +456,8 @@ function Add-SummaryLine {
 Add-SummaryLine -TextValue ("Result: " + (Get-StringValue -Value $model.result))
 Add-SummaryLine -TextValue ("Fingerprint: " + (Get-StringValue -Value $model.artifactFingerprint))
 Add-SummaryLine -TextValue ("Artifact Digest: " + (Get-StringValue -Value $model.artifactDigest))
+Add-SummaryLine -TextValue ("Safe Receipt Digest: " + (Get-StringValue -Value $model.safeReceiptDigest))
+Add-SummaryLine -TextValue ("Operator Receipt Digest: " + (Get-StringValue -Value $model.operatorReceiptDigest))
 Add-SummaryLine -TextValue ("Reason: " + (Get-StringValue -Value $model.reason))
 Add-SummaryLine -TextValue ("Baseline: " + (Get-StringValue -Value $model.baseline))
 Add-SummaryLine -TextValue ("Latest: " + (Get-StringValue -Value $model.latest))
@@ -639,6 +668,8 @@ $btnCopy.Add_Click({
     "result=" + (Get-StringValue -Value $model.result),
     "artifactFingerprint=" + (Get-StringValue -Value $model.artifactFingerprint),
     "artifactDigest=" + (Get-StringValue -Value $model.artifactDigest),
+    "safeReceiptDigest=" + (Get-StringValue -Value $model.safeReceiptDigest),
+    "operatorReceiptDigest=" + (Get-StringValue -Value $model.operatorReceiptDigest),
     "reason=" + (Get-StringValue -Value $model.reason),
     "runId=" + (Get-StringValue -Value $model.runId),
     "baseline=" + (Get-StringValue -Value $model.baseline),
@@ -658,6 +689,23 @@ $btnCopy.Add_Click({
   [System.Windows.Forms.Clipboard]::SetText($summary)
 })
 $footer.Controls.Add($btnCopy) | Out-Null
+
+$btnCopyDigests = New-Object System.Windows.Forms.Button
+$btnCopyDigests.Text = "Copy Digests"
+$btnCopyDigests.Width = 104
+$btnCopyDigests.Height = 30
+Style-Button -Button $btnCopyDigests -Primary:$false
+$btnCopyDigests.Add_Click({
+  $summary = @(
+    "runId=" + (Get-StringValue -Value $model.runId),
+    "artifactFingerprint=" + (Get-StringValue -Value $model.artifactFingerprint),
+    "artifactDigest=" + (Get-StringValue -Value $model.artifactDigest),
+    "safeReceiptDigest=" + (Get-StringValue -Value $model.safeReceiptDigest),
+    "operatorReceiptDigest=" + (Get-StringValue -Value $model.operatorReceiptDigest)
+  ) -join [Environment]::NewLine
+  [System.Windows.Forms.Clipboard]::SetText($summary)
+})
+$footer.Controls.Add($btnCopyDigests) | Out-Null
 
 $btnOpenTarget = New-Object System.Windows.Forms.Button
 $btnOpenTarget.Text = "Open Target History"

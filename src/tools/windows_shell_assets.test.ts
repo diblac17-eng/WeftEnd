@@ -301,10 +301,16 @@ suite("tools/windows shell assets", () => {
     assert(/Load-AdapterEvidence/.test(viewerText), "expected adapter evidence loader");
     assert(/Show Adapter Evidence/.test(viewerText), "expected adapter evidence toggle label");
     assert(/Hide Adapter Evidence/.test(viewerText), "expected adapter evidence hide label");
+    assert(/Compute-FileSha256Digest/.test(viewerText), "expected report viewer digest helper");
     assert(/capability_ledger_v0\.json/.test(viewerText), "expected capability ledger artifact support");
     assert(/adapter_summary_v0\.json/.test(viewerText), "expected adapter summary artifact support");
     assert(/adapter_findings_v0\.json/.test(viewerText), "expected adapter findings artifact support");
     assert(/Capabilities: requested=/.test(viewerText), "expected capability summary line");
+    assert(/Safe Receipt Digest:/.test(viewerText), "expected safe receipt digest summary line");
+    assert(/Operator Receipt Digest:/.test(viewerText), "expected operator receipt digest summary line");
+    assert(/Copy Digests/.test(viewerText), "expected report viewer copy digests action");
+    assert(/safeReceiptDigest=/.test(viewerText), "expected digest copy payload fields");
+    assert(/operatorReceiptDigest=/.test(viewerText), "expected digest copy payload fields");
   });
 });
 
