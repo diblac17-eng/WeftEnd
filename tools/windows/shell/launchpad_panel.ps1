@@ -372,6 +372,38 @@ function Invoke-AdapterDoctorText {
   }
 }
 
+function Invoke-ShellDoctorText {
+  if (-not $shellDoctorScript -or -not (Test-Path -LiteralPath $shellDoctorScript)) {
+    return @{
+      ok = $false
+      code = "SHELL_DOCTOR_SCRIPT_MISSING"
+      exitCode = 40
+      output = "Shell doctor script missing."
+    }
+  }
+  try {
+    $outputRaw = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $shellDoctorScript 2>&1)
+    $outputText = [string](($outputRaw | ForEach-Object { [string]$_ }) -join [Environment]::NewLine)
+    if (-not $outputText) { $outputText = "" }
+    $exitCode = [int]$LASTEXITCODE
+    $ok = ($exitCode -eq 0)
+    $code = if ($ok) { "OK" } else { "SHELL_DOCTOR_FAILED" }
+    return @{
+      ok = $ok
+      code = $code
+      exitCode = $exitCode
+      output = $outputText.TrimEnd()
+    }
+  } catch {
+    return @{
+      ok = $false
+      code = "SHELL_DOCTOR_EXCEPTION"
+      exitCode = 1
+      output = [string]$_.Exception.Message
+    }
+  }
+}
+
 function Load-Shortcuts {
   param([System.Windows.Forms.FlowLayoutPanel]$Panel)
   $Panel.Controls.Clear()
@@ -1721,17 +1753,21 @@ $historyList.Add_SelectedIndexChanged({
   Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence
 })
 $btnDoctorRun.Add_Click({
-  if (-not $shellDoctorScript -or -not (Test-Path -LiteralPath $shellDoctorScript)) {
-    $doctorText.Text = "Shell doctor script missing."
-    return
+  $result = Invoke-ShellDoctorText
+  $header = @(
+    "Shell doctor exitCode=" + [string]$result.exitCode,
+    "Shell doctor code=" + [string]$result.code
+  )
+  $body = if ($result.output -and [string]$result.output -ne "") {
+    [string]$result.output
+  } else {
+    "(no shell doctor output)"
   }
-  try {
-    $output = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $shellDoctorScript 2>&1)
-    $doctorText.Text = (($output | ForEach-Object { [string]$_ }) -join [Environment]::NewLine)
+  $doctorText.Text = (($header + @("", $body)) -join [Environment]::NewLine)
+  if ($result.ok) {
     Set-StatusLine -StatusLabel $statusLabel -Message "Shell doctor completed." -IsError $false
-  } catch {
-    $doctorText.Text = "Shell doctor failed."
-    Set-StatusLine -StatusLabel $statusLabel -Message "Shell doctor failed." -IsError $true
+  } else {
+    Set-StatusLine -StatusLabel $statusLabel -Message ("Shell doctor failed (" + [string]$result.code + ").") -IsError $true
   }
 })
 $btnAdapterDoctorRun.Add_Click({

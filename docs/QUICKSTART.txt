@@ -131,6 +131,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   - `Run Adapter Doctor` for adapter/plugin maintenance health (`adapter doctor --text`).
   - `Run Adapter Doctor (Strict)` for fail-closed adapter health (`adapter doctor --text --strict`).
   - `Copy Doctor Output` (or `Ctrl+C` in doctor output pane) for direct support/ticket sharing.
+  - Doctor output now includes deterministic headers for triage (`<doctor> exitCode=` and `<doctor> code=`).
 - Behavior:
   - SAME vs baseline: launch allowed.
   - CHANGED/BLOCKED vs baseline: explicit accept/decline flow.

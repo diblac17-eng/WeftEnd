@@ -264,6 +264,7 @@ Included
 - Launchpad Doctor tab now includes `Run Adapter Doctor`, executing deterministic text-mode adapter health checks (`adapter doctor --text`) directly from UI.
 - Launchpad Doctor tab now includes `Run Adapter Doctor (Strict)`, executing fail-closed adapter health checks (`adapter doctor --text --strict`) directly from UI.
 - Launchpad Doctor tab now includes `Copy Doctor Output` and supports keyboard copy (`Ctrl+C`) from the doctor output pane.
+- Launchpad shell doctor output now uses deterministic triage headers (`Shell doctor exitCode=...`, `Shell doctor code=...`) for consistent doctor-output sharing.
 - Ticket-pack regression coverage now enforces inclusion of adapter evidence artifacts (`analysis/capability_ledger_v0.json`, `analysis/adapter_summary_v0.json`, `analysis/adapter_findings_v0.json`) when present in run output.
 - Ticket-pack default extras now include `report_card_v0.json` so structured report data is always included in support bundles when available.
 - Ticket-pack summary now includes adapter evidence fields (`adapterEvidence`, `adapterClass`, `adapterId`, `adapterMode`, and capability counts) for faster support triage.

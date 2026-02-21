@@ -267,6 +267,7 @@ suite("tools/windows shell assets", () => {
     assert(/Get-LatestRunIdForTargetDir/.test(panelText), "expected history latest-run fallback helper");
     assert(/Read-ReportCardSummaryForRun/.test(panelText), "expected history report-card fallback helper");
     assert(/Invoke-AdapterDoctorText/.test(panelText), "expected adapter doctor helper");
+    assert(/Invoke-ShellDoctorText/.test(panelText), "expected shell doctor helper");
     assert(/Copy-DoctorOutputText/.test(panelText), "expected doctor output copy helper");
     assert(/Update-HistoryDetailsBox/.test(panelText), "expected history details update helper");
     assert(/SelectedIndexChanged/.test(panelText), "expected history selection details wiring");
@@ -281,6 +282,8 @@ suite("tools/windows shell assets", () => {
     assert(/Run Adapter Doctor/.test(panelText), "expected launchpad doctor adapter action");
     assert(/Run Adapter Doctor \(Strict\)/.test(panelText), "expected launchpad doctor strict adapter action");
     assert(/Copy Doctor Output/.test(panelText), "expected launchpad doctor copy action");
+    assert(/Shell doctor exitCode=/.test(panelText), "expected shell doctor output header");
+    assert(/Shell doctor code=/.test(panelText), "expected shell doctor code header");
     assert(/"adapter", "doctor", "--text"/.test(panelText), "expected launchpad adapter doctor text-mode command");
     assert(/\$args \+= "--strict"/.test(panelText), "expected launchpad adapter doctor strict flag wiring");
     assert(/Copy-DoctorOutputText -DoctorBox \$doctorText -StatusLabel \$statusLabel/.test(panelText), "expected doctor copy button/key wiring");
