@@ -382,12 +382,12 @@ function Invoke-AdapterDoctorText {
           $code = $parsedCode.Trim()
         }
       } else {
-        $strictReasonMatch = [System.Text.RegularExpressions.Regex]::Match($outputText, "strict\.reasons=([A-Z0-9_,-]+)")
+        $strictReasonMatch = [System.Text.RegularExpressions.Regex]::Match($outputText, "strict\.reasons=([A-Z0-9_, -]+)")
         if ($strictReasonMatch.Success -and $strictReasonMatch.Groups.Count -gt 1) {
           $strictRaw = [string]$strictReasonMatch.Groups[1].Value
           if ($strictRaw -and $strictRaw.Trim() -ne "" -and $strictRaw.Trim() -ne "-") {
             $first = ($strictRaw.Split(",")[0]).Trim()
-            if ($first -and $first -ne "") {
+            if ($first -and $first -match "^[A-Z0-9_]+$") {
               $code = $first
             }
           }
