@@ -36,6 +36,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added `npm run verify:360:release:managed` helper to generate a temporary adapter maintenance policy for missing-plugin lanes, run strict adapter-doctor preflight with that policy, then run strict verify gate without leaking adapter-disable policy into full test env.
 - Added Green Team contract test for `.github/workflows/weftend_artifact_meter.yml` to enforce analysis-only workflow behavior (`--withhold-exec`) and deterministic artifact upload path invariants.
 - Added Green Team contract test for `scripts/verify_360_release_managed.js` to enforce strict adapter-doctor preflight contract and no adapter-disable env leakage into full `verify:360` runs.
+- Added Green Team contract test for `src/runtime/container/docker_probe_v0.ts` to pin local-only Docker command surface (`version`, `image inspect`) and block pull/login/run/build drift.
 - `verify:360:harness` now validates strict-mode idempotence separation (`NEW` then `REPLAY`) to prevent strict/non-strict replay-key regression.
 - Emergency verify report output now includes policy summary lines (`policy.*`) and failure receipts carry interpreted policy fields for consistent fail-closed readability.
 

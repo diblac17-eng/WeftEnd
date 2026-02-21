@@ -34,6 +34,7 @@ Included
 - `verify:360:harness` now covers invalid adapter override failure path and verifies pointer non-advance + receipt/report persistence.
 - Added Green Team workflow contract test for `.github/workflows/weftend_artifact_meter.yml` to enforce analysis-only (`--withhold-exec`) and bounded artifact-output workflow invariants in test/proofcheck loops.
 - Added Green Team managed-release-helper contract test for `scripts/verify_360_release_managed.js` to pin strict preflight semantics and prevent adapter-disable env leakage into full verify runs.
+- Added Green Team container local-only contract test for `src/runtime/container/docker_probe_v0.ts` to pin allowed Docker command surface (`version`, `image inspect`) and block implicit pull/login/run/build paths.
 - Emergency verify report path now preserves policy context lines (`policy.*`) so fail-closed receipts remain operator-readable under write-path fallback.
 - Safe-run now enforces a non-blocking evidence corridor check before completion:
 - Expected receipt artifacts are verified for presence and digest consistency.

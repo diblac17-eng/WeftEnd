@@ -80,6 +80,7 @@ const tests = [
   "dist/src/tools/greenteam/release_bundle_manifest.test.js",
   "dist/src/tools/greenteam/workflow_artifact_meter_contract.test.js",
   "dist/src/tools/greenteam/verify_release_managed_contract.test.js",
+  "dist/src/tools/greenteam/container_local_only_contract.test.js",
   "dist/src/engine/graph.test.js",
   "dist/src/engine/portal_model.test.js",
   "dist/src/engine/portal_model_caps.test.js",
