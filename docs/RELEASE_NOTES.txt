@@ -15,6 +15,7 @@ Included
 - Release checklist now includes immutable-release change record checks (`CHANGELOG.md` and `docs/RELEASE_NOTES.txt` sync).
 - Release announcement draft (`docs/RELEASE_ANNOUNCEMENT.txt`) refreshed to align with current adapter/verify/workflow scope.
 - Release bundle sidecar set now includes `CHANGELOG.md` so immutable history is shipped with release uploads.
+- `verify:360` docs-sync/etiquette coverage now includes `CHANGELOG.md` and release announcement references.
 - 360 commit gate added:
 - `npm run verify:360` now performs compile/test/proofcheck + deterministic replay + privacy lint + compare smoke.
 - Gate now always writes evidence artifacts (`verify_360_receipt.json` and `verify_360_report.txt`) for PASS/PARTIAL/FAIL outcomes.
@@ -48,6 +49,7 @@ Included
 - Docs contract now also enforces immutable-release checklist references to `CHANGELOG.md` and `docs/RELEASE_NOTES.txt`.
 - Docs contract now also enforces release-announcement workflow/managed-verify references (`docs/RELEASE_ANNOUNCEMENT.txt`).
 - Release bundle contract test now enforces `CHANGELOG.md` inclusion in release-zip staging and release-sidecar outputs.
+- Added Green Team `verify_360` docs-sync contract test to pin `CHANGELOG.md` + release announcement target coverage.
 - Emergency verify report path now preserves policy context lines (`policy.*`) so fail-closed receipts remain operator-readable under write-path fallback.
 - Safe-run now enforces a non-blocking evidence corridor check before completion:
 - Expected receipt artifacts are verified for presence and digest consistency.
