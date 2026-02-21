@@ -135,6 +135,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - CLI alternative:
   npm run weftend -- library
   npm run weftend -- ticket-pack <outRoot> --out <ticketDir> --zip
+- Ticket packs include adapter analysis artifacts under `analysis/` when present in run output.
 
 7) Builder integration (for tools built on top)
 - Export deterministic integration JSON:

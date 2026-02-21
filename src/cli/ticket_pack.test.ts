@@ -78,6 +78,31 @@ const testTicketPack = async () => {
     blocked.stderr.includes("TICKET_PACK_RECEIPT_PATH_INVALID"),
     "expected unsafe relPath rejection code"
   );
+
+  const adapterRunDir = path.join(root, "adapter_run");
+  const adapterPackDir = path.join(root, "adapter_pack");
+  const adapterInput = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");
+  const adapterRun = await runCliCapture(["safe-run", adapterInput, "--out", adapterRunDir, "--adapter", "archive"]);
+  assert(adapterRun.status === 0, `adapter safe-run failed: ${adapterRun.stderr}`);
+  assert(fs.existsSync(path.join(adapterRunDir, "analysis", "capability_ledger_v0.json")), "capability_ledger_v0.json missing");
+  assert(fs.existsSync(path.join(adapterRunDir, "analysis", "adapter_summary_v0.json")), "adapter_summary_v0.json missing");
+  assert(fs.existsSync(path.join(adapterRunDir, "analysis", "adapter_findings_v0.json")), "adapter_findings_v0.json missing");
+
+  const adapterPack = await runCliCapture(["ticket-pack", adapterRunDir, "--out", adapterPackDir]);
+  assert(adapterPack.status === 0, `ticket-pack adapter run failed: ${adapterPack.stderr}`);
+  const adapterTicketRoot = path.join(adapterPackDir, "ticket_pack");
+  assert(
+    fs.existsSync(path.join(adapterTicketRoot, "analysis", "capability_ledger_v0.json")),
+    "ticket pack missing capability_ledger_v0.json"
+  );
+  assert(
+    fs.existsSync(path.join(adapterTicketRoot, "analysis", "adapter_summary_v0.json")),
+    "ticket pack missing adapter_summary_v0.json"
+  );
+  assert(
+    fs.existsSync(path.join(adapterTicketRoot, "analysis", "adapter_findings_v0.json")),
+    "ticket pack missing adapter_findings_v0.json"
+  );
 };
 
 testTicketPack()
