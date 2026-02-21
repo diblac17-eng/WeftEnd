@@ -318,6 +318,8 @@ suite("tools/windows shell assets", () => {
     const viewerPath = path.join(shellDir, "report_card_viewer.ps1");
     const viewerText = fs.readFileSync(viewerPath, "utf8");
     assert(/Load-AdapterEvidence/.test(viewerText), "expected adapter evidence loader");
+    assert(/Get-ObjectProperty/.test(viewerText), "expected safe object property helper in report viewer");
+    assert(!/safeReceipt\.adapter\./.test(viewerText), "report viewer must not strict-access missing adapter object");
     assert(/Show Adapter Evidence/.test(viewerText), "expected adapter evidence toggle label");
     assert(/Hide Adapter Evidence/.test(viewerText), "expected adapter evidence hide label");
     assert(/Compute-FileSha256Digest/.test(viewerText), "expected report viewer digest helper");

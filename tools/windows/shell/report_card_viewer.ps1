@@ -66,6 +66,22 @@ function Read-JsonFile {
   }
 }
 
+function Get-ObjectProperty {
+  param(
+    [object]$ObjectValue,
+    [string]$Name
+  )
+  if ($null -eq $ObjectValue) { return $null }
+  if (-not $Name -or $Name.Trim() -eq "") { return $null }
+  try {
+    $prop = $ObjectValue.PSObject.Properties[$Name]
+    if ($null -ne $prop) { return $prop.Value }
+  } catch {
+    return $null
+  }
+  return $null
+}
+
 function Compute-FileSha256Digest {
   param([string]$PathValue)
   if (-not $PathValue -or -not (Test-Path -LiteralPath $PathValue)) { return "-" }
@@ -186,15 +202,16 @@ function Load-AdapterEvidence {
   $findings = Read-JsonFile -PathValue $findingsPath
   $capability = Read-JsonFile -PathValue $capabilityPath
 
-  $adapterId = Get-StringValue -Value $safeReceipt.adapter.adapterId
-  $sourceFormat = Get-StringValue -Value $safeReceipt.adapter.sourceFormat
-  $mode = Get-StringValue -Value $safeReceipt.adapter.mode
-  $artifactKind = Get-StringValue -Value $safeReceipt.artifactKind
+  $adapterObj = Get-ObjectProperty -ObjectValue $safeReceipt -Name "adapter"
+  $adapterId = Get-StringValue -Value (Get-ObjectProperty -ObjectValue $adapterObj -Name "adapterId")
+  $sourceFormat = Get-StringValue -Value (Get-ObjectProperty -ObjectValue $adapterObj -Name "sourceFormat")
+  $mode = Get-StringValue -Value (Get-ObjectProperty -ObjectValue $adapterObj -Name "mode")
+  $artifactKind = Get-StringValue -Value (Get-ObjectProperty -ObjectValue $safeReceipt -Name "artifactKind")
   $adapterClass = Get-AdapterClassLabel -AdapterIdValue $adapterId -ArtifactKindValue $artifactKind
   if ($adapterClass -eq "-" -and $summary -and $summary.sourceClass) {
     $adapterClass = [string]$summary.sourceClass
   }
-  $adapterReasons = Format-ReasonPreview -ReasonCodes $safeReceipt.adapter.reasonCodes -MaxItems 4
+  $adapterReasons = Format-ReasonPreview -ReasonCodes (Get-ObjectProperty -ObjectValue $adapterObj -Name "reasonCodes") -MaxItems 4
   if ($adapterReasons -eq "-" -and $summary -and $summary.reasonCodes) {
     $adapterReasons = Format-ReasonPreview -ReasonCodes $summary.reasonCodes -MaxItems 4
   }
