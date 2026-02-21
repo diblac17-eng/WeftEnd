@@ -47,6 +47,17 @@ const sha256File = (filePath: string): string => {
   return hash.digest("hex");
 };
 
+const readFileDigest = (filePath: string): string => {
+  try {
+    if (!fs.existsSync(filePath)) return "-";
+    const stat = fs.statSync(filePath);
+    if (!stat.isFile()) return "-";
+    return `sha256:${sha256File(filePath)}`;
+  } catch {
+    return "-";
+  }
+};
+
 const readJson = (filePath: string): any => JSON.parse(fs.readFileSync(filePath, "utf8"));
 
 const getObjProp = (obj: any, key: string): any => {
@@ -200,7 +211,14 @@ export const runTicketPackCli = (options: {
   let capRequested = 0;
   let capGranted = 0;
   let capDenied = 0;
+  let artifactFingerprint = "-";
+  let artifactDigest = "-";
   const safePath = path.join(outRoot, "safe_run_receipt.json");
+  const operatorFileDigest = readFileDigest(operatorPath);
+  const safeFileDigest = readFileDigest(safePath);
+  const reportCardJsonPath = path.join(outRoot, "report_card_v0.json");
+  const reportCardTxtPath = path.join(outRoot, "report_card.txt");
+  const reportCardFileDigest = fs.existsSync(reportCardJsonPath) ? readFileDigest(reportCardJsonPath) : readFileDigest(reportCardTxtPath);
   try {
     if (fs.existsSync(safePath)) {
       const safe = readJson(safePath);
@@ -223,7 +241,26 @@ export const runTicketPackCli = (options: {
       if (adapterClass === "-" && String(getObjProp(safe, "artifactKind") ?? "") === "CONTAINER_IMAGE") {
         adapterClass = "container";
       }
+      const fp = String(getObjProp(safe, "artifactFingerprint") ?? "").trim();
+      const dg = String(getObjProp(safe, "artifactDigest") ?? "").trim();
+      if (fp) artifactFingerprint = fp;
+      if (dg) artifactDigest = dg;
       if (adapterId !== "-" || adapterClass !== "-") adapterEvidence = "present";
+    }
+  } catch {
+    // best effort summary
+  }
+  try {
+    if (fs.existsSync(reportCardJsonPath)) {
+      const report = readJson(reportCardJsonPath);
+      if (artifactFingerprint === "-") {
+        const fp = String(getObjProp(report, "artifactFingerprint") ?? "").trim();
+        if (fp) artifactFingerprint = fp;
+      }
+      if (artifactDigest === "-") {
+        const dg = String(getObjProp(report, "artifactDigest") ?? "").trim();
+        if (dg) artifactDigest = dg;
+      }
     }
   } catch {
     // best effort summary
@@ -249,6 +286,11 @@ export const runTicketPackCli = (options: {
     `command=${String(operator?.command ?? "UNKNOWN")}`,
     `result=${String(operator?.result ?? operator?.verdict ?? "UNKNOWN")}`,
     `receiptDigest=${String(operator?.receiptDigest ?? "UNKNOWN")}`,
+    `operatorReceiptFileDigest=${operatorFileDigest}`,
+    `safeReceiptFileDigest=${safeFileDigest}`,
+    `reportCardFileDigest=${reportCardFileDigest}`,
+    `artifactFingerprint=${artifactFingerprint}`,
+    `artifactDigest=${artifactDigest}`,
     `adapterEvidence=${adapterEvidence}`,
     `adapterClass=${adapterClass}`,
     `adapterId=${adapterId}`,

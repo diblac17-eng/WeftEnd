@@ -43,6 +43,11 @@ const testTicketPack = async () => {
 
   const summary = readText(path.join(ticketRoot, "ticket_summary.txt"));
   assert(summary.includes("ticketPack=weftend"), "ticket summary missing header");
+  assert(summary.includes("operatorReceiptFileDigest=sha256:"), "ticket summary missing operator receipt file digest");
+  assert(summary.includes("safeReceiptFileDigest=sha256:"), "ticket summary missing safe receipt file digest");
+  assert(summary.includes("reportCardFileDigest=sha256:"), "ticket summary missing report card file digest");
+  assert(summary.includes("artifactFingerprint="), "ticket summary missing artifact fingerprint");
+  assert(summary.includes("artifactDigest="), "ticket summary missing artifact digest");
   assert(summary.includes("adapterEvidence="), "ticket summary missing adapterEvidence");
   assert(summary.includes("capabilities=requested:"), "ticket summary missing capability summary line");
   assert(!containsAbsPath(summary), "ticket summary contains absolute path");
@@ -110,6 +115,7 @@ const testTicketPack = async () => {
   const adapterSummary = readText(path.join(adapterTicketRoot, "ticket_summary.txt"));
   assert(adapterSummary.includes("adapterEvidence=present"), "expected adapterEvidence=present in adapter ticket summary");
   assert(adapterSummary.includes("adapterClass=archive"), "expected adapterClass=archive in adapter ticket summary");
+  assert(adapterSummary.includes("safeReceiptFileDigest=sha256:"), "expected safe receipt file digest in adapter ticket summary");
 };
 
 testTicketPack()
