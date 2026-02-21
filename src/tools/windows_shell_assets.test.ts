@@ -266,6 +266,7 @@ suite("tools/windows shell assets", () => {
     assert(/Compute-FileSha256Digest/.test(panelText), "expected history file digest helper");
     assert(/Get-LatestRunIdForTargetDir/.test(panelText), "expected history latest-run fallback helper");
     assert(/Read-ReportCardSummaryForRun/.test(panelText), "expected history report-card fallback helper");
+    assert(/Invoke-AdapterDoctorText/.test(panelText), "expected adapter doctor helper");
     assert(/Update-HistoryDetailsBox/.test(panelText), "expected history details update helper");
     assert(/SelectedIndexChanged/.test(panelText), "expected history selection details wiring");
     assert(/Open-HistoryRunFolder/.test(panelText), "expected history open-run helper");
@@ -276,6 +277,8 @@ suite("tools/windows shell assets", () => {
     assert(/Open Evidence/.test(panelText), "expected launchpad history Open Evidence action");
     assert(/Copy Details/.test(panelText), "expected launchpad history Copy Details action");
     assert(/Copy Digests/.test(panelText), "expected launchpad history Copy Digests action");
+    assert(/Run Adapter Doctor/.test(panelText), "expected launchpad doctor adapter action");
+    assert(/"adapter", "doctor", "--text"/.test(panelText), "expected launchpad adapter doctor text-mode command");
     assert(/Clipboard\]::SetText/.test(panelText), "expected history details clipboard copy action");
     assert(/Control -and \$e\.KeyCode -eq \[System\.Windows\.Forms\.Keys\]::C/.test(panelText), "expected history Ctrl+C copy binding");
     assert(/if \(\$e\.Shift\)\s*\{\s*Copy-HistoryDigestText/.test(panelText), "expected history Ctrl+Shift+C digest copy binding");

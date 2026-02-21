@@ -335,6 +335,39 @@ function Invoke-LaunchpadSync {
   }
 }
 
+function Invoke-AdapterDoctorText {
+  if (-not $nodePath -or -not $mainJs -or -not (Test-Path -LiteralPath $mainJs)) {
+    return @{
+      ok = $false
+      code = "LAUNCHPAD_RUNTIME_MISSING"
+      exitCode = 40
+      output = "Launchpad runtime missing."
+    }
+  }
+  try {
+    $args = @($mainJs, "adapter", "doctor", "--text")
+    $outputRaw = & $nodePath @args 2>&1
+    $outputText = [string]($outputRaw | Out-String)
+    if (-not $outputText) { $outputText = "" }
+    $exitCode = [int]$LASTEXITCODE
+    $ok = ($exitCode -eq 0)
+    $code = if ($ok) { "OK" } else { "ADAPTER_DOCTOR_FAILED" }
+    return @{
+      ok = $ok
+      code = $code
+      exitCode = $exitCode
+      output = $outputText.TrimEnd()
+    }
+  } catch {
+    return @{
+      ok = $false
+      code = "ADAPTER_DOCTOR_EXCEPTION"
+      exitCode = 1
+      output = [string]$_.Exception.Message
+    }
+  }
+}
+
 function Load-Shortcuts {
   param([System.Windows.Forms.FlowLayoutPanel]$Panel)
   $Panel.Controls.Clear()
@@ -1488,6 +1521,13 @@ $btnDoctorRun.Height = 30
 Style-Button -Button $btnDoctorRun -Primary:$false
 $doctorActions.Controls.Add($btnDoctorRun) | Out-Null
 
+$btnAdapterDoctorRun = New-Object System.Windows.Forms.Button
+$btnAdapterDoctorRun.Text = "Run Adapter Doctor"
+$btnAdapterDoctorRun.Width = 132
+$btnAdapterDoctorRun.Height = 30
+Style-Button -Button $btnAdapterDoctorRun -Primary:$false
+$doctorActions.Controls.Add($btnAdapterDoctorRun) | Out-Null
+
 $doctorText = New-Object System.Windows.Forms.TextBox
 $doctorText.Dock = "Fill"
 $doctorText.Multiline = $true
@@ -1496,7 +1536,7 @@ $doctorText.ReadOnly = $true
 $doctorText.BackColor = $colorPanel
 $doctorText.ForeColor = $colorText
 $doctorText.Font = $fontSmall
-$doctorText.Text = "Shell doctor output appears here."
+$doctorText.Text = "Doctor output appears here."
 
 $doctorLayout.Controls.Add($doctorActions, 0, 0)
 $doctorLayout.Controls.Add($doctorText, 0, 1)
@@ -1646,6 +1686,24 @@ $btnDoctorRun.Add_Click({
   } catch {
     $doctorText.Text = "Shell doctor failed."
     Set-StatusLine -StatusLabel $statusLabel -Message "Shell doctor failed." -IsError $true
+  }
+})
+$btnAdapterDoctorRun.Add_Click({
+  $result = Invoke-AdapterDoctorText
+  $header = @(
+    "Adapter doctor exitCode=" + [string]$result.exitCode,
+    "Adapter doctor code=" + [string]$result.code
+  )
+  $body = if ($result.output -and [string]$result.output -ne "") {
+    [string]$result.output
+  } else {
+    "(no adapter doctor output)"
+  }
+  $doctorText.Text = (($header + @("", $body)) -join [Environment]::NewLine)
+  if ($result.ok) {
+    Set-StatusLine -StatusLabel $statusLabel -Message "Adapter doctor completed." -IsError $false
+  } else {
+    Set-StatusLine -StatusLabel $statusLabel -Message ("Adapter doctor failed (" + [string]$result.code + ").") -IsError $true
   }
 })
 
