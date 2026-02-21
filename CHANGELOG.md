@@ -16,6 +16,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Shell doctor repair failures now emit deterministic code `SHELL_DOCTOR_REPAIR_FAILED`; Launchpad doctor parsing now surfaces this code in repair output/status.
 - Launchpad Doctor now includes `Repair Viewer`, which runs shell-doctor repair mode and shows deterministic repair output headers.
 - Launchpad adapter doctor parsing now extracts bracketed deterministic reason codes from strict adapter-doctor output instead of returning only generic failure code.
+- Shell doctor now emits deterministic terminal status lines (`ShellDoctorStatus: PASS` or `ShellDoctorStatus: FAIL code=SHELL_DOCTOR_CONFIG_INVALID`) so Launchpad can surface stable non-repair failure codes.
 - Updated Windows shell asset contract coverage to pin startup failure-counter behavior.
 - Launchpad History report-open success now resets viewer startup state (`UseReportViewer=1`, `ReportViewerAutoOpen=1`, `ReportViewerStartFailCount=0`) so operator manual opens can self-heal auto-open disable state.
 

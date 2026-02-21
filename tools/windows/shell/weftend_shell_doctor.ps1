@@ -149,5 +149,9 @@ if (-not (Check-CommandKey -Label "LNK_UNBIND" -KeyPath $lnkUnbindKey -Token "-A
 if (-not (Check-CommandKey -Label "DIR_BIND" -KeyPath $dirBindKey -Token "-Action bind")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "DIR_UNBIND" -KeyPath $dirUnbindKey -Token "-Action unbind")) { $allOk = $false }
 
-if ($allOk) { exit 0 }
+if ($allOk) {
+  Write-Host "ShellDoctorStatus: PASS"
+  exit 0
+}
+Write-Host "ShellDoctorStatus: FAIL code=SHELL_DOCTOR_CONFIG_INVALID"
 exit 40

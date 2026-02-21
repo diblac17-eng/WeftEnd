@@ -143,6 +143,8 @@ suite("tools/windows shell assets", () => {
     assert(/Set-ItemProperty -Path \$configKey -Name "ReportViewerStartFailCount" -Value "0"/.test(text), "expected shell doctor to reset startup failure counter");
     assert(/SHELL_DOCTOR_REPAIR_FAILED/.test(text), "expected deterministic shell doctor repair failure code");
     assert(/if \(-not \$repairOk\) \{ exit 40 \}/.test(text), "expected shell doctor repair mode to fail closed on write failure");
+    assert(/ShellDoctorStatus: PASS/.test(text), "expected shell doctor deterministic pass status line");
+    assert(/SHELL_DOCTOR_CONFIG_INVALID/.test(text), "expected shell doctor deterministic config-failure code");
     assert(/HKCU:\\Software\\WeftEnd\\Shell/.test(text), "expected config registry key");
     assert(/HKCU:\\Software\\Classes\\\*\\shell\\WeftEndSafeRun\\command/.test(text), "expected star command key");
     assert(/HKCU:\\Software\\Classes\\lnkfile\\shell\\WeftEndSafeRun\\command/.test(text), "expected lnk command key");
