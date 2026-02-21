@@ -1,34 +1,44 @@
 WeftEnd Alpha Update
 
-This release combines operator UX polish with trust/runtime hardening and shell workflow reliability updates.
+This release expands WeftEnd as a deterministic universal artifact meter while hardening release-gate discipline and operator-facing workflow reliability.
 
 Highlights
-1. Report viewing defaults to the native WeftEnd report viewer.
-2. Report viewer host console now launches hidden while the report card window stays visible for review.
-3. Launchpad History supports direct report viewing (button, double-click, Enter).
-4. CHANGED/BLOCKED baseline accept/decline flow is restored and hardened.
-5. Structured report artifacts are available: report_card_v0.json and report_card.txt.
-6. Shortcut analysis resolves real .lnk targets/scripts for accurate compare behavior.
-7. New right-click bind flow:
-   - Bind to WeftEnd
-   - Unbind from WeftEnd
-8. .lnk rewrap bind mode preserves icon and restores original shortcut on unbind.
-9. Shell integration is simplified to two shortcuts:
-   - WeftEnd Launchpad
-   - WeftEnd Download
-10. Builder integration surface is documented and available:
-    - weftend export-json <outRoot> --format normalized_v0
-    - contract: weftend.normalizedSummary/0
-11. Core/runtime trust hardening sweep is included in release scope.
+1. Universal adapter lane expanded (analysis-only, deterministic, fail-closed):
+   - safe-run adapter routes: auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature
+   - explicit plugin routing: --enable-plugin <name> (local-only, no auto-install)
+   - deterministic adapter artifacts: analysis/adapter_summary_v0.json, analysis/adapter_findings_v0.json
+2. Adapter maintenance controls added:
+   - weftend adapter list
+   - weftend adapter doctor [--text] [--strict]
+   - weftend adapter doctor --write-policy <path> [--include-missing-plugins]
+   - fail-closed lane disable policy support for controlled maintenance windows
+3. Verify gate (360) hardened for strict release use:
+   - npm run verify:360
+   - npm run verify:360:release
+   - npm run verify:360:release:cleanout
+   - npm run verify:360:release:managed
+   - gate preserves evidence on PASS/PARTIAL/FAIL and records explicit policy/doctor context
+4. GitHub Actions workflows included:
+   - .github/workflows/weftend_artifact_meter.yml
+   - .github/workflows/weftend_verify360.yml
+5. Docs and release discipline hardening:
+   - release-facing docs now have contract coverage to prevent workflow/command drift
+   - release checklist includes workflow parity checks and immutable-change-record checks
+6. Existing operator UX/security hardening remains in place:
+   - native report viewer default, with safe fallback behavior
+   - launchpad CHANGED/BLOCKED accept/decline flow restored
+   - .lnk target resolution and bind/unbind workflow hardening
 
 Validation on release state
 - npm run compile --silent: pass
-- node dist/src/tools/windows_shell_assets.test.js: pass
-- node dist/src/tools/greenteam/release_artifacts_present.test.js: pass
 - npm test: pass
+- WEFTEND_ALLOW_SKIP_RELEASE=1 npm run proofcheck --silent: pass
 
 Reference docs
 - docs/RELEASE_NOTES.txt
 - docs/QUICKSTART.txt
-- docs/POWERED_BY_WEFTEND.md
+- docs/GITHUB_ACTIONS.md
+- docs/ADAPTERS_MATRIX.md
+- docs/REASON_CODES_ADAPTERS.md
+- docs/RELEASE_CHECKLIST_ALPHA.md
 - docs/DISCLAIMER.md

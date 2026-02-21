@@ -49,6 +49,7 @@ suite("greenteam/docs-release-contract", () => {
     const releaseNotes = readText("docs/RELEASE_NOTES.txt");
     const actionsGuide = readText("docs/GITHUB_ACTIONS.md");
     const releaseChecklist = readText("docs/RELEASE_CHECKLIST_ALPHA.md");
+    const releaseAnnouncement = readText("docs/RELEASE_ANNOUNCEMENT.txt");
 
     assert(
       readme.includes(".github/workflows/weftend_artifact_meter.yml"),
@@ -114,6 +115,19 @@ suite("greenteam/docs-release-contract", () => {
     assert(
       releaseChecklist.includes("docs/RELEASE_NOTES.txt"),
       "RELEASE_CHECKLIST_ALPHA missing release-notes sync check"
+    );
+
+    assert(
+      releaseAnnouncement.includes(".github/workflows/weftend_artifact_meter.yml"),
+      "RELEASE_ANNOUNCEMENT missing artifact meter workflow reference"
+    );
+    assert(
+      releaseAnnouncement.includes(".github/workflows/weftend_verify360.yml"),
+      "RELEASE_ANNOUNCEMENT missing verify360 workflow reference"
+    );
+    assert(
+      releaseAnnouncement.includes("npm run verify:360:release:managed"),
+      "RELEASE_ANNOUNCEMENT missing managed verify command reference"
     );
   });
 });

@@ -15,6 +15,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Updated `docs/QUICKSTART.txt` GitHub Actions section to include both workflows and managed verify output path.
 - Updated `docs/RELEASE_CHECKLIST_ALPHA.md` with optional GitHub Actions parity runs for both workflows.
 - Updated `docs/RELEASE_CHECKLIST_ALPHA.md` with immutable-release change record checks for `CHANGELOG.md` and `docs/RELEASE_NOTES.txt`.
+- Refreshed `docs/RELEASE_ANNOUNCEMENT.txt` to match current adapter expansion, verify-gate, and workflow scope.
 
 ### Safe-run evidence corridor
 - `safe-run` now verifies expected receipt artifacts for presence and digest consistency before completion.
@@ -46,6 +47,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added Green Team docs release contract test to pin workflow/command references across README/Quickstart/Release Notes/Actions guide.
 - Extended docs release contract coverage to include `docs/RELEASE_CHECKLIST_ALPHA.md`.
 - Extended docs release contract coverage to enforce immutable-release checklist references (`CHANGELOG.md`, `docs/RELEASE_NOTES.txt`).
+- Extended docs release contract coverage to enforce release announcement workflow/managed-verify references.
 - `verify:360:harness` now validates strict-mode idempotence separation (`NEW` then `REPLAY`) to prevent strict/non-strict replay-key regression.
 - Emergency verify report output now includes policy summary lines (`policy.*`) and failure receipts carry interpreted policy fields for consistent fail-closed readability.
 
