@@ -221,7 +221,6 @@ if ($Action -eq "bind") {
         sourcePath = $targetCanonical
         backupPath = $backupPath
         original = $snapshot
-        createdAtUtc = [DateTime]::UtcNow.ToString("o")
       }
       Save-BindMeta -MetaPath $metaPath -Meta $meta
       Write-Output "[BIND_OK mode=rewrap]"
@@ -255,7 +254,6 @@ if ($Action -eq "bind") {
       mode = "created_bound_link"
       sourcePath = $targetCanonical
       boundShortcut = $boundShortcutPath
-      createdAtUtc = [DateTime]::UtcNow.ToString("o")
     }
     Save-BindMeta -MetaPath $boundMetaPath -Meta $meta
     $after = Read-ShortcutSnapshot -ShortcutPath $boundShortcutPath

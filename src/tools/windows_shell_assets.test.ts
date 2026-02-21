@@ -409,6 +409,13 @@ suite("tools/windows shell assets", () => {
     assert(/WeftEnd Launchpad Shortcut v1/.test(shortcutText), "expected launchpad description text");
   });
 
+  register("bind script metadata avoids wall-clock fields", () => {
+    const bindPath = path.join(shellDir, "weftend_bind.ps1");
+    const bindText = fs.readFileSync(bindPath, "utf8");
+    assert(!/DateTime\]::UtcNow/.test(bindText), "bind metadata must avoid wall-clock timestamp generation");
+    assert(!/createdAtUtc/.test(bindText), "bind metadata must avoid createdAtUtc field drift");
+  });
+
   register("report viewer includes optional adapter evidence panel", () => {
     const viewerPath = path.join(shellDir, "report_card_viewer.ps1");
     const viewerText = fs.readFileSync(viewerPath, "utf8");

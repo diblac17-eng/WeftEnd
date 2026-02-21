@@ -34,6 +34,8 @@ Included
 - Windows shell contract tests now pin context-menu host-command and CMD wrapper host-path resolution invariants.
 - CLI `launchpad`, `shortcut`, and `watch` commands now resolve PowerShell host path (`%WINDIR%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe` when available) before spawn instead of direct command-name lookup.
 - Windows shell contract tests now also pin CLI PowerShell host-path resolution invariants to prevent regression to literal `spawnSync("powershell.exe", ...)` usage.
+- Bind metadata writes now avoid wall-clock timestamp fields (`createdAtUtc`) to remove non-deterministic bind-state drift.
+- Windows shell contract tests now pin no-`UtcNow`/no-`createdAtUtc` behavior in `weftend_bind.ps1`.
 - Launchpad History successful report open now resets viewer startup state (`UseReportViewer=1`, `ReportViewerAutoOpen=1`, `ReportViewerStartFailCount=0`) so manual viewer opens self-heal auto-open disable state.
 - Evidence typing added to operator reports (additive, non-breaking):
 - `report_card.txt` now includes an evidence legend and claim mapping lines:

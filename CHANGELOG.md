@@ -35,6 +35,8 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added/updated Windows shell asset contract coverage for context-menu host command resolution and Windows CMD wrapper PowerShell host-path resolution invariants.
 - CLI `launchpad`, `shortcut`, and `watch` commands now resolve PowerShell host path (`%WINDIR%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe` when available) before spawn instead of direct command-name lookup.
 - Added contract coverage to pin CLI PowerShell host-path resolution invariants and prevent regression to literal `spawnSync("powershell.exe", ...)` usage.
+- Bind metadata writes now avoid wall-clock timestamp fields (`createdAtUtc`) to remove non-deterministic bind-state drift.
+- Added shell-asset contract coverage to pin no-`UtcNow`/no-`createdAtUtc` behavior in `weftend_bind.ps1`.
 - Updated Windows shell asset contract coverage to pin startup failure-counter behavior.
 - Launchpad History report-open success now resets viewer startup state (`UseReportViewer=1`, `ReportViewerAutoOpen=1`, `ReportViewerStartFailCount=0`) so operator manual opens can self-heal auto-open disable state.
 
