@@ -31,6 +31,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - Safety guard: `<diffOut>` must be different from both input roots.
 - Compare `operator_receipt.json` now references `compare_receipt.json`, `compare_report.txt`, and `weftend/README.txt` for complete compare evidence linkage.
 - Compare `operator_receipt.json` also references `weftend/privacy_lint_v0.json`; compare runs perform a final no-write lint recheck after writing final operator receipt.
+- Compare now enforces a no-orphan evidence check before finalize: every produced compare artifact (except `operator_receipt.json`) must be referenced by operator receipt entries.
 
 3.1) Universal artifact adapter lane (CLI)
 - List adapter coverage:

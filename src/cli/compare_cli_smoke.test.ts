@@ -48,6 +48,33 @@ const makeTempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), "weftend-compare
 
 const readJson = (filePath: string) => JSON.parse(fs.readFileSync(filePath, "utf8").trim());
 
+const listRelativeFiles = (root: string): string[] => {
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    const entries = fs.readdirSync(dir, { withFileTypes: true }) as Array<{ name: string; isDirectory: () => boolean }>;
+    entries
+      .slice()
+      .sort((a, b) => {
+        const an = String(a.name);
+        const bn = String(b.name);
+        if (an < bn) return -1;
+        if (an > bn) return 1;
+        return 0;
+      })
+      .forEach((entry) => {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(full);
+          return;
+        }
+        const rel = path.relative(root, full).split(path.sep).join("/");
+        out.push(rel);
+      });
+  };
+  walk(root);
+  return out;
+};
+
 const runSafeRunFixture = async (fixture: string, outDir: string): Promise<void> => {
   const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", fixture);
   const policyPath = path.join(process.cwd(), "policies", "web_component_default.json");
@@ -107,6 +134,10 @@ suite("cli/compare", () => {
     assert(relPaths.includes("weftend/privacy_lint_v0.json"), "operator receipt must include weftend/privacy_lint_v0.json");
     const digestLines = operator.receipts.map((r: any) => String(r.digest || ""));
     assert(digestLines.every((d: string) => /^sha256:[a-f0-9]{64}$/.test(d)), "operator receipt digests must be sha256:<64hex>");
+    const relPathSet = new Set(relPaths);
+    const producedFiles = listRelativeFiles(outDir);
+    const orphans = producedFiles.filter((rel) => rel !== "operator_receipt.json" && !relPathSet.has(rel));
+    assertEq(orphans.length, 0, `compare output must not include orphan files\n${orphans.join(",")}`);
 
     const report = fs.readFileSync(compareReportPath, "utf8");
     assert(!/[A-Za-z]:\\/.test(report), "compare report must not include absolute Windows paths");

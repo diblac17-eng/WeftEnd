@@ -424,6 +424,45 @@ const finalizeCompareOutRoot = (stageRoot: string, outRoot: string): boolean => 
   }
 };
 
+const collectRelativeFiles = (rootDir: string): string[] => {
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    let entries: Array<{ name: string; isDirectory: () => boolean }>;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true }) as any;
+    } catch {
+      return;
+    }
+    entries
+      .slice()
+      .sort((a: any, b: any) => cmpStrV0(String(a.name), String(b.name)))
+      .forEach((entry: any) => {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory && entry.isDirectory()) {
+          walk(full);
+          return;
+        }
+        const rel = path.relative(path.resolve(rootDir), path.resolve(full)).split(path.sep).join("/");
+        out.push(rel);
+      });
+  };
+  walk(rootDir);
+  return out.sort((a, b) => cmpStrV0(a, b));
+};
+
+const validateCompareEvidenceChain = (
+  rootDir: string,
+  entries: Array<{ kind: string; relPath: string; digest: string }>
+): { ok: boolean; orphanRelPaths: string[]; missingRelPaths: string[] } => {
+  const expected = new Set(entries.map((e) => String(e.relPath || "")));
+  const observed = collectRelativeFiles(rootDir);
+  const orphanRelPaths = observed.filter((rel) => rel !== "operator_receipt.json" && !expected.has(rel));
+  const missingRelPaths = Array.from(expected)
+    .filter((rel) => !observed.includes(rel))
+    .sort((a, b) => cmpStrV0(a, b));
+  return { ok: orphanRelPaths.length === 0 && missingRelPaths.length === 0, orphanRelPaths, missingRelPaths };
+};
+
 const buildCompareReceipt = (input: {
   weftendBuild: WeftendBuildV0;
   left: { summaryDigest: string; receiptKinds: string[] };
@@ -570,14 +609,26 @@ export const runCompareCliV0 = (options: RunCompareCliOptionsV0): number => {
     privacy = runPrivacyLintV0({ root: stageRoot, weftendBuild: receipt.weftendBuild });
   }
 
+  const finalEntries = buildCompareOperatorEntries(stageRoot, receipt.receiptDigest);
   operator = buildOperatorReceiptV0({
     command: "compare",
     weftendBuild: receipt.weftendBuild,
     schemaVersion: receipt.schemaVersion,
-    entries: buildCompareOperatorEntries(stageRoot, receipt.receiptDigest),
+    entries: finalEntries,
     warnings: [...(receipt.weftendBuild.reasonCodes ?? []), ...(receipt.reasonCodes ?? [])],
   });
   writeOperatorReceiptV0(stageRoot, operator);
+  const evidenceCheck = validateCompareEvidenceChain(stageRoot, finalEntries);
+  if (!evidenceCheck.ok) {
+    console.error("[COMPARE_EVIDENCE_CHAIN_INVALID] compare output evidence chain invalid.");
+    if (evidenceCheck.orphanRelPaths.length > 0) {
+      console.error(`[COMPARE_EVIDENCE_ORPHAN] ${evidenceCheck.orphanRelPaths.join(",")}`);
+    }
+    if (evidenceCheck.missingRelPaths.length > 0) {
+      console.error(`[COMPARE_EVIDENCE_MISSING] ${evidenceCheck.missingRelPaths.join(",")}`);
+    }
+    return 40;
+  }
   const privacyFinal = runPrivacyLintV0({ root: stageRoot, weftendBuild: receipt.weftendBuild, writeReport: false });
   if (privacyFinal.report.verdict !== "PASS") {
     console.error("[COMPARE_PRIVACY_LINT_FAIL] compare output failed privacy lint.");
