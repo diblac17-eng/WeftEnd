@@ -661,16 +661,34 @@ function Read-AdapterEvidenceForRun {
   return $out
 }
 
+function Get-LatestRunIdForTargetDir {
+  param([string]$TargetDir)
+  if (-not $TargetDir -or -not (Test-Path -LiteralPath $TargetDir)) { return "-" }
+  try {
+    $runs = @(
+      Get-ChildItem -LiteralPath $TargetDir -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -like "run_*" } |
+        ForEach-Object { [string]$_.Name }
+    )
+    if (-not $runs -or $runs.Count -le 0) { return "-" }
+    $runs = @($runs | Sort-Object)
+    return [string]$runs[$runs.Count - 1]
+  } catch {
+    return "-"
+  }
+}
+
 function Read-ViewStateSummary {
   param([string]$TargetDir)
   $viewPath = Join-Path $TargetDir "view\view_state.json"
   if (-not (Test-Path -LiteralPath $viewPath)) {
+    $latestFallback = Get-LatestRunIdForTargetDir -TargetDir $TargetDir
     return @{
       status = "UNKNOWN"
       baseline = "-"
-      latest = "-"
+      latest = $latestFallback
       buckets = "-"
-      adapter = "-"
+      adapter = (Read-AdapterTagForRun -TargetDir $TargetDir -RunId $latestFallback)
     }
   }
   try {
@@ -712,6 +730,9 @@ function Read-ViewStateSummary {
       }
     }
 
+    if (-not $latest -or $latest -eq "-") {
+      $latest = Get-LatestRunIdForTargetDir -TargetDir $TargetDir
+    }
     return @{
       status = $status
       baseline = $baseline
@@ -720,12 +741,13 @@ function Read-ViewStateSummary {
       adapter = (Read-AdapterTagForRun -TargetDir $TargetDir -RunId $latest)
     }
   } catch {
+    $latestFallback = Get-LatestRunIdForTargetDir -TargetDir $TargetDir
     return @{
       status = "UNKNOWN"
       baseline = "-"
-      latest = "-"
+      latest = $latestFallback
       buckets = "-"
-      adapter = "-"
+      adapter = (Read-AdapterTagForRun -TargetDir $TargetDir -RunId $latestFallback)
     }
   }
 }
@@ -745,6 +767,9 @@ function Update-HistoryDetailsBox {
   $targetDir = if ($meta -and $meta.targetDir) { [string]$meta.targetDir } else { "" }
   $targetKey = if ($meta -and $meta.targetKey) { [string]$meta.targetKey } else { [string]$selected.Text }
   $latestRun = if ($meta -and $meta.latestRun) { [string]$meta.latestRun } else { "-" }
+  if ($latestRun -eq "-" -and $targetDir) {
+    $latestRun = Get-LatestRunIdForTargetDir -TargetDir $targetDir
+  }
   $status = if ($selected.SubItems.Count -gt 1) { [string]$selected.SubItems[1].Text } else { "UNKNOWN" }
   $adapterTag = if ($selected.SubItems.Count -gt 2) { [string]$selected.SubItems[2].Text } else { "-" }
   $baseline = if ($selected.SubItems.Count -gt 3) { [string]$selected.SubItems[3].Text } else { "-" }
@@ -852,6 +877,9 @@ function Open-ReportViewerFromHistory {
   $targetDir = if ($meta -and $meta.targetDir) { [string]$meta.targetDir } else { "" }
   $targetKey = if ($meta -and $meta.targetKey) { [string]$meta.targetKey } else { [string]$selected.Text }
   $latestRun = if ($meta -and $meta.latestRun) { [string]$meta.latestRun } else { "" }
+  if (-not $latestRun -or $latestRun -eq "-") {
+    $latestRun = Get-LatestRunIdForTargetDir -TargetDir $targetDir
+  }
   if (-not $targetDir -or -not (Test-Path -LiteralPath $targetDir)) {
     Set-StatusLine -StatusLabel $StatusLabel -Message "Target history folder missing." -IsError $true
     return
@@ -908,6 +936,9 @@ function Open-HistoryRunFolder {
   $targetDir = if ($meta -and $meta.targetDir) { [string]$meta.targetDir } else { "" }
   $latestRun = if ($meta -and $meta.latestRun) { [string]$meta.latestRun } else { "-" }
   $targetKey = if ($meta -and $meta.targetKey) { [string]$meta.targetKey } else { [string]$selected.Text }
+  if ($latestRun -eq "-" -and $targetDir) {
+    $latestRun = Get-LatestRunIdForTargetDir -TargetDir $targetDir
+  }
   if (-not $targetDir -or -not (Test-Path -LiteralPath $targetDir)) {
     Set-StatusLine -StatusLabel $StatusLabel -Message "Target history folder missing." -IsError $true
     return
@@ -934,6 +965,9 @@ function Open-HistoryAdapterEvidenceFolder {
   $targetDir = if ($meta -and $meta.targetDir) { [string]$meta.targetDir } else { "" }
   $latestRun = if ($meta -and $meta.latestRun) { [string]$meta.latestRun } else { "-" }
   $targetKey = if ($meta -and $meta.targetKey) { [string]$meta.targetKey } else { [string]$selected.Text }
+  if ($latestRun -eq "-" -and $targetDir) {
+    $latestRun = Get-LatestRunIdForTargetDir -TargetDir $targetDir
+  }
   if (-not $targetDir -or -not $latestRun -or $latestRun -eq "-") {
     Set-StatusLine -StatusLabel $StatusLabel -Message "No latest run available for adapter evidence." -IsError $true
     return
