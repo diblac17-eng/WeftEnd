@@ -76,6 +76,8 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
   - `report_card_v0.json` includes additive `adapter` metadata/capability object for automation and UI parity.
 - `container scan` now also preserves deterministic evidence artifacts on fail-closed preconditions (`safe_run_receipt.json` and `operator_receipt.json` are written before exit 40).
 - `container scan` now applies the same evidence-corridor checks as safe-run: expected receipt artifacts are verified for presence/digest consistency and unmanaged pre-existing outputs are surfaced as deterministic `SAFE_RUN_EVIDENCE_*` warnings.
+- `container scan` output now uses staged finalize (`<out>.stage` -> `<out>`), replacing stale out-roots and preventing partial scan output residue from appearing as finalized evidence.
+- `container scan` staged finalize preserves deterministic stale-output signaling by carrying `SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT` when unmanaged pre-existing out-root files were present before scan write.
 - `verify:360` now includes an `adapter_doctor` step and capability record; strict adapter doctor mode can be enabled with `WEFTEND_360_ADAPTER_DOCTOR_STRICT=1` to capture maintenance-policy/plugin strict failures as explicit PARTIAL evidence.
 - `verify:360` now captures adapter doctor output quietly to keep gate console output focused while preserving adapter doctor evidence in verify receipts/reports.
 - Added `npm run verify:360:adapter:strict` helper to run full verify with strict adapter doctor mode enabled.

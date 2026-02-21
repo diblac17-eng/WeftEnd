@@ -72,6 +72,7 @@ suite("cli/container-scan", () => {
     const entries = Array.isArray(operator?.receipts) ? operator.receipts : [];
     const hasReadmeEntry = entries.some((entry: any) => entry?.relPath === "weftend/README.txt");
     assert(hasReadmeEntry, "expected operator receipt to include README digest link");
+    assert(!fs.existsSync(`${outDir}.stage`), "container scan stage directory must not remain after finalize");
   });
 
   register("container scan blocks remote docker context", async () => {
@@ -117,6 +118,8 @@ suite("cli/container-scan", () => {
       warnings.includes("SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"),
       "expected SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT warning for pre-existing unmanaged output"
     );
+    assert(!fs.existsSync(path.join(outDir, "stale_output.txt")), "stale out-root files must be replaced during finalize");
+    assert(!fs.existsSync(`${outDir}.stage`), "container scan stage directory must not remain after finalize");
   });
 
   register("container scan honors maintenance disable policy", async () => {

@@ -94,6 +94,8 @@ Included
 - `container scan` fail-closed preconditions now also write deterministic evidence artifacts (`safe_run_receipt.json` and `operator_receipt.json`) before returning exit 40.
 - `container scan` now also writes `analysis/capability_ledger_v0.json` in both success and fail-closed paths so requested/granted/denied container capability decisions are always preserved as evidence.
 - `container scan` now honors adapter maintenance policy (`WEFTEND_ADAPTER_DISABLE` / `WEFTEND_ADAPTER_DISABLE_FILE`) for `container` lane control.
+- `container scan` output now stages/finalizes (`<out>.stage` -> `<out>`), replacing stale out-roots and preventing partial output residue from appearing as finalized scan evidence.
+- `container scan` staged finalize preserves deterministic stale-output signaling by carrying `SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT` when unmanaged pre-existing out-root files were present before scan write.
 - Additive receipt/summary surface:
 - `safe_run_receipt.json` optional `adapter` metadata block
 - `contentSummary.adapterSignals` optional deterministic adapter signal block

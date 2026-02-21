@@ -184,6 +184,30 @@ const listFilesRecursiveRel = (root: string, relStart: string): string[] => {
   return out;
 };
 
+const prepareStagedOutRoot = (outDir: string): { ok: true; stageOutDir: string; hadPreexistingOutput: boolean } | { ok: false } => {
+  const stageOutDir = `${outDir}.stage`;
+  let hadPreexistingOutput = false;
+  try {
+    if (fs.existsSync(outDir)) hadPreexistingOutput = listFilesRecursiveRel(outDir, ".").length > 0;
+    fs.rmSync(stageOutDir, { recursive: true, force: true });
+    fs.mkdirSync(path.dirname(stageOutDir), { recursive: true });
+    fs.mkdirSync(stageOutDir, { recursive: true });
+    return { ok: true, stageOutDir, hadPreexistingOutput };
+  } catch {
+    return { ok: false };
+  }
+};
+
+const finalizeStagedOutRoot = (stageOutDir: string, outDir: string): boolean => {
+  try {
+    fs.rmSync(outDir, { recursive: true, force: true });
+    fs.renameSync(stageOutDir, outDir);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const evaluateEvidenceWarnings = (input: {
   outDir: string;
   receipt: SafeRunReceiptV0;
@@ -234,6 +258,8 @@ const summarizeContainerScan = (receipt: SafeRunReceiptV0, privacyVerdict: "PASS
 
 const finalizeFailure = (options: {
   outDir: string;
+  stageOutDir: string;
+  hadPreexistingOutput: boolean;
   inputRef: string;
   policyPath: string;
   policyId?: string;
@@ -241,8 +267,7 @@ const finalizeFailure = (options: {
 }): number => {
   const reasonCodes = stableSortUniqueReasonsV0(options.reasonCodes).slice(0, MAX_REASON_CODES);
   const weftendBuild = computeWeftendBuildV0({ filePath: process?.argv?.[1], source: "NODE_MAIN_JS" }).build;
-  fs.mkdirSync(options.outDir, { recursive: true });
-  const analysisDir = path.join(options.outDir, "analysis");
+  const analysisDir = path.join(options.stageOutDir, "analysis");
   fs.mkdirSync(analysisDir, { recursive: true });
 
   const selectedPolicy = path.basename(options.policyPath || POLICY_GENERIC);
@@ -325,13 +350,17 @@ const finalizeFailure = (options: {
     return 1;
   }
 
-  fs.writeFileSync(path.join(options.outDir, "safe_run_receipt.json"), `${canonicalJSON(receipt)}\n`, "utf8");
+  fs.writeFileSync(path.join(options.stageOutDir, "safe_run_receipt.json"), `${canonicalJSON(receipt)}\n`, "utf8");
   const readmeText = buildReceiptReadmeV0(receipt.weftendBuild, receipt.schemaVersion);
-  const readmePath = path.join(options.outDir, "weftend", "README.txt");
+  const readmePath = path.join(options.stageOutDir, "weftend", "README.txt");
   fs.mkdirSync(path.dirname(readmePath), { recursive: true });
   fs.writeFileSync(readmePath, readmeText, "utf8");
 
-  const baseWarnings = stableSortUniqueReasonsV0([...(receipt.weftendBuild.reasonCodes ?? []), ...reasonCodes]);
+  const baseWarnings = stableSortUniqueReasonsV0([
+    ...(receipt.weftendBuild.reasonCodes ?? []),
+    ...reasonCodes,
+    ...(options.hadPreexistingOutput ? ["SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"] : []),
+  ]);
   const entries = [
     { kind: "safe_run_receipt", relPath: "safe_run_receipt.json", digest: receipt.receiptDigest },
     { kind: "receipt_readme", relPath: "weftend/README.txt", digest: digestText(readmeText) },
@@ -346,12 +375,12 @@ const finalizeFailure = (options: {
       warnings,
       contentSummary: receipt.contentSummary,
     });
-    writeOperatorReceiptV0(options.outDir, operatorReceipt);
+    writeOperatorReceiptV0(options.stageOutDir, operatorReceipt);
     return operatorReceipt;
   };
   let operatorReceipt = buildAndWriteOperator(baseWarnings);
   const evidenceWarnings = evaluateEvidenceWarnings({
-    outDir: options.outDir,
+    outDir: options.stageOutDir,
     receipt,
     operatorReceiptDigest: operatorReceipt.receiptDigest,
     readmeText,
@@ -360,7 +389,11 @@ const finalizeFailure = (options: {
     operatorReceipt = buildAndWriteOperator(stableSortUniqueReasonsV0([...baseWarnings, ...evidenceWarnings]));
   }
 
-  const privacy = runPrivacyLintV0({ root: options.outDir, weftendBuild: receipt.weftendBuild });
+  const privacy = runPrivacyLintV0({ root: options.stageOutDir, weftendBuild: receipt.weftendBuild });
+  if (!finalizeStagedOutRoot(options.stageOutDir, options.outDir)) {
+    console.error("[CONTAINER_SCAN_FINALIZE_FAILED] unable to finalize staged output.");
+    return 1;
+  }
   try {
     updateLibraryViewFromRunV0({
       outDir: options.outDir,
@@ -378,13 +411,15 @@ const finalizeFailure = (options: {
 
 const finalizeSuccess = (options: {
   outDir: string;
+  stageOutDir: string;
+  hadPreexistingOutput: boolean;
   inputRef: string;
   policyPath: string;
   policyId: string;
   probe: DockerProbeSuccessV0;
 }): number => {
   const weftendBuild = computeWeftendBuildV0({ filePath: process?.argv?.[1], source: "NODE_MAIN_JS" }).build;
-  fs.mkdirSync(options.outDir, { recursive: true });
+  fs.mkdirSync(options.stageOutDir, { recursive: true });
 
   const selectedPolicy = path.basename(options.policyPath);
   const registryDomains = options.probe.registryDomain ? [options.probe.registryDomain] : [];
@@ -489,18 +524,22 @@ const finalizeSuccess = (options: {
     return 1;
   }
 
-  const analysisDir = path.join(options.outDir, "analysis");
+  const analysisDir = path.join(options.stageOutDir, "analysis");
   fs.mkdirSync(analysisDir, { recursive: true });
   fs.writeFileSync(path.join(analysisDir, "capability_ledger_v0.json"), capabilityLedgerJson, "utf8");
   fs.writeFileSync(path.join(analysisDir, "adapter_summary_v0.json"), adapterSummaryJson, "utf8");
   fs.writeFileSync(path.join(analysisDir, "adapter_findings_v0.json"), adapterFindingsJson, "utf8");
-  fs.writeFileSync(path.join(options.outDir, "safe_run_receipt.json"), `${canonicalJSON(receipt)}\n`, "utf8");
+  fs.writeFileSync(path.join(options.stageOutDir, "safe_run_receipt.json"), `${canonicalJSON(receipt)}\n`, "utf8");
   const readmeText = buildReceiptReadmeV0(receipt.weftendBuild, receipt.schemaVersion);
-  const readmePath = path.join(options.outDir, "weftend", "README.txt");
+  const readmePath = path.join(options.stageOutDir, "weftend", "README.txt");
   fs.mkdirSync(path.dirname(readmePath), { recursive: true });
   fs.writeFileSync(readmePath, readmeText, "utf8");
 
-  const baseWarnings = stableSortUniqueReasonsV0([...(receipt.weftendBuild.reasonCodes ?? []), ...reasonCodes]);
+  const baseWarnings = stableSortUniqueReasonsV0([
+    ...(receipt.weftendBuild.reasonCodes ?? []),
+    ...reasonCodes,
+    ...(options.hadPreexistingOutput ? ["SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"] : []),
+  ]);
   const entries = [
     { kind: "safe_run_receipt", relPath: "safe_run_receipt.json", digest: receipt.receiptDigest },
     { kind: "receipt_readme", relPath: "weftend/README.txt", digest: digestText(readmeText) },
@@ -517,12 +556,12 @@ const finalizeSuccess = (options: {
       warnings,
       contentSummary: receipt.contentSummary,
     });
-    writeOperatorReceiptV0(options.outDir, operatorReceipt);
+    writeOperatorReceiptV0(options.stageOutDir, operatorReceipt);
     return operatorReceipt;
   };
   let operatorReceipt = buildAndWriteOperator(baseWarnings);
   const evidenceWarnings = evaluateEvidenceWarnings({
-    outDir: options.outDir,
+    outDir: options.stageOutDir,
     receipt,
     operatorReceiptDigest: operatorReceipt.receiptDigest,
     readmeText,
@@ -531,7 +570,11 @@ const finalizeSuccess = (options: {
     operatorReceipt = buildAndWriteOperator(stableSortUniqueReasonsV0([...baseWarnings, ...evidenceWarnings]));
   }
 
-  const privacy = runPrivacyLintV0({ root: options.outDir, weftendBuild: receipt.weftendBuild });
+  const privacy = runPrivacyLintV0({ root: options.stageOutDir, weftendBuild: receipt.weftendBuild });
+  if (!finalizeStagedOutRoot(options.stageOutDir, options.outDir)) {
+    console.error("[CONTAINER_SCAN_FINALIZE_FAILED] unable to finalize staged output.");
+    return 1;
+  }
   try {
     updateLibraryViewFromRunV0({
       outDir: options.outDir,
@@ -565,6 +608,11 @@ export const runContainerCli = async (argv: string[]): Promise<number> => {
     console.error("[OUT_REQUIRED] container scan requires --out <dir>.");
     return 40;
   }
+  const stage = prepareStagedOutRoot(outDir);
+  if (!stage.ok) {
+    console.error("[CONTAINER_SCAN_STAGE_INIT_FAILED] unable to initialize staged output path.");
+    return 1;
+  }
 
   const policyPath = String(flags["policy"] || POLICY_GENERIC);
   const policyRead = readPolicy(policyPath);
@@ -572,6 +620,8 @@ export const runContainerCli = async (argv: string[]): Promise<number> => {
     console.error(`[${policyRead.reasonCode}] ${policyRead.message}`);
     return finalizeFailure({
       outDir,
+      stageOutDir: stage.stageOutDir,
+      hadPreexistingOutput: stage.hadPreexistingOutput,
       inputRef: String(inputRef || ""),
       policyPath,
       reasonCodes: [policyRead.reasonCode],
@@ -591,6 +641,8 @@ export const runContainerCli = async (argv: string[]): Promise<number> => {
     }
     return finalizeFailure({
       outDir,
+      stageOutDir: stage.stageOutDir,
+      hadPreexistingOutput: stage.hadPreexistingOutput,
       inputRef: String(inputRef || ""),
       policyPath,
       policyId: policyRead.policyId,
@@ -603,6 +655,8 @@ export const runContainerCli = async (argv: string[]): Promise<number> => {
     console.error(`[${reasonCode}] container scan requires an immutable digest reference (name@sha256:... or sha256:...).`);
     return finalizeFailure({
       outDir,
+      stageOutDir: stage.stageOutDir,
+      hadPreexistingOutput: stage.hadPreexistingOutput,
       inputRef: String(inputRef || ""),
       policyPath,
       policyId: policyRead.policyId,
@@ -615,6 +669,8 @@ export const runContainerCli = async (argv: string[]): Promise<number> => {
     console.error(`[${probe.code}] ${probe.message}`);
     return finalizeFailure({
       outDir,
+      stageOutDir: stage.stageOutDir,
+      hadPreexistingOutput: stage.hadPreexistingOutput,
       inputRef: String(inputRef || ""),
       policyPath,
       policyId: policyRead.policyId,
@@ -624,6 +680,8 @@ export const runContainerCli = async (argv: string[]): Promise<number> => {
 
   return finalizeSuccess({
     outDir,
+    stageOutDir: stage.stageOutDir,
+    hadPreexistingOutput: stage.hadPreexistingOutput,
     inputRef: probe.normalizedInputRef,
     policyPath,
     policyId: policyRead.policyId,
