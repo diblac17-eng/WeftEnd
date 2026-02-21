@@ -245,6 +245,7 @@ function Load-ReportModel {
   $txtPath = Join-Path $ResolvedRunDir "report_card.txt"
   $jsonPath = Join-Path $ResolvedRunDir "report_card_v0.json"
   $safeReceiptDigest = Compute-FileSha256Digest -PathValue (Join-Path $ResolvedRunDir "safe_run_receipt.json")
+  $privacyLintDigest = Compute-FileSha256Digest -PathValue (Join-Path $ResolvedRunDir "weftend\privacy_lint_v0.json")
   $operatorReceiptDigest = Compute-FileSha256Digest -PathValue (Join-Path $ResolvedRunDir "operator_receipt.json")
   $compareReceiptDigest = Compute-FileSha256Digest -PathValue (Join-Path $ResolvedRunDir "compare_receipt.json")
   $compareReportDigest = Compute-FileSha256Digest -PathValue (Join-Path $ResolvedRunDir "compare_report.txt")
@@ -321,6 +322,7 @@ function Load-ReportModel {
         lines = if ($json.lines) { @($json.lines | ForEach-Object { [string]$_ }) } else { $lines }
         reportTextPath = $txtPath
         safeReceiptDigest = $safeReceiptDigest
+        privacyLintDigest = $privacyLintDigest
         operatorReceiptDigest = $operatorReceiptDigest
         compareReceiptDigest = $compareReceiptDigest
         compareReportDigest = $compareReportDigest
@@ -358,6 +360,7 @@ function Load-ReportModel {
     lines = $lines
     reportTextPath = $txtPath
     safeReceiptDigest = $safeReceiptDigest
+    privacyLintDigest = $privacyLintDigest
     operatorReceiptDigest = $operatorReceiptDigest
     compareReceiptDigest = $compareReceiptDigest
     compareReportDigest = $compareReportDigest
@@ -454,6 +457,7 @@ function Build-SummaryClipboardText {
     "artifactDigest=" + (Get-StringValue -Value $Model.artifactDigest),
     "reportCardDigest=" + (Get-StringValue -Value $Model.reportCardDigest),
     "safeReceiptDigest=" + (Get-StringValue -Value $Model.safeReceiptDigest),
+    "privacyLintDigest=" + (Get-StringValue -Value $Model.privacyLintDigest),
     "operatorReceiptDigest=" + (Get-StringValue -Value $Model.operatorReceiptDigest),
     "compareReceiptDigest=" + (Get-StringValue -Value $Model.compareReceiptDigest),
     "compareReportDigest=" + (Get-StringValue -Value $Model.compareReportDigest),
@@ -487,6 +491,7 @@ function Build-DigestClipboardText {
     "artifactDigest=" + (Get-StringValue -Value $Model.artifactDigest),
     "reportCardDigest=" + (Get-StringValue -Value $Model.reportCardDigest),
     "safeReceiptDigest=" + (Get-StringValue -Value $Model.safeReceiptDigest),
+    "privacyLintDigest=" + (Get-StringValue -Value $Model.privacyLintDigest),
     "operatorReceiptDigest=" + (Get-StringValue -Value $Model.operatorReceiptDigest),
     "compareReceiptDigest=" + (Get-StringValue -Value $Model.compareReceiptDigest),
     "compareReportDigest=" + (Get-StringValue -Value $Model.compareReportDigest)
@@ -644,6 +649,7 @@ Add-SummaryLine -TextValue ("Fingerprint: " + (Get-StringValue -Value $model.art
 Add-SummaryLine -TextValue ("Artifact Digest: " + (Get-StringValue -Value $model.artifactDigest))
 Add-SummaryLine -TextValue ("Report Card Digest: " + (Get-StringValue -Value $model.reportCardDigest))
 Add-SummaryLine -TextValue ("Safe Receipt Digest: " + (Get-StringValue -Value $model.safeReceiptDigest))
+Add-SummaryLine -TextValue ("Privacy Lint Digest: " + (Get-StringValue -Value $model.privacyLintDigest))
 Add-SummaryLine -TextValue ("Operator Receipt Digest: " + (Get-StringValue -Value $model.operatorReceiptDigest))
 Add-SummaryLine -TextValue ("Compare Receipt Digest: " + (Get-StringValue -Value $model.compareReceiptDigest))
 Add-SummaryLine -TextValue ("Compare Report Digest: " + (Get-StringValue -Value $model.compareReportDigest))

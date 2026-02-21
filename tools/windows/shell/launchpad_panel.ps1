@@ -655,6 +655,7 @@ function Read-RunEvidenceSnapshot {
     artifactFingerprint = "-"
     artifactDigest = "-"
     reportCardDigest = "-"
+    privacyLintDigest = "-"
     safeReceiptDigest = "-"
     operatorReceiptDigest = "-"
     compareReceiptDigest = "-"
@@ -711,6 +712,7 @@ function Read-RunEvidenceSnapshot {
   $operatorReceiptPath = Join-Path $runDir "operator_receipt.json"
   $compareReceiptPath = Join-Path $runDir "compare_receipt.json"
   $compareReportPath = Join-Path $runDir "compare_report.txt"
+  $privacyLintPath = Join-Path (Join-Path $runDir "weftend") "privacy_lint_v0.json"
   $reportCardJsonPath = Join-Path $runDir "report_card_v0.json"
   $reportCardTxtPath = Join-Path $runDir "report_card.txt"
   if (Test-Path -LiteralPath $reportCardJsonPath) {
@@ -719,6 +721,7 @@ function Read-RunEvidenceSnapshot {
     $out.reportCardDigest = Compute-FileSha256Digest -PathValue $reportCardTxtPath
   }
   $out.safeReceiptDigest = Compute-FileSha256Digest -PathValue $safeReceiptPath
+  $out.privacyLintDigest = Compute-FileSha256Digest -PathValue $privacyLintPath
   $out.operatorReceiptDigest = Compute-FileSha256Digest -PathValue $operatorReceiptPath
   $out.compareReceiptDigest = Compute-FileSha256Digest -PathValue $compareReceiptPath
   $out.compareReportDigest = Compute-FileSha256Digest -PathValue $compareReportPath
@@ -1116,6 +1119,7 @@ function Update-HistoryDetailsBox {
     $lines += "Artifact Digest: " + [string]$snapshot.artifactDigest
     $lines += "Report Card Digest: " + [string]$snapshot.reportCardDigest
     $lines += "Safe Receipt Digest: " + [string]$snapshot.safeReceiptDigest
+    $lines += "Privacy Lint Digest: " + [string]$snapshot.privacyLintDigest
     $lines += "Operator Receipt Digest: " + [string]$snapshot.operatorReceiptDigest
     $lines += "Compare Receipt Digest: " + [string]$snapshot.compareReceiptDigest
     $lines += "Compare Report Digest: " + [string]$snapshot.compareReportDigest
@@ -1209,6 +1213,7 @@ function Copy-HistoryDigestText {
       "Artifact Digest:",
       "Report Card Digest:",
       "Safe Receipt Digest:",
+      "Privacy Lint Digest:",
       "Operator Receipt Digest:",
       "Compare Receipt Digest:",
       "Compare Report Digest:"

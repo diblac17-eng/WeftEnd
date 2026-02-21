@@ -57,6 +57,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   - Summary panel now includes `Status`, `Run Id`, and `Library Key` for faster orientation.
   - `Show Adapter Evidence` toggle reveals adapter class/mode, capability counts, and quick-open buttons for capability/summary/findings artifacts.
   - `Copy Digests` copies run digest identity lines (`runId`, artifact fingerprint/digest, report-card digest, safe/operator receipt digests, compare receipt/report digests) for fast verification sharing.
+  - Digest identity lines now also include `Privacy Lint Digest` (`weftend/privacy_lint_v0.json`).
   - Summary now also shows compare semantics (`Compare Verdict`, `Compare Buckets`, `Compare Bucket Count`, `Compare Change Count`) using compare-receipt data with text-report fallback.
   - Keyboard: `Ctrl+C` copies summary text and `Ctrl+Shift+C` copies digest-only text.
 - Launchpad History UI:
@@ -69,6 +70,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   - If old entries are missing `view_state.json` latest pointers, Launchpad falls back to newest `run_*` folder automatically.
   - If view-state metadata is incomplete, Launchpad uses `report_card_v0.json`/`report_card.txt` fallback for status/buckets/baseline.
   - History details include artifact fingerprint/digest, report-card digest, safe/operator receipt digests, and compare receipt/report digests for quick verification.
+  - History details now also include `Privacy Lint Digest` for quick cross-verification without opening files.
   - History details now also include compare semantics (`Compare Verdict`, `Compare Buckets`, `Compare Bucket Count`, `Compare Change Count`) when compare artifacts are available.
 - Report card text/json (when adapter evidence exists):
   - `report_card.txt` includes `adapterMeta=` and `capabilities=` lines.

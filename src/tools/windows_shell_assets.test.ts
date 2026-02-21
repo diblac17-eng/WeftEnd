@@ -295,6 +295,7 @@ suite("tools/windows shell assets", () => {
     assert(/capability_ledger_v0\.json/.test(panelText), "expected launchpad adapter tag capability ledger lookup");
     assert(/Adapter Class:/.test(panelText), "expected adapter detail text in history pane");
     assert(/Safe Receipt Digest:/.test(panelText), "expected safe receipt digest detail in history pane");
+    assert(/Privacy Lint Digest:/.test(panelText), "expected privacy lint digest detail in history pane");
     assert(/Operator Receipt Digest:/.test(panelText), "expected operator receipt digest detail in history pane");
     assert(/Report Card Digest:/.test(panelText), "expected report card digest detail in history pane");
     assert(/Compare Receipt Digest:/.test(panelText), "expected compare receipt digest detail in history pane");
@@ -332,6 +333,7 @@ suite("tools/windows shell assets", () => {
     assert(/Library Key:/.test(viewerText), "expected library key summary line");
     assert(/Report Card Digest:/.test(viewerText), "expected report card digest summary line");
     assert(/Safe Receipt Digest:/.test(viewerText), "expected safe receipt digest summary line");
+    assert(/Privacy Lint Digest:/.test(viewerText), "expected privacy lint digest summary line");
     assert(/Operator Receipt Digest:/.test(viewerText), "expected operator receipt digest summary line");
     assert(/Compare Receipt Digest:/.test(viewerText), "expected compare receipt digest summary line");
     assert(/Compare Report Digest:/.test(viewerText), "expected compare report digest summary line");
@@ -343,6 +345,7 @@ suite("tools/windows shell assets", () => {
     assert(/libraryKey=/.test(viewerText), "expected library key in summary clipboard payload");
     assert(/reportCardDigest=/.test(viewerText), "expected report card digest copy payload fields");
     assert(/safeReceiptDigest=/.test(viewerText), "expected digest copy payload fields");
+    assert(/privacyLintDigest=/.test(viewerText), "expected privacy lint digest copy payload fields");
     assert(/operatorReceiptDigest=/.test(viewerText), "expected digest copy payload fields");
     assert(/compareReceiptDigest=/.test(viewerText), "expected compare receipt digest copy payload fields");
     assert(/compareReportDigest=/.test(viewerText), "expected compare report digest copy payload fields");
