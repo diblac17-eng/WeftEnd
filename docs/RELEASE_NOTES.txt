@@ -59,6 +59,7 @@ Included
 - Added Green Team `verify_360` docs-sync contract test to pin `CHANGELOG.md` + release announcement target coverage.
 - Added strict proofcheck wrapper command `npm run proofcheck:release` to enforce release smoke (`WEFTEND_RELEASE_DIR`) and clear skip override (`WEFTEND_ALLOW_SKIP_RELEASE`).
 - Added Green Team contract coverage for strict proofcheck wrapper behavior (`scripts/proofcheck_release.js`).
+- Release bundle manifest contract now requires `scripts/proofcheck_release.js` presence.
 - Emergency verify report path now preserves policy context lines (`policy.*`) so fail-closed receipts remain operator-readable under write-path fallback.
 - Safe-run now enforces a non-blocking evidence corridor check before completion:
 - Expected receipt artifacts are verified for presence and digest consistency.

@@ -50,6 +50,7 @@ const readText = (relPath: string): string => {
 suite("greenteam/release-bundle", () => {
   register("release bundle script and checklist exist", () => {
     expectFile("tools/windows/weftend_release_zip.ps1");
+    expectFile("scripts/proofcheck_release.js");
     expectFile("docs/RELEASE_CHECKLIST_ALPHA.md");
   });
 
