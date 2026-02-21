@@ -783,6 +783,30 @@ function Update-HistoryDetailsBox {
   $DetailBox.Text = ($lines -join [Environment]::NewLine)
 }
 
+function Update-HistoryActionButtons {
+  param(
+    [System.Windows.Forms.ListView]$ListView,
+    [System.Windows.Forms.Button]$RunButton,
+    [System.Windows.Forms.Button]$EvidenceButton
+  )
+  if ($RunButton) { $RunButton.Enabled = $false }
+  if ($EvidenceButton) { $EvidenceButton.Enabled = $false }
+  if (-not $ListView -or $ListView.SelectedItems.Count -lt 1) { return }
+  $selected = $ListView.SelectedItems[0]
+  $meta = $selected.Tag
+  $targetDir = if ($meta -and $meta.targetDir) { [string]$meta.targetDir } else { "" }
+  $latestRun = if ($meta -and $meta.latestRun) { [string]$meta.latestRun } else { "-" }
+  if ($RunButton -and $targetDir -and (Test-Path -LiteralPath $targetDir)) {
+    $RunButton.Enabled = $true
+  }
+  if ($EvidenceButton -and $targetDir -and $latestRun -and $latestRun -ne "-") {
+    $analysisPath = Join-Path (Join-Path $targetDir $latestRun) "analysis"
+    if (Test-Path -LiteralPath $analysisPath) {
+      $EvidenceButton.Enabled = $true
+    }
+  }
+}
+
 function Load-HistoryRows {
   param([System.Windows.Forms.ListView]$ListView)
   if (-not $ListView) { return 0 }
@@ -1143,6 +1167,7 @@ $btnHistoryRun = New-Object System.Windows.Forms.Button
 $btnHistoryRun.Text = "Open Run"
 $btnHistoryRun.Width = 86
 $btnHistoryRun.Height = 30
+$btnHistoryRun.Enabled = $false
 Style-Button -Button $btnHistoryRun -Primary:$false
 $historyActions.Controls.Add($btnHistoryRun) | Out-Null
 
@@ -1150,6 +1175,7 @@ $btnHistoryEvidence = New-Object System.Windows.Forms.Button
 $btnHistoryEvidence.Text = "Open Evidence"
 $btnHistoryEvidence.Width = 106
 $btnHistoryEvidence.Height = 30
+$btnHistoryEvidence.Enabled = $false
 Style-Button -Button $btnHistoryEvidence -Primary:$false
 $historyActions.Controls.Add($btnHistoryEvidence) | Out-Null
 
@@ -1282,6 +1308,7 @@ $syncNow = {
   $count = Load-Shortcuts -Panel $listPanel
   $tracked = Load-HistoryRows -ListView $historyList
   Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
+  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence
   if ($sync.ok) {
     $msg = "Synced. targets=" + $sync.scanned + " added=" + $sync.added + " removed=" + $sync.removed + " failed=" + $sync.failed + " visible=" + $count + " tracked=" + $tracked
     Set-StatusLine -StatusLabel $statusLabel -Message $msg -IsError $false
@@ -1297,6 +1324,7 @@ $btnRefresh.Add_Click({ & $syncNow -Silent })
 $btnHistoryRefresh.Add_Click({
   $tracked = Load-HistoryRows -ListView $historyList
   Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
+  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence
   Set-StatusLine -StatusLabel $statusLabel -Message ("History refreshed. tracked=" + $tracked) -IsError $false
 })
 $btnHistoryView.Add_Click({
@@ -1320,6 +1348,7 @@ $historyList.Add_KeyDown({
 })
 $historyList.Add_SelectedIndexChanged({
   Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
+  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence
 })
 $btnDoctorRun.Add_Click({
   if (-not $shellDoctorScript -or -not (Test-Path -LiteralPath $shellDoctorScript)) {
@@ -1339,6 +1368,7 @@ $btnDoctorRun.Add_Click({
 $initialCount = Load-Shortcuts -Panel $listPanel
 $initialTracked = Load-HistoryRows -ListView $historyList
 Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
+Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence
 Set-StatusLine -StatusLabel $statusLabel -Message ("Ready. visible=" + $initialCount + " tracked=" + $initialTracked) -IsError $false
 
 $timer = New-Object System.Windows.Forms.Timer
