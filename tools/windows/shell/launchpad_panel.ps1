@@ -1003,6 +1003,45 @@ function Copy-HistoryDetailsText {
   }
 }
 
+function Copy-HistoryDigestText {
+  param(
+    [System.Windows.Forms.TextBox]$DetailBox,
+    [System.Windows.Forms.Label]$StatusLabel
+  )
+  try {
+    $text = if ($DetailBox -and $DetailBox.Text) { [string]$DetailBox.Text } else { "" }
+    if (-not $text -or $text.Trim() -eq "") {
+      Set-StatusLine -StatusLabel $StatusLabel -Message "No history digest lines to copy." -IsError $true
+      return
+    }
+    $wantedPrefixes = @(
+      "RunId:",
+      "Artifact Fingerprint:",
+      "Artifact Digest:",
+      "Safe Receipt Digest:",
+      "Operator Receipt Digest:"
+    )
+    $digestLines = @()
+    foreach ($lineObj in ($text -split "`r?`n")) {
+      $line = [string]$lineObj
+      foreach ($prefix in $wantedPrefixes) {
+        if ($line.StartsWith($prefix)) {
+          $digestLines += $line
+          break
+        }
+      }
+    }
+    if ($digestLines.Count -le 0) {
+      Set-StatusLine -StatusLabel $StatusLabel -Message "No history digest lines to copy." -IsError $true
+      return
+    }
+    [System.Windows.Forms.Clipboard]::SetText(($digestLines -join [Environment]::NewLine))
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Copied history digests." -IsError $false
+  } catch {
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Digest copy failed." -IsError $true
+  }
+}
+
 function Load-HistoryRows {
   param([System.Windows.Forms.ListView]$ListView)
   if (-not $ListView) { return 0 }
@@ -1391,6 +1430,13 @@ $btnHistoryCopy.Height = 30
 Style-Button -Button $btnHistoryCopy -Primary:$false
 $historyActions.Controls.Add($btnHistoryCopy) | Out-Null
 
+$btnHistoryCopyDigests = New-Object System.Windows.Forms.Button
+$btnHistoryCopyDigests.Text = "Copy Digests"
+$btnHistoryCopyDigests.Width = 102
+$btnHistoryCopyDigests.Height = 30
+Style-Button -Button $btnHistoryCopyDigests -Primary:$false
+$historyActions.Controls.Add($btnHistoryCopyDigests) | Out-Null
+
 $historyList = New-Object System.Windows.Forms.ListView
 $historyList.Dock = "Fill"
 $historyList.View = [System.Windows.Forms.View]::Details
@@ -1551,6 +1597,9 @@ $btnHistoryEvidence.Add_Click({
 $btnHistoryCopy.Add_Click({
   Copy-HistoryDetailsText -DetailBox $historyDetail -StatusLabel $statusLabel
 })
+$btnHistoryCopyDigests.Add_Click({
+  Copy-HistoryDigestText -DetailBox $historyDetail -StatusLabel $statusLabel
+})
 $historyList.Add_DoubleClick({
   Open-ReportViewerFromHistory -ListView $historyList -StatusLabel $statusLabel
 })
@@ -1563,14 +1612,22 @@ $historyList.Add_KeyDown({
   }
   if ($e.Control -and $e.KeyCode -eq [System.Windows.Forms.Keys]::C) {
     $e.Handled = $true
-    Copy-HistoryDetailsText -DetailBox $historyDetail -StatusLabel $statusLabel
+    if ($e.Shift) {
+      Copy-HistoryDigestText -DetailBox $historyDetail -StatusLabel $statusLabel
+    } else {
+      Copy-HistoryDetailsText -DetailBox $historyDetail -StatusLabel $statusLabel
+    }
   }
 })
 $historyDetail.Add_KeyDown({
   param($sender, $e)
   if ($e.Control -and $e.KeyCode -eq [System.Windows.Forms.Keys]::C) {
     $e.Handled = $true
-    Copy-HistoryDetailsText -DetailBox $historyDetail -StatusLabel $statusLabel
+    if ($e.Shift) {
+      Copy-HistoryDigestText -DetailBox $historyDetail -StatusLabel $statusLabel
+    } else {
+      Copy-HistoryDetailsText -DetailBox $historyDetail -StatusLabel $statusLabel
+    }
   }
 })
 $historyList.Add_SelectedIndexChanged({

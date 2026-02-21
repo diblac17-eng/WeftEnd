@@ -39,6 +39,8 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Launchpad History fallback now reads `report_card_v0.json`/`report_card.txt` to recover status/buckets/baseline when view-state metadata is incomplete.
 - Launchpad History now provides `Copy Details` for selected inline adapter evidence summaries.
 - Launchpad History now supports `Ctrl+C` copy from history list/details for faster evidence sharing.
+- Launchpad History now provides `Copy Digests` for digest/fingerprint-only clipboard output.
+- Launchpad History now supports `Ctrl+Shift+C` digest-only copy from history list/details.
 - Launchpad History details now include artifact fingerprint/digest plus safe/operator receipt digests for quick cross-verification.
 - Ticket-pack test coverage now enforces adapter evidence artifact carry-through (`analysis/capability_ledger_v0.json`, `analysis/adapter_summary_v0.json`, `analysis/adapter_findings_v0.json`) when those artifacts are present in a run.
 - Ticket-pack default extras now include `report_card_v0.json` so structured report output is carried with ticket bundles when available.

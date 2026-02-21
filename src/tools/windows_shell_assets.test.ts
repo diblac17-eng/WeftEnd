@@ -272,10 +272,13 @@ suite("tools/windows shell assets", () => {
     assert(/Open-HistoryAdapterEvidenceFolder/.test(panelText), "expected history evidence-folder helper");
     assert(/Update-HistoryActionButtons/.test(panelText), "expected history action-button state helper");
     assert(/Copy-HistoryDetailsText/.test(panelText), "expected history copy helper");
+    assert(/Copy-HistoryDigestText/.test(panelText), "expected history digest copy helper");
     assert(/Open Evidence/.test(panelText), "expected launchpad history Open Evidence action");
     assert(/Copy Details/.test(panelText), "expected launchpad history Copy Details action");
+    assert(/Copy Digests/.test(panelText), "expected launchpad history Copy Digests action");
     assert(/Clipboard\]::SetText/.test(panelText), "expected history details clipboard copy action");
     assert(/Control -and \$e\.KeyCode -eq \[System\.Windows\.Forms\.Keys\]::C/.test(panelText), "expected history Ctrl+C copy binding");
+    assert(/if \(\$e\.Shift\)\s*\{\s*Copy-HistoryDigestText/.test(panelText), "expected history Ctrl+Shift+C digest copy binding");
     assert(/Columns\.Add\("Adapter"/.test(panelText), "expected launchpad history Adapter column");
     assert(/\+plugin/.test(panelText), "expected launchpad adapter plugin marker");
     assert(/capability_ledger_v0\.json/.test(panelText), "expected launchpad adapter tag capability ledger lookup");
