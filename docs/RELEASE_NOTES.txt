@@ -275,6 +275,7 @@ Included
 - Ticket-pack summary now also includes compare semantics fields (`compareVerdict`, `compareBuckets`, `compareBucketCount`, `compareChangeCount`) with deterministic `compare_report.txt` fallback when `compare_receipt.json` is unavailable.
 - Ticket-pack output now uses staged finalize (`ticket_pack.stage` -> `ticket_pack`) to prevent partial-pack residue from being treated as completed support bundles.
 - Ticket-pack zip output now also stages/finalizes (`ticket_pack.zip.stage` -> `ticket_pack.zip`) to prevent partial zip artifacts from being treated as finalized bundles.
+- Ticket-pack now validates staged evidence-chain completeness before finalize (`TICKET_PACK_EVIDENCE_CHAIN_INVALID`), failing closed on orphan/missing staged artifacts.
 - Compare output now uses staged finalize (`<out>.stage` -> `<out>`) so partial compare writes are not treated as completed compare evidence.
 - Compare CLI smoke coverage now pins staged-finalize replacement behavior (stale pre-existing output roots are replaced and `.stage` residue is absent after successful finalize).
 - Compare now fails closed when `--out` matches either input root (`COMPARE_OUT_CONFLICTS_INPUT`) to prevent destructive output-finalize collisions.

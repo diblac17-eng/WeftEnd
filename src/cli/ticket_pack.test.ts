@@ -12,7 +12,40 @@ const assert = (cond: boolean, msg: string) => {
   if (!cond) throw new Error(msg);
 };
 
+const assertEq = <T>(actual: T, expected: T, msg: string) => {
+  if (actual !== expected) {
+    throw new Error(`${msg}\nExpected: ${String(expected)}\nActual: ${String(actual)}`);
+  }
+};
+
 const readText = (filePath: string): string => fs.readFileSync(filePath, "utf8");
+const readJson = (filePath: string): any => JSON.parse(fs.readFileSync(filePath, "utf8"));
+
+const listRelativeFiles = (rootDir: string): string[] => {
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    const entries = fs.readdirSync(dir, { withFileTypes: true }) as Array<{ name: string; isDirectory: () => boolean }>;
+    entries
+      .slice()
+      .sort((a, b) => {
+        const an = String(a.name);
+        const bn = String(b.name);
+        if (an < bn) return -1;
+        if (an > bn) return 1;
+        return 0;
+      })
+      .forEach((entry) => {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(full);
+          return;
+        }
+        out.push(path.relative(rootDir, full).split(path.sep).join("/"));
+      });
+  };
+  walk(rootDir);
+  return out;
+};
 
 const containsAbsPath = (text: string): boolean =>
   /\b[A-Za-z]:\\/.test(text) || /\/Users\//.test(text) || /\/home\//.test(text);
@@ -129,6 +162,25 @@ const testTicketPack = async () => {
     String(summaryMap.artifactDigest || "") === "sha256:2222222222222222222222222222222222222222222222222222222222222222",
     "artifactDigest must match report_card_v0 source"
   );
+  const producedFiles = listRelativeFiles(ticketRoot);
+  const operatorReceiptObj = readJson(path.join(ticketRoot, "operator_receipt.json"));
+  const operatorRelPaths = Array.isArray(operatorReceiptObj?.receipts)
+    ? operatorReceiptObj.receipts.map((r: any) => String(r?.relPath || "")).filter((v: string) => v.length > 0)
+    : [];
+  const allowedFiles = new Set([
+    ...operatorRelPaths,
+    "operator_receipt.json",
+    "report_card.txt",
+    "report_card_v0.json",
+    "compare_report.txt",
+    "compare_receipt.json",
+    "weftend/README.txt",
+    "ticket_summary.txt",
+    "ticket_pack_manifest.json",
+    "checksums.txt",
+  ]);
+  const unexpected = producedFiles.filter((rel) => !allowedFiles.has(rel));
+  assertEq(unexpected.length, 0, `ticket pack must not include unexpected files\n${unexpected.join(",")}`);
 
   if (process.platform === "win32") {
     const zipRun = await runCliCapture(["ticket-pack", runDir, "--out", packDir, "--zip"]);

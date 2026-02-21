@@ -59,6 +59,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Ticket-pack summaries now also include compare semantics fields (`compareVerdict`, `compareBuckets`, `compareBucketCount`, `compareChangeCount`) with deterministic `compare_report.txt` fallback when `compare_receipt.json` is absent.
 - Ticket-pack now writes to a staged directory (`ticket_pack.stage`) and finalizes atomically to `ticket_pack` after privacy-lint pass, preventing partial bundle residue from appearing as finalized output.
 - On Windows `--zip`, ticket-pack archive output now also stages/finalizes (`ticket_pack.zip.stage` -> `ticket_pack.zip`) so partial zip artifacts do not appear as finalized bundles.
+- Ticket-pack now enforces staged evidence-chain completeness before finalize (`TICKET_PACK_EVIDENCE_CHAIN_INVALID`), failing closed when orphan or missing staged files are detected.
 - Compare now writes to a staged output root (`<out>.stage`) and finalizes atomically to `<out>` after receipt/report/privacy checks, preventing partial compare output residue from appearing as finalized evidence.
 - Compare CLI smoke tests now pin staged-finalize replacement behavior (pre-existing stale output roots are replaced and no `.stage` residue remains on success).
 - Compare now fails closed when `--out` conflicts with either input root (`COMPARE_OUT_CONFLICTS_INPUT`), preventing destructive finalize collisions.

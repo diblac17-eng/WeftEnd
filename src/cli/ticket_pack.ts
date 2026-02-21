@@ -143,6 +143,44 @@ const writeText = (filePath: string, text: string) => {
   fs.writeFileSync(filePath, text, "utf8");
 };
 
+const collectRelativeFiles = (root: string): string[] => {
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    let entries: Array<{ name: string; isDirectory: () => boolean }>;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true }) as any;
+    } catch {
+      return;
+    }
+    entries
+      .slice()
+      .sort((a: any, b: any) => cmpStrV0(String(a.name), String(b.name)))
+      .forEach((entry: any) => {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory && entry.isDirectory()) {
+          walk(full);
+          return;
+        }
+        out.push(normalizeRel(root, full));
+      });
+  };
+  walk(root);
+  return out.sort((a, b) => cmpStrV0(a, b));
+};
+
+const validateTicketPackEvidenceChain = (
+  stageRoot: string,
+  expectedRelPaths: string[]
+): { ok: boolean; orphanRelPaths: string[]; missingRelPaths: string[] } => {
+  const expected = new Set(expectedRelPaths.map((v) => String(v || "")).filter((v) => v.length > 0));
+  const observed = collectRelativeFiles(stageRoot);
+  const orphanRelPaths = observed.filter((rel) => !expected.has(rel));
+  const missingRelPaths = Array.from(expected)
+    .filter((rel) => !observed.includes(rel))
+    .sort((a, b) => cmpStrV0(a, b));
+  return { ok: orphanRelPaths.length === 0 && missingRelPaths.length === 0, orphanRelPaths, missingRelPaths };
+};
+
 const buildManifest = (entries: TicketPackEntry[]): { schemaVersion: 0; entries: TicketPackEntry[]; manifestDigest: string } => {
   const sorted = entries
     .slice()
@@ -496,6 +534,27 @@ export const runTicketPackCli = (options: {
     .sort((a, b) => cmpStrV0(a.relPath, b.relPath));
   const checksumLines = checksumFiles.map((entry) => `sha256:${entry.sha256} ${entry.relPath}`);
   writeText(path.join(stagePackDir, "checksums.txt"), `${checksumLines.join("\n")}\n`);
+  const expectedRelPaths = Array.from(
+    new Set(
+      [
+        ...copied.map((entry) => entry.relPath),
+        "ticket_summary.txt",
+        "ticket_pack_manifest.json",
+        "checksums.txt",
+      ].sort((a, b) => cmpStrV0(a, b))
+    )
+  );
+  const evidenceCheck = validateTicketPackEvidenceChain(stagePackDir, expectedRelPaths);
+  if (!evidenceCheck.ok) {
+    console.error("[TICKET_PACK_EVIDENCE_CHAIN_INVALID] ticket pack staged evidence chain invalid.");
+    if (evidenceCheck.orphanRelPaths.length > 0) {
+      console.error(`[TICKET_PACK_EVIDENCE_ORPHAN] ${evidenceCheck.orphanRelPaths.join(",")}`);
+    }
+    if (evidenceCheck.missingRelPaths.length > 0) {
+      console.error(`[TICKET_PACK_EVIDENCE_MISSING] ${evidenceCheck.missingRelPaths.join(",")}`);
+    }
+    return 40;
+  }
 
   const lint = runPrivacyLintV0({ root: stagePackDir, writeReport: false });
   if (lint.report.verdict !== "PASS") {
