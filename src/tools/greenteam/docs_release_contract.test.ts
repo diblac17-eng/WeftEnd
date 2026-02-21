@@ -95,6 +95,14 @@ suite("greenteam/docs-release-contract", () => {
       actionsGuide.includes("npm run verify:360:release:managed"),
       "GITHUB_ACTIONS guide missing managed verify command reference"
     );
+    assert(
+      actionsGuide.includes("WEFTEND_RELEASE_DIR=tests/fixtures/release_demo"),
+      "GITHUB_ACTIONS guide missing strict release fixture env reference"
+    );
+    assert(
+      actionsGuide.includes("WEFTEND_ALLOW_SKIP_RELEASE=\"\""),
+      "GITHUB_ACTIONS guide missing skip-override clear env reference"
+    );
 
     assert(
       releaseChecklist.includes(".github/workflows/weftend_artifact_meter.yml"),
