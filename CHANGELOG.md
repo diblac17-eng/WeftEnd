@@ -89,6 +89,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `verify:360:harness` now asserts `stage_residue` step presence in verify reports across pass/partial/fail lanes.
 - `verify_360_audit` now fails closed on any `.stage` residue under the verify out-root (`VERIFY360_AUDIT_STAGE_RESIDUE_PRESENT`).
 - `verify:360:harness` now injects/removes an audit stage-residue probe to pin strict audit residue detection.
+- Added Green Team runtime coverage for strict audit stage-residue behavior (`src/tools/greenteam/verify_360_audit_stage_residue.test.ts`).
 - Ticket-pack contract tests now pin report-state parsing from `report_card_v0.json` and enforce digest-line format (`sha256:<64hex>`) for ticket summary identity fields.
 - Ticket-pack contract tests now also pin text fallback parsing from `report_card.txt` (`STATUS/BASELINE/LATEST/BUCKETS` and key-value lines) when structured report JSON is absent.
 - Windows shell report card outputs now surface adapter evidence directly:

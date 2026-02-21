@@ -75,6 +75,7 @@ Core rule
 19. History audit validates run-folder integrity:
    - receipt/report/manifest presence and digest integrity
    - history chain continuity and prior-receipt digest links
+   - no `.stage` residue anywhere under the verify out-root
    - strict mode can fail on legacy warnings
    - non-strict mode permits legacy warning-only runs for backward compatibility
 20. `verify:360` includes an internal non-strict history audit pass:
