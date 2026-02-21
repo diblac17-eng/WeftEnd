@@ -235,6 +235,9 @@ suite("tools/windows shell assets", () => {
 
     const doctorCmdPath = path.join(shellDir, "weftend_shell_doctor.cmd");
     const doctorCmdText = fs.readFileSync(doctorCmdPath, "utf8");
+    assert(/set "psExe=%SystemRoot%\\System32\\WindowsPowerShell\\v1\.0\\powershell\.exe"/i.test(doctorCmdText), "expected shell doctor cmd wrapper to resolve system powershell path");
+    assert(/if not exist "%psExe%" set "psExe=powershell\.exe"/i.test(doctorCmdText), "expected shell doctor cmd wrapper to fallback when resolved powershell path is missing");
+    assert(/"%psExe%" -NoProfile -ExecutionPolicy Bypass -File/i.test(doctorCmdText), "expected shell doctor cmd wrapper to invoke resolved powershell executable");
     assert(doctorCmdText.includes("%*"), "expected shell doctor cmd wrapper to forward arguments");
   });
 

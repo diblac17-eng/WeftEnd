@@ -27,6 +27,7 @@ Included
 - Release ops script now enforces `Set-StrictMode -Version Latest` for fail-closed handling of unbound/implicit script-state issues.
 - Release zip wrapper and Windows icon-regeneration paths now invoke resolved PowerShell executable paths (`$powershellExe` / `$iconHostExe`) instead of command-name `powershell` lookup.
 - Release zip wrapper now enforces strict mode and normalizes repo-root resolution to explicit `.Path` for stable script-path handling.
+- Shell doctor CMD wrapper now resolves `%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe` first (with fallback) instead of direct command-name invocation.
 - Launchpad History successful report open now resets viewer startup state (`UseReportViewer=1`, `ReportViewerAutoOpen=1`, `ReportViewerStartFailCount=0`) so manual viewer opens self-heal auto-open disable state.
 - Evidence typing added to operator reports (additive, non-breaking):
 - `report_card.txt` now includes an evidence legend and claim mapping lines:
