@@ -18,6 +18,7 @@ declare const process: any;
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const MAX_DIFF_ITEMS = 50;
 const COMPARE_RECEIPT_NAME = "compare_receipt.json";
@@ -375,6 +376,39 @@ const writeText = (filePath: string, text: string) => {
   fs.writeFileSync(filePath, text, "utf8");
 };
 
+const sha256FileHex = (filePath: string): string => {
+  const hash = crypto.createHash("sha256");
+  hash.update(fs.readFileSync(filePath));
+  return String(hash.digest("hex"));
+};
+
+const digestIfExists = (filePath: string): string | null => {
+  try {
+    if (!fs.existsSync(filePath)) return null;
+    if (!fs.statSync(filePath).isFile()) return null;
+    return `sha256:${sha256FileHex(filePath)}`;
+  } catch {
+    return null;
+  }
+};
+
+const buildCompareOperatorEntries = (rootDir: string, compareReceiptDigest: string) => {
+  const entries: Array<{ kind: string; relPath: string; digest: string }> = [
+    { kind: "compare_receipt", relPath: COMPARE_RECEIPT_NAME, digest: compareReceiptDigest },
+  ];
+  const reportRel = COMPARE_REPORT_NAME;
+  const reportDigest = digestIfExists(path.join(rootDir, reportRel));
+  if (reportDigest) {
+    entries.push({ kind: "compare_report", relPath: reportRel, digest: reportDigest });
+  }
+  const readmeRel = "weftend/README.txt";
+  const readmeDigest = digestIfExists(path.join(rootDir, readmeRel));
+  if (readmeDigest) {
+    entries.push({ kind: "receipt_readme", relPath: readmeRel, digest: readmeDigest });
+  }
+  return entries;
+};
+
 const finalizeCompareOutRoot = (stageRoot: string, outRoot: string): boolean => {
   try {
     fs.rmSync(outRoot, { recursive: true, force: true });
@@ -502,7 +536,7 @@ export const runCompareCliV0 = (options: RunCompareCliOptionsV0): number => {
     command: "compare",
     weftendBuild: receipt.weftendBuild,
     schemaVersion: receipt.schemaVersion,
-    entries: [{ kind: "compare_receipt", relPath: COMPARE_RECEIPT_NAME, digest: receipt.receiptDigest }],
+    entries: buildCompareOperatorEntries(stageRoot, receipt.receiptDigest),
     warnings: [...(receipt.weftendBuild.reasonCodes ?? [])],
   });
   writeOperatorReceiptV0(stageRoot, operator);
@@ -524,7 +558,7 @@ export const runCompareCliV0 = (options: RunCompareCliOptionsV0): number => {
       command: "compare",
       weftendBuild: receipt.weftendBuild,
       schemaVersion: receipt.schemaVersion,
-      entries: [{ kind: "compare_receipt", relPath: COMPARE_RECEIPT_NAME, digest: receipt.receiptDigest }],
+      entries: buildCompareOperatorEntries(stageRoot, receipt.receiptDigest),
       warnings: [...(receipt.weftendBuild.reasonCodes ?? []), ...receipt.reasonCodes],
     });
     writeOperatorReceiptV0(stageRoot, operator);

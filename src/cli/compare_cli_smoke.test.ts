@@ -86,9 +86,11 @@ suite("cli/compare", () => {
 
     const compareReceiptPath = path.join(outDir, "compare_receipt.json");
     const compareReportPath = path.join(outDir, "compare_report.txt");
+    const operatorPath = path.join(outDir, "operator_receipt.json");
     const compareStagePath = `${outDir}.stage`;
     assert(fs.existsSync(compareReceiptPath), "expected compare_receipt.json");
     assert(fs.existsSync(compareReportPath), "expected compare_report.txt");
+    assert(fs.existsSync(operatorPath), "expected operator_receipt.json");
     assert(!fs.existsSync(compareStagePath), "compare stage directory must not remain after finalize");
     const receipt = readJson(compareReceiptPath);
     const issues = validateCompareReceiptV0(receipt, "compareReceipt");
@@ -96,6 +98,14 @@ suite("cli/compare", () => {
     assertEq(receipt.schemaVersion, 0, "expected schemaVersion 0");
     assert(receipt.weftendBuild && receipt.weftendBuild.algo === "sha256", "expected weftendBuild");
     assertEq(receipt.privacyLint, "PASS", "expected receipt privacy lint pass");
+    const operator = readJson(operatorPath);
+    assert(Array.isArray(operator.receipts), "expected operator receipts array");
+    const relPaths = operator.receipts.map((r: any) => String(r.relPath || ""));
+    assert(relPaths.includes("compare_receipt.json"), "operator receipt must include compare_receipt.json");
+    assert(relPaths.includes("compare_report.txt"), "operator receipt must include compare_report.txt");
+    assert(relPaths.includes("weftend/README.txt"), "operator receipt must include weftend/README.txt");
+    const digestLines = operator.receipts.map((r: any) => String(r.digest || ""));
+    assert(digestLines.every((d: string) => /^sha256:[a-f0-9]{64}$/.test(d)), "operator receipt digests must be sha256:<64hex>");
 
     const report = fs.readFileSync(compareReportPath, "utf8");
     assert(!/[A-Za-z]:\\/.test(report), "compare report must not include absolute Windows paths");
