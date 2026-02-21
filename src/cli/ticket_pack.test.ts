@@ -138,6 +138,7 @@ const testTicketPack = async () => {
     }
     assert(zipRun.status === 0, `ticket-pack zip failed: ${zipRun.stderr}`);
     assert(fs.existsSync(path.join(packDir, "ticket_pack.zip")), "ticket_pack.zip missing");
+    assert(!fs.existsSync(path.join(packDir, "ticket_pack.zip.stage")), "ticket_pack.zip.stage must not remain after finalize");
   }
 
   const maliciousRoot = path.join(root, "malicious_out");

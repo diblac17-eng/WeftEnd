@@ -517,9 +517,18 @@ export const runTicketPackCli = (options: {
       return 40;
     }
     const zipPath = path.join(outDir, "ticket_pack.zip");
-    const zipped = createZipWindows(packDir, zipPath);
+    const zipStagePath = path.join(outDir, "ticket_pack.zip.stage");
+    fs.rmSync(zipStagePath, { recursive: true, force: true });
+    const zipped = createZipWindows(packDir, zipStagePath);
     if (!zipped.ok) {
       console.error("[TICKET_PACK_ZIP_FAILED] unable to create zip.");
+      return 40;
+    }
+    try {
+      fs.rmSync(zipPath, { recursive: true, force: true });
+      fs.renameSync(zipStagePath, zipPath);
+    } catch {
+      console.error("[TICKET_PACK_ZIP_FINALIZE_FAILED] unable to finalize zip.");
       return 40;
     }
   }

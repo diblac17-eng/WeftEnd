@@ -274,6 +274,7 @@ Included
 - Ticket-pack summary now includes compare artifact identity fields (`compareArtifacts`, `compareReceiptFileDigest`, `compareReportFileDigest`) for quick compare-evidence triage.
 - Ticket-pack summary now also includes compare semantics fields (`compareVerdict`, `compareBuckets`, `compareBucketCount`, `compareChangeCount`) with deterministic `compare_report.txt` fallback when `compare_receipt.json` is unavailable.
 - Ticket-pack output now uses staged finalize (`ticket_pack.stage` -> `ticket_pack`) to prevent partial-pack residue from being treated as completed support bundles.
+- Ticket-pack zip output now also stages/finalizes (`ticket_pack.zip.stage` -> `ticket_pack.zip`) to prevent partial zip artifacts from being treated as finalized bundles.
 - Compare output now uses staged finalize (`<out>.stage` -> `<out>`) so partial compare writes are not treated as completed compare evidence.
 - Compare CLI smoke coverage now pins staged-finalize replacement behavior (stale pre-existing output roots are replaced and `.stage` residue is absent after successful finalize).
 - Ticket-pack contract coverage now enforces report-state extraction from `report_card_v0.json` and validates digest identity line format (`sha256:<64hex>`) in `ticket_summary.txt`.
