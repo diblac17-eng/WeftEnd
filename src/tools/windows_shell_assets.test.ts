@@ -147,6 +147,8 @@ suite("tools/windows shell assets", () => {
   register("release zip wrapper uses resolved powershell executable", () => {
     const wrapperPath = path.join(repoRoot, "scripts", "weftend_release_zip.ps1");
     const text = fs.readFileSync(wrapperPath, "utf8");
+    assert(/Set-StrictMode -Version Latest/.test(text), "expected release zip wrapper strict mode enforcement");
+    assert(/\$repoRoot = \(Resolve-Path \(Join-Path \$scriptDir \"\.\.\"\)\)\.Path/.test(text), "expected release zip wrapper to normalize reporoot to resolved path string");
     assert(/\$powershellExe = Join-Path \$env:WINDIR/.test(text), "expected release zip wrapper powershell path resolution");
     assert(/& \$powershellExe -ExecutionPolicy Bypass -File \$zipScript -OutDir \$OutDir/.test(text), "expected release zip wrapper to invoke resolved powershell executable path");
     assert(!/& powershell -ExecutionPolicy Bypass -File/.test(text), "release zip wrapper must avoid command-name powershell invocation");

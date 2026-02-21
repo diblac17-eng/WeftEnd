@@ -3,9 +3,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repoRoot = Resolve-Path (Join-Path $scriptDir "..")
+$repoRoot = (Resolve-Path (Join-Path $scriptDir "..")).Path
 $zipScript = Join-Path $repoRoot "weftend_release_zip.ps1"
 
 if (-not (Test-Path $zipScript)) {
