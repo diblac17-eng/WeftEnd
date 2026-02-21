@@ -79,16 +79,26 @@ function New-ZipAndHash {
     [string]$ZipName
   )
   $zipPath = Join-Path $OutDirPath $ZipName
+  $zipStagePath = "${zipPath}.stage"
   if (Test-Path -LiteralPath $zipPath) {
     Remove-Item -Force -LiteralPath $zipPath
   }
-  Compress-Archive -Path (Join-Path $StagePath "*") -DestinationPath $zipPath -Force
+  if (Test-Path -LiteralPath $zipStagePath) {
+    Remove-Item -Force -LiteralPath $zipStagePath
+  }
+  Compress-Archive -Path (Join-Path $StagePath "*") -DestinationPath $zipStagePath -Force
+  Move-Item -LiteralPath $zipStagePath -Destination $zipPath -Force
   if (-not (Test-Path -LiteralPath $zipPath)) {
     Write-Fail "Zip not created: $zipName" "Check write permissions under $OutDirPath"
   }
   $hash = Get-FileHash -Algorithm SHA256 -Path $zipPath
   $shaPath = "${zipPath}.sha256"
-  "$($hash.Hash.ToLower()) *$ZipName" | Set-Content -Path $shaPath -Encoding ascii
+  $shaStagePath = "${shaPath}.stage"
+  if (Test-Path -LiteralPath $shaStagePath) {
+    Remove-Item -Force -LiteralPath $shaStagePath
+  }
+  "$($hash.Hash.ToLower()) *$ZipName" | Set-Content -Path $shaStagePath -Encoding ascii
+  Move-Item -LiteralPath $shaStagePath -Destination $shaPath -Force
   return @{
     Zip = $zipPath
     Sha = $shaPath

@@ -58,6 +58,8 @@ suite("greenteam/release-bundle", () => {
   register("release zip script keeps immutable change-log sidecar contract", () => {
     const script = readText("weftend_release_zip.ps1");
     assert(script.includes("Set-StrictMode -Version Latest"), "release zip script must enforce strict mode");
+    assert(script.includes("${zipPath}.stage"), "release zip output must stage/finalize zip path");
+    assert(script.includes("${shaPath}.stage"), "release zip output must stage/finalize sha sidecar path");
     assert(script.includes("function Copy-SidecarFileAtomic"), "release zip script must provide atomic sidecar copy helper");
     assert(script.includes("${DestinationPath}.stage"), "release zip script sidecar copies must stage before finalize");
     assert(script.includes("\"CHANGELOG.md\","), "release zip includeSingles must include CHANGELOG.md");
