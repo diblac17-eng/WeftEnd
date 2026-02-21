@@ -299,11 +299,12 @@ suite("tools/windows shell assets", () => {
     assert(/Copy Digests/.test(panelText), "expected launchpad history Copy Digests action");
     assert(/Run Adapter Doctor/.test(panelText), "expected launchpad doctor adapter action");
     assert(/Run Adapter Doctor \(Strict\)/.test(panelText), "expected launchpad doctor strict adapter action");
+    assert(panelText.includes("\\[([A-Z0-9_]+)\\]"), "expected adapter doctor reason-code parsing from bracketed output");
     assert(/Repair Viewer/.test(panelText), "expected launchpad doctor repair viewer action");
     assert(/Copy Doctor Output/.test(panelText), "expected launchpad doctor copy action");
     assert(/Shell doctor exitCode=/.test(panelText), "expected shell doctor output header");
     assert(/Shell doctor code=/.test(panelText), "expected shell doctor code header");
-    assert(/code=\(\[A-Z0-9_\]\+\)/.test(panelText), "expected shell doctor output code parsing");
+    assert(panelText.includes("code=([A-Z0-9_]+)"), "expected shell doctor output code parsing");
     assert(/"adapter", "doctor", "--text"/.test(panelText), "expected launchpad adapter doctor text-mode command");
     assert(/\$args \+= "--strict"/.test(panelText), "expected launchpad adapter doctor strict flag wiring");
     assert(/Copy-DoctorOutputText -DoctorBox \$doctorText -StatusLabel \$statusLabel/.test(panelText), "expected doctor copy button/key wiring");
