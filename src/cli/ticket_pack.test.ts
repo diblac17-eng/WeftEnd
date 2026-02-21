@@ -43,6 +43,8 @@ const testTicketPack = async () => {
 
   const summary = readText(path.join(ticketRoot, "ticket_summary.txt"));
   assert(summary.includes("ticketPack=weftend"), "ticket summary missing header");
+  assert(summary.includes("adapterEvidence="), "ticket summary missing adapterEvidence");
+  assert(summary.includes("capabilities=requested:"), "ticket summary missing capability summary line");
   assert(!containsAbsPath(summary), "ticket summary contains absolute path");
 
   if (process.platform === "win32") {
@@ -105,6 +107,9 @@ const testTicketPack = async () => {
     fs.existsSync(path.join(adapterTicketRoot, "analysis", "adapter_findings_v0.json")),
     "ticket pack missing adapter_findings_v0.json"
   );
+  const adapterSummary = readText(path.join(adapterTicketRoot, "ticket_summary.txt"));
+  assert(adapterSummary.includes("adapterEvidence=present"), "expected adapterEvidence=present in adapter ticket summary");
+  assert(adapterSummary.includes("adapterClass=archive"), "expected adapterClass=archive in adapter ticket summary");
 };
 
 testTicketPack()

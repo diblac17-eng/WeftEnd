@@ -139,6 +139,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   npm run weftend -- ticket-pack <outRoot> --out <ticketDir> --zip
 - Ticket packs include adapter analysis artifacts under `analysis/` when present in run output.
 - Ticket packs include `report_card_v0.json` when present, alongside `report_card.txt`.
+- `ticket_summary.txt` now includes adapter evidence summary lines (`adapterEvidence`, adapter identity, and capability counts).
 
 7) Builder integration (for tools built on top)
 - Export deterministic integration JSON:

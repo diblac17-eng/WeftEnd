@@ -41,6 +41,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Launchpad History now supports `Ctrl+C` copy from history list/details for faster evidence sharing.
 - Ticket-pack test coverage now enforces adapter evidence artifact carry-through (`analysis/capability_ledger_v0.json`, `analysis/adapter_summary_v0.json`, `analysis/adapter_findings_v0.json`) when those artifacts are present in a run.
 - Ticket-pack default extras now include `report_card_v0.json` so structured report output is carried with ticket bundles when available.
+- Ticket-pack summaries now include adapter evidence fields (`adapterEvidence`, adapter identity, capability counts) for faster operator/support triage.
 - Windows shell report card outputs now surface adapter evidence directly:
   - `report_card.txt` includes additive `adapterMeta=` and `capabilities=` lines when adapter evidence exists.
   - `report_card_v0.json` includes additive `adapter` metadata/capability object for automation and UI parity.

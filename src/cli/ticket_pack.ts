@@ -49,6 +49,11 @@ const sha256File = (filePath: string): string => {
 
 const readJson = (filePath: string): any => JSON.parse(fs.readFileSync(filePath, "utf8"));
 
+const getObjProp = (obj: any, key: string): any => {
+  if (!obj || typeof obj !== "object") return undefined;
+  return (obj as any)[key];
+};
+
 const collectOperatorEntries = (outRoot: string): { entries: string[]; issues: string[] } => {
   const operatorPath = path.join(outRoot, "operator_receipt.json");
   if (!fs.existsSync(operatorPath)) {
@@ -188,11 +193,67 @@ export const runTicketPackCli = (options: {
     // best-effort summary
   }
 
+  let adapterEvidence = "none";
+  let adapterId = "-";
+  let adapterMode = "-";
+  let adapterClass = "-";
+  let capRequested = 0;
+  let capGranted = 0;
+  let capDenied = 0;
+  const safePath = path.join(outRoot, "safe_run_receipt.json");
+  try {
+    if (fs.existsSync(safePath)) {
+      const safe = readJson(safePath);
+      const adapter = getObjProp(safe, "adapter");
+      if (adapter && typeof adapter === "object") {
+        const id = String(getObjProp(adapter, "adapterId") ?? "").trim();
+        const mode = String(getObjProp(adapter, "mode") ?? "").trim();
+        if (id) adapterId = id;
+        if (mode) adapterMode = mode;
+      }
+      const contentSummary = getObjProp(safe, "contentSummary");
+      const adapterSignals = contentSummary && typeof contentSummary === "object" ? getObjProp(contentSummary, "adapterSignals") : null;
+      if (adapterSignals && typeof adapterSignals === "object") {
+        const klass = String(getObjProp(adapterSignals, "class") ?? "").trim();
+        if (klass) adapterClass = klass;
+      }
+      if (adapterClass === "-" && /^([a-z0-9_]+)_adapter_v[0-9]+$/.test(adapterId)) {
+        adapterClass = adapterId.replace(/^([a-z0-9_]+)_adapter_v[0-9]+$/, "$1");
+      }
+      if (adapterClass === "-" && String(getObjProp(safe, "artifactKind") ?? "") === "CONTAINER_IMAGE") {
+        adapterClass = "container";
+      }
+      if (adapterId !== "-" || adapterClass !== "-") adapterEvidence = "present";
+    }
+  } catch {
+    // best effort summary
+  }
+  const capPath = path.join(outRoot, "analysis", "capability_ledger_v0.json");
+  try {
+    if (fs.existsSync(capPath)) {
+      const cap = readJson(capPath);
+      const req = getObjProp(cap, "requestedCaps");
+      const gr = getObjProp(cap, "grantedCaps");
+      const den = getObjProp(cap, "deniedCaps");
+      capRequested = Array.isArray(req) ? req.length : 0;
+      capGranted = Array.isArray(gr) ? gr.length : 0;
+      capDenied = Array.isArray(den) ? den.length : 0;
+      if (capRequested > 0 || capGranted > 0 || capDenied > 0) adapterEvidence = "present";
+    }
+  } catch {
+    // best effort summary
+  }
+
   const summaryLines = [
     "ticketPack=weftend",
     `command=${String(operator?.command ?? "UNKNOWN")}`,
     `result=${String(operator?.result ?? operator?.verdict ?? "UNKNOWN")}`,
     `receiptDigest=${String(operator?.receiptDigest ?? "UNKNOWN")}`,
+    `adapterEvidence=${adapterEvidence}`,
+    `adapterClass=${adapterClass}`,
+    `adapterId=${adapterId}`,
+    `adapterMode=${adapterMode}`,
+    `capabilities=requested:${String(capRequested)} granted:${String(capGranted)} denied:${String(capDenied)}`,
   ];
   writeText(path.join(packDir, "ticket_summary.txt"), `${summaryLines.join("\n")}\n`);
 
