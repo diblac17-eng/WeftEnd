@@ -47,6 +47,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Launchpad History details now include artifact fingerprint/digest plus report-card/safe/operator and compare receipt/report digests for quick cross-verification.
 - Report viewer and Launchpad History details now also include compare semantics (`Compare Verdict`, `Compare Buckets`, `Compare Bucket Count`, `Compare Change Count`) with deterministic compare-report fallback when compare receipt JSON is missing.
 - Report viewer and Launchpad History digest surfaces now also include `Privacy Lint Digest` (`weftend/privacy_lint_v0.json`) for faster cross-verification.
+- Replaced remaining locale-sensitive sorting in harness/test deterministic helpers with ordinal comparators to remove locale/ICU-dependent ordering drift in verification paths.
 - Launchpad Doctor tab now includes `Run Adapter Doctor` (text mode) so adapter/plugin maintenance health can be checked directly from UI.
 - Launchpad Doctor tab now includes `Run Adapter Doctor (Strict)` for fail-closed adapter maintenance checks from UI.
 - Launchpad Doctor tab now includes `Copy Doctor Output` and `Ctrl+C` clipboard support in doctor output pane for faster support sharing.

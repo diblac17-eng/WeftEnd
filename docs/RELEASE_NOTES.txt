@@ -251,6 +251,7 @@ Included
 - Report viewer summary panel now also surfaces `Status`, `Run Id`, and `Library Key`; summary clipboard output includes `libraryKey`.
 - Report viewer and Launchpad History details now also surface compare semantics (`Compare Verdict`, `Compare Buckets`, `Compare Bucket Count`, `Compare Change Count`) with deterministic `compare_report.txt` fallback when compare receipt JSON is absent.
 - Report viewer and Launchpad History details now also include `Privacy Lint Digest` (`weftend/privacy_lint_v0.json`) in digest identity/copy surfaces.
+- Remaining locale-sensitive sorting in harness/test deterministic helpers has been replaced with ordinal comparators to avoid locale/ICU-dependent test behavior drift.
 - Launchpad History UX improvements: direct View Report action and keyboard open behavior (double-click/Enter).
 - Report viewer now includes a collapsed Adapter Evidence section (shown only when adapter/capability artifacts exist), with quick-open buttons for capability, summary, and findings JSON artifacts.
 - Launchpad History now shows an Adapter tag column (including plugin usage and denied-capability marker) derived from the latest run receipt.

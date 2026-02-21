@@ -41,7 +41,11 @@ const sumCaps = (caps: Record<string, number> | undefined): number =>
   Object.values(caps ?? {}).reduce((total, value) => total + (typeof value === "number" ? value : 0), 0);
 
 const sortedKeys = (caps: Record<string, number> | undefined): string[] =>
-  Object.keys(caps ?? {}).sort((a, b) => a.localeCompare(b));
+  Object.keys(caps ?? {}).sort((a, b) => {
+    if (a < b) return -1;
+    if (a > b) return 1;
+    return 0;
+  });
 
 const htmlWithScript = (scriptBody: string): string =>
   [

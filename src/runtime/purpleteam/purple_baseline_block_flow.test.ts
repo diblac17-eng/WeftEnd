@@ -90,7 +90,11 @@ const findLatestRunDir = (libraryRoot: string): string => {
     .filter((d: any) => d.isDirectory && d.isDirectory())
     .map((d: any) => String(d.name))
     .filter((name: string) => name.startsWith("run_"))
-    .sort((a: string, b: string) => a.localeCompare(b));
+    .sort((a: string, b: string) => {
+      if (a < b) return -1;
+      if (a > b) return 1;
+      return 0;
+    });
   assert(runDirs.length > 0, "expected run dirs");
   return path.join(targetDir, runDirs[runDirs.length - 1]);
 };

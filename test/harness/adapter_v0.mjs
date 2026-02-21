@@ -57,6 +57,14 @@ const truncateUtf8 = (value, maxBytes) => {
 
 const digestString = (value) => `sha256:${sha256(String(value))}`;
 
+const cmpStr = (a, b) => {
+  const left = String(a ?? "");
+  const right = String(b ?? "");
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+};
+
 const normalizeHtml = (html) => {
   if (typeof html !== "string") return "";
   return html.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
@@ -72,7 +80,7 @@ const normalizeStringList = (items, maxItems) => {
   const normalized = list
     .map((item) => truncateUtf8(String(item ?? "").trim(), MAX_STR_BYTES))
     .filter((item) => item.length > 0);
-  const unique = Array.from(new Set(normalized)).sort((a, b) => a.localeCompare(b));
+  const unique = Array.from(new Set(normalized)).sort((a, b) => cmpStr(a, b));
   const dropped = unique.length > maxItems ? unique.length - maxItems : 0;
   return { list: unique.slice(0, maxItems), dropped };
 };
@@ -144,11 +152,11 @@ const issue = (path, code, message) => ({ path, code, message });
 
 const sortIssues = (issues) =>
   [...issues].sort((a, b) => {
-    const p = (a.path || "").localeCompare(b.path || "");
+    const p = cmpStr(a.path || "", b.path || "");
     if (p !== 0) return p;
-    const c = a.code.localeCompare(b.code);
+    const c = cmpStr(a.code, b.code);
     if (c !== 0) return c;
-    return a.message.localeCompare(b.message);
+    return cmpStr(a.message, b.message);
   });
 
 const validateAdapterV0 = (input) => {
