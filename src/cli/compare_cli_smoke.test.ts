@@ -136,6 +136,8 @@ suite("cli/compare", () => {
     assert(digestLines.every((d: string) => /^sha256:[a-f0-9]{64}$/.test(d)), "operator receipt digests must be sha256:<64hex>");
     const relPathSet = new Set(relPaths);
     const producedFiles = listRelativeFiles(outDir);
+    const stageResidue = producedFiles.filter((rel) => rel.endsWith(".stage"));
+    assertEq(stageResidue.length, 0, `compare output must not include staged file residue\n${stageResidue.join(",")}`);
     const orphans = producedFiles.filter((rel) => rel !== "operator_receipt.json" && !relPathSet.has(rel));
     assertEq(orphans.length, 0, `compare output must not include orphan files\n${orphans.join(",")}`);
 

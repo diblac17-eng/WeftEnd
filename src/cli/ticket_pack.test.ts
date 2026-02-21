@@ -165,6 +165,8 @@ const testTicketPack = async () => {
     "artifactDigest must match report_card_v0 source"
   );
   const producedFiles = listRelativeFiles(ticketRoot);
+  const stageResidue = producedFiles.filter((rel) => rel.endsWith(".stage"));
+  assertEq(stageResidue.length, 0, `ticket pack must not include staged file residue\n${stageResidue.join(",")}`);
   const operatorReceiptObj = readJson(path.join(ticketRoot, "operator_receipt.json"));
   const operatorRelPaths = Array.isArray(operatorReceiptObj?.receipts)
     ? operatorReceiptObj.receipts.map((r: any) => String(r?.relPath || "")).filter((v: string) => v.length > 0)

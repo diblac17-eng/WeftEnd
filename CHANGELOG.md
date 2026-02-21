@@ -13,6 +13,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `intake` staged outputs (`intake_decision.json`, `disclosure.txt`, `appeal_bundle.json`) now write with per-file stage/finalize before out-root finalize.
 - `container scan` staged artifacts (`safe_run_receipt.json`, README, capability/adapter analysis JSON) now use per-file stage/finalize writes.
 - Host update staging now writes `host_self_manifest.json` with per-file stage/finalize semantics before host root swap.
+- Added regression assertions in compare/ticket-pack smoke tests to fail on any leftover `*.stage` files in finalized outputs.
 - Validation status for this hardening batch: `npm run compile --silent` pass, `npm test` pass.
 
 ### GitHub Actions integration
