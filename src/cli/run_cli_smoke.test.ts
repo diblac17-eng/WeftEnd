@@ -148,6 +148,21 @@ suite("cli/run", () => {
       }
     );
   });
+
+  register("run finalizes staged output and replaces stale roots", async () => {
+    const outDir = makeTempDir();
+    fs.writeFileSync(path.join(outDir, "stale_root.txt"), "stale", "utf8");
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "safe_no_caps");
+    const policyPath = path.join(process.cwd(), "policies", "web_component_default.json");
+    const result = await runCliCapture(["run", inputPath, "--policy", policyPath, "--out", outDir]);
+    assertEq(result.status, 0, `expected run exit code\n${result.stderr}`);
+    assert(fs.existsSync(path.join(outDir, "run_receipt.json")), "expected run_receipt.json after finalize");
+    assert(!fs.existsSync(path.join(outDir, "stale_root.txt")), "stale out-root files must be replaced during finalize");
+    assert(!fs.existsSync(`${outDir}.stage`), "run stage directory must not remain after finalize");
+    const operator = readJson(outDir, "operator_receipt.json");
+    const warnings = Array.isArray(operator?.warnings) ? operator.warnings : [];
+    assert(warnings.includes("SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"), "expected stale-output warning in operator receipt");
+  });
 });
 
 if (!hasBDD) {

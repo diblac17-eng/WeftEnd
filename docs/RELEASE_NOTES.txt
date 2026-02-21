@@ -289,6 +289,8 @@ Included
 - Compare operator receipts now include full compare evidence links (`compare_receipt.json`, `compare_report.txt`, `weftend/README.txt`) instead of compare-receipt-only linkage.
 - Compare operator receipts now also include `weftend/privacy_lint_v0.json`, and compare runs perform a final no-write privacy-lint recheck after final operator receipt write.
 - Compare now enforces explicit no-orphan evidence validation before finalize (`COMPARE_EVIDENCE_CHAIN_INVALID`), requiring all produced compare artifacts (except `operator_receipt.json`) to be referenced in operator receipt entries.
+- `run` command output now stages/finalizes (`<out>.stage` -> `<out>`), replacing stale out-roots and preventing partial output residue from appearing as finalized run evidence.
+- `run` staged finalize now records stale-output presence as deterministic operator warning (`SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT`) before replacing pre-existing unmanaged out-root files.
 - Ticket-pack contract coverage now enforces report-state extraction from `report_card_v0.json` and validates digest identity line format (`sha256:<64hex>`) in `ticket_summary.txt`.
 - Ticket-pack contract coverage now also enforces text fallback parsing from `report_card.txt` (`STATUS/BASELINE/LATEST/BUCKETS` plus key-value lines) when structured report JSON is absent.
 - Windows shell `report_card.txt` and `report_card_v0.json` now include adapter metadata and capability counts when adapter evidence exists:

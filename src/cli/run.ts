@@ -60,6 +60,62 @@ const writeFile = (filePath: string, contents: string) => {
   fs.writeFileSync(filePath, contents, "utf8");
 };
 
+const listFilesRecursiveRel = (root: string, relStart: string): string[] => {
+  const startPath = path.join(root, relStart);
+  if (!fs.existsSync(startPath)) return [];
+  const out: string[] = [];
+  const stack: string[] = [relStart];
+  while (stack.length > 0) {
+    const rel = String(stack.pop() || "");
+    const abs = path.join(root, rel);
+    let stat: any = null;
+    try {
+      stat = fs.statSync(abs);
+    } catch {
+      continue;
+    }
+    if (stat && stat.isDirectory && stat.isDirectory()) {
+      let entries: string[] = [];
+      try {
+        entries = fs.readdirSync(abs).map((n: string) => String(n));
+      } catch {
+        entries = [];
+      }
+      entries.sort((a, b) => cmpStrV0(a, b));
+      for (let i = entries.length - 1; i >= 0; i -= 1) {
+        const nextRel = path.join(rel, entries[i]).replace(/\\/g, "/");
+        stack.push(nextRel);
+      }
+      continue;
+    }
+    if (stat && stat.isFile && stat.isFile()) out.push(rel.replace(/\\/g, "/"));
+  }
+  out.sort((a, b) => cmpStrV0(a, b));
+  return out;
+};
+
+const prepareStagedOutRoot = (outDir: string): { ok: true; stageOutDir: string } | { ok: false } => {
+  const stageOutDir = `${outDir}.stage`;
+  try {
+    fs.rmSync(stageOutDir, { recursive: true, force: true });
+    fs.mkdirSync(path.dirname(stageOutDir), { recursive: true });
+    fs.mkdirSync(stageOutDir, { recursive: true });
+    return { ok: true, stageOutDir };
+  } catch {
+    return { ok: false };
+  }
+};
+
+const finalizeStagedOutRoot = (stageOutDir: string, outDir: string): boolean => {
+  try {
+    fs.rmSync(outDir, { recursive: true, force: true });
+    fs.renameSync(stageOutDir, outDir);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const digestText = (value: string): string => computeArtifactDigestV0(value ?? "");
 
 const pickStrictEntry = (capture: ReturnType<typeof examineArtifactV1>["capture"]) => {
@@ -466,14 +522,23 @@ export const runWeftendRun = async (options: RunCliOptionsV0): Promise<number> =
     return 1;
   }
 
-  fs.mkdirSync(options.outDir, { recursive: true });
-  writeFile(path.join(options.outDir, "weftend_mint_v1.json"), mintJson);
-  writeFile(path.join(options.outDir, "weftend_mint_v1.txt"), mintTxt);
-  writeFile(path.join(options.outDir, "intake_decision.json"), decisionJson);
-  writeFile(path.join(options.outDir, "disclosure.txt"), disclosureTxt);
-  writeFile(path.join(options.outDir, "appeal_bundle.json"), appealJson);
-  writeFile(path.join(options.outDir, "run_receipt.json"), `${canonicalJSON(receipt)}\n`);
-  writeReceiptReadmeV0(options.outDir, receipt.weftendBuild, receipt.schemaVersion);
+  const finalOutDir = options.outDir;
+  const stage = prepareStagedOutRoot(finalOutDir);
+  if (!stage.ok) {
+    console.error("[RUN_STAGE_INIT_FAILED] unable to initialize staged output path.");
+    return 1;
+  }
+  const outDir = stage.stageOutDir;
+  const hadPreexistingOutput = fs.existsSync(finalOutDir) && listFilesRecursiveRel(finalOutDir, ".").length > 0;
+
+  fs.mkdirSync(outDir, { recursive: true });
+  writeFile(path.join(outDir, "weftend_mint_v1.json"), mintJson);
+  writeFile(path.join(outDir, "weftend_mint_v1.txt"), mintTxt);
+  writeFile(path.join(outDir, "intake_decision.json"), decisionJson);
+  writeFile(path.join(outDir, "disclosure.txt"), disclosureTxt);
+  writeFile(path.join(outDir, "appeal_bundle.json"), appealJson);
+  writeFile(path.join(outDir, "run_receipt.json"), `${canonicalJSON(receipt)}\n`);
+  writeReceiptReadmeV0(outDir, receipt.weftendBuild, receipt.schemaVersion);
 
   const warnings = [
     ...(receipt.weftendBuild.reasonCodes ?? []),
@@ -482,6 +547,7 @@ export const runWeftendRun = async (options: RunCliOptionsV0): Promise<number> =
     ...(receipt.strictExecute.reasonCodes?.includes("STRICT_COMPARTMENT_UNAVAILABLE")
       ? ["STRICT_COMPARTMENT_UNAVAILABLE"]
       : []),
+    ...(hadPreexistingOutput ? ["SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"] : []),
   ];
   const operatorReceipt = buildOperatorReceiptV0({
     command: "run",
@@ -497,10 +563,14 @@ export const runWeftendRun = async (options: RunCliOptionsV0): Promise<number> =
     warnings,
     contentSummary,
   });
-  writeOperatorReceiptV0(options.outDir, operatorReceipt);
+  writeOperatorReceiptV0(outDir, operatorReceipt);
 
   const buildSummary = formatBuildDigestSummaryV0(receipt.weftendBuild);
-  const privacy = runPrivacyLintV0({ root: options.outDir, weftendBuild: receipt.weftendBuild });
+  const privacy = runPrivacyLintV0({ root: outDir, weftendBuild: receipt.weftendBuild });
+  if (!finalizeStagedOutRoot(outDir, finalOutDir)) {
+    console.error("[RUN_FINALIZE_FAILED] unable to finalize staged output.");
+    return 1;
+  }
   const privacySummary = `privacyLint=${privacy.report.verdict}`;
   console.log(`RUN ${execution.status} intake=${output.decision.action} ${buildSummary} ${privacySummary}`);
 
