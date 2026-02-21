@@ -249,6 +249,7 @@ Included
 - Report viewer now includes a collapsed Adapter Evidence section (shown only when adapter/capability artifacts exist), with quick-open buttons for capability, summary, and findings JSON artifacts.
 - Launchpad History now shows an Adapter tag column (including plugin usage and denied-capability marker) derived from the latest run receipt.
 - Launchpad History now includes an inline details pane for selected rows showing adapter class/id/mode/source/reasons and capability counts without leaving Launchpad.
+- Launchpad History actions now include `Open Run` and `Open Evidence` for selected rows, opening latest run and `analysis` artifact folders directly.
 - Windows shell `report_card.txt` and `report_card_v0.json` now include adapter metadata and capability counts when adapter evidence exists:
 - `adapterMeta=class:<class> mode:<mode> source:<format> reasons:<codes>`
 - `capabilities=requested:<n> granted:<n> denied:<n>`

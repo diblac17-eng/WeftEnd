@@ -870,6 +870,61 @@ function Open-ReportViewerFromHistory {
   }
 }
 
+function Open-HistoryRunFolder {
+  param(
+    [System.Windows.Forms.ListView]$ListView,
+    [System.Windows.Forms.Label]$StatusLabel
+  )
+  if (-not $ListView -or $ListView.SelectedItems.Count -lt 1) {
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Select a history row first." -IsError $true
+    return
+  }
+  $selected = $ListView.SelectedItems[0]
+  $meta = $selected.Tag
+  $targetDir = if ($meta -and $meta.targetDir) { [string]$meta.targetDir } else { "" }
+  $latestRun = if ($meta -and $meta.latestRun) { [string]$meta.latestRun } else { "-" }
+  $targetKey = if ($meta -and $meta.targetKey) { [string]$meta.targetKey } else { [string]$selected.Text }
+  if (-not $targetDir -or -not (Test-Path -LiteralPath $targetDir)) {
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Target history folder missing." -IsError $true
+    return
+  }
+  $openPath = if ($latestRun -and $latestRun -ne "-") { Join-Path $targetDir $latestRun } else { $targetDir }
+  if (-not (Test-Path -LiteralPath $openPath)) { $openPath = $targetDir }
+  $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+  if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
+  Start-Process -FilePath $explorerPath -ArgumentList $openPath | Out-Null
+  Set-StatusLine -StatusLabel $StatusLabel -Message ("Opened run folder: " + $targetKey) -IsError $false
+}
+
+function Open-HistoryAdapterEvidenceFolder {
+  param(
+    [System.Windows.Forms.ListView]$ListView,
+    [System.Windows.Forms.Label]$StatusLabel
+  )
+  if (-not $ListView -or $ListView.SelectedItems.Count -lt 1) {
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Select a history row first." -IsError $true
+    return
+  }
+  $selected = $ListView.SelectedItems[0]
+  $meta = $selected.Tag
+  $targetDir = if ($meta -and $meta.targetDir) { [string]$meta.targetDir } else { "" }
+  $latestRun = if ($meta -and $meta.latestRun) { [string]$meta.latestRun } else { "-" }
+  $targetKey = if ($meta -and $meta.targetKey) { [string]$meta.targetKey } else { [string]$selected.Text }
+  if (-not $targetDir -or -not $latestRun -or $latestRun -eq "-") {
+    Set-StatusLine -StatusLabel $StatusLabel -Message "No latest run available for adapter evidence." -IsError $true
+    return
+  }
+  $analysisPath = Join-Path (Join-Path $targetDir $latestRun) "analysis"
+  if (-not (Test-Path -LiteralPath $analysisPath)) {
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Adapter evidence folder missing for latest run." -IsError $true
+    return
+  }
+  $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+  if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
+  Start-Process -FilePath $explorerPath -ArgumentList $analysisPath | Out-Null
+  Set-StatusLine -StatusLabel $StatusLabel -Message ("Opened adapter evidence: " + $targetKey + " / " + $latestRun) -IsError $false
+}
+
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "WeftEnd Launchpad v2"
 $form.Width = 456
@@ -1084,6 +1139,20 @@ $btnHistoryView.Height = 30
 Style-Button -Button $btnHistoryView -Primary:$true
 $historyActions.Controls.Add($btnHistoryView) | Out-Null
 
+$btnHistoryRun = New-Object System.Windows.Forms.Button
+$btnHistoryRun.Text = "Open Run"
+$btnHistoryRun.Width = 86
+$btnHistoryRun.Height = 30
+Style-Button -Button $btnHistoryRun -Primary:$false
+$historyActions.Controls.Add($btnHistoryRun) | Out-Null
+
+$btnHistoryEvidence = New-Object System.Windows.Forms.Button
+$btnHistoryEvidence.Text = "Open Evidence"
+$btnHistoryEvidence.Width = 106
+$btnHistoryEvidence.Height = 30
+Style-Button -Button $btnHistoryEvidence -Primary:$false
+$historyActions.Controls.Add($btnHistoryEvidence) | Out-Null
+
 $historyList = New-Object System.Windows.Forms.ListView
 $historyList.Dock = "Fill"
 $historyList.View = [System.Windows.Forms.View]::Details
@@ -1232,6 +1301,12 @@ $btnHistoryRefresh.Add_Click({
 })
 $btnHistoryView.Add_Click({
   Open-ReportViewerFromHistory -ListView $historyList -StatusLabel $statusLabel
+})
+$btnHistoryRun.Add_Click({
+  Open-HistoryRunFolder -ListView $historyList -StatusLabel $statusLabel
+})
+$btnHistoryEvidence.Add_Click({
+  Open-HistoryAdapterEvidenceFolder -ListView $historyList -StatusLabel $statusLabel
 })
 $historyList.Add_DoubleClick({
   Open-ReportViewerFromHistory -ListView $historyList -StatusLabel $statusLabel

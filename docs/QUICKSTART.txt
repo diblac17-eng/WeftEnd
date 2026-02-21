@@ -53,6 +53,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - Launchpad History UI:
   - `Adapter` column shows adapter tag from latest run (`+plugin` marker and `!` marker when denied capabilities are present).
   - Selecting a history row now shows inline adapter details (class/id/mode/source/reasons/capability counts) in Launchpad.
+  - `Open Run` opens the selected latest run folder; `Open Evidence` opens its `analysis` artifact folder.
 - Report card text/json (when adapter evidence exists):
   - `report_card.txt` includes `adapterMeta=` and `capabilities=` lines.
   - `report_card_v0.json` includes additive `adapter` object with class/id/mode/source/reasons/capability counts.
