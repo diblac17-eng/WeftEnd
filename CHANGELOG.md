@@ -9,6 +9,8 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added `.github/workflows/weftend_artifact_meter.yml` for manual CI artifact-meter runs (`workflow_dispatch`).
 - Workflow executes deterministic `safe-run` (analysis-only, `--withhold-exec`) with optional baseline compare.
 - Workflow uploads `out/ci_meter` receipts/reports as downloadable artifacts and writes a bounded run summary.
+- Added `.github/workflows/weftend_verify360.yml` for manual strict managed verify-gate runs.
+- Verify workflow executes `npm run verify:360:release:managed` and uploads `out/verify_360_release_managed`.
 - Added `docs/GITHUB_ACTIONS.md` with setup, inputs, and expected outputs.
 
 ### Safe-run evidence corridor
@@ -37,6 +39,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added Green Team contract test for `.github/workflows/weftend_artifact_meter.yml` to enforce analysis-only workflow behavior (`--withhold-exec`) and deterministic artifact upload path invariants.
 - Added Green Team contract test for `scripts/verify_360_release_managed.js` to enforce strict adapter-doctor preflight contract and no adapter-disable env leakage into full `verify:360` runs.
 - Added Green Team contract test for `src/runtime/container/docker_probe_v0.ts` to pin local-only Docker command surface (`version`, `image inspect`) and block pull/login/run/build drift.
+- Added Green Team contract test for `.github/workflows/weftend_verify360.yml` to pin managed verify workflow command and artifact path invariants.
 - `verify:360:harness` now validates strict-mode idempotence separation (`NEW` then `REPLAY`) to prevent strict/non-strict replay-key regression.
 - Emergency verify report output now includes policy summary lines (`policy.*`) and failure receipts carry interpreted policy fields for consistent fail-closed readability.
 

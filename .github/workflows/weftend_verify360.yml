@@ -1,0 +1,32 @@
+name: weftend-verify360
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify360:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run strict managed verify gate
+        run: npm run verify:360:release:managed
+
+      - name: Upload verify artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: weftend-verify360
+          path: out/verify_360_release_managed
+          if-no-files-found: error

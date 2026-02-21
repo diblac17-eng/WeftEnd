@@ -6,6 +6,7 @@ Purpose
 
 Included workflow
 - `.github/workflows/weftend_artifact_meter.yml`
+- `.github/workflows/weftend_verify360.yml`
 
 What it does
 1. Checks out repository content.
@@ -17,6 +18,16 @@ What it does
    - `weftend compare ...`
 5. Writes a short summary into the Actions run summary.
 6. Uploads `out/ci_meter` as workflow artifacts.
+
+Verify gate workflow
+- Workflow: `.github/workflows/weftend_verify360.yml`
+- Trigger: `workflow_dispatch`
+- Runs:
+  - `npm run verify:360:release:managed`
+- Uploads:
+  - `out/verify_360_release_managed`
+- Purpose:
+  - one-click strict managed release-gate evidence from GitHub Actions.
 
 Dispatch inputs
 - `target_path` (required): repository path to analyze.

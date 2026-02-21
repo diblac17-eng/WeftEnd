@@ -33,6 +33,7 @@ What's new in the latest alpha
   - contract: weftend.normalizedSummary/0
 - Added first-party GitHub Actions artifact-meter workflow:
   - .github/workflows/weftend_artifact_meter.yml
+  - .github/workflows/weftend_verify360.yml
   - docs/GITHUB_ACTIONS.md
 - Core/runtime trust hardening sweep included in release scope.
 - Release packaging hygiene hardened:
