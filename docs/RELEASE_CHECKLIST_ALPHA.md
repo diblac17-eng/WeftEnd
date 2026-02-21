@@ -29,6 +29,14 @@ Short, strict release checklist (alpha).
     - npm run proofcheck
   - npm run release-loop
 
+2.1) Optional GitHub Actions parity runs (manual, recommended before publish)
+- Run workflow: `.github/workflows/weftend_artifact_meter.yml`
+  - Use a release candidate path as `target_path`.
+  - Confirm uploaded artifacts exist under `out/ci_meter`.
+- Run workflow: `.github/workflows/weftend_verify360.yml`
+  - Confirm managed verify command executes: `npm run verify:360:release:managed`.
+  - Confirm uploaded artifacts exist under `out/verify_360_release_managed`.
+
 3) Build release bundle
 - Preferred (repo root):
   - powershell -NoProfile -ExecutionPolicy Bypass -File .\\weftend_release_zip.ps1 -OutDir out\\release

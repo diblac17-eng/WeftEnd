@@ -13,6 +13,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Verify workflow executes `npm run verify:360:release:managed` and uploads `out/verify_360_release_managed`.
 - Added `docs/GITHUB_ACTIONS.md` with setup, inputs, and expected outputs.
 - Updated `docs/QUICKSTART.txt` GitHub Actions section to include both workflows and managed verify output path.
+- Updated `docs/RELEASE_CHECKLIST_ALPHA.md` with optional GitHub Actions parity runs for both workflows.
 
 ### Safe-run evidence corridor
 - `safe-run` now verifies expected receipt artifacts for presence and digest consistency before completion.
@@ -42,6 +43,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added Green Team contract test for `src/runtime/container/docker_probe_v0.ts` to pin local-only Docker command surface (`version`, `image inspect`) and block pull/login/run/build drift.
 - Added Green Team contract test for `.github/workflows/weftend_verify360.yml` to pin managed verify workflow command and artifact path invariants.
 - Added Green Team docs release contract test to pin workflow/command references across README/Quickstart/Release Notes/Actions guide.
+- Extended docs release contract coverage to include `docs/RELEASE_CHECKLIST_ALPHA.md`.
 - `verify:360:harness` now validates strict-mode idempotence separation (`NEW` then `REPLAY`) to prevent strict/non-strict replay-key regression.
 - Emergency verify report output now includes policy summary lines (`policy.*`) and failure receipts carry interpreted policy fields for consistent fail-closed readability.
 
