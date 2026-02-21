@@ -832,6 +832,24 @@ function Update-HistoryActionButtons {
   }
 }
 
+function Copy-HistoryDetailsText {
+  param(
+    [System.Windows.Forms.TextBox]$DetailBox,
+    [System.Windows.Forms.Label]$StatusLabel
+  )
+  try {
+    $text = if ($DetailBox -and $DetailBox.Text) { [string]$DetailBox.Text } else { "" }
+    if (-not $text -or $text.Trim() -eq "") {
+      Set-StatusLine -StatusLabel $StatusLabel -Message "No history details to copy." -IsError $true
+      return
+    }
+    [System.Windows.Forms.Clipboard]::SetText($text)
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Copied history details." -IsError $false
+  } catch {
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Copy failed." -IsError $true
+  }
+}
+
 function Load-HistoryRows {
   param([System.Windows.Forms.ListView]$ListView)
   if (-not $ListView) { return 0 }
@@ -1378,17 +1396,7 @@ $btnHistoryEvidence.Add_Click({
   Open-HistoryAdapterEvidenceFolder -ListView $historyList -StatusLabel $statusLabel
 })
 $btnHistoryCopy.Add_Click({
-  try {
-    $text = if ($historyDetail -and $historyDetail.Text) { [string]$historyDetail.Text } else { "" }
-    if (-not $text -or $text.Trim() -eq "") {
-      Set-StatusLine -StatusLabel $statusLabel -Message "No history details to copy." -IsError $true
-      return
-    }
-    [System.Windows.Forms.Clipboard]::SetText($text)
-    Set-StatusLine -StatusLabel $statusLabel -Message "Copied history details." -IsError $false
-  } catch {
-    Set-StatusLine -StatusLabel $statusLabel -Message "Copy failed." -IsError $true
-  }
+  Copy-HistoryDetailsText -DetailBox $historyDetail -StatusLabel $statusLabel
 })
 $historyList.Add_DoubleClick({
   Open-ReportViewerFromHistory -ListView $historyList -StatusLabel $statusLabel
@@ -1398,6 +1406,18 @@ $historyList.Add_KeyDown({
   if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
     $e.Handled = $true
     Open-ReportViewerFromHistory -ListView $historyList -StatusLabel $statusLabel
+    return
+  }
+  if ($e.Control -and $e.KeyCode -eq [System.Windows.Forms.Keys]::C) {
+    $e.Handled = $true
+    Copy-HistoryDetailsText -DetailBox $historyDetail -StatusLabel $statusLabel
+  }
+})
+$historyDetail.Add_KeyDown({
+  param($sender, $e)
+  if ($e.Control -and $e.KeyCode -eq [System.Windows.Forms.Keys]::C) {
+    $e.Handled = $true
+    Copy-HistoryDetailsText -DetailBox $historyDetail -StatusLabel $statusLabel
   }
 })
 $historyList.Add_SelectedIndexChanged({

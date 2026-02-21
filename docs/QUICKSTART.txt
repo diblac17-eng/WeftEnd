@@ -55,6 +55,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   - Selecting a history row now shows inline adapter details (class/id/mode/source/reasons/capability counts) in Launchpad.
   - `Open Run` opens the selected latest run folder; `Open Evidence` opens its `analysis` artifact folder.
   - `Copy Details` copies the selected history inline summary for ticket/peer review sharing.
+  - Keyboard: `Ctrl+C` also copies current history details text.
   - If old entries are missing `view_state.json` latest pointers, Launchpad falls back to newest `run_*` folder automatically.
 - Report card text/json (when adapter evidence exists):
   - `report_card.txt` includes `adapterMeta=` and `capabilities=` lines.
