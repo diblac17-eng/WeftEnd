@@ -31,6 +31,8 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `operator_receipt.json` now carries additive digest links for `weftend/README.txt` and run sub-receipts (`analysis/*`, `host/*`) for stronger evidence-chain traceability.
 - `safe-run` now writes `analysis/capability_ledger_v0.json` for raw-input adapter lanes, recording deterministic requested/granted/denied adapter and plugin capability decisions.
 - `container scan` now writes the same deterministic `analysis/capability_ledger_v0.json` artifact in success and fail-closed paths for consistent container capability evidence.
+- Windows report viewer now renders adapter evidence as an optional collapsed section (only when adapter/capability artifacts are present) with quick-open artifact actions.
+- Launchpad History now shows a compact adapter tag (including plugin marker and denied-capability marker) from the latest run evidence.
 - `container scan` now also preserves deterministic evidence artifacts on fail-closed preconditions (`safe_run_receipt.json` and `operator_receipt.json` are written before exit 40).
 - `container scan` now applies the same evidence-corridor checks as safe-run: expected receipt artifacts are verified for presence/digest consistency and unmanaged pre-existing outputs are surfaced as deterministic `SAFE_RUN_EVIDENCE_*` warnings.
 - `verify:360` now includes an `adapter_doctor` step and capability record; strict adapter doctor mode can be enabled with `WEFTEND_360_ADAPTER_DOCTOR_STRICT=1` to capture maintenance-policy/plugin strict failures as explicit PARTIAL evidence.

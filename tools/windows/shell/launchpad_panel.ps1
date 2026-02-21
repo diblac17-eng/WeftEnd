@@ -453,6 +453,49 @@ function Set-StatusLine {
   }
 }
 
+function Read-AdapterTagForRun {
+  param(
+    [string]$TargetDir,
+    [string]$RunId
+  )
+  if (-not $TargetDir -or -not $RunId -or $RunId -eq "-") { return "-" }
+  $safePath = Join-Path (Join-Path $TargetDir $RunId) "safe_run_receipt.json"
+  if (-not (Test-Path -LiteralPath $safePath)) { return "-" }
+  try {
+    $safe = Get-Content -LiteralPath $safePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $adapterId = if ($safe.adapter -and $safe.adapter.adapterId) { [string]$safe.adapter.adapterId } else { "" }
+    $mode = if ($safe.adapter -and $safe.adapter.mode) { [string]$safe.adapter.mode } else { "" }
+    $adapterClass = "-"
+    if ($adapterId -match "^([a-z0-9_]+)_adapter_v[0-9]+$") {
+      $adapterClass = [string]$matches[1]
+    } elseif ($adapterId.ToLowerInvariant() -eq "docker.local.inspect.v0") {
+      $adapterClass = "container"
+    } elseif ($safe.contentSummary -and $safe.contentSummary.adapterSignals -and $safe.contentSummary.adapterSignals.class) {
+      $adapterClass = [string]$safe.contentSummary.adapterSignals.class
+    } elseif ($safe.artifactKind -and [string]$safe.artifactKind -eq "CONTAINER_IMAGE") {
+      $adapterClass = "container"
+    }
+    if (-not $adapterClass -or $adapterClass -eq "-") { return "-" }
+    $tag = $adapterClass
+    if ($mode -and $mode.ToLowerInvariant() -eq "plugin") {
+      $tag = $tag + "+plugin"
+    }
+    $capPath = Join-Path (Join-Path (Join-Path $TargetDir $RunId) "analysis") "capability_ledger_v0.json"
+    if (Test-Path -LiteralPath $capPath) {
+      try {
+        $cap = Get-Content -LiteralPath $capPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $denied = if ($cap.deniedCaps -is [System.Array]) { [int]$cap.deniedCaps.Count } else { 0 }
+        if ($denied -gt 0) { $tag = $tag + " !" }
+      } catch {
+        # best effort
+      }
+    }
+    return $tag
+  } catch {
+    return "-"
+  }
+}
+
 function Read-ViewStateSummary {
   param([string]$TargetDir)
   $viewPath = Join-Path $TargetDir "view\view_state.json"
@@ -462,6 +505,7 @@ function Read-ViewStateSummary {
       baseline = "-"
       latest = "-"
       buckets = "-"
+      adapter = "-"
     }
   }
   try {
@@ -508,6 +552,7 @@ function Read-ViewStateSummary {
       baseline = $baseline
       latest = $latest
       buckets = $buckets
+      adapter = (Read-AdapterTagForRun -TargetDir $TargetDir -RunId $latest)
     }
   } catch {
     return @{
@@ -515,6 +560,7 @@ function Read-ViewStateSummary {
       baseline = "-"
       latest = "-"
       buckets = "-"
+      adapter = "-"
     }
   }
 }
@@ -534,6 +580,7 @@ function Load-HistoryRows {
     $s = Read-ViewStateSummary -TargetDir $dir.FullName
     $item = New-Object System.Windows.Forms.ListViewItem($dir.Name)
     [void]$item.SubItems.Add($s.status)
+    [void]$item.SubItems.Add($s.adapter)
     [void]$item.SubItems.Add($s.baseline)
     [void]$item.SubItems.Add($s.latest)
     [void]$item.SubItems.Add($s.buckets)
@@ -827,10 +874,11 @@ $historyList.HideSelection = $false
 $historyList.BackColor = $colorPanel
 $historyList.ForeColor = $colorText
 [void]$historyList.Columns.Add("Target", 116)
-[void]$historyList.Columns.Add("Status", 80)
-[void]$historyList.Columns.Add("Baseline", 78)
-[void]$historyList.Columns.Add("Latest", 78)
-[void]$historyList.Columns.Add("Buckets", 88)
+[void]$historyList.Columns.Add("Status", 68)
+[void]$historyList.Columns.Add("Adapter", 82)
+[void]$historyList.Columns.Add("Baseline", 66)
+[void]$historyList.Columns.Add("Latest", 66)
+[void]$historyList.Columns.Add("Buckets", 76)
 
 $historyLayout.Controls.Add($historyActions, 0, 0)
 $historyLayout.Controls.Add($historyList, 0, 1)

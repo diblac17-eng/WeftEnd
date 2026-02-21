@@ -56,6 +56,103 @@ function Parse-ReportTextMap {
   return $map
 }
 
+function Read-JsonFile {
+  param([string]$PathValue)
+  if (-not $PathValue -or -not (Test-Path -LiteralPath $PathValue)) { return $null }
+  try {
+    return (Get-Content -LiteralPath $PathValue -Raw -Encoding UTF8 | ConvertFrom-Json)
+  } catch {
+    return $null
+  }
+}
+
+function Format-ReasonPreview {
+  param([object]$ReasonCodes, [int]$MaxItems = 4)
+  if (-not $ReasonCodes -or -not ($ReasonCodes -is [System.Array])) { return "-" }
+  $items = @($ReasonCodes | ForEach-Object { [string]$_ } | Where-Object { $_ -and $_.Trim() -ne "" })
+  if ($items.Count -eq 0) { return "-" }
+  $take = [Math]::Min($MaxItems, $items.Count)
+  $head = @($items[0..($take - 1)])
+  $suffix = if ($items.Count -gt $take) { " +" + ($items.Count - $take) } else { "" }
+  return (($head -join ", ") + $suffix)
+}
+
+function Get-AdapterClassLabel {
+  param([string]$AdapterIdValue, [string]$ArtifactKindValue)
+  $id = if ($AdapterIdValue) { $AdapterIdValue.ToLowerInvariant() } else { "" }
+  if ($id -match "^([a-z0-9_]+)_adapter_v[0-9]+$") { return $matches[1] }
+  if ($id -eq "docker.local.inspect.v0") { return "container" }
+  $artifact = if ($ArtifactKindValue) { $ArtifactKindValue.ToUpperInvariant() } else { "" }
+  if ($artifact -eq "CONTAINER_IMAGE") { return "container" }
+  return "-"
+}
+
+function Load-AdapterEvidence {
+  param([string]$ResolvedRunDir)
+  $safeReceiptPath = Join-Path $ResolvedRunDir "safe_run_receipt.json"
+  $summaryPath = Join-Path $ResolvedRunDir "analysis\adapter_summary_v0.json"
+  $findingsPath = Join-Path $ResolvedRunDir "analysis\adapter_findings_v0.json"
+  $capabilityPath = Join-Path $ResolvedRunDir "analysis\capability_ledger_v0.json"
+
+  $safeReceipt = Read-JsonFile -PathValue $safeReceiptPath
+  $summary = Read-JsonFile -PathValue $summaryPath
+  $findings = Read-JsonFile -PathValue $findingsPath
+  $capability = Read-JsonFile -PathValue $capabilityPath
+
+  $adapterId = Get-StringValue -Value $safeReceipt.adapter.adapterId
+  $sourceFormat = Get-StringValue -Value $safeReceipt.adapter.sourceFormat
+  $mode = Get-StringValue -Value $safeReceipt.adapter.mode
+  $artifactKind = Get-StringValue -Value $safeReceipt.artifactKind
+  $adapterClass = Get-AdapterClassLabel -AdapterIdValue $adapterId -ArtifactKindValue $artifactKind
+  if ($adapterClass -eq "-" -and $summary -and $summary.sourceClass) {
+    $adapterClass = [string]$summary.sourceClass
+  }
+  $adapterReasons = Format-ReasonPreview -ReasonCodes $safeReceipt.adapter.reasonCodes -MaxItems 4
+  if ($adapterReasons -eq "-" -and $summary -and $summary.reasonCodes) {
+    $adapterReasons = Format-ReasonPreview -ReasonCodes $summary.reasonCodes -MaxItems 4
+  }
+
+  $requestedCount = if ($capability -and $capability.requestedCaps -is [System.Array]) { [int]$capability.requestedCaps.Count } else { 0 }
+  $grantedCount = if ($capability -and $capability.grantedCaps -is [System.Array]) { [int]$capability.grantedCaps.Count } else { 0 }
+  $deniedCount = if ($capability -and $capability.deniedCaps -is [System.Array]) { [int]$capability.deniedCaps.Count } else { 0 }
+
+  $hasEvidence = $false
+  if ($adapterClass -ne "-" -or $requestedCount -gt 0 -or $grantedCount -gt 0 -or $deniedCount -gt 0) {
+    $hasEvidence = $true
+  }
+  if (-not $hasEvidence) {
+    return [ordered]@{
+      available = $false
+      class = "-"
+      adapterId = "-"
+      sourceFormat = "-"
+      mode = "-"
+      reasons = "-"
+      requested = 0
+      granted = 0
+      denied = 0
+      capabilityPath = $capabilityPath
+      summaryPath = $summaryPath
+      findingsPath = $findingsPath
+    }
+  }
+
+  return [ordered]@{
+    available = $true
+    class = $adapterClass
+    adapterId = $adapterId
+    sourceFormat = $sourceFormat
+    mode = $mode
+    reasons = $adapterReasons
+    requested = $requestedCount
+    granted = $grantedCount
+    denied = $deniedCount
+    capabilityPath = $capabilityPath
+    summaryPath = $summaryPath
+    findingsPath = $findingsPath
+  }
+}
+
 function Load-ReportModel {
   param([string]$ResolvedRunDir)
   $txtPath = Join-Path $ResolvedRunDir "report_card.txt"
@@ -72,6 +169,7 @@ function Load-ReportModel {
   if (Test-Path -LiteralPath $jsonPath) {
     try {
       $json = Get-Content -LiteralPath $jsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
+      $adapterEvidence = Load-AdapterEvidence -ResolvedRunDir $ResolvedRunDir
       return [ordered]@{
         runId = Get-StringValue -Value $json.runId
         libraryKey = Get-StringValue -Value $json.libraryKey
@@ -89,6 +187,7 @@ function Load-ReportModel {
         artifactKind = Get-StringValue -Value $json.artifactKind
         requestedTarget = Get-StringValue -Value $json.requestedTarget
         scanTarget = Get-StringValue -Value $json.scanTarget
+        adapterEvidence = $adapterEvidence
         lines = if ($json.lines) { @($json.lines | ForEach-Object { [string]$_ }) } else { $lines }
         reportTextPath = $txtPath
       }
@@ -98,6 +197,7 @@ function Load-ReportModel {
   }
 
   $map = Parse-ReportTextMap -Lines $lines
+  $adapterEvidence = Load-AdapterEvidence -ResolvedRunDir $ResolvedRunDir
   return [ordered]@{
     runId = Get-StringValue -Value $map["runid"]
     libraryKey = Get-StringValue -Value $map["librarykey"]
@@ -115,6 +215,7 @@ function Load-ReportModel {
     artifactKind = "-"
     requestedTarget = Get-StringValue -Value $map["targets"]
     scanTarget = "-"
+    adapterEvidence = $adapterEvidence
     lines = $lines
     reportTextPath = $txtPath
   }
@@ -128,6 +229,16 @@ function Open-InExplorer {
     Start-Process -FilePath $explorerPath -ArgumentList $PathValue | Out-Null
   } else {
     Start-Process -FilePath "explorer.exe" -ArgumentList $PathValue | Out-Null
+  }
+}
+
+function Open-FileIfExists {
+  param([string]$PathValue)
+  if (-not $PathValue -or -not (Test-Path -LiteralPath $PathValue)) { return }
+  try {
+    Start-Process -FilePath $PathValue | Out-Null
+  } catch {
+    # best effort
   }
 }
 
@@ -298,11 +409,8 @@ $summaryTable.Dock = "Top"
 $summaryTable.AutoSize = $true
 $summaryTable.AutoSizeMode = [System.Windows.Forms.AutoSizeMode]::GrowAndShrink
 $summaryTable.ColumnCount = 1
-$summaryTable.RowCount = 13
+$summaryTable.RowCount = 0
 $summaryTable.Margin = New-Object System.Windows.Forms.Padding(0)
-for ($i = 0; $i -lt 13; $i++) {
-  $summaryTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 34)))
-}
 $summaryScroll.Controls.Add($summaryTable) | Out-Null
 
 function Add-SummaryLine {
@@ -331,6 +439,22 @@ Add-SummaryLine -TextValue ("Scanned: " + (Get-StringValue -Value $model.scanTar
 Add-SummaryLine -TextValue ("Target Kind: " + (Get-StringValue -Value $model.targetKind))
 Add-SummaryLine -TextValue ("Artifact Kind: " + (Get-StringValue -Value $model.artifactKind))
 Add-SummaryLine -TextValue ("Meaning: " + (Get-StringValue -Value $model.meaning))
+if ($model.adapterEvidence -and $model.adapterEvidence.available) {
+  $modeText = if ($model.adapterEvidence.mode -and $model.adapterEvidence.mode -ne "-") {
+    [string]$model.adapterEvidence.mode
+  } else {
+    "built_in"
+  }
+  Add-SummaryLine -TextValue ("Adapter Class: " + (Get-StringValue -Value $model.adapterEvidence.class))
+  Add-SummaryLine -TextValue ("Adapter: " + (Get-StringValue -Value $model.adapterEvidence.adapterId) + " (" + $modeText + ")")
+  Add-SummaryLine -TextValue ("Source Format: " + (Get-StringValue -Value $model.adapterEvidence.sourceFormat))
+  Add-SummaryLine -TextValue (
+    "Capabilities: requested=" + [string]$model.adapterEvidence.requested +
+    " granted=" + [string]$model.adapterEvidence.granted +
+    " denied=" + [string]$model.adapterEvidence.denied
+  )
+  Add-SummaryLine -TextValue ("Adapter Reasons: " + (Get-StringValue -Value $model.adapterEvidence.reasons))
+}
 
 $detailsPanel = New-Object System.Windows.Forms.Panel
 $detailsPanel.Dock = "Fill"
@@ -341,10 +465,18 @@ $body.Controls.Add($detailsPanel, 2, 0) | Out-Null
 $detailsLayout = New-Object System.Windows.Forms.TableLayoutPanel
 $detailsLayout.Dock = "Fill"
 $detailsLayout.ColumnCount = 1
-$detailsLayout.RowCount = 2
-$detailsLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 24)))
+$detailsLayout.RowCount = 3
+$detailsLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 28)))
+$detailsLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 0)))
 $detailsLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
 $detailsPanel.Controls.Add($detailsLayout)
+
+$titleBar = New-Object System.Windows.Forms.TableLayoutPanel
+$titleBar.Dock = "Fill"
+$titleBar.ColumnCount = 2
+$titleBar.RowCount = 1
+$titleBar.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+$titleBar.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Absolute, 150)))
 
 $reportTitle = New-Object System.Windows.Forms.Label
 $reportTitle.Text = "Detailed Report"
@@ -352,7 +484,118 @@ $reportTitle.Dock = "Fill"
 $reportTitle.ForeColor = $colorText
 $reportTitle.Font = $fontTitle
 $reportTitle.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
-$detailsLayout.Controls.Add($reportTitle, 0, 0) | Out-Null
+$titleBar.Controls.Add($reportTitle, 0, 0) | Out-Null
+
+$btnToggleEvidence = New-Object System.Windows.Forms.Button
+$btnToggleEvidence.Text = "Show Adapter Evidence"
+$btnToggleEvidence.Width = 138
+$btnToggleEvidence.Height = 24
+$btnToggleEvidence.Dock = "Right"
+Style-Button -Button $btnToggleEvidence -Primary:$false
+$btnToggleEvidence.Visible = $false
+$titleBar.Controls.Add($btnToggleEvidence, 1, 0) | Out-Null
+
+$detailsLayout.Controls.Add($titleBar, 0, 0) | Out-Null
+
+$adapterPanel = New-Object System.Windows.Forms.Panel
+$adapterPanel.Dock = "Fill"
+$adapterPanel.BackColor = [System.Drawing.Color]::FromArgb(28, 30, 36)
+$adapterPanel.Padding = New-Object System.Windows.Forms.Padding(8, 6, 8, 6)
+$adapterPanel.Visible = $false
+$detailsLayout.Controls.Add($adapterPanel, 0, 1) | Out-Null
+
+$adapterTable = New-Object System.Windows.Forms.TableLayoutPanel
+$adapterTable.Dock = "Fill"
+$adapterTable.ColumnCount = 1
+$adapterTable.RowCount = 6
+$adapterTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 18)))
+$adapterTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 18)))
+$adapterTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 18)))
+$adapterTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 18)))
+$adapterTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 18)))
+$adapterTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 30)))
+$adapterPanel.Controls.Add($adapterTable) | Out-Null
+
+function Add-AdapterLine {
+  param([string]$TextValue)
+  $line = New-Object System.Windows.Forms.Label
+  $line.Text = $TextValue
+  $line.Dock = "Fill"
+  $line.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+  $line.ForeColor = $colorText
+  $line.Font = $fontSmall
+  [void]$adapterTable.Controls.Add($line)
+}
+
+$hasAdapterEvidence = $model.adapterEvidence -and $model.adapterEvidence.available
+if ($hasAdapterEvidence) {
+  $modeText = if ($model.adapterEvidence.mode -and $model.adapterEvidence.mode -ne "-") {
+    [string]$model.adapterEvidence.mode
+  } else {
+    "built_in"
+  }
+  Add-AdapterLine -TextValue ("Class: " + (Get-StringValue -Value $model.adapterEvidence.class))
+  Add-AdapterLine -TextValue ("Adapter: " + (Get-StringValue -Value $model.adapterEvidence.adapterId))
+  Add-AdapterLine -TextValue ("Mode: " + $modeText + "   Source: " + (Get-StringValue -Value $model.adapterEvidence.sourceFormat))
+  Add-AdapterLine -TextValue (
+    "Capabilities: requested=" + [string]$model.adapterEvidence.requested +
+    " granted=" + [string]$model.adapterEvidence.granted +
+    " denied=" + [string]$model.adapterEvidence.denied
+  )
+  Add-AdapterLine -TextValue ("Reasons: " + (Get-StringValue -Value $model.adapterEvidence.reasons))
+
+  $adapterActions = New-Object System.Windows.Forms.FlowLayoutPanel
+  $adapterActions.Dock = "Fill"
+  $adapterActions.FlowDirection = "LeftToRight"
+  $adapterActions.WrapContents = $false
+  $adapterActions.BackColor = $adapterPanel.BackColor
+
+  $btnOpenCapability = New-Object System.Windows.Forms.Button
+  $btnOpenCapability.Text = "Capability"
+  $btnOpenCapability.Width = 82
+  $btnOpenCapability.Height = 24
+  Style-Button -Button $btnOpenCapability -Primary:$false
+  $btnOpenCapability.Enabled = (Test-Path -LiteralPath $model.adapterEvidence.capabilityPath)
+  $btnOpenCapability.Add_Click({ Open-FileIfExists -PathValue $model.adapterEvidence.capabilityPath })
+  $adapterActions.Controls.Add($btnOpenCapability) | Out-Null
+
+  $btnOpenSummary = New-Object System.Windows.Forms.Button
+  $btnOpenSummary.Text = "Summary"
+  $btnOpenSummary.Width = 82
+  $btnOpenSummary.Height = 24
+  Style-Button -Button $btnOpenSummary -Primary:$false
+  $btnOpenSummary.Enabled = (Test-Path -LiteralPath $model.adapterEvidence.summaryPath)
+  $btnOpenSummary.Add_Click({ Open-FileIfExists -PathValue $model.adapterEvidence.summaryPath })
+  $adapterActions.Controls.Add($btnOpenSummary) | Out-Null
+
+  $btnOpenFindings = New-Object System.Windows.Forms.Button
+  $btnOpenFindings.Text = "Findings"
+  $btnOpenFindings.Width = 82
+  $btnOpenFindings.Height = 24
+  Style-Button -Button $btnOpenFindings -Primary:$false
+  $btnOpenFindings.Enabled = (Test-Path -LiteralPath $model.adapterEvidence.findingsPath)
+  $btnOpenFindings.Add_Click({ Open-FileIfExists -PathValue $model.adapterEvidence.findingsPath })
+  $adapterActions.Controls.Add($btnOpenFindings) | Out-Null
+
+  [void]$adapterTable.Controls.Add($adapterActions)
+}
+
+$adapterExpanded = $false
+if ($hasAdapterEvidence) {
+  $btnToggleEvidence.Visible = $true
+  $btnToggleEvidence.Add_Click({
+    $adapterExpanded = -not $adapterExpanded
+    if ($adapterExpanded) {
+      $adapterPanel.Visible = $true
+      $detailsLayout.RowStyles[1].Height = 128
+      $btnToggleEvidence.Text = "Hide Adapter Evidence"
+    } else {
+      $adapterPanel.Visible = $false
+      $detailsLayout.RowStyles[1].Height = 0
+      $btnToggleEvidence.Text = "Show Adapter Evidence"
+    }
+  })
+}
 
 $reportText = New-Object System.Windows.Forms.TextBox
 $reportText.Multiline = $true
@@ -367,7 +610,7 @@ $reportText.Text = ($reportLines -join [Environment]::NewLine)
 $reportText.SelectionStart = 0
 $reportText.SelectionLength = 0
 $reportText.ScrollToCaret()
-$detailsLayout.Controls.Add($reportText, 0, 1) | Out-Null
+$detailsLayout.Controls.Add($reportText, 0, 2) | Out-Null
 
 $footer = New-Object System.Windows.Forms.FlowLayoutPanel
 $footer.Dock = "Fill"
@@ -402,6 +645,16 @@ $btnCopy.Add_Click({
     "latest=" + (Get-StringValue -Value $model.latest),
     "buckets=" + (Get-StringValue -Value $model.buckets)
   ) -join [Environment]::NewLine
+  if ($model.adapterEvidence -and $model.adapterEvidence.available) {
+    $summary = $summary + [Environment]::NewLine + (
+      @(
+        "adapterClass=" + (Get-StringValue -Value $model.adapterEvidence.class),
+        "adapterId=" + (Get-StringValue -Value $model.adapterEvidence.adapterId),
+        "adapterMode=" + (Get-StringValue -Value $model.adapterEvidence.mode),
+        "capabilities=requested:" + [string]$model.adapterEvidence.requested + ",granted:" + [string]$model.adapterEvidence.granted + ",denied:" + [string]$model.adapterEvidence.denied
+      ) -join [Environment]::NewLine
+    )
+  }
   [System.Windows.Forms.Clipboard]::SetText($summary)
 })
 $footer.Controls.Add($btnCopy) | Out-Null
