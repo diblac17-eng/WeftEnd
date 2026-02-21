@@ -30,9 +30,8 @@ Short, strict release checklist (alpha).
 - Equivalent manual sequence (if needed):
   - npm run compile --silent
   - npm test
-  - In PowerShell:
-    - $env:WEFTEND_RELEASE_DIR = "tests\\fixtures\\release_demo"
-    - npm run proofcheck
+  - Strict release-smoke proofcheck:
+    - npm run proofcheck:release
   - npm run release-loop
 
 2.1) Optional GitHub Actions parity runs (manual, recommended before publish)

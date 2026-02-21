@@ -137,6 +137,8 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 9) Commit gate (contributors)
 - Before any reusable commit:
   npm run verify:360
+- Strict proofcheck with enforced release smoke fixture:
+  npm run proofcheck:release
 - Verify with strict adapter-maintenance gating enabled:
   npm run verify:360:adapter:strict
 - Enforce non-zero exit on PARTIAL verdicts:

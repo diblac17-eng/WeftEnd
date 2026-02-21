@@ -57,6 +57,8 @@ Included
 - Release bundle contract test now enforces `CHANGELOG.md` inclusion in release-zip staging and release-sidecar outputs.
 - Release bundle contract test now also enforces sidecar parity for `RELEASE_NOTES.txt`, `RELEASE_ANNOUNCEMENT.txt`, `QUICKSTART.txt`, and `RELEASE_CHECKLIST_ALPHA.md`.
 - Added Green Team `verify_360` docs-sync contract test to pin `CHANGELOG.md` + release announcement target coverage.
+- Added strict proofcheck wrapper command `npm run proofcheck:release` to enforce release smoke (`WEFTEND_RELEASE_DIR`) and clear skip override (`WEFTEND_ALLOW_SKIP_RELEASE`).
+- Added Green Team contract coverage for strict proofcheck wrapper behavior (`scripts/proofcheck_release.js`).
 - Emergency verify report path now preserves policy context lines (`policy.*`) so fail-closed receipts remain operator-readable under write-path fallback.
 - Safe-run now enforces a non-blocking evidence corridor check before completion:
 - Expected receipt artifacts are verified for presence and digest consistency.

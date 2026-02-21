@@ -58,6 +58,8 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Extended release bundle contract coverage to enforce `CHANGELOG.md` in packaging/checklist outputs.
 - Extended release bundle contract coverage to enforce sidecar parity for release notes/announcement/quickstart/checklist outputs.
 - Added Green Team contract test for `verify_360` docs-sync target coverage (`CHANGELOG.md`, release announcement, release notes).
+- Added `npm run proofcheck:release` wrapper to enforce strict release-smoke proofcheck (`WEFTEND_RELEASE_DIR` required, skip override cleared).
+- Added Green Team contract test for `scripts/proofcheck_release.js` strict behavior.
 - `verify:360:harness` now validates strict-mode idempotence separation (`NEW` then `REPLAY`) to prevent strict/non-strict replay-key regression.
 - Emergency verify report output now includes policy summary lines (`policy.*`) and failure receipts carry interpreted policy fields for consistent fail-closed readability.
 

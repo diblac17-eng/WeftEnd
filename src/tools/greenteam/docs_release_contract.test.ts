@@ -73,6 +73,10 @@ suite("greenteam/docs-release-contract", () => {
       quickstart.includes("npm run verify:360:release:managed"),
       "QUICKSTART missing managed verify command reference"
     );
+    assert(
+      quickstart.includes("npm run proofcheck:release"),
+      "QUICKSTART missing strict proofcheck release command reference"
+    );
 
     assert(
       releaseNotes.includes(".github/workflows/weftend_artifact_meter.yml"),
@@ -123,6 +127,10 @@ suite("greenteam/docs-release-contract", () => {
     assert(
       releaseChecklist.includes("WEFTEND_ALLOW_SKIP_RELEASE"),
       "RELEASE_CHECKLIST_ALPHA missing managed verify skip-override reference"
+    );
+    assert(
+      releaseChecklist.includes("npm run proofcheck:release"),
+      "RELEASE_CHECKLIST_ALPHA missing strict proofcheck release command reference"
     );
     assert(
       releaseChecklist.includes("CHANGELOG.md"),
