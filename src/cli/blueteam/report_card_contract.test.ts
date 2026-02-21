@@ -45,8 +45,17 @@ function suite(name: string, define: () => void): void {
 
 const makeTempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), "weftend-blue-report-"));
 
+const resolvePowerShellExe = (): string => {
+  const windir = String(process.env?.WINDIR || "").trim();
+  if (windir.length > 0) {
+    const candidate = path.join(windir, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return "powershell.exe";
+};
+
 const runWrapper = (targetPath: string, outRoot: string, repoRoot: string) => {
-  const ps = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
+  const ps = resolvePowerShellExe();
   const scriptPath = path.join(process.cwd(), "tools", "windows", "shell", "weftend_safe_run.ps1");
   const args = [
     "-NoProfile",
