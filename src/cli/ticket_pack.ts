@@ -72,6 +72,52 @@ const firstWordToken = (value: string): string => {
   return m ? m[1] : "";
 };
 
+const sortUniqueStrings = (values: string[]): string[] =>
+  Array.from(new Set(values.filter((v) => typeof v === "string" && String(v).trim().length > 0).map((v) => String(v).trim()))).sort((a, b) =>
+    cmpStrV0(a, b)
+  );
+
+const parseCompareReportFallback = (reportText: string): {
+  verdict?: "SAME" | "CHANGED";
+  buckets?: string[];
+  bucketCount?: number;
+} => {
+  const out: { verdict?: "SAME" | "CHANGED"; buckets?: string[]; bucketCount?: number } = {};
+  const lines = String(reportText || "")
+    .replace(/\r/g, "")
+    .split("\n");
+  for (const lineRaw of lines) {
+    const line = String(lineRaw || "").trim();
+    if (!line) continue;
+    if (!out.verdict && line.startsWith("verdict=")) {
+      const token = firstWordToken(line.slice("verdict=".length));
+      if (token === "SAME" || token === "CHANGED") out.verdict = token;
+      continue;
+    }
+    if (!out.verdict && line.startsWith("COMPARE ")) {
+      const token = firstWordToken(line.slice("COMPARE ".length));
+      if (token === "SAME" || token === "CHANGED") out.verdict = token;
+      continue;
+    }
+    if (out.buckets === undefined && line.startsWith("buckets=")) {
+      const payload = line.slice("buckets=".length).trim();
+      const m = payload.match(/^([0-9]+)\s*\((.*)\)$/);
+      if (!m) continue;
+      const count = Number.parseInt(m[1], 10);
+      if (Number.isFinite(count) && count >= 0) out.bucketCount = count;
+      const body = String(m[2] || "").trim();
+      if (!body || body === "-") {
+        out.buckets = [];
+      } else {
+        out.buckets = sortUniqueStrings(body.split(",").map((v) => String(v || "").trim()).filter((v) => v.length > 0));
+      }
+      continue;
+    }
+  }
+  if (out.buckets && out.bucketCount === undefined) out.bucketCount = out.buckets.length;
+  return out;
+};
+
 const collectOperatorEntries = (outRoot: string): { entries: string[]; issues: string[] } => {
   const operatorPath = path.join(outRoot, "operator_receipt.json");
   if (!fs.existsSync(operatorPath)) {
@@ -237,6 +283,44 @@ export const runTicketPackCli = (options: {
   const compareReceiptFileDigest = readFileDigest(compareReceiptPath);
   const compareReportFileDigest = readFileDigest(compareReportPath);
   const compareArtifacts = compareReceiptFileDigest !== "-" || compareReportFileDigest !== "-" ? "present" : "none";
+  let compareVerdict = "-";
+  let compareBuckets = "-";
+  let compareBucketCount = "-";
+  let compareChangeCount = "-";
+  try {
+    if (fs.existsSync(compareReceiptPath)) {
+      const compareReceipt = readJson(compareReceiptPath);
+      const verdict = String(getObjProp(compareReceipt, "verdict") ?? "").trim();
+      if (verdict === "SAME" || verdict === "CHANGED") compareVerdict = verdict;
+      const bucketRaw = getObjProp(compareReceipt, "changeBuckets");
+      if (Array.isArray(bucketRaw)) {
+        const buckets = sortUniqueStrings(bucketRaw.map((v: unknown) => String(v ?? "")).filter((v) => v.length > 0));
+        compareBuckets = buckets.length > 0 ? buckets.join(",") : "-";
+        compareBucketCount = String(buckets.length);
+      }
+      const changesRaw = getObjProp(compareReceipt, "changes");
+      if (Array.isArray(changesRaw)) {
+        compareChangeCount = String(changesRaw.length);
+      }
+    }
+  } catch {
+    // best effort summary
+  }
+  try {
+    if ((compareVerdict === "-" || compareBuckets === "-" || compareBucketCount === "-") && fs.existsSync(compareReportPath)) {
+      const fallback = parseCompareReportFallback(String(fs.readFileSync(compareReportPath, "utf8") || ""));
+      if (compareVerdict === "-" && fallback.verdict) compareVerdict = fallback.verdict;
+      if (compareBuckets === "-" && Array.isArray(fallback.buckets)) compareBuckets = fallback.buckets.length > 0 ? fallback.buckets.join(",") : "-";
+      if (compareBucketCount === "-" && typeof fallback.bucketCount === "number" && Number.isFinite(fallback.bucketCount) && fallback.bucketCount >= 0) {
+        compareBucketCount = String(fallback.bucketCount);
+      }
+      if (compareChangeCount === "-" && typeof fallback.bucketCount === "number" && Number.isFinite(fallback.bucketCount) && fallback.bucketCount >= 0) {
+        compareChangeCount = String(fallback.bucketCount);
+      }
+    }
+  } catch {
+    // best effort summary
+  }
   try {
     if (fs.existsSync(safePath)) {
       const safe = readJson(safePath);
@@ -368,6 +452,10 @@ export const runTicketPackCli = (options: {
     `compareArtifacts=${compareArtifacts}`,
     `compareReceiptFileDigest=${compareReceiptFileDigest}`,
     `compareReportFileDigest=${compareReportFileDigest}`,
+    `compareVerdict=${compareVerdict}`,
+    `compareBuckets=${compareBuckets}`,
+    `compareBucketCount=${compareBucketCount}`,
+    `compareChangeCount=${compareChangeCount}`,
     `reportRunId=${reportRunId}`,
     `reportLibraryKey=${reportLibraryKey}`,
     `reportStatus=${reportStatus}`,

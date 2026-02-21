@@ -63,7 +63,7 @@ const testTicketPack = async () => {
   fs.writeFileSync(path.join(runDir, "compare_report.txt"), "COMPARE SAME\nchanges=0\n", "utf8");
   fs.writeFileSync(
     path.join(runDir, "compare_receipt.json"),
-    JSON.stringify({ schema: "weftend.compareReceipt/0", schemaVersion: 0, verdict: "SAME" }),
+    JSON.stringify({ schema: "weftend.compareReceipt/0", schemaVersion: 0, verdict: "SAME", changeBuckets: [], changes: [] }),
     "utf8"
   );
 
@@ -94,6 +94,10 @@ const testTicketPack = async () => {
   assert(summary.includes("compareArtifacts="), "ticket summary missing compare artifact presence");
   assert(summary.includes("compareReceiptFileDigest="), "ticket summary missing compare receipt digest");
   assert(summary.includes("compareReportFileDigest="), "ticket summary missing compare report digest");
+  assert(summary.includes("compareVerdict="), "ticket summary missing compare verdict");
+  assert(summary.includes("compareBuckets="), "ticket summary missing compare buckets");
+  assert(summary.includes("compareBucketCount="), "ticket summary missing compare bucket count");
+  assert(summary.includes("compareChangeCount="), "ticket summary missing compare change count");
   assert(summary.includes("artifactFingerprint="), "ticket summary missing artifact fingerprint");
   assert(summary.includes("artifactDigest="), "ticket summary missing artifact digest");
   assert(summary.includes("adapterEvidence="), "ticket summary missing adapterEvidence");
@@ -105,6 +109,10 @@ const testTicketPack = async () => {
   assert(String(summaryMap.compareArtifacts || "") === "present", "compareArtifacts must be present when compare files exist");
   assert(isSha256Line(summaryMap.compareReceiptFileDigest), "compareReceiptFileDigest must be sha256:<64hex>");
   assert(isSha256Line(summaryMap.compareReportFileDigest), "compareReportFileDigest must be sha256:<64hex>");
+  assert(String(summaryMap.compareVerdict || "") === "SAME", "compareVerdict must match compare receipt/report");
+  assert(String(summaryMap.compareBuckets || "") === "-", "compareBuckets must reflect empty compare bucket set");
+  assert(String(summaryMap.compareBucketCount || "") === "0", "compareBucketCount must be 0 for empty compare bucket set");
+  assert(String(summaryMap.compareChangeCount || "") === "0", "compareChangeCount must be 0 for empty compare change set");
   assert(String(summaryMap.reportRunId || "") === "run_deadbeefcafebabe", "reportRunId must match report_card_v0 source");
   assert(String(summaryMap.reportLibraryKey || "") === "ticket_pack_test_key", "reportLibraryKey must match report_card_v0 source");
   assert(String(summaryMap.reportStatus || "") === "SAME", "reportStatus must match report_card_v0 source");
@@ -215,6 +223,10 @@ const testTicketPack = async () => {
   assert(String(txtOnlySummaryMap.compareArtifacts || "") === "none", "txt-only compareArtifacts should be none");
   assert(String(txtOnlySummaryMap.compareReceiptFileDigest || "") === "-", "txt-only compareReceiptFileDigest should be placeholder");
   assert(String(txtOnlySummaryMap.compareReportFileDigest || "") === "-", "txt-only compareReportFileDigest should be placeholder");
+  assert(String(txtOnlySummaryMap.compareVerdict || "") === "-", "txt-only compareVerdict should be placeholder");
+  assert(String(txtOnlySummaryMap.compareBuckets || "") === "-", "txt-only compareBuckets should be placeholder");
+  assert(String(txtOnlySummaryMap.compareBucketCount || "") === "-", "txt-only compareBucketCount should be placeholder");
+  assert(String(txtOnlySummaryMap.compareChangeCount || "") === "-", "txt-only compareChangeCount should be placeholder");
   assert(
     String(txtOnlySummaryMap.artifactFingerprint || "") ===
       "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -226,6 +238,25 @@ const testTicketPack = async () => {
     "txt-only artifactDigest fallback failed"
   );
   assert(isSha256Line(txtOnlySummaryMap.reportCardFileDigest), "txt-only reportCardFileDigest must be sha256:<64hex>");
+
+  const compareTxtOnlyRunDir = path.join(root, "compare_txt_only_run");
+  const compareTxtOnlyPackDir = path.join(root, "compare_txt_only_pack");
+  const compareTxtOnlyRun = await runCliCapture(["safe-run", input, "--out", compareTxtOnlyRunDir]);
+  assert(compareTxtOnlyRun.status === 0, `compare-txt-only safe-run failed: ${compareTxtOnlyRun.stderr}`);
+  fs.writeFileSync(
+    path.join(compareTxtOnlyRunDir, "compare_report.txt"),
+    ["WEFTEND COMPARE", "verdict=CHANGED", "buckets=2 (CONTENT_CHANGED,DIGEST_CHANGED)"].join("\n") + "\n",
+    "utf8"
+  );
+  const compareTxtOnlyPack = await runCliCapture(["ticket-pack", compareTxtOnlyRunDir, "--out", compareTxtOnlyPackDir]);
+  assert(compareTxtOnlyPack.status === 0, `ticket-pack compare-txt-only run failed: ${compareTxtOnlyPack.stderr}`);
+  const compareTxtOnlySummary = readText(path.join(compareTxtOnlyPackDir, "ticket_pack", "ticket_summary.txt"));
+  const compareTxtOnlyMap = parseKeyValueSummary(compareTxtOnlySummary);
+  assert(String(compareTxtOnlyMap.compareArtifacts || "") === "present", "compare-txt-only compareArtifacts should be present");
+  assert(String(compareTxtOnlyMap.compareVerdict || "") === "CHANGED", "compare-txt-only compareVerdict fallback failed");
+  assert(String(compareTxtOnlyMap.compareBuckets || "") === "CONTENT_CHANGED,DIGEST_CHANGED", "compare-txt-only compareBuckets fallback failed");
+  assert(String(compareTxtOnlyMap.compareBucketCount || "") === "2", "compare-txt-only compareBucketCount fallback failed");
+  assert(String(compareTxtOnlyMap.compareChangeCount || "") === "2", "compare-txt-only compareChangeCount fallback failed");
 };
 
 testTicketPack()
