@@ -70,6 +70,10 @@ Included
 - Added host runtime test assertions that no host receipt `.stage` files remain after finalize.
 - Shared README receipt writer now uses staged atomic finalize (`weftend/README.txt.stage` -> `weftend/README.txt`).
 - Added runtime coverage for deterministic README build/write and no leftover README `.stage` residue.
+- Shared operator receipt writer now uses staged atomic finalize (`operator_receipt.json.stage` -> `operator_receipt.json`).
+- Host runner receipt output now uses staged atomic finalize (`host_run_receipt.json.stage` -> `host_run_receipt.json`).
+- Added runtime coverage for deterministic operator receipt build/write and no leftover operator receipt `.stage` residue.
+- Added host CLI smoke assertions that host/operator receipt `.stage` files do not remain after finalize.
 - Safe-run now enforces a non-blocking evidence corridor check before completion:
 - Expected receipt artifacts are verified for presence and digest consistency.
 - Pre-existing/stale unmanaged output files anywhere under the run out-root are flagged as orphan evidence.

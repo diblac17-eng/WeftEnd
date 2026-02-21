@@ -81,11 +81,13 @@ suite("runtime/host cli", () => {
     assertEq(res.status, 40, `expected expected-failure exit code\n${res.stderr}`);
     const receiptPath = path.join(outDir, "host_run_receipt.json");
     assert(fs.existsSync(receiptPath), "expected host_run_receipt.json");
+    assert(!fs.existsSync(`${receiptPath}.stage`), "host run receipt stage file must not remain after finalize");
     const receipt = JSON.parse(fs.readFileSync(receiptPath, "utf8"));
     const issues = validateHostRunReceiptV0(receipt, "receipt");
     assertEq(issues.length, 0, "expected receipt to validate");
     const operatorPath = path.join(outDir, "operator_receipt.json");
     assert(fs.existsSync(operatorPath), "expected operator_receipt.json");
+    assert(!fs.existsSync(`${operatorPath}.stage`), "operator receipt stage file must not remain after finalize");
     const operator = JSON.parse(fs.readFileSync(operatorPath, "utf8"));
     const opIssues = validateOperatorReceiptV0(operator, "operatorReceipt");
     assertEq(opIssues.length, 0, "expected operator receipt to validate");

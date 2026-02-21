@@ -64,6 +64,9 @@ export const buildOperatorReceiptV0 = (input: {
 export const writeOperatorReceiptV0 = (outRoot: string, receipt: OperatorReceiptV0): string => {
   fs.mkdirSync(outRoot, { recursive: true });
   const target = path.join(outRoot, RECEIPT_NAME);
-  fs.writeFileSync(target, `${canonicalJSON(receipt)}\n`, "utf8");
+  const stagePath = `${target}.stage`;
+  fs.rmSync(stagePath, { recursive: true, force: true });
+  fs.writeFileSync(stagePath, `${canonicalJSON(receipt)}\n`, "utf8");
+  fs.renameSync(stagePath, target);
   return target;
 };

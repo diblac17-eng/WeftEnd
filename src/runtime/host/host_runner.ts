@@ -516,8 +516,12 @@ export const runHostStrictV0 = async (options: HostRunOptionsV0): Promise<{ rece
   }
 
   fs.mkdirSync(options.outDir, { recursive: true });
+  const receiptPath = path.join(options.outDir, RECEIPT_NAME);
+  const stagePath = `${receiptPath}.stage`;
   const receiptText = `${canonicalJSON(receipt)}\n`;
-  fs.writeFileSync(path.join(options.outDir, RECEIPT_NAME), receiptText, "utf8");
+  fs.rmSync(stagePath, { recursive: true, force: true });
+  fs.writeFileSync(stagePath, receiptText, "utf8");
+  fs.renameSync(stagePath, receiptPath);
 
   const exitCode =
     execute.result === "ALLOW" && executionOk === true
