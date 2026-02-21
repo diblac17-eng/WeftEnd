@@ -1079,6 +1079,24 @@ function Copy-HistoryDigestText {
   }
 }
 
+function Copy-DoctorOutputText {
+  param(
+    [System.Windows.Forms.TextBox]$DoctorBox,
+    [System.Windows.Forms.Label]$StatusLabel
+  )
+  try {
+    $text = if ($DoctorBox -and $DoctorBox.Text) { [string]$DoctorBox.Text } else { "" }
+    if (-not $text -or $text.Trim() -eq "") {
+      Set-StatusLine -StatusLabel $StatusLabel -Message "No doctor output to copy." -IsError $true
+      return
+    }
+    [System.Windows.Forms.Clipboard]::SetText($text)
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Copied doctor output." -IsError $false
+  } catch {
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Doctor output copy failed." -IsError $true
+  }
+}
+
 function Load-HistoryRows {
   param([System.Windows.Forms.ListView]$ListView)
   if (-not $ListView) { return 0 }
@@ -1539,6 +1557,13 @@ $btnAdapterDoctorStrictRun.Height = 30
 Style-Button -Button $btnAdapterDoctorStrictRun -Primary:$false
 $doctorActions.Controls.Add($btnAdapterDoctorStrictRun) | Out-Null
 
+$btnDoctorCopy = New-Object System.Windows.Forms.Button
+$btnDoctorCopy.Text = "Copy Doctor Output"
+$btnDoctorCopy.Width = 130
+$btnDoctorCopy.Height = 30
+Style-Button -Button $btnDoctorCopy -Primary:$false
+$doctorActions.Controls.Add($btnDoctorCopy) | Out-Null
+
 $doctorText = New-Object System.Windows.Forms.TextBox
 $doctorText.Dock = "Fill"
 $doctorText.Multiline = $true
@@ -1734,6 +1759,16 @@ $btnAdapterDoctorStrictRun.Add_Click({
     Set-StatusLine -StatusLabel $statusLabel -Message "Adapter doctor strict check passed." -IsError $false
   } else {
     Set-StatusLine -StatusLabel $statusLabel -Message ("Adapter doctor strict check failed (" + [string]$result.code + ").") -IsError $true
+  }
+})
+$btnDoctorCopy.Add_Click({
+  Copy-DoctorOutputText -DoctorBox $doctorText -StatusLabel $statusLabel
+})
+$doctorText.Add_KeyDown({
+  param($sender, $e)
+  if ($e.Control -and $e.KeyCode -eq [System.Windows.Forms.Keys]::C) {
+    $e.Handled = $true
+    Copy-DoctorOutputText -DoctorBox $doctorText -StatusLabel $statusLabel
   }
 })
 

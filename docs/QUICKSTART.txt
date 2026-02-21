@@ -128,6 +128,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   - `Run Shell Doctor` for shell integration checks.
   - `Run Adapter Doctor` for adapter/plugin maintenance health (`adapter doctor --text`).
   - `Run Adapter Doctor (Strict)` for fail-closed adapter health (`adapter doctor --text --strict`).
+  - `Copy Doctor Output` (or `Ctrl+C` in doctor output pane) for direct support/ticket sharing.
 - Behavior:
   - SAME vs baseline: launch allowed.
   - CHANGED/BLOCKED vs baseline: explicit accept/decline flow.
