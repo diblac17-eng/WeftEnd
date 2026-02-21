@@ -332,6 +332,17 @@ export const renderCompareReportV0 = (input: {
   lines.push("WEFTEND COMPARE");
   lines.push(`verdict=${input.verdict}`);
   lines.push(`buckets=${input.changeBuckets.length} (${input.changeBuckets.join(",") || "-"})`);
+  lines.push("EVIDENCE TAGS: [OBS]=observed from receipts [INF]=inferred from OBS [POL]=policy/decision rule [SYS]=runtime/system condition");
+  lines.push("evidence.verdict=[POL]");
+  lines.push("evidence.buckets=[INF]");
+  lines.push("evidence.artifactDigest=[OBS]");
+  lines.push("evidence.result=[OBS]");
+  lines.push("evidence.policy=[OBS]");
+  lines.push("evidence.kindProfile=[INF]");
+  lines.push("evidence.reasonCodes=[OBS]");
+  lines.push("evidence.externalRefs=[OBS]");
+  lines.push("evidence.content=[OBS]");
+  lines.push("evidence.hostTruth=[OBS]");
   lines.push("");
   lines.push(`artifactDigest=${input.leftSummary.artifactDigest ?? "UNKNOWN"} -> ${input.rightSummary.artifactDigest ?? "UNKNOWN"}`);
   lines.push(`result=${input.leftSummary.result} -> ${input.rightSummary.result}`);

@@ -142,6 +142,10 @@ suite("cli/compare", () => {
     assertEq(orphans.length, 0, `compare output must not include orphan files\n${orphans.join(",")}`);
 
     const report = fs.readFileSync(compareReportPath, "utf8");
+    assert(report.includes("EVIDENCE TAGS:"), "compare report must include evidence tags legend");
+    assert(report.includes("evidence.verdict=[POL]"), "compare report must include verdict evidence claim");
+    assert(report.includes("evidence.buckets=[INF]"), "compare report must include bucket evidence claim");
+    assert(report.includes("evidence.artifactDigest=[OBS]"), "compare report must include artifact digest evidence claim");
     assert(!/[A-Za-z]:\\/.test(report), "compare report must not include absolute Windows paths");
     assert(!/\/Users\//.test(report), "compare report must not include user paths");
     assert(!/HOME=/.test(report), "compare report must not include env markers");

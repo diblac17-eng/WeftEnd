@@ -108,6 +108,12 @@ suite("blueteam/report-card", () => {
     assert(report.includes("LATEST:"), "expected LATEST in report card");
     assert(report.includes("FINGERPRINT:"), "expected FINGERPRINT in report card");
     assert(report.includes("HISTORY:"), "expected HISTORY in report card");
+    assert(report.includes("EVIDENCE TAGS:"), "expected evidence tags legend in report card");
+    assert(report.includes("evidence.classification=[INF]"), "expected classification evidence mapping in report card");
+    assert(report.includes("evidence.observed=[OBS]"), "expected observed evidence mapping in report card");
+    assert(report.includes("evidence.posture=[POL]"), "expected posture evidence mapping in report card");
+    assert(report.includes("evidence.privacyLint=[SYS]"), "expected privacy evidence mapping in report card");
+    assert(report.includes("evidence.buildDigest=[SYS]"), "expected build evidence mapping in report card");
     assert(!/[A-Za-z]:\\/.test(report), "report card must not include absolute Windows paths");
     assert(!/\/Users\//.test(report), "report card must not include user paths");
   });

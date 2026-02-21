@@ -5,6 +5,20 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 
 ## [Unreleased]
 
+### Evidence typing in reports
+- Windows `report_card.txt` now includes an additive evidence legend and claim mapping block:
+  - `EVIDENCE TAGS: ...`
+  - `evidence.classification=[INF]`
+  - `evidence.observed=[OBS]`
+  - `evidence.posture=[POL]`
+  - `evidence.privacyLint=[SYS]`
+  - `evidence.buildDigest=[SYS]`
+- `report_card_v0.json` now includes additive `evidence` metadata (`legend` + `claims`) for the same claim typing.
+- `compare_report.txt` now includes additive evidence legend and claim mapping lines for verdict/buckets/digest and related compare claims.
+- Added/updated contract coverage:
+  - Blue Team report card contract now requires evidence legend/mapping presence.
+  - Compare CLI smoke now requires compare-report evidence legend/mapping presence.
+
 ### Per-file staged finalize hardening
 - Compare output text artifacts now write with per-file stage/finalize (`<file>.stage -> <file>`) inside the existing staged out-root flow.
 - Ticket-pack summary/manifest/checksum artifacts now write with per-file stage/finalize inside `ticket_pack.stage`.

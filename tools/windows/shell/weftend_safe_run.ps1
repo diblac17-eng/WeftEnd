@@ -534,6 +534,14 @@ function Write-ReportCard {
   $latestId = "-"
   $bucketText = "-"
   $historyLine = "[ ] [ ] [ ] [ ] [ ]"
+  $evidenceLegendLine = "EVIDENCE TAGS: [OBS]=observed from receipts [INF]=inferred from OBS [POL]=policy/decision [SYS]=runtime/system condition"
+  $evidenceClaimLines = @(
+    "evidence.classification=[INF]",
+    "evidence.observed=[OBS]",
+    "evidence.posture=[POL]",
+    "evidence.privacyLint=[SYS]",
+    "evidence.buildDigest=[SYS]"
+  )
   try {
     if (-not $Summary) { $Summary = @{} }
     $stateLines = @()
@@ -601,8 +609,10 @@ function Write-ReportCard {
         "FINGERPRINT: $artifactFingerprint",
         "BUCKETS: $bucketText",
         "HISTORY: $historyLine",
-        "LEGEND: [ ]=same [X]=changed letters=C X R P H B D"
+        "LEGEND: [ ]=same [X]=changed letters=C X R P H B D",
+        $evidenceLegendLine
       )
+      $stateLines += $evidenceClaimLines
     }
     $targetKind = if ($Summary.targetKind) { $Summary.targetKind } else { "unknown" }
     $artifactKind = if ($Summary.artifactKind) { $Summary.artifactKind } else { "unknown" }
@@ -818,6 +828,16 @@ function Write-ReportCard {
       artifactKind = $artifactKind
       requestedTarget = $requestedLabel
       scanTarget = $scanLabel
+      evidence = [ordered]@{
+        legend = $evidenceLegendLine
+        claims = [ordered]@{
+          classification = "INF"
+          observed = "OBS"
+          posture = "POL"
+          privacyLint = "SYS"
+          buildDigest = "SYS"
+        }
+      }
       meaning = $meaning
       next = $next
       receipt = "safe_run_receipt.json"
@@ -887,6 +907,12 @@ function Write-ReportCard {
       "BUCKETS: $bucketFallback",
       "HISTORY: $historyFallback",
       "LEGEND: [ ]=same [X]=changed letters=C X R P H B D",
+      $evidenceLegendLine,
+      "evidence.classification=[INF]",
+      "evidence.observed=[OBS]",
+      "evidence.posture=[POL]",
+      "evidence.privacyLint=[SYS]",
+      "evidence.buildDigest=[SYS]",
       "targets=requested:$requestedLabel scan:$scanLabel",
       "artifactFingerprint=$artifactFingerprint",
       "artifactDigest=$artifactDigest",
@@ -920,6 +946,16 @@ function Write-ReportCard {
       artifactFingerprintSource = $artifactFingerprintSource
       requestedTarget = $requestedLabel
       scanTarget = $scanLabel
+      evidence = [ordered]@{
+        legend = $evidenceLegendLine
+        claims = [ordered]@{
+          classification = "INF"
+          observed = "OBS"
+          posture = "POL"
+          privacyLint = "SYS"
+          buildDigest = "SYS"
+        }
+      }
       lines = $fallback
     }
     ($reportJson | ConvertTo-Json -Depth 6) | Set-Content -Path $reportJsonPath -Encoding UTF8
@@ -1724,6 +1760,12 @@ try {
   $execution = if ($summary.executionVerdict) { $summary.executionVerdict } else { "UNKNOWN" }
   $entry = if ($summary.entryHints -and $summary.entryHints.Count -gt 0) { ($summary.entryHints -join ",") } else { "none" }
   $fallback = @(
+    "EVIDENCE TAGS: [OBS]=observed from receipts [INF]=inferred from OBS [POL]=policy/decision [SYS]=runtime/system condition",
+    "evidence.classification=[INF]",
+    "evidence.observed=[OBS]",
+    "evidence.posture=[POL]",
+    "evidence.privacyLint=[SYS]",
+    "evidence.buildDigest=[SYS]",
     "classification=target:$targetKind artifact:$artifactKind entryHints=$entry",
     "observed=files:$files bytes:$bytes scripts:$hasScripts native:$hasNative externalRefs:$extRefs bounded=-",
     "posture=analysis:$analysis exec:$execution reason:$reason",
