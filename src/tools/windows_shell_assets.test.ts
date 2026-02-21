@@ -286,6 +286,7 @@ suite("tools/windows shell assets", () => {
     assert(/Invoke-AdapterDoctorText/.test(panelText), "expected adapter doctor helper");
     assert(/Invoke-ShellDoctorText/.test(panelText), "expected shell doctor helper");
     assert(/-RepairReportViewer/.test(panelText), "expected shell doctor repair-viewer switch wiring");
+    assert(/& \$powershellExe @args/.test(panelText), "expected shell doctor invocation to use resolved powershell executable path");
     assert(/Copy-DoctorOutputText/.test(panelText), "expected doctor output copy helper");
     assert(/Update-HistoryDetailsBox/.test(panelText), "expected history details update helper");
     assert(/SelectedIndexChanged/.test(panelText), "expected history selection details wiring");

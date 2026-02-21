@@ -19,6 +19,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Shell doctor now emits deterministic terminal status lines (`ShellDoctorStatus: PASS` or `ShellDoctorStatus: FAIL code=SHELL_DOCTOR_CONFIG_INVALID`) so Launchpad can surface stable non-repair failure codes.
 - Launchpad adapter doctor strict parsing now also supports `strict.reasons=...` fallback extraction (first deterministic reason code) when bracketed reason lines are absent.
 - Launchpad shell doctor parsing now prioritizes explicit `ShellDoctorStatus: FAIL code=...` extraction before generic `code=` fallback parsing.
+- Launchpad shell doctor invocation now uses resolved `$powershellExe` path instead of command-name lookup to reduce PATH-dependent behavior drift.
 - Updated Windows shell asset contract coverage to pin startup failure-counter behavior.
 - Launchpad History report-open success now resets viewer startup state (`UseReportViewer=1`, `ReportViewerAutoOpen=1`, `ReportViewerStartFailCount=0`) so operator manual opens can self-heal auto-open disable state.
 

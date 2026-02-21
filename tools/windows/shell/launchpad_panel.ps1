@@ -408,7 +408,7 @@ function Invoke-ShellDoctorText {
     if ($RepairReportViewer.IsPresent) {
       $args += "-RepairReportViewer"
     }
-    $outputRaw = @(& powershell @args 2>&1)
+    $outputRaw = @(& $powershellExe @args 2>&1)
     $outputText = [string](($outputRaw | ForEach-Object { [string]$_ }) -join [Environment]::NewLine)
     if (-not $outputText) { $outputText = "" }
     $exitCode = [int]$LASTEXITCODE
