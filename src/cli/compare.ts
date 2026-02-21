@@ -406,6 +406,11 @@ const buildCompareOperatorEntries = (rootDir: string, compareReceiptDigest: stri
   if (readmeDigest) {
     entries.push({ kind: "receipt_readme", relPath: readmeRel, digest: readmeDigest });
   }
+  const privacyRel = "weftend/privacy_lint_v0.json";
+  const privacyDigest = digestIfExists(path.join(rootDir, privacyRel));
+  if (privacyDigest) {
+    entries.push({ kind: "privacy_lint_report", relPath: privacyRel, digest: privacyDigest });
+  }
   return entries;
 };
 
@@ -563,6 +568,20 @@ export const runCompareCliV0 = (options: RunCompareCliOptionsV0): number => {
     });
     writeOperatorReceiptV0(stageRoot, operator);
     privacy = runPrivacyLintV0({ root: stageRoot, weftendBuild: receipt.weftendBuild });
+  }
+
+  operator = buildOperatorReceiptV0({
+    command: "compare",
+    weftendBuild: receipt.weftendBuild,
+    schemaVersion: receipt.schemaVersion,
+    entries: buildCompareOperatorEntries(stageRoot, receipt.receiptDigest),
+    warnings: [...(receipt.weftendBuild.reasonCodes ?? []), ...(receipt.reasonCodes ?? [])],
+  });
+  writeOperatorReceiptV0(stageRoot, operator);
+  const privacyFinal = runPrivacyLintV0({ root: stageRoot, weftendBuild: receipt.weftendBuild, writeReport: false });
+  if (privacyFinal.report.verdict !== "PASS") {
+    console.error("[COMPARE_PRIVACY_LINT_FAIL] compare output failed privacy lint.");
+    return 40;
   }
 
   if (!finalizeCompareOutRoot(stageRoot, outRoot)) {

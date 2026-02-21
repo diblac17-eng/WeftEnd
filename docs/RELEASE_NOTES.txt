@@ -279,6 +279,7 @@ Included
 - Compare CLI smoke coverage now pins staged-finalize replacement behavior (stale pre-existing output roots are replaced and `.stage` residue is absent after successful finalize).
 - Compare now fails closed when `--out` matches either input root (`COMPARE_OUT_CONFLICTS_INPUT`) to prevent destructive output-finalize collisions.
 - Compare operator receipts now include full compare evidence links (`compare_receipt.json`, `compare_report.txt`, `weftend/README.txt`) instead of compare-receipt-only linkage.
+- Compare operator receipts now also include `weftend/privacy_lint_v0.json`, and compare runs perform a final no-write privacy-lint recheck after final operator receipt write.
 - Ticket-pack contract coverage now enforces report-state extraction from `report_card_v0.json` and validates digest identity line format (`sha256:<64hex>`) in `ticket_summary.txt`.
 - Ticket-pack contract coverage now also enforces text fallback parsing from `report_card.txt` (`STATUS/BASELINE/LATEST/BUCKETS` plus key-value lines) when structured report JSON is absent.
 - Windows shell `report_card.txt` and `report_card_v0.json` now include adapter metadata and capability counts when adapter evidence exists:

@@ -63,6 +63,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Compare CLI smoke tests now pin staged-finalize replacement behavior (pre-existing stale output roots are replaced and no `.stage` residue remains on success).
 - Compare now fails closed when `--out` conflicts with either input root (`COMPARE_OUT_CONFLICTS_INPUT`), preventing destructive finalize collisions.
 - Compare operator receipts now include full compare evidence pointers (`compare_receipt.json`, `compare_report.txt`, `weftend/README.txt`) for stronger out-root evidence-chain completeness.
+- Compare operator receipts now also include `weftend/privacy_lint_v0.json`, and compare now performs a final no-write privacy-lint recheck after final operator-receipt write.
 - Ticket-pack contract tests now pin report-state parsing from `report_card_v0.json` and enforce digest-line format (`sha256:<64hex>`) for ticket summary identity fields.
 - Ticket-pack contract tests now also pin text fallback parsing from `report_card.txt` (`STATUS/BASELINE/LATEST/BUCKETS` and key-value lines) when structured report JSON is absent.
 - Windows shell report card outputs now surface adapter evidence directly:

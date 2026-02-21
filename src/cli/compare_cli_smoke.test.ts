@@ -104,6 +104,7 @@ suite("cli/compare", () => {
     assert(relPaths.includes("compare_receipt.json"), "operator receipt must include compare_receipt.json");
     assert(relPaths.includes("compare_report.txt"), "operator receipt must include compare_report.txt");
     assert(relPaths.includes("weftend/README.txt"), "operator receipt must include weftend/README.txt");
+    assert(relPaths.includes("weftend/privacy_lint_v0.json"), "operator receipt must include weftend/privacy_lint_v0.json");
     const digestLines = operator.receipts.map((r: any) => String(r.digest || ""));
     assert(digestLines.every((d: string) => /^sha256:[a-f0-9]{64}$/.test(d)), "operator receipt digests must be sha256:<64hex>");
 
