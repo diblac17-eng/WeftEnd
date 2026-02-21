@@ -399,15 +399,20 @@ const finalizeFailure = (options: {
     console.error("[CONTAINER_SCAN_FINALIZE_FAILED] unable to finalize staged output.");
     return 1;
   }
-  try {
-    updateLibraryViewFromRunV0({
-      outDir: options.outDir,
-      privacyVerdict: privacy.report.verdict,
-      hostSelfStatus: receipt.hostSelfStatus,
-      hostSelfReasonCodes: receipt.hostSelfReasonCodes ?? [],
-    });
-  } catch {
-    // best-effort library update only
+  const libraryUpdate = (() => {
+    try {
+      return updateLibraryViewFromRunV0({
+        outDir: options.outDir,
+        privacyVerdict: privacy.report.verdict,
+        hostSelfStatus: receipt.hostSelfStatus,
+        hostSelfReasonCodes: receipt.hostSelfReasonCodes ?? [],
+      });
+    } catch {
+      return { ok: false, code: "LIBRARY_VIEW_UPDATE_FAILED", skipped: false };
+    }
+  })();
+  if (!libraryUpdate.ok && !libraryUpdate.skipped) {
+    console.error(`[${libraryUpdate.code ?? "LIBRARY_VIEW_UPDATE_FAILED"}] library view update failed.`);
   }
 
   console.log(summarizeContainerScan(receipt, privacy.report.verdict, options.inputRef));
@@ -580,15 +585,20 @@ const finalizeSuccess = (options: {
     console.error("[CONTAINER_SCAN_FINALIZE_FAILED] unable to finalize staged output.");
     return 1;
   }
-  try {
-    updateLibraryViewFromRunV0({
-      outDir: options.outDir,
-      privacyVerdict: privacy.report.verdict,
-      hostSelfStatus: receipt.hostSelfStatus,
-      hostSelfReasonCodes: receipt.hostSelfReasonCodes ?? [],
-    });
-  } catch {
-    // best-effort library update only
+  const libraryUpdate = (() => {
+    try {
+      return updateLibraryViewFromRunV0({
+        outDir: options.outDir,
+        privacyVerdict: privacy.report.verdict,
+        hostSelfStatus: receipt.hostSelfStatus,
+        hostSelfReasonCodes: receipt.hostSelfReasonCodes ?? [],
+      });
+    } catch {
+      return { ok: false, code: "LIBRARY_VIEW_UPDATE_FAILED", skipped: false };
+    }
+  })();
+  if (!libraryUpdate.ok && !libraryUpdate.skipped) {
+    console.error(`[${libraryUpdate.code ?? "LIBRARY_VIEW_UPDATE_FAILED"}] library view update failed.`);
   }
 
   console.log(summarizeContainerScan(receipt, privacy.report.verdict, options.inputRef));

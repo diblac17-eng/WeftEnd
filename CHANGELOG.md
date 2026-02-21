@@ -83,6 +83,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Watch trigger output now stages/finalizes `watch_trigger.txt` atomically and cleans `.stage` residue on write failure.
 - `run` operator receipts now include deterministic entry coverage for mint/decision/disclosure/appeal/readme artifacts and perform evidence presence/digest/orphan checks before finalize summary output.
 - Safe-run/container evidence verification now treats `*_receipt.json` artifacts as presence-only evidence links (not raw file-digest comparisons), removing false `SAFE_RUN_EVIDENCE_DIGEST_MISMATCH` warnings in nominal flows.
+- Safe-run/container no longer silently swallow library view update failures after finalize; failures are now surfaced with explicit deterministic reason codes while preserving completed run artifacts.
 - Ticket-pack contract tests now pin report-state parsing from `report_card_v0.json` and enforce digest-line format (`sha256:<64hex>`) for ticket summary identity fields.
 - Ticket-pack contract tests now also pin text fallback parsing from `report_card.txt` (`STATUS/BASELINE/LATEST/BUCKETS` and key-value lines) when structured report JSON is absent.
 - Windows shell report card outputs now surface adapter evidence directly:

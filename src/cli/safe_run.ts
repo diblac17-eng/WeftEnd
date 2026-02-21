@@ -851,15 +851,20 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
       console.error("[SAFE_RUN_FINALIZE_FAILED] unable to finalize staged output.");
       return { ok: false as const, code: 1 };
     }
-    try {
-      updateLibraryViewFromRunV0({
-        outDir: finalOutDir,
-        privacyVerdict: privacy.report.verdict,
-        hostSelfStatus: receipt.hostSelfStatus,
-        hostSelfReasonCodes: receipt.hostSelfReasonCodes ?? [],
-      });
-    } catch {
-      // best-effort view update only
+    const libraryUpdate = (() => {
+      try {
+        return updateLibraryViewFromRunV0({
+          outDir: finalOutDir,
+          privacyVerdict: privacy.report.verdict,
+          hostSelfStatus: receipt.hostSelfStatus,
+          hostSelfReasonCodes: receipt.hostSelfReasonCodes ?? [],
+        });
+      } catch {
+        return { ok: false, code: "LIBRARY_VIEW_UPDATE_FAILED", skipped: false };
+      }
+    })();
+    if (!libraryUpdate.ok && !libraryUpdate.skipped) {
+      console.error(`[${libraryUpdate.code ?? "LIBRARY_VIEW_UPDATE_FAILED"}] library view update failed.`);
     }
     console.log(summarizeSafeRun(receipt, privacy.report.verdict));
     return { ok: true as const, code: 0 };
