@@ -453,6 +453,51 @@ function Set-StatusLine {
   }
 }
 
+function Get-ObjectProperty {
+  param(
+    [object]$ObjectValue,
+    [string]$Name
+  )
+  if ($null -eq $ObjectValue -or -not $Name) { return $null }
+  if ($ObjectValue -is [System.Collections.IDictionary]) {
+    if ($ObjectValue.Contains($Name)) { return $ObjectValue[$Name] }
+    return $null
+  }
+  try {
+    $prop = $ObjectValue.PSObject.Properties[$Name]
+    if ($prop) { return $prop.Value }
+  } catch {
+    return $null
+  }
+  return $null
+}
+
+function Format-ReasonPreview {
+  param(
+    [object]$ReasonCodes,
+    [int]$MaxItems = 4
+  )
+  $codes = @()
+  if ($ReasonCodes) {
+    foreach ($rc in @($ReasonCodes)) {
+      if ($null -eq $rc) { continue }
+      $text = ([string]$rc).Trim()
+      if ($text -eq "") { continue }
+      $codes += $text
+    }
+  }
+  if ($codes.Count -le 0) { return "-" }
+  if ($MaxItems -lt 1) { $MaxItems = 1 }
+  $take = [Math]::Min($codes.Count, $MaxItems)
+  $shown = @()
+  for ($i = 0; $i -lt $take; $i++) { $shown += $codes[$i] }
+  $preview = ($shown -join ",")
+  if ($codes.Count -gt $take) {
+    $preview += ",+" + [string]($codes.Count - $take)
+  }
+  return $preview
+}
+
 function Read-AdapterTagForRun {
   param(
     [string]$TargetDir,
@@ -463,16 +508,24 @@ function Read-AdapterTagForRun {
   if (-not (Test-Path -LiteralPath $safePath)) { return "-" }
   try {
     $safe = Get-Content -LiteralPath $safePath -Raw -Encoding UTF8 | ConvertFrom-Json
-    $adapterId = if ($safe.adapter -and $safe.adapter.adapterId) { [string]$safe.adapter.adapterId } else { "" }
-    $mode = if ($safe.adapter -and $safe.adapter.mode) { [string]$safe.adapter.mode } else { "" }
+    $adapterObj = Get-ObjectProperty -ObjectValue $safe -Name "adapter"
+    $adapterId = if ($adapterObj) { [string](Get-ObjectProperty -ObjectValue $adapterObj -Name "adapterId") } else { "" }
+    $mode = if ($adapterObj) { [string](Get-ObjectProperty -ObjectValue $adapterObj -Name "mode") } else { "" }
     $adapterClass = "-"
     if ($adapterId -match "^([a-z0-9_]+)_adapter_v[0-9]+$") {
       $adapterClass = [string]$matches[1]
     } elseif ($adapterId.ToLowerInvariant() -eq "docker.local.inspect.v0") {
       $adapterClass = "container"
-    } elseif ($safe.contentSummary -and $safe.contentSummary.adapterSignals -and $safe.contentSummary.adapterSignals.class) {
-      $adapterClass = [string]$safe.contentSummary.adapterSignals.class
-    } elseif ($safe.artifactKind -and [string]$safe.artifactKind -eq "CONTAINER_IMAGE") {
+    } else {
+      $contentSummary = Get-ObjectProperty -ObjectValue $safe -Name "contentSummary"
+      $adapterSignals = if ($contentSummary) { Get-ObjectProperty -ObjectValue $contentSummary -Name "adapterSignals" } else { $null }
+      $adapterSignalClass = if ($adapterSignals) { [string](Get-ObjectProperty -ObjectValue $adapterSignals -Name "class") } else { "" }
+      if ($adapterSignalClass -and $adapterSignalClass.Trim() -ne "") {
+        $adapterClass = $adapterSignalClass
+      }
+    }
+    $artifactKind = [string](Get-ObjectProperty -ObjectValue $safe -Name "artifactKind")
+    if (($adapterClass -eq "-" -or -not $adapterClass) -and $artifactKind -eq "CONTAINER_IMAGE") {
       $adapterClass = "container"
     }
     if (-not $adapterClass -or $adapterClass -eq "-") { return "-" }
@@ -494,6 +547,118 @@ function Read-AdapterTagForRun {
   } catch {
     return "-"
   }
+}
+
+function Read-AdapterEvidenceForRun {
+  param(
+    [string]$TargetDir,
+    [string]$RunId
+  )
+  $out = @{
+    available = $false
+    adapterTag = "-"
+    adapterClass = "-"
+    adapterId = "-"
+    adapterMode = "-"
+    sourceFormat = "-"
+    reasons = "-"
+    requested = 0
+    granted = 0
+    denied = 0
+  }
+  if (-not $TargetDir -or -not $RunId -or $RunId -eq "-") { return $out }
+  $runDir = Join-Path $TargetDir $RunId
+  if (-not (Test-Path -LiteralPath $runDir)) { return $out }
+
+  $reportPath = Join-Path $runDir "report_card_v0.json"
+  if (Test-Path -LiteralPath $reportPath) {
+    try {
+      $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+      $adapterObj = Get-ObjectProperty -ObjectValue $report -Name "adapter"
+      if ($adapterObj) {
+        $class = [string](Get-ObjectProperty -ObjectValue $adapterObj -Name "class")
+        $id = [string](Get-ObjectProperty -ObjectValue $adapterObj -Name "adapterId")
+        $mode = [string](Get-ObjectProperty -ObjectValue $adapterObj -Name "mode")
+        $source = [string](Get-ObjectProperty -ObjectValue $adapterObj -Name "sourceFormat")
+        $reasons = [string](Get-ObjectProperty -ObjectValue $adapterObj -Name "reasons")
+        if ($class) { $out.adapterClass = $class }
+        if ($id) { $out.adapterId = $id }
+        if ($mode) { $out.adapterMode = $mode }
+        if ($source) { $out.sourceFormat = $source }
+        if ($reasons) { $out.reasons = $reasons }
+        $cap = Get-ObjectProperty -ObjectValue $adapterObj -Name "capabilities"
+        if ($cap) {
+          $out.requested = [int](Get-ObjectProperty -ObjectValue $cap -Name "requested")
+          $out.granted = [int](Get-ObjectProperty -ObjectValue $cap -Name "granted")
+          $out.denied = [int](Get-ObjectProperty -ObjectValue $cap -Name "denied")
+        }
+      }
+    } catch {
+      # best effort
+    }
+  }
+
+  if ($out.adapterId -eq "-" -or $out.adapterClass -eq "-") {
+    $safePath = Join-Path $runDir "safe_run_receipt.json"
+    if (Test-Path -LiteralPath $safePath) {
+      try {
+        $safe = Get-Content -LiteralPath $safePath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $adapterObj = Get-ObjectProperty -ObjectValue $safe -Name "adapter"
+        if ($adapterObj) {
+          $id = [string](Get-ObjectProperty -ObjectValue $adapterObj -Name "adapterId")
+          $mode = [string](Get-ObjectProperty -ObjectValue $adapterObj -Name "mode")
+          $source = [string](Get-ObjectProperty -ObjectValue $adapterObj -Name "sourceFormat")
+          if ($id -and $out.adapterId -eq "-") { $out.adapterId = $id }
+          if ($mode -and $out.adapterMode -eq "-") { $out.adapterMode = $mode }
+          if ($source -and $out.sourceFormat -eq "-") { $out.sourceFormat = $source }
+          if ($out.reasons -eq "-") {
+            $out.reasons = Format-ReasonPreview -ReasonCodes (Get-ObjectProperty -ObjectValue $adapterObj -Name "reasonCodes") -MaxItems 4
+          }
+        }
+        if ($out.adapterClass -eq "-") {
+          if ($out.adapterId -match "^([a-z0-9_]+)_adapter_v[0-9]+$") {
+            $out.adapterClass = [string]$matches[1]
+          } elseif ($out.adapterId.ToLowerInvariant() -eq "docker.local.inspect.v0") {
+            $out.adapterClass = "container"
+          } else {
+            $contentSummary = Get-ObjectProperty -ObjectValue $safe -Name "contentSummary"
+            $signals = if ($contentSummary) { Get-ObjectProperty -ObjectValue $contentSummary -Name "adapterSignals" } else { $null }
+            $signalClass = if ($signals) { [string](Get-ObjectProperty -ObjectValue $signals -Name "class") } else { "" }
+            if ($signalClass -and $signalClass.Trim() -ne "") { $out.adapterClass = $signalClass }
+          }
+        }
+      } catch {
+        # best effort
+      }
+    }
+  }
+
+  $capPath = Join-Path (Join-Path $runDir "analysis") "capability_ledger_v0.json"
+  if (Test-Path -LiteralPath $capPath) {
+    try {
+      $cap = Get-Content -LiteralPath $capPath -Raw -Encoding UTF8 | ConvertFrom-Json
+      $req = Get-ObjectProperty -ObjectValue $cap -Name "requestedCaps"
+      $gr = Get-ObjectProperty -ObjectValue $cap -Name "grantedCaps"
+      $den = Get-ObjectProperty -ObjectValue $cap -Name "deniedCaps"
+      $out.requested = @($req).Count
+      $out.granted = @($gr).Count
+      $out.denied = @($den).Count
+    } catch {
+      # best effort
+    }
+  }
+
+  $out.adapterTag = Read-AdapterTagForRun -TargetDir $TargetDir -RunId $RunId
+  if (
+    ($out.adapterTag -and $out.adapterTag -ne "-") -or
+    ($out.adapterClass -and $out.adapterClass -ne "-") -or
+    ($out.requested -gt 0) -or
+    ($out.granted -gt 0) -or
+    ($out.denied -gt 0)
+  ) {
+    $out.available = $true
+  }
+  return $out
 }
 
 function Read-ViewStateSummary {
@@ -563,6 +728,59 @@ function Read-ViewStateSummary {
       adapter = "-"
     }
   }
+}
+
+function Update-HistoryDetailsBox {
+  param(
+    [System.Windows.Forms.ListView]$ListView,
+    [System.Windows.Forms.TextBox]$DetailBox
+  )
+  if (-not $DetailBox) { return }
+  if (-not $ListView -or $ListView.SelectedItems.Count -lt 1) {
+    $DetailBox.Text = "Select a history row to view adapter evidence and capability summary."
+    return
+  }
+  $selected = $ListView.SelectedItems[0]
+  $meta = $selected.Tag
+  $targetDir = if ($meta -and $meta.targetDir) { [string]$meta.targetDir } else { "" }
+  $targetKey = if ($meta -and $meta.targetKey) { [string]$meta.targetKey } else { [string]$selected.Text }
+  $latestRun = if ($meta -and $meta.latestRun) { [string]$meta.latestRun } else { "-" }
+  $status = if ($selected.SubItems.Count -gt 1) { [string]$selected.SubItems[1].Text } else { "UNKNOWN" }
+  $adapterTag = if ($selected.SubItems.Count -gt 2) { [string]$selected.SubItems[2].Text } else { "-" }
+  $baseline = if ($selected.SubItems.Count -gt 3) { [string]$selected.SubItems[3].Text } else { "-" }
+  $buckets = if ($selected.SubItems.Count -gt 5) { [string]$selected.SubItems[5].Text } else { "-" }
+
+  $lines = @(
+    "Target: " + $targetKey,
+    "Status: " + $status,
+    "Adapter Tag: " + $adapterTag,
+    "Baseline: " + $baseline,
+    "Latest: " + $latestRun,
+    "Buckets: " + $buckets
+  )
+
+  if ($targetDir -and $latestRun -and $latestRun -ne "-") {
+    $ev = Read-AdapterEvidenceForRun -TargetDir $targetDir -RunId $latestRun
+    if ($ev.available) {
+      $lines += ""
+      $lines += "Adapter Class: " + [string]$ev.adapterClass
+      $lines += "Adapter Id: " + [string]$ev.adapterId
+      $lines += "Adapter Mode: " + [string]$ev.adapterMode
+      $lines += "Source Format: " + [string]$ev.sourceFormat
+      $lines += "Adapter Reasons: " + [string]$ev.reasons
+      $lines += "Capabilities: requested=" + [string]$ev.requested + " granted=" + [string]$ev.granted + " denied=" + [string]$ev.denied
+    } else {
+      $lines += ""
+      $lines += "Adapter evidence: none for latest run."
+    }
+  } else {
+    $lines += ""
+    $lines += "Adapter evidence: latest run not available."
+  }
+
+  $lines += ""
+  $lines += "Tip: Use View Report for full run details."
+  $DetailBox.Text = ($lines -join [Environment]::NewLine)
 }
 
 function Load-HistoryRows {
@@ -839,10 +1057,11 @@ $libLayout.Controls.Add($libHint, 0, 4)
 $historyLayout = New-Object System.Windows.Forms.TableLayoutPanel
 $historyLayout.Dock = "Fill"
 $historyLayout.ColumnCount = 1
-$historyLayout.RowCount = 2
+$historyLayout.RowCount = 3
 $historyLayout.Padding = New-Object System.Windows.Forms.Padding(6, 8, 6, 8)
 $historyLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 42)))
 $historyLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+$historyLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 132)))
 $tabHistory.Controls.Add($historyLayout)
 
 $historyActions = New-Object System.Windows.Forms.FlowLayoutPanel
@@ -880,8 +1099,19 @@ $historyList.ForeColor = $colorText
 [void]$historyList.Columns.Add("Latest", 66)
 [void]$historyList.Columns.Add("Buckets", 76)
 
+$historyDetail = New-Object System.Windows.Forms.TextBox
+$historyDetail.Dock = "Fill"
+$historyDetail.Multiline = $true
+$historyDetail.ScrollBars = "Vertical"
+$historyDetail.ReadOnly = $true
+$historyDetail.BackColor = $colorPanel
+$historyDetail.ForeColor = $colorText
+$historyDetail.Font = $fontSmall
+$historyDetail.Text = "Select a history row to view adapter evidence and capability summary."
+
 $historyLayout.Controls.Add($historyActions, 0, 0)
 $historyLayout.Controls.Add($historyList, 0, 1)
+$historyLayout.Controls.Add($historyDetail, 0, 2)
 
 $doctorLayout = New-Object System.Windows.Forms.TableLayoutPanel
 $doctorLayout.Dock = "Fill"
@@ -982,6 +1212,7 @@ $syncNow = {
   $sync = if ($Silent.IsPresent) { Invoke-LaunchpadSync -Silent } else { Invoke-LaunchpadSync }
   $count = Load-Shortcuts -Panel $listPanel
   $tracked = Load-HistoryRows -ListView $historyList
+  Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
   if ($sync.ok) {
     $msg = "Synced. targets=" + $sync.scanned + " added=" + $sync.added + " removed=" + $sync.removed + " failed=" + $sync.failed + " visible=" + $count + " tracked=" + $tracked
     Set-StatusLine -StatusLabel $statusLabel -Message $msg -IsError $false
@@ -996,6 +1227,7 @@ $btnSync2.Add_Click({ & $syncNow })
 $btnRefresh.Add_Click({ & $syncNow -Silent })
 $btnHistoryRefresh.Add_Click({
   $tracked = Load-HistoryRows -ListView $historyList
+  Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
   Set-StatusLine -StatusLabel $statusLabel -Message ("History refreshed. tracked=" + $tracked) -IsError $false
 })
 $btnHistoryView.Add_Click({
@@ -1010,6 +1242,9 @@ $historyList.Add_KeyDown({
     $e.Handled = $true
     Open-ReportViewerFromHistory -ListView $historyList -StatusLabel $statusLabel
   }
+})
+$historyList.Add_SelectedIndexChanged({
+  Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
 })
 $btnDoctorRun.Add_Click({
   if (-not $shellDoctorScript -or -not (Test-Path -LiteralPath $shellDoctorScript)) {
@@ -1028,6 +1263,7 @@ $btnDoctorRun.Add_Click({
 
 $initialCount = Load-Shortcuts -Panel $listPanel
 $initialTracked = Load-HistoryRows -ListView $historyList
+Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
 Set-StatusLine -StatusLabel $statusLabel -Message ("Ready. visible=" + $initialCount + " tracked=" + $initialTracked) -IsError $false
 
 $timer = New-Object System.Windows.Forms.Timer

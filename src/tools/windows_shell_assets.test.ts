@@ -261,9 +261,13 @@ suite("tools/windows shell assets", () => {
     assert(/-Open\\s\+0/.test(panelText), "expected launchpad shortcut args to require Open 0");
     assert(/-OpenLibrary/.test(panelText), "expected launchpad shortcut args to reject OpenLibrary");
     assert(/Read-AdapterTagForRun/.test(panelText), "expected history adapter-tag helper");
+    assert(/Read-AdapterEvidenceForRun/.test(panelText), "expected history adapter-evidence helper");
+    assert(/Update-HistoryDetailsBox/.test(panelText), "expected history details update helper");
+    assert(/SelectedIndexChanged/.test(panelText), "expected history selection details wiring");
     assert(/Columns\.Add\("Adapter"/.test(panelText), "expected launchpad history Adapter column");
     assert(/\+plugin/.test(panelText), "expected launchpad adapter plugin marker");
     assert(/capability_ledger_v0\.json/.test(panelText), "expected launchpad adapter tag capability ledger lookup");
+    assert(/Adapter Class:/.test(panelText), "expected adapter detail text in history pane");
 
     const shortcutPath = path.join(shellDir, "weftend_make_shortcut.ps1");
     const shortcutText = fs.readFileSync(shortcutPath, "utf8");

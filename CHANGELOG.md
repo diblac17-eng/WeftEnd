@@ -33,6 +33,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `container scan` now writes the same deterministic `analysis/capability_ledger_v0.json` artifact in success and fail-closed paths for consistent container capability evidence.
 - Windows report viewer now renders adapter evidence as an optional collapsed section (only when adapter/capability artifacts are present) with quick-open artifact actions.
 - Launchpad History now shows a compact adapter tag (including plugin marker and denied-capability marker) from the latest run evidence.
+- Launchpad History now includes an inline details pane for the selected row, surfacing adapter class/id/mode/source/reasons and capability counts without opening the full report viewer.
 - Windows shell report card outputs now surface adapter evidence directly:
   - `report_card.txt` includes additive `adapterMeta=` and `capabilities=` lines when adapter evidence exists.
   - `report_card_v0.json` includes additive `adapter` metadata/capability object for automation and UI parity.
