@@ -258,6 +258,10 @@ suite("tools/windows shell assets", () => {
     assert(/-AllowLaunch/.test(panelText), "expected launchpad shortcut args to require AllowLaunch");
     assert(/-Open\\s\+0/.test(panelText), "expected launchpad shortcut args to require Open 0");
     assert(/-OpenLibrary/.test(panelText), "expected launchpad shortcut args to reject OpenLibrary");
+    assert(/Read-AdapterTagForRun/.test(panelText), "expected history adapter-tag helper");
+    assert(/Columns\.Add\("Adapter"/.test(panelText), "expected launchpad history Adapter column");
+    assert(/\+plugin/.test(panelText), "expected launchpad adapter plugin marker");
+    assert(/capability_ledger_v0\.json/.test(panelText), "expected launchpad adapter tag capability ledger lookup");
 
     const shortcutPath = path.join(shellDir, "weftend_make_shortcut.ps1");
     const shortcutText = fs.readFileSync(shortcutPath, "utf8");
@@ -266,6 +270,18 @@ suite("tools/windows shell assets", () => {
     assert(/WindowStyle = 7/.test(shortcutText), "expected minimized shortcut window style");
     assert(/Description = if \(\$LaunchpadMode\.IsPresent\)/.test(shortcutText), "expected launchpad description marker");
     assert(/WeftEnd Launchpad Shortcut v1/.test(shortcutText), "expected launchpad description text");
+  });
+
+  register("report viewer includes optional adapter evidence panel", () => {
+    const viewerPath = path.join(shellDir, "report_card_viewer.ps1");
+    const viewerText = fs.readFileSync(viewerPath, "utf8");
+    assert(/Load-AdapterEvidence/.test(viewerText), "expected adapter evidence loader");
+    assert(/Show Adapter Evidence/.test(viewerText), "expected adapter evidence toggle label");
+    assert(/Hide Adapter Evidence/.test(viewerText), "expected adapter evidence hide label");
+    assert(/capability_ledger_v0\.json/.test(viewerText), "expected capability ledger artifact support");
+    assert(/adapter_summary_v0\.json/.test(viewerText), "expected adapter summary artifact support");
+    assert(/adapter_findings_v0\.json/.test(viewerText), "expected adapter findings artifact support");
+    assert(/Capabilities: requested=/.test(viewerText), "expected capability summary line");
   });
 });
 
