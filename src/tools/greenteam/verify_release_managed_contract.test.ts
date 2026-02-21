@@ -54,6 +54,15 @@ suite("greenteam/verify-release-managed-contract", () => {
     );
     assert(text.includes("WEFTEND_360_FAIL_ON_PARTIAL: \"1\""), "managed verify must enforce fail-on-partial");
     assert(text.includes("WEFTEND_360_AUDIT_STRICT: \"1\""), "managed verify must enforce strict audit");
+    assert(text.includes("WEFTEND_RELEASE_DIR: releaseDirEnv"), "managed verify must enforce explicit release fixture path");
+    assert(
+      text.includes("WEFTEND_ALLOW_SKIP_RELEASE: \"\""),
+      "managed verify must clear skip-release override to prevent silent release-smoke skip"
+    );
+    assert(
+      text.includes("Missing strict release fixture directory"),
+      "managed verify must fail closed when strict release fixture directory is missing"
+    );
 
     const verifyInvocationIdx = text.indexOf("[path.join(\"scripts\", \"verify_360.js\")]");
     assert(verifyInvocationIdx >= 0, "managed verify invocation missing");

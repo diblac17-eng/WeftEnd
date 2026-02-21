@@ -152,6 +152,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - Managed strict release gate (auto-generates temporary adapter maintenance policy for missing-plugin lanes):
   npm run verify:360:release:managed
   Note: generated policy is used for strict adapter-doctor preflight only; full `verify:360` then runs without global adapter-disable env leakage.
+  Note: this helper enforces release smoke by setting `WEFTEND_RELEASE_DIR` (default `tests/fixtures/release_demo`) and clearing `WEFTEND_ALLOW_SKIP_RELEASE`.
 - Optional corridor harness (pass/replay/forced-exception):
   npm run verify:360:harness
 - Optional history audit:

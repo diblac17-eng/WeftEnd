@@ -16,6 +16,8 @@ const outRoot = process.env.WEFTEND_360_OUT_ROOT
   ? path.resolve(root, process.env.WEFTEND_360_OUT_ROOT)
   : path.join(root, "out", "verify_360_release_managed");
 const policyPath = path.join(outRoot, "adapter_maintenance.generated.json");
+const releaseDirEnv = process.env.WEFTEND_RELEASE_DIR || path.join("tests", "fixtures", "release_demo");
+const releaseDirAbs = path.resolve(root, releaseDirEnv);
 
 const run = (cmd, args, envExtra = {}) => {
   const res = spawnSync(cmd, args, {
@@ -35,6 +37,11 @@ if (!npmCli) {
 
 fs.rmSync(outRoot, { recursive: true, force: true });
 fs.mkdirSync(outRoot, { recursive: true });
+
+if (!fs.existsSync(releaseDirAbs) || !fs.statSync(releaseDirAbs).isDirectory()) {
+  console.error(`Missing strict release fixture directory: ${releaseDirEnv}`);
+  process.exit(40);
+}
 
 const compileStatus = run(process.execPath, [npmCli, "run", "compile", "--silent"]);
 if (compileStatus !== 0) process.exit(compileStatus);
@@ -63,6 +70,8 @@ const verifyStatus = run(
     WEFTEND_360_OUT_ROOT: outRoot,
     WEFTEND_360_FAIL_ON_PARTIAL: "1",
     WEFTEND_360_AUDIT_STRICT: "1",
+    WEFTEND_RELEASE_DIR: releaseDirEnv,
+    WEFTEND_ALLOW_SKIP_RELEASE: "",
   }
 );
 process.exit(verifyStatus);
