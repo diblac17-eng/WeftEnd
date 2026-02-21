@@ -169,18 +169,26 @@ const runVerify = (envExtra = {}) => {
   });
   return typeof res.status === "number" ? res.status : 1;
 };
-const runAuditStrict = () => {
+const runAuditStrict = (envExtra = {}, options = {}) => {
   const env = {
     ...process.env,
     WEFTEND_360_OUT_ROOT: outRoot,
     WEFTEND_360_AUDIT_STRICT: "1",
+    ...envExtra,
   };
+  const emit = !(options && options.emit === false);
   const res = spawnSync(process.execPath, ["scripts/verify_360_audit.js"], {
     cwd: root,
     env,
-    stdio: "inherit",
+    encoding: "utf8",
     windowsHide: true,
   });
+  if (emit) {
+    const stdout = String(res.stdout || "");
+    const stderr = String(res.stderr || "");
+    if (stdout.length > 0) process.stdout.write(stdout);
+    if (stderr.length > 0) process.stderr.write(stderr);
+  }
   return typeof res.status === "number" ? res.status : 1;
 };
 
@@ -338,6 +346,13 @@ const main = () => {
   const reasonCodesG = Array.isArray(receiptG.reasonCodes) ? receiptG.reasonCodes : [];
   assert(reasonCodesG.includes("VERIFY360_SAFE_RUN_ADAPTER_INVALID"), "VERIFY360_HARNESS_INVALID_ADAPTER_REASON_MISSING");
   assertHistoryLink(receiptG, runF, receiptFPath);
+
+  const stageProbeDir = path.join(outRoot, "audit_probe.stage");
+  ensureDir(stageProbeDir);
+  fs.writeFileSync(path.join(stageProbeDir, "probe.txt"), "stage residue probe\n", "utf8");
+  const auditStageFailStatus = runAuditStrict({}, { emit: false });
+  assert(auditStageFailStatus !== 0, "VERIFY360_HARNESS_AUDIT_STAGE_RESIDUE_NOT_DETECTED");
+  fs.rmSync(stageProbeDir, { recursive: true, force: true });
 
   const auditStatus = runAuditStrict();
   assert(auditStatus === 0, `VERIFY360_HARNESS_AUDIT_STRICT_FAILED status=${auditStatus}`);

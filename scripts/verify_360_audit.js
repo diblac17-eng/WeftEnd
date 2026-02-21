@@ -66,6 +66,24 @@ const collectFiles = (dir) => {
   return out;
 };
 
+const listStageResidue = (dir) => {
+  if (!fs.existsSync(dir)) return [];
+  const out = [];
+  const walk = (cur, base) => {
+    const entries = fs.readdirSync(cur, { withFileTypes: true }).sort((a, b) => cmp(a.name, b.name));
+    entries.forEach((entry) => {
+      const rel = path.join(base, entry.name).split(path.sep).join("/");
+      if (entry.name.toLowerCase().endsWith(".stage")) {
+        out.push(rel);
+        if (entry.isDirectory()) return;
+      }
+      if (entry.isDirectory()) walk(path.join(cur, entry.name), rel);
+    });
+  };
+  walk(dir, "");
+  return out;
+};
+
 const fail = (code, detail, errors) => {
   errors.push({ code, detail });
 };
@@ -79,6 +97,18 @@ const main = () => {
 
   if (!fs.existsSync(historyRoot)) {
     fail("VERIFY360_AUDIT_HISTORY_MISSING", historyRoot, errors);
+  }
+  if (errors.length > 0) {
+    errors.forEach((e) => console.error(`${e.code}: ${e.detail}`));
+    process.exit(1);
+  }
+  const stageResidues = stableSortUnique(listStageResidue(outRoot));
+  if (stageResidues.length > 0) {
+    fail(
+      "VERIFY360_AUDIT_STAGE_RESIDUE_PRESENT",
+      stageResidues.slice(0, 16).join(","),
+      errors
+    );
   }
   if (errors.length > 0) {
     errors.forEach((e) => console.error(`${e.code}: ${e.detail}`));

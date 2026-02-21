@@ -305,6 +305,8 @@ Included
 - `verify:360` now enforces a stage-residue gate (`stage_residue` step), failing closed with `VERIFY360_STAGE_RESIDUE_PRESENT` when `.stage` artifacts remain in deterministic run outputs.
 - `verify:360` stage-residue checks now always execute after deterministic lane attempts (including dependency-missing and pair-failure paths) and now scan the full temporary verify workspace so sibling `<out>.stage` roots are detected.
 - `verify:360:harness` now asserts `stage_residue` step presence in verify reports across pass/partial/fail lanes.
+- `verify_360_audit` now fails closed on any `.stage` residue under the verify out-root (`VERIFY360_AUDIT_STAGE_RESIDUE_PRESENT`).
+- `verify:360:harness` now injects/removes an audit stage-residue probe to pin strict audit residue detection.
 - Ticket-pack contract coverage now enforces report-state extraction from `report_card_v0.json` and validates digest identity line format (`sha256:<64hex>`) in `ticket_summary.txt`.
 - Ticket-pack contract coverage now also enforces text fallback parsing from `report_card.txt` (`STATUS/BASELINE/LATEST/BUCKETS` plus key-value lines) when structured report JSON is absent.
 - Windows shell `report_card.txt` and `report_card_v0.json` now include adapter metadata and capability counts when adapter evidence exists:
