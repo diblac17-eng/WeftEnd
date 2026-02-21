@@ -318,10 +318,14 @@ suite("tools/windows shell assets", () => {
     assert(/adapter_summary_v0\.json/.test(viewerText), "expected adapter summary artifact support");
     assert(/adapter_findings_v0\.json/.test(viewerText), "expected adapter findings artifact support");
     assert(/Capabilities: requested=/.test(viewerText), "expected capability summary line");
+    assert(/Status:/.test(viewerText), "expected status summary line");
+    assert(/Run Id:/.test(viewerText), "expected run id summary line");
+    assert(/Library Key:/.test(viewerText), "expected library key summary line");
     assert(/Report Card Digest:/.test(viewerText), "expected report card digest summary line");
     assert(/Safe Receipt Digest:/.test(viewerText), "expected safe receipt digest summary line");
     assert(/Operator Receipt Digest:/.test(viewerText), "expected operator receipt digest summary line");
     assert(/Copy Digests/.test(viewerText), "expected report viewer copy digests action");
+    assert(/libraryKey=/.test(viewerText), "expected library key in summary clipboard payload");
     assert(/reportCardDigest=/.test(viewerText), "expected report card digest copy payload fields");
     assert(/safeReceiptDigest=/.test(viewerText), "expected digest copy payload fields");
     assert(/operatorReceiptDigest=/.test(viewerText), "expected digest copy payload fields");

@@ -49,6 +49,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   analysis/adapter_summary_v0.json
   analysis/adapter_findings_v0.json
 - Report viewer UI (when adapter evidence exists):
+  - Summary panel now includes `Status`, `Run Id`, and `Library Key` for faster orientation.
   - `Show Adapter Evidence` toggle reveals adapter class/mode, capability counts, and quick-open buttons for capability/summary/findings artifacts.
   - `Copy Digests` copies run digest identity lines (`runId`, artifact fingerprint/digest, report-card digest, safe/operator receipt digests) for fast verification sharing.
   - Keyboard: `Ctrl+C` copies summary text and `Ctrl+Shift+C` copies digest-only text.

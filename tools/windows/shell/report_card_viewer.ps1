@@ -334,13 +334,14 @@ function Build-SummaryClipboardText {
   $summary = @(
     "status=" + (Get-StringValue -Value $Model.status),
     "result=" + (Get-StringValue -Value $Model.result),
+    "libraryKey=" + (Get-StringValue -Value $Model.libraryKey),
+    "runId=" + (Get-StringValue -Value $Model.runId),
     "artifactFingerprint=" + (Get-StringValue -Value $Model.artifactFingerprint),
     "artifactDigest=" + (Get-StringValue -Value $Model.artifactDigest),
     "reportCardDigest=" + (Get-StringValue -Value $Model.reportCardDigest),
     "safeReceiptDigest=" + (Get-StringValue -Value $Model.safeReceiptDigest),
     "operatorReceiptDigest=" + (Get-StringValue -Value $Model.operatorReceiptDigest),
     "reason=" + (Get-StringValue -Value $Model.reason),
-    "runId=" + (Get-StringValue -Value $Model.runId),
     "baseline=" + (Get-StringValue -Value $Model.baseline),
     "latest=" + (Get-StringValue -Value $Model.latest),
     "buckets=" + (Get-StringValue -Value $Model.buckets)
@@ -514,6 +515,9 @@ function Add-SummaryLine {
 }
 
 Add-SummaryLine -TextValue ("Result: " + (Get-StringValue -Value $model.result))
+Add-SummaryLine -TextValue ("Status: " + (Get-StringValue -Value $model.status))
+Add-SummaryLine -TextValue ("Run Id: " + (Get-StringValue -Value $model.runId))
+Add-SummaryLine -TextValue ("Library Key: " + (Get-StringValue -Value $model.libraryKey))
 Add-SummaryLine -TextValue ("Fingerprint: " + (Get-StringValue -Value $model.artifactFingerprint))
 Add-SummaryLine -TextValue ("Artifact Digest: " + (Get-StringValue -Value $model.artifactDigest))
 Add-SummaryLine -TextValue ("Report Card Digest: " + (Get-StringValue -Value $model.reportCardDigest))
