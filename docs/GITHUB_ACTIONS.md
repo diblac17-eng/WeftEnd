@@ -24,6 +24,9 @@ Verify gate workflow
 - Trigger: `workflow_dispatch`
 - Runs:
   - `npm run verify:360:release:managed`
+- Workflow pins strict release fixture smoke input:
+  - `WEFTEND_RELEASE_DIR=tests/fixtures/release_demo`
+  - `WEFTEND_ALLOW_SKIP_RELEASE=""` (skip override cleared)
 - Uploads:
   - `out/verify_360_release_managed`
 - Purpose:

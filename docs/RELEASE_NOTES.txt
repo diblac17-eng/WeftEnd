@@ -9,6 +9,7 @@ Included
 - Workflow runs `safe-run` (analysis-only, `--withhold-exec`) with optional compare and uploads `out/ci_meter` artifacts.
 - Added workflow: `.github/workflows/weftend_verify360.yml`
 - Workflow runs strict managed verify gate (`npm run verify:360:release:managed`) and uploads `out/verify_360_release_managed` artifacts.
+- Verify workflow now pins strict release fixture smoke input (`WEFTEND_RELEASE_DIR=tests/fixtures/release_demo`) and clears skip override (`WEFTEND_ALLOW_SKIP_RELEASE=""`).
 - Added usage guide: `docs/GITHUB_ACTIONS.md`
 - Quickstart now documents both GitHub workflows (`weftend_artifact_meter` and `weftend_verify360`) including managed verify command/output path.
 - Release checklist now includes optional GitHub Actions parity runs for both workflows before publish.

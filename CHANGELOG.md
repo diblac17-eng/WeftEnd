@@ -11,6 +11,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Workflow uploads `out/ci_meter` receipts/reports as downloadable artifacts and writes a bounded run summary.
 - Added `.github/workflows/weftend_verify360.yml` for manual strict managed verify-gate runs.
 - Verify workflow executes `npm run verify:360:release:managed` and uploads `out/verify_360_release_managed`.
+- Verify workflow now pins strict release fixture smoke input (`WEFTEND_RELEASE_DIR=tests/fixtures/release_demo`) and clears skip override.
 - Added `docs/GITHUB_ACTIONS.md` with setup, inputs, and expected outputs.
 - Updated `docs/QUICKSTART.txt` GitHub Actions section to include both workflows and managed verify output path.
 - Updated `docs/RELEASE_CHECKLIST_ALPHA.md` with optional GitHub Actions parity runs for both workflows.

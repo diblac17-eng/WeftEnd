@@ -16,7 +16,7 @@ const outRoot = process.env.WEFTEND_360_OUT_ROOT
   ? path.resolve(root, process.env.WEFTEND_360_OUT_ROOT)
   : path.join(root, "out", "verify_360_release_managed");
 const policyPath = path.join(outRoot, "adapter_maintenance.generated.json");
-const releaseDirEnv = process.env.WEFTEND_RELEASE_DIR || path.join("tests", "fixtures", "release_demo");
+const releaseDirEnv = process.env.WEFTEND_RELEASE_DIR || "tests/fixtures/release_demo";
 const releaseDirAbs = path.resolve(root, releaseDirEnv);
 
 const run = (cmd, args, envExtra = {}) => {

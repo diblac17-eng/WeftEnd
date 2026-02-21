@@ -49,6 +49,14 @@ suite("greenteam/workflow-verify360-contract", () => {
     assert(text.includes("name: weftend-verify360"), "workflow name mismatch");
     assert(text.includes("workflow_dispatch"), "verify360 workflow must be manually triggerable");
     assert(text.includes("npm run verify:360:release:managed"), "verify360 workflow must run strict managed verify gate");
+    assert(
+      text.includes("WEFTEND_RELEASE_DIR: tests/fixtures/release_demo"),
+      "verify360 workflow must pin strict release fixture path"
+    );
+    assert(
+      text.includes("WEFTEND_ALLOW_SKIP_RELEASE: \"\""),
+      "verify360 workflow must clear skip-release override"
+    );
     assert(text.includes("actions/upload-artifact@v4"), "verify360 workflow must upload gate artifacts");
     assert(text.includes("out/verify_360_release_managed"), "verify360 workflow artifact path mismatch");
   });
