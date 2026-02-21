@@ -63,6 +63,10 @@ suite("greenteam/verify-release-managed-contract", () => {
       text.includes("Missing strict release fixture directory"),
       "managed verify must fail closed when strict release fixture directory is missing"
     );
+    assert(
+      text.includes("\"tests/fixtures/release_demo\""),
+      "managed verify default release fixture path must stay canonicalized (forward slash) for privacy-lint stability"
+    );
 
     const verifyInvocationIdx = text.indexOf("[path.join(\"scripts\", \"verify_360.js\")]");
     assert(verifyInvocationIdx >= 0, "managed verify invocation missing");

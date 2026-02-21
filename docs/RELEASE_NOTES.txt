@@ -41,6 +41,7 @@ Included
 - Added `npm run verify:360:release:managed` helper to auto-generate a temporary adapter maintenance policy (disabling missing-plugin lanes), run strict adapter-doctor preflight with that policy, then run strict `verify:360` without global adapter-disable env leakage into full test lanes.
 - Managed strict release helper now forces explicit release fixture smoke (`WEFTEND_RELEASE_DIR`) and clears skip override (`WEFTEND_ALLOW_SKIP_RELEASE`) to prevent silent release-smoke skip.
 - Managed strict release helper now fails closed with exit 40 when strict release fixture directory is missing.
+- Managed strict release helper default fixture path is now canonical forward-slash (`tests/fixtures/release_demo`) to avoid Windows backslash/UNC privacy-lint false positives.
 - Added optional verify env override `WEFTEND_360_SAFE_RUN_ADAPTER` (validated adapter set) for deterministic pair-lane control; value is recorded in idempotence context/report policy lines.
 - Invalid `WEFTEND_360_SAFE_RUN_ADAPTER` values now fail closed inside verify corridor and still emit fail receipts/reports (`VERIFY360_SAFE_RUN_ADAPTER_INVALID`), preserving evidence-first behavior.
 - `verify:360:harness` now covers invalid adapter override failure path and verifies pointer non-advance + receipt/report persistence.
