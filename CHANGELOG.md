@@ -54,6 +54,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Ticket-pack summaries now include adapter evidence fields (`adapterEvidence`, adapter identity, capability counts) for faster operator/support triage.
 - Ticket-pack summaries now also include digest identity fields (`operatorReceiptFileDigest`, `safeReceiptFileDigest`, `reportCardFileDigest`) and artifact fingerprint/digest.
 - Ticket-pack summaries now include report state context fields (`reportRunId`, `reportLibraryKey`, `reportStatus`, `reportBaseline`, `reportLatest`, `reportBuckets`) for faster triage without opening report files.
+- Ticket-pack summaries now include compare artifact identity fields (`compareArtifacts`, `compareReceiptFileDigest`, `compareReportFileDigest`) for quick compare-evidence triage.
 - Ticket-pack contract tests now pin report-state parsing from `report_card_v0.json` and enforce digest-line format (`sha256:<64hex>`) for ticket summary identity fields.
 - Ticket-pack contract tests now also pin text fallback parsing from `report_card.txt` (`STATUS/BASELINE/LATEST/BUCKETS` and key-value lines) when structured report JSON is absent.
 - Windows shell report card outputs now surface adapter evidence directly:

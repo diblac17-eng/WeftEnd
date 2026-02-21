@@ -153,6 +153,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - `ticket_summary.txt` now includes adapter evidence summary lines (`adapterEvidence`, adapter identity, and capability counts).
 - `ticket_summary.txt` now also includes file-digest identity lines (`operatorReceiptFileDigest`, `safeReceiptFileDigest`, `reportCardFileDigest`) and artifact fingerprint/digest.
 - `ticket_summary.txt` now includes report state lines (`reportRunId`, `reportLibraryKey`, `reportStatus`, `reportBaseline`, `reportLatest`, `reportBuckets`).
+- `ticket_summary.txt` now includes compare artifact identity lines (`compareArtifacts`, `compareReceiptFileDigest`, `compareReportFileDigest`).
 
 7) Builder integration (for tools built on top)
 - Export deterministic integration JSON:

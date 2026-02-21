@@ -60,6 +60,12 @@ const testTicketPack = async () => {
     }),
     "utf8"
   );
+  fs.writeFileSync(path.join(runDir, "compare_report.txt"), "COMPARE SAME\nchanges=0\n", "utf8");
+  fs.writeFileSync(
+    path.join(runDir, "compare_receipt.json"),
+    JSON.stringify({ schema: "weftend.compareReceipt/0", schemaVersion: 0, verdict: "SAME" }),
+    "utf8"
+  );
 
   const pack = await runCliCapture(["ticket-pack", runDir, "--out", packDir]);
   assert(pack.status === 0, `ticket-pack failed: ${pack.stderr}`);
@@ -85,6 +91,9 @@ const testTicketPack = async () => {
   assert(summary.includes("reportBaseline="), "ticket summary missing report baseline");
   assert(summary.includes("reportLatest="), "ticket summary missing report latest");
   assert(summary.includes("reportBuckets="), "ticket summary missing report buckets");
+  assert(summary.includes("compareArtifacts="), "ticket summary missing compare artifact presence");
+  assert(summary.includes("compareReceiptFileDigest="), "ticket summary missing compare receipt digest");
+  assert(summary.includes("compareReportFileDigest="), "ticket summary missing compare report digest");
   assert(summary.includes("artifactFingerprint="), "ticket summary missing artifact fingerprint");
   assert(summary.includes("artifactDigest="), "ticket summary missing artifact digest");
   assert(summary.includes("adapterEvidence="), "ticket summary missing adapterEvidence");
@@ -93,6 +102,9 @@ const testTicketPack = async () => {
   assert(isSha256Line(summaryMap.operatorReceiptFileDigest), "operatorReceiptFileDigest must be sha256:<64hex>");
   assert(isSha256Line(summaryMap.safeReceiptFileDigest), "safeReceiptFileDigest must be sha256:<64hex>");
   assert(isSha256Line(summaryMap.reportCardFileDigest), "reportCardFileDigest must be sha256:<64hex>");
+  assert(String(summaryMap.compareArtifacts || "") === "present", "compareArtifacts must be present when compare files exist");
+  assert(isSha256Line(summaryMap.compareReceiptFileDigest), "compareReceiptFileDigest must be sha256:<64hex>");
+  assert(isSha256Line(summaryMap.compareReportFileDigest), "compareReportFileDigest must be sha256:<64hex>");
   assert(String(summaryMap.reportRunId || "") === "run_deadbeefcafebabe", "reportRunId must match report_card_v0 source");
   assert(String(summaryMap.reportLibraryKey || "") === "ticket_pack_test_key", "reportLibraryKey must match report_card_v0 source");
   assert(String(summaryMap.reportStatus || "") === "SAME", "reportStatus must match report_card_v0 source");
@@ -200,6 +212,9 @@ const testTicketPack = async () => {
   assert(String(txtOnlySummaryMap.reportBaseline || "") === "run_txt_baseline", "txt-only reportBaseline fallback failed");
   assert(String(txtOnlySummaryMap.reportLatest || "") === "run_txt_latest", "txt-only reportLatest fallback failed");
   assert(String(txtOnlySummaryMap.reportBuckets || "") === "C", "txt-only reportBuckets fallback failed");
+  assert(String(txtOnlySummaryMap.compareArtifacts || "") === "none", "txt-only compareArtifacts should be none");
+  assert(String(txtOnlySummaryMap.compareReceiptFileDigest || "") === "-", "txt-only compareReceiptFileDigest should be placeholder");
+  assert(String(txtOnlySummaryMap.compareReportFileDigest || "") === "-", "txt-only compareReportFileDigest should be placeholder");
   assert(
     String(txtOnlySummaryMap.artifactFingerprint || "") ===
       "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",

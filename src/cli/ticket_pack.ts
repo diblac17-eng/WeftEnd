@@ -232,6 +232,11 @@ export const runTicketPackCli = (options: {
   const reportCardJsonPath = path.join(outRoot, "report_card_v0.json");
   const reportCardTxtPath = path.join(outRoot, "report_card.txt");
   const reportCardFileDigest = fs.existsSync(reportCardJsonPath) ? readFileDigest(reportCardJsonPath) : readFileDigest(reportCardTxtPath);
+  const compareReceiptPath = path.join(outRoot, "compare_receipt.json");
+  const compareReportPath = path.join(outRoot, "compare_report.txt");
+  const compareReceiptFileDigest = readFileDigest(compareReceiptPath);
+  const compareReportFileDigest = readFileDigest(compareReportPath);
+  const compareArtifacts = compareReceiptFileDigest !== "-" || compareReportFileDigest !== "-" ? "present" : "none";
   try {
     if (fs.existsSync(safePath)) {
       const safe = readJson(safePath);
@@ -360,6 +365,9 @@ export const runTicketPackCli = (options: {
     `operatorReceiptFileDigest=${operatorFileDigest}`,
     `safeReceiptFileDigest=${safeFileDigest}`,
     `reportCardFileDigest=${reportCardFileDigest}`,
+    `compareArtifacts=${compareArtifacts}`,
+    `compareReceiptFileDigest=${compareReceiptFileDigest}`,
+    `compareReportFileDigest=${compareReportFileDigest}`,
     `reportRunId=${reportRunId}`,
     `reportLibraryKey=${reportLibraryKey}`,
     `reportStatus=${reportStatus}`,
