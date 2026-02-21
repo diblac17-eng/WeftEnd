@@ -30,7 +30,10 @@ export const writeReceiptReadmeV0 = (outRoot: string, build: WeftendBuildV0, sch
   fs.mkdirSync(dir, { recursive: true });
   const contents = buildReceiptReadmeV0(build, schemaVersion);
   const target = path.join(dir, README_NAME);
-  fs.writeFileSync(target, contents, "utf8");
+  const stagePath = `${target}.stage`;
+  fs.rmSync(stagePath, { recursive: true, force: true });
+  fs.writeFileSync(stagePath, contents, "utf8");
+  fs.renameSync(stagePath, target);
   return target;
 };
 

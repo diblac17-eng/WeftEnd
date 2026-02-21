@@ -138,6 +138,8 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `host_status` receipt emission now uses staged atomic finalize (`host_status_*.json.stage` -> `host_status_*.json`).
 - `host_update` receipt emission now uses staged atomic finalize (`host_update_receipt.json.stage` -> `host_update_receipt.json`).
 - Added host runtime test assertions that no host receipt `.stage` files remain after finalize.
+- Shared README receipt writer now uses staged atomic finalize (`weftend/README.txt.stage` -> `weftend/README.txt`).
+- Added runtime coverage for deterministic README build/write and no leftover README `.stage` residue.
 
 ### Adapter maintenance controls
 - Added `weftend adapter doctor` for deterministic adapter readiness/maintenance reporting.
