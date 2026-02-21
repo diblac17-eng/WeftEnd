@@ -97,6 +97,7 @@ Included
 - `.deb` now parses deterministic AR entry metadata (bounded, no extraction/exec).
 - `.rpm` now captures deterministic lead/header/script/signing hint counters from local bytes only.
 - `.appimage` now captures deterministic ELF/runtime header hints (analysis-only; execution withheld).
+- Adapter docs now explicitly state AppImage analysis never rewrites ELF bytes and never executes payloads in this lane.
 - Package strict route for `.appimage` now requires valid ELF ident fields (class/data/version) in addition to ELF magic/runtime marker bytes, preventing malformed ELF-ident placeholders from passing explicit package routing.
 - Package strict route now requires minimum structural byte-size evidence for `.nupkg` and `.jar` beyond manifest-only ZIP structure, preventing tiny synthetic placeholders from passing explicit package routing.
 - Package strict route now requires `.whl` explicit structure evidence (`METADATA`, `WHEEL`, and `RECORD` in `.dist-info`), preventing partial wheel metadata placeholders from passing explicit package routing.

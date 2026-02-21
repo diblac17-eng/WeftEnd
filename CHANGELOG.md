@@ -70,6 +70,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `safe-run` now preserves deterministic evidence artifacts (`safe_run_receipt.json`, `operator_receipt.json`, analysis receipts) even when adapter maintenance policy fails closed.
 
 ### Adapter strict-route hardening
+- Clarified package/AppImage adapter docs: analysis-only lane never rewrites ELF bytes and never executes payloads.
 - CI/CD adapter discovery/path coverage now explicitly includes `.gitlab-ci.yaml` and `azure-pipelines*.yaml` in addition to existing `.yml` patterns.
 - IaC adapter discovery now explicitly includes `.template` to match implemented route support.
 - Added explicit adapter/runtime and CLI regression coverage for `.gitlab-ci.yaml` success and `azure-pipelines.yaml` path-hint-only fail-closed behavior.
