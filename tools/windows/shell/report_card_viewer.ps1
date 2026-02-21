@@ -694,8 +694,8 @@ $detailsLayout = New-Object System.Windows.Forms.TableLayoutPanel
 $detailsLayout.Dock = "Fill"
 $detailsLayout.ColumnCount = 1
 $detailsLayout.RowCount = 3
-$detailsLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 28)))
-$detailsLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 0)))
+$detailsLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 34)))
+$detailsLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
 $detailsLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
 $detailsPanel.Controls.Add($detailsLayout)
 
@@ -704,7 +704,7 @@ $titleBar.Dock = "Fill"
 $titleBar.ColumnCount = 2
 $titleBar.RowCount = 1
 $titleBar.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
-$titleBar.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Absolute, 150)))
+$titleBar.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::AutoSize)))
 
 $reportTitle = New-Object System.Windows.Forms.Label
 $reportTitle.Text = "Detailed Report"
@@ -716,9 +716,9 @@ $titleBar.Controls.Add($reportTitle, 0, 0) | Out-Null
 
 $btnToggleEvidence = New-Object System.Windows.Forms.Button
 $btnToggleEvidence.Text = "Show Adapter Evidence"
-$btnToggleEvidence.Width = 138
-$btnToggleEvidence.Height = 24
-$btnToggleEvidence.Dock = "Right"
+$btnToggleEvidence.Width = 156
+$btnToggleEvidence.Height = 26
+$btnToggleEvidence.Anchor = [System.Windows.Forms.AnchorStyles]::Right
 Style-Button -Button $btnToggleEvidence -Primary:$false
 $btnToggleEvidence.Visible = $false
 $titleBar.Controls.Add($btnToggleEvidence, 1, 0) | Out-Null
@@ -729,30 +729,32 @@ $adapterPanel = New-Object System.Windows.Forms.Panel
 $adapterPanel.Dock = "Fill"
 $adapterPanel.BackColor = [System.Drawing.Color]::FromArgb(28, 30, 36)
 $adapterPanel.Padding = New-Object System.Windows.Forms.Padding(8, 6, 8, 6)
+$adapterPanel.AutoSize = $true
+$adapterPanel.AutoSizeMode = [System.Windows.Forms.AutoSizeMode]::GrowAndShrink
 $adapterPanel.Visible = $false
 $detailsLayout.Controls.Add($adapterPanel, 0, 1) | Out-Null
 
 $adapterTable = New-Object System.Windows.Forms.TableLayoutPanel
 $adapterTable.Dock = "Fill"
+$adapterTable.AutoSize = $true
+$adapterTable.AutoSizeMode = [System.Windows.Forms.AutoSizeMode]::GrowAndShrink
 $adapterTable.ColumnCount = 1
-$adapterTable.RowCount = 6
-$adapterTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 18)))
-$adapterTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 18)))
-$adapterTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 18)))
-$adapterTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 18)))
-$adapterTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 18)))
-$adapterTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 30)))
+$adapterTable.RowCount = 0
 $adapterPanel.Controls.Add($adapterTable) | Out-Null
 
 function Add-AdapterLine {
   param([string]$TextValue)
   $line = New-Object System.Windows.Forms.Label
   $line.Text = $TextValue
+  $line.AutoSize = $true
   $line.Dock = "Fill"
   $line.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
   $line.ForeColor = $colorText
   $line.Font = $fontSmall
-  [void]$adapterTable.Controls.Add($line)
+  $line.Margin = New-Object System.Windows.Forms.Padding(0, 1, 0, 1)
+  [void]$adapterTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+  [void]$adapterTable.Controls.Add($line, 0, $adapterTable.RowCount)
+  $adapterTable.RowCount += 1
 }
 
 $hasAdapterEvidence = $model.adapterEvidence -and $model.adapterEvidence.available
@@ -777,6 +779,8 @@ if ($hasAdapterEvidence) {
   $adapterActions.FlowDirection = "LeftToRight"
   $adapterActions.WrapContents = $false
   $adapterActions.BackColor = $adapterPanel.BackColor
+  $adapterActions.AutoSize = $true
+  $adapterActions.AutoSizeMode = [System.Windows.Forms.AutoSizeMode]::GrowAndShrink
 
   $btnOpenCapability = New-Object System.Windows.Forms.Button
   $btnOpenCapability.Text = "Capability"
@@ -805,7 +809,9 @@ if ($hasAdapterEvidence) {
   $btnOpenFindings.Add_Click({ Open-FileIfExists -PathValue $model.adapterEvidence.findingsPath })
   $adapterActions.Controls.Add($btnOpenFindings) | Out-Null
 
-  [void]$adapterTable.Controls.Add($adapterActions)
+  [void]$adapterTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+  [void]$adapterTable.Controls.Add($adapterActions, 0, $adapterTable.RowCount)
+  $adapterTable.RowCount += 1
 }
 
 $adapterExpanded = $false
@@ -815,11 +821,9 @@ if ($hasAdapterEvidence) {
     $adapterExpanded = -not $adapterExpanded
     if ($adapterExpanded) {
       $adapterPanel.Visible = $true
-      $detailsLayout.RowStyles[1].Height = 128
       $btnToggleEvidence.Text = "Hide Adapter Evidence"
     } else {
       $adapterPanel.Visible = $false
-      $detailsLayout.RowStyles[1].Height = 0
       $btnToggleEvidence.Text = "Show Adapter Evidence"
     }
   })
@@ -828,7 +832,8 @@ if ($hasAdapterEvidence) {
 $reportText = New-Object System.Windows.Forms.TextBox
 $reportText.Multiline = $true
 $reportText.ReadOnly = $true
-$reportText.ScrollBars = "Vertical"
+$reportText.ScrollBars = "Both"
+$reportText.WordWrap = $false
 $reportText.Dock = "Fill"
 $reportText.BackColor = [System.Drawing.Color]::FromArgb(28, 30, 36)
 $reportText.ForeColor = $colorText
