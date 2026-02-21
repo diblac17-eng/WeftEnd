@@ -50,9 +50,22 @@ const buildLicenseId = (payload: Omit<WeftendEntitlementPayloadV1, "licenseId">)
 };
 
 const readText = (p: string): string => fs.readFileSync(p, "utf8");
-const writeText = (p: string, text: string) => {
-  fs.mkdirSync(path.dirname(p), { recursive: true });
-  fs.writeFileSync(p, text, "utf8");
+const writeTextAtomic = (p: string, text: string): boolean => {
+  const resolved = path.resolve(process.cwd(), p);
+  const stagePath = `${resolved}.stage`;
+  try {
+    fs.mkdirSync(path.dirname(resolved), { recursive: true });
+    fs.writeFileSync(stagePath, text, "utf8");
+    fs.renameSync(stagePath, resolved);
+    return true;
+  } catch {
+    try {
+      if (fs.existsSync(stagePath)) fs.unlinkSync(stagePath);
+    } catch {
+      // best-effort cleanup only
+    }
+    return false;
+  }
 };
 
 const issueLicense = (flags: Record<string, string | boolean>): number => {
@@ -108,7 +121,10 @@ const issueLicense = (flags: Record<string, string | boolean>): number => {
     },
   };
 
-  writeText(outPath, `${canonicalJSON(entitlement)}\n`);
+  if (!writeTextAtomic(outPath, `${canonicalJSON(entitlement)}\n`)) {
+    console.error("[LICENSE_WRITE_FAILED] unable to finalize license output.");
+    return 1;
+  }
   console.log("license: ISSUED");
   return 0;
 };

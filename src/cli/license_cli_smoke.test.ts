@@ -28,6 +28,7 @@ const testLicenseFlow = async () => {
   const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519");
   fs.writeFileSync(privPath, privateKey.export({ type: "pkcs8", format: "pem" }));
   fs.writeFileSync(pubPath, publicKey.export({ type: "spki", format: "pem" }));
+  fs.writeFileSync(licPath, "stale", "utf8");
 
   const issue = await runCliCapture([
     "license",
@@ -49,6 +50,8 @@ const testLicenseFlow = async () => {
   ]);
   assert(issue.status === 0, `license issue failed: ${issue.stderr}`);
   assert(fs.existsSync(licPath), "license file missing");
+  assert(!fs.existsSync(`${licPath}.stage`), "license stage file must not remain after finalize");
+  assert(fs.readFileSync(licPath, "utf8") !== "stale", "license issue must replace stale output");
   assert(!containsAbsPath(issue.stdout + issue.stderr), "license issue output leaks path");
 
   const verify = await runCliCapture([

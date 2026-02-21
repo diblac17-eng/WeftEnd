@@ -78,6 +78,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `export-json` normalized summary output now stages/finalizes (`<out>.stage` -> `<out>`), preventing partial output residue and guaranteeing stale file replacement on successful finalize.
 - `examine` output now stages/finalizes (`<out>.stage` -> `<out>`), replacing stale out-roots and preventing partial examine-output residue from appearing as finalized evidence.
 - `intake` output now stages/finalizes (`<out>.stage` -> `<out>`), replacing stale out-roots and preventing partial intake-output residue from appearing as finalized evidence.
+- `license issue` output now stages/finalizes (`<out>.stage` -> `<out>`), preventing partial output residue and guaranteeing stale license-file replacement on successful finalize.
 - Ticket-pack contract tests now pin report-state parsing from `report_card_v0.json` and enforce digest-line format (`sha256:<64hex>`) for ticket summary identity fields.
 - Ticket-pack contract tests now also pin text fallback parsing from `report_card.txt` (`STATUS/BASELINE/LATEST/BUCKETS` and key-value lines) when structured report JSON is absent.
 - Windows shell report card outputs now surface adapter evidence directly:
