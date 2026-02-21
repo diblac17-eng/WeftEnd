@@ -163,6 +163,18 @@ suite("cli/run", () => {
     const warnings = Array.isArray(operator?.warnings) ? operator.warnings : [];
     assert(warnings.includes("SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"), "expected stale-output warning in operator receipt");
   });
+
+  register("examine finalizes staged output and replaces stale roots", async () => {
+    const outDir = makeTempDir();
+    fs.writeFileSync(path.join(outDir, "stale_root.txt"), "stale", "utf8");
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "safe_no_caps");
+    const result = await runCliCapture(["examine", inputPath, "--out", outDir, "--profile", "web"]);
+    assertEq(result.status, 0, `expected examine success\n${result.stderr}`);
+    assert(fs.existsSync(path.join(outDir, "weftend_mint_v1.json")), "expected weftend_mint_v1.json after finalize");
+    assert(fs.existsSync(path.join(outDir, "weftend_mint_v1.txt")), "expected weftend_mint_v1.txt after finalize");
+    assert(!fs.existsSync(path.join(outDir, "stale_root.txt")), "stale out-root files must be replaced during finalize");
+    assert(!fs.existsSync(`${outDir}.stage`), "examine stage directory must not remain after finalize");
+  });
 });
 
 if (!hasBDD) {

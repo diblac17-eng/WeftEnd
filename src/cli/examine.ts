@@ -26,6 +26,28 @@ const writeFile = (filePath: string, contents: string) => {
   fs.writeFileSync(filePath, contents, "utf8");
 };
 
+const prepareStagedOutRoot = (outDir: string): { ok: true; stageOutDir: string } | { ok: false } => {
+  const stageOutDir = `${outDir}.stage`;
+  try {
+    fs.rmSync(stageOutDir, { recursive: true, force: true });
+    fs.mkdirSync(path.dirname(stageOutDir), { recursive: true });
+    fs.mkdirSync(stageOutDir, { recursive: true });
+    return { ok: true, stageOutDir };
+  } catch {
+    return { ok: false };
+  }
+};
+
+const finalizeStagedOutRoot = (stageOutDir: string, outDir: string): boolean => {
+  try {
+    fs.rmSync(outDir, { recursive: true, force: true });
+    fs.renameSync(stageOutDir, outDir);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const copyCapture = (capture: ReturnType<typeof examineArtifactV1>["capture"], outDir: string) => {
   const captureDir = path.join(outDir, "capture");
   fs.mkdirSync(captureDir, { recursive: true });
@@ -67,7 +89,13 @@ export const runExamine = (inputPath: string, options: ExamineCliOptions): numbe
     return 2;
   }
 
-  const outDir = options.outDir;
+  const finalOutDir = options.outDir;
+  const stage = prepareStagedOutRoot(finalOutDir);
+  if (!stage.ok) {
+    console.error("[EXAMINE_STAGE_INIT_FAILED] unable to initialize staged output path.");
+    return 1;
+  }
+  const outDir = stage.stageOutDir;
   fs.mkdirSync(outDir, { recursive: true });
   writeFile(path.join(outDir, "weftend_mint_v1.json"), canonicalJSON(result.mint));
   writeFile(path.join(outDir, "weftend_mint_v1.txt"), result.report);
@@ -78,6 +106,11 @@ export const runExamine = (inputPath: string, options: ExamineCliOptions): numbe
     } catch (err: any) {
       console.error("[CAPTURE_EMIT_FAILED]", err?.message ?? String(err));
     }
+  }
+
+  if (!finalizeStagedOutRoot(outDir, finalOutDir)) {
+    console.error("[EXAMINE_FINALIZE_FAILED] unable to finalize staged output.");
+    return 1;
   }
 
   return result.mint.grade.status === "DENY" || result.mint.grade.status === "QUARANTINE" ? 2 : 0;

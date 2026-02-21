@@ -294,6 +294,7 @@ Included
 - `email unpack` output now stages/finalizes (`<out>.stage` -> `<out>`), replacing stale out-roots and preventing partial email-export residue from appearing as finalized output.
 - `email safe-run` now prepares source-email normalization in a temporary workspace outside the target out-root, preventing self-input collisions and false orphan-output warnings under staged safe-run finalize behavior.
 - `export-json` normalized summary output now stages/finalizes (`<out>.stage` -> `<out>`), preventing partial output residue and guaranteeing stale file replacement on successful finalize.
+- `examine` output now stages/finalizes (`<out>.stage` -> `<out>`), replacing stale out-roots and preventing partial examine-output residue from appearing as finalized evidence.
 - Ticket-pack contract coverage now enforces report-state extraction from `report_card_v0.json` and validates digest identity line format (`sha256:<64hex>`) in `ticket_summary.txt`.
 - Ticket-pack contract coverage now also enforces text fallback parsing from `report_card.txt` (`STATUS/BASELINE/LATEST/BUCKETS` plus key-value lines) when structured report JSON is absent.
 - Windows shell `report_card.txt` and `report_card_v0.json` now include adapter metadata and capability counts when adapter evidence exists:
