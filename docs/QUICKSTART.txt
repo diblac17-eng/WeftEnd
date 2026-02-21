@@ -137,6 +137,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - Click Sync, then run items from Launchpad.
 - Doctor tab now supports both:
   - `Run Shell Doctor` for shell integration checks.
+  - `Repair Viewer` to reset report-viewer startup state and re-enable auto-open.
   - Shell doctor supports report-viewer self-repair:
     `powershell -NoProfile -ExecutionPolicy Bypass -File tools/windows/shell/weftend_shell_doctor.ps1 -RepairReportViewer`
   - `Run Adapter Doctor` for adapter/plugin maintenance health (`adapter doctor --text`).

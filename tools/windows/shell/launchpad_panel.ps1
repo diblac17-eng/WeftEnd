@@ -373,6 +373,7 @@ function Invoke-AdapterDoctorText {
 }
 
 function Invoke-ShellDoctorText {
+  param([switch]$RepairReportViewer)
   if (-not $shellDoctorScript -or -not (Test-Path -LiteralPath $shellDoctorScript)) {
     return @{
       ok = $false
@@ -382,7 +383,11 @@ function Invoke-ShellDoctorText {
     }
   }
   try {
-    $outputRaw = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $shellDoctorScript 2>&1)
+    $args = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $shellDoctorScript)
+    if ($RepairReportViewer.IsPresent) {
+      $args += "-RepairReportViewer"
+    }
+    $outputRaw = @(& powershell @args 2>&1)
     $outputText = [string](($outputRaw | ForEach-Object { [string]$_ }) -join [Environment]::NewLine)
     if (-not $outputText) { $outputText = "" }
     $exitCode = [int]$LASTEXITCODE
@@ -1710,6 +1715,13 @@ $btnDoctorRun.Height = 30
 Style-Button -Button $btnDoctorRun -Primary:$false
 $doctorActions.Controls.Add($btnDoctorRun) | Out-Null
 
+$btnDoctorRepairViewer = New-Object System.Windows.Forms.Button
+$btnDoctorRepairViewer.Text = "Repair Viewer"
+$btnDoctorRepairViewer.Width = 110
+$btnDoctorRepairViewer.Height = 30
+Style-Button -Button $btnDoctorRepairViewer -Primary:$false
+$doctorActions.Controls.Add($btnDoctorRepairViewer) | Out-Null
+
 $btnAdapterDoctorRun = New-Object System.Windows.Forms.Button
 $btnAdapterDoctorRun.Text = "Run Adapter Doctor"
 $btnAdapterDoctorRun.Width = 132
@@ -1893,6 +1905,25 @@ $btnDoctorRun.Add_Click({
     Set-StatusLine -StatusLabel $statusLabel -Message "Shell doctor completed." -IsError $false
   } else {
     Set-StatusLine -StatusLabel $statusLabel -Message ("Shell doctor failed (" + [string]$result.code + ").") -IsError $true
+  }
+})
+$btnDoctorRepairViewer.Add_Click({
+  $result = Invoke-ShellDoctorText -RepairReportViewer
+  $header = @(
+    "Shell doctor repair=true",
+    "Shell doctor exitCode=" + [string]$result.exitCode,
+    "Shell doctor code=" + [string]$result.code
+  )
+  $body = if ($result.output -and [string]$result.output -ne "") {
+    [string]$result.output
+  } else {
+    "(no shell doctor output)"
+  }
+  $doctorText.Text = (($header + @("", $body)) -join [Environment]::NewLine)
+  if ($result.ok) {
+    Set-StatusLine -StatusLabel $statusLabel -Message "Viewer repair completed." -IsError $false
+  } else {
+    Set-StatusLine -StatusLabel $statusLabel -Message ("Viewer repair failed (" + [string]$result.code + ").") -IsError $true
   }
 })
 $btnAdapterDoctorRun.Add_Click({

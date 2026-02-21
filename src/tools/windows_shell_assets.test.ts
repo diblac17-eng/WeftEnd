@@ -280,6 +280,7 @@ suite("tools/windows shell assets", () => {
     assert(/ReportViewerStartFailCount/.test(panelText), "expected launchpad viewer startup counter reset support");
     assert(/Invoke-AdapterDoctorText/.test(panelText), "expected adapter doctor helper");
     assert(/Invoke-ShellDoctorText/.test(panelText), "expected shell doctor helper");
+    assert(/-RepairReportViewer/.test(panelText), "expected shell doctor repair-viewer switch wiring");
     assert(/Copy-DoctorOutputText/.test(panelText), "expected doctor output copy helper");
     assert(/Update-HistoryDetailsBox/.test(panelText), "expected history details update helper");
     assert(/SelectedIndexChanged/.test(panelText), "expected history selection details wiring");
@@ -295,6 +296,7 @@ suite("tools/windows shell assets", () => {
     assert(/Copy Digests/.test(panelText), "expected launchpad history Copy Digests action");
     assert(/Run Adapter Doctor/.test(panelText), "expected launchpad doctor adapter action");
     assert(/Run Adapter Doctor \(Strict\)/.test(panelText), "expected launchpad doctor strict adapter action");
+    assert(/Repair Viewer/.test(panelText), "expected launchpad doctor repair viewer action");
     assert(/Copy Doctor Output/.test(panelText), "expected launchpad doctor copy action");
     assert(/Shell doctor exitCode=/.test(panelText), "expected shell doctor output header");
     assert(/Shell doctor code=/.test(panelText), "expected shell doctor code header");
