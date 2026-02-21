@@ -15,6 +15,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Host update staging now writes `host_self_manifest.json` with per-file stage/finalize semantics before host root swap.
 - Added regression assertions in compare/ticket-pack smoke tests to fail on any leftover `*.stage` files in finalized outputs.
 - Added run/examine/intake smoke assertions to fail on any leftover `*.stage` residue inside finalized out-roots.
+- Added safe-run/email/container smoke assertions to fail on any leftover `*.stage` residue inside finalized out-roots.
 - Validation status for this hardening batch: `npm run compile --silent` pass, `npm test` pass.
 
 ### GitHub Actions integration

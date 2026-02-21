@@ -43,6 +43,21 @@ function suite(name: string, define: () => void): void {
 }
 
 const makeTempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), "weftend-container-scan-"));
+const listStageResidue = (root: string): string[] => {
+  if (!fs.existsSync(root)) return [];
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    const entries = fs.readdirSync(dir, { withFileTypes: true }) as Array<{ name: string; isDirectory: () => boolean }>;
+    entries.forEach((entry) => {
+      const full = path.join(dir, entry.name);
+      if (entry.name.endsWith(".stage")) out.push(path.relative(root, full).split(path.sep).join("/"));
+      if (entry.isDirectory()) walk(full);
+    });
+  };
+  walk(root);
+  out.sort();
+  return out;
+};
 
 suite("cli/container-scan", () => {
   register("container scan requires immutable digest reference", async () => {
@@ -78,6 +93,7 @@ suite("cli/container-scan", () => {
       "container evidence verification must not emit digest mismatch warnings in nominal fail-closed flow"
     );
     assert(!fs.existsSync(`${outDir}.stage`), "container scan stage directory must not remain after finalize");
+    assertEq(listStageResidue(outDir).length, 0, "container scan output must not include staged file residue");
   });
 
   register("container scan blocks remote docker context", async () => {
@@ -125,6 +141,7 @@ suite("cli/container-scan", () => {
     );
     assert(!fs.existsSync(path.join(outDir, "stale_output.txt")), "stale out-root files must be replaced during finalize");
     assert(!fs.existsSync(`${outDir}.stage`), "container scan stage directory must not remain after finalize");
+    assertEq(listStageResidue(outDir).length, 0, "container scan output must not include staged file residue");
   });
 
   register("container scan honors maintenance disable policy", async () => {

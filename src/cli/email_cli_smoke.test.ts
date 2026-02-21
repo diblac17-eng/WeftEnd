@@ -28,6 +28,21 @@ const assertEq = (actual: unknown, expected: unknown, message: string): void => 
 const readText = (filePath: string): string => fs.readFileSync(filePath, "utf8");
 const readJson = (filePath: string): any => JSON.parse(readText(filePath));
 const makeTempDir = (): string => fs.mkdtempSync(path.join(os.tmpdir(), "weftend-email-"));
+const listStageResidue = (root: string): string[] => {
+  if (!fs.existsSync(root)) return [];
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    const entries = fs.readdirSync(dir, { withFileTypes: true }) as Array<{ name: string; isDirectory: () => boolean }>;
+    entries.forEach((entry) => {
+      const full = path.join(dir, entry.name);
+      if (entry.name.endsWith(".stage")) out.push(path.relative(root, full).split(path.sep).join("/"));
+      if (entry.isDirectory()) walk(full);
+    });
+  };
+  walk(root);
+  out.sort();
+  return out;
+};
 
 suite("cli/email", () => {
   register("email unpack writes deterministic normalized folder", async () => {
@@ -72,6 +87,7 @@ suite("cli/email", () => {
     assert(fs.existsSync(path.join(outDir, "email_export", "adapter_manifest.json")), "expected adapter manifest after finalize");
     assert(!fs.existsSync(path.join(outDir, "stale.txt")), "stale out-root file must be replaced during finalize");
     assert(!fs.existsSync(`${outDir}.stage`), "email unpack stage directory must not remain after finalize");
+    assertEq(listStageResidue(outDir).length, 0, "email unpack output must not include staged file residue");
   });
 
   register("email unpack selects message from mbox index", async () => {

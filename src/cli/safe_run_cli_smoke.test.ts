@@ -55,6 +55,22 @@ const readJson = (dir: string, name: string) => {
   return JSON.parse(raw);
 };
 
+const listStageResidue = (root: string): string[] => {
+  if (!fs.existsSync(root)) return [];
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    const entries = fs.readdirSync(dir, { withFileTypes: true }) as Array<{ name: string; isDirectory: () => boolean }>;
+    entries.forEach((entry) => {
+      const full = path.join(dir, entry.name);
+      if (entry.name.endsWith(".stage")) out.push(path.relative(root, full).split(path.sep).join("/"));
+      if (entry.isDirectory()) walk(full);
+    });
+  };
+  walk(root);
+  out.sort();
+  return out;
+};
+
 const loadPolicyId = (policyPath: string): string => {
   const raw = JSON.parse(fs.readFileSync(policyPath, "utf8"));
   return computeWeftEndPolicyIdV1(canonicalizeWeftEndPolicyV1(raw));
@@ -196,6 +212,7 @@ suite("cli/safe-run", () => {
     assert(warnings.includes("SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"), "expected orphan evidence warning in operator receipt");
     assert(!fs.existsSync(path.join(outDir, "analysis", "stale.txt")), "stale analysis output must be replaced during finalize");
     assert(!fs.existsSync(`${outDir}.stage`), "safe-run stage directory must not remain after finalize");
+    assertEq(listStageResidue(outDir).length, 0, "safe-run output must not include staged file residue");
   });
 
   register("safe-run records orphan evidence warning for root-level stale outputs", async () => {
@@ -214,6 +231,7 @@ suite("cli/safe-run", () => {
     assert(warnings.includes("SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"), "expected root-level orphan evidence warning in operator receipt");
     assert(!fs.existsSync(path.join(outDir, "stale_root.txt")), "stale root output must be replaced during finalize");
     assert(!fs.existsSync(`${outDir}.stage`), "safe-run stage directory must not remain after finalize");
+    assertEq(listStageResidue(outDir).length, 0, "safe-run output must not include staged file residue");
   });
 
   register("safe-run auto policy selection uses web default for html", async () => {
