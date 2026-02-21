@@ -149,6 +149,11 @@ const assertReportPolicyLines = (reportText) => {
     assert(text.includes(prefix), `VERIFY360_HARNESS_REPORT_MISSING_${prefix.replace(/[^A-Z0-9]/gi, "_")}`);
   });
 };
+const assertReportStepLine = (reportText, stepId) => {
+  const text = String(reportText || "");
+  const re = new RegExp(`^${stepId}\\s+status=`, "m");
+  assert(re.test(text), `VERIFY360_HARNESS_REPORT_MISSING_STEP_${String(stepId).toUpperCase()}`);
+};
 
 const runVerify = (envExtra = {}) => {
   const env = {
@@ -204,6 +209,7 @@ const main = () => {
   const reportA = readText(reportAPath);
   assertStateReceipt(receiptA, "PASS");
   assertReportPolicyLines(reportA);
+  assertReportStepLine(reportA, "stage_residue");
   assertSortedUnique(receiptA.reasonCodes, "VERIFY360_HARNESS_REASON_CODES");
   assertCapabilityLedger(receiptA);
   assert(receiptA.idempotence?.mode === "NEW", "VERIFY360_HARNESS_PASS1_EXPECTED_NEW");
@@ -225,6 +231,7 @@ const main = () => {
   const reportB = readText(reportBPath);
   assertStateReceipt(receiptB, "PASS");
   assertReportPolicyLines(reportB);
+  assertReportStepLine(reportB, "stage_residue");
   assertSortedUnique(receiptB.reasonCodes, "VERIFY360_HARNESS_REASON_CODES");
   assertCapabilityLedger(receiptB);
   assert(receiptB.idempotence?.mode === "REPLAY", "VERIFY360_HARNESS_REPLAY_MODE_MISSING");
@@ -252,6 +259,7 @@ const main = () => {
   assert(verdictD === "PASS" || verdictD === "PARTIAL", "VERIFY360_HARNESS_STRICT_NEW_VERDICT_INVALID");
   assertStateReceipt(receiptD, verdictD);
   assertReportPolicyLines(reportD);
+  assertReportStepLine(reportD, "stage_residue");
   assertSortedUnique(receiptD.reasonCodes, "VERIFY360_HARNESS_REASON_CODES");
   assertCapabilityLedger(receiptD);
   assert(receiptD.idempotence?.mode === "NEW", "VERIFY360_HARNESS_STRICT_NEW_EXPECTED_NEW");
@@ -275,6 +283,7 @@ const main = () => {
   assert(verdictE === "PASS" || verdictE === "PARTIAL", "VERIFY360_HARNESS_STRICT_REPLAY_VERDICT_INVALID");
   assertStateReceipt(receiptE, verdictE);
   assertReportPolicyLines(reportE);
+  assertReportStepLine(reportE, "stage_residue");
   assertSortedUnique(receiptE.reasonCodes, "VERIFY360_HARNESS_REASON_CODES");
   assertCapabilityLedger(receiptE);
   assert(receiptE.idempotence?.mode === "REPLAY", "VERIFY360_HARNESS_STRICT_REPLAY_MODE_MISSING");
