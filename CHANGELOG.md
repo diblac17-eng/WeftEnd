@@ -17,6 +17,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Updated `docs/RELEASE_CHECKLIST_ALPHA.md` with optional GitHub Actions parity runs for both workflows.
 - Updated `docs/RELEASE_CHECKLIST_ALPHA.md` with immutable-release change record checks for `CHANGELOG.md` and `docs/RELEASE_NOTES.txt`.
 - Updated `docs/RELEASE_CHECKLIST_ALPHA.md` to explicitly call out managed strict-gate release-smoke env enforcement (`WEFTEND_RELEASE_DIR`, `WEFTEND_ALLOW_SKIP_RELEASE`).
+- Updated legacy `docs/RELEASE_CHECKLIST.md` to explicitly point operators to active `docs/RELEASE_CHECKLIST_ALPHA.md`.
 - Refreshed `docs/RELEASE_ANNOUNCEMENT.txt` to match current adapter expansion, verify-gate, and workflow scope.
 - Updated release packaging to include `CHANGELOG.md` in staged bundle and copied release-sidecar artifacts.
 - Updated `verify:360` docs-sync and etiquette targets to include `CHANGELOG.md` and release announcement references.

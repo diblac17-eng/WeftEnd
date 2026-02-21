@@ -49,6 +49,7 @@ suite("greenteam/docs-release-contract", () => {
     const releaseNotes = readText("docs/RELEASE_NOTES.txt");
     const actionsGuide = readText("docs/GITHUB_ACTIONS.md");
     const releaseChecklist = readText("docs/RELEASE_CHECKLIST_ALPHA.md");
+    const releaseChecklistLegacy = readText("docs/RELEASE_CHECKLIST.md");
     const releaseAnnouncement = readText("docs/RELEASE_ANNOUNCEMENT.txt");
 
     assert(
@@ -131,6 +132,10 @@ suite("greenteam/docs-release-contract", () => {
     assert(
       releaseChecklist.includes("npm run proofcheck:release"),
       "RELEASE_CHECKLIST_ALPHA missing strict proofcheck release command reference"
+    );
+    assert(
+      releaseChecklistLegacy.includes("docs/RELEASE_CHECKLIST_ALPHA.md"),
+      "RELEASE_CHECKLIST legacy doc must point to active alpha checklist"
     );
     assert(
       releaseChecklist.includes("CHANGELOG.md"),

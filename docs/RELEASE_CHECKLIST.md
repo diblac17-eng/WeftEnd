@@ -1,6 +1,10 @@
 # RELEASE_CHECKLIST.md
 Release checklist (stability sweep; no new features).
 
+Status
+- Legacy checklist snapshot.
+- For active release workflow, use `docs/RELEASE_CHECKLIST_ALPHA.md`.
+
 publish -> verify -> strict run -> harness load -> export -> conduit snapshot -> recover (optional)
 
 1) Publish
