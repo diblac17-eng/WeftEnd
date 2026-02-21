@@ -57,9 +57,29 @@ suite("greenteam/release-bundle", () => {
     const script = readText("weftend_release_zip.ps1");
     assert(script.includes("\"CHANGELOG.md\","), "release zip includeSingles must include CHANGELOG.md");
     assert(script.includes("CHANGELOG.md copied"), "release zip sidecar copy must include CHANGELOG.md");
+    assert(script.includes("RELEASE_NOTES.txt copied"), "release zip sidecar copy must include RELEASE_NOTES.txt");
+    assert(
+      script.includes("RELEASE_ANNOUNCEMENT.txt copied"),
+      "release zip sidecar copy must include RELEASE_ANNOUNCEMENT.txt"
+    );
+    assert(script.includes("QUICKSTART.txt copied"), "release zip sidecar copy must include QUICKSTART.txt");
+    assert(
+      script.includes("RELEASE_CHECKLIST_ALPHA.md copied"),
+      "release zip sidecar copy must include RELEASE_CHECKLIST_ALPHA.md"
+    );
 
     const checklist = readText("docs/RELEASE_CHECKLIST_ALPHA.md");
     assert(checklist.includes("CHANGELOG.md"), "release checklist required artifact set must include CHANGELOG.md");
+    assert(checklist.includes("RELEASE_NOTES.txt"), "release checklist required artifact set must include RELEASE_NOTES.txt");
+    assert(
+      checklist.includes("RELEASE_ANNOUNCEMENT.txt"),
+      "release checklist required artifact set must include RELEASE_ANNOUNCEMENT.txt"
+    );
+    assert(checklist.includes("QUICKSTART.txt"), "release checklist required artifact set must include QUICKSTART.txt");
+    assert(
+      checklist.includes("RELEASE_CHECKLIST_ALPHA.md"),
+      "release checklist required artifact set must include RELEASE_CHECKLIST_ALPHA.md"
+    );
   });
 });
 

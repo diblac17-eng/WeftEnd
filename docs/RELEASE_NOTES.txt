@@ -50,6 +50,7 @@ Included
 - Docs contract now also enforces immutable-release checklist references to `CHANGELOG.md` and `docs/RELEASE_NOTES.txt`.
 - Docs contract now also enforces release-announcement workflow/managed-verify references (`docs/RELEASE_ANNOUNCEMENT.txt`).
 - Release bundle contract test now enforces `CHANGELOG.md` inclusion in release-zip staging and release-sidecar outputs.
+- Release bundle contract test now also enforces sidecar parity for `RELEASE_NOTES.txt`, `RELEASE_ANNOUNCEMENT.txt`, `QUICKSTART.txt`, and `RELEASE_CHECKLIST_ALPHA.md`.
 - Added Green Team `verify_360` docs-sync contract test to pin `CHANGELOG.md` + release announcement target coverage.
 - Emergency verify report path now preserves policy context lines (`policy.*`) so fail-closed receipts remain operator-readable under write-path fallback.
 - Safe-run now enforces a non-blocking evidence corridor check before completion:
