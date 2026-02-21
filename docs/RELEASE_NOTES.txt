@@ -269,6 +269,7 @@ Included
 - Ticket-pack summary now includes adapter evidence fields (`adapterEvidence`, `adapterClass`, `adapterId`, `adapterMode`, and capability counts) for faster support triage.
 - Ticket-pack summary now also includes digest identity fields (`operatorReceiptFileDigest`, `safeReceiptFileDigest`, `reportCardFileDigest`) and artifact fingerprint/digest for quicker cross-verification.
 - Ticket-pack summary now includes report state context fields (`reportRunId`, `reportLibraryKey`, `reportStatus`, `reportBaseline`, `reportLatest`, `reportBuckets`) for support triage without opening report files.
+- Ticket-pack contract coverage now enforces report-state extraction from `report_card_v0.json` and validates digest identity line format (`sha256:<64hex>`) in `ticket_summary.txt`.
 - Windows shell `report_card.txt` and `report_card_v0.json` now include adapter metadata and capability counts when adapter evidence exists:
 - `adapterMeta=class:<class> mode:<mode> source:<format> reasons:<codes>`
 - `capabilities=requested:<n> granted:<n> denied:<n>`

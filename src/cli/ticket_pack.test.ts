@@ -17,6 +17,23 @@ const readText = (filePath: string): string => fs.readFileSync(filePath, "utf8")
 const containsAbsPath = (text: string): boolean =>
   /\b[A-Za-z]:\\/.test(text) || /\/Users\//.test(text) || /\/home\//.test(text);
 
+const parseKeyValueSummary = (text: string): Record<string, string> => {
+  const out: Record<string, string> = {};
+  for (const rawLine of String(text || "").replace(/\r/g, "").split("\n")) {
+    const line = String(rawLine || "").trim();
+    if (!line) continue;
+    const idx = line.indexOf("=");
+    if (idx <= 0) continue;
+    const key = line.slice(0, idx).trim();
+    const value = line.slice(idx + 1).trim();
+    if (!key) continue;
+    out[key] = value;
+  }
+  return out;
+};
+
+const isSha256Line = (value: string): boolean => /^sha256:[a-f0-9]{64}$/.test(String(value || ""));
+
 const testTicketPack = async () => {
   const root = path.join(process.cwd(), "out", "ticket_pack_test");
   const runDir = path.join(root, "run");
@@ -27,7 +44,22 @@ const testTicketPack = async () => {
 
   const run = await runCliCapture(["safe-run", input, "--out", runDir]);
   assert(run.status === 0, `safe-run failed: ${run.stderr}`);
-  fs.writeFileSync(path.join(runDir, "report_card_v0.json"), JSON.stringify({ schema: "weftend.reportCard/0", v: 0 }), "utf8");
+  fs.writeFileSync(
+    path.join(runDir, "report_card_v0.json"),
+    JSON.stringify({
+      schema: "weftend.reportCard/0",
+      v: 0,
+      runId: "run_deadbeefcafebabe",
+      libraryKey: "ticket_pack_test_key",
+      status: "SAME",
+      baseline: "run_baseline_seed",
+      latest: "run_deadbeefcafebabe",
+      buckets: "-",
+      artifactFingerprint: "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      artifactDigest: "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    }),
+    "utf8"
+  );
 
   const pack = await runCliCapture(["ticket-pack", runDir, "--out", packDir]);
   assert(pack.status === 0, `ticket-pack failed: ${pack.stderr}`);
@@ -42,6 +74,7 @@ const testTicketPack = async () => {
   assert(fs.existsSync(path.join(ticketRoot, "report_card_v0.json")), "report_card_v0.json missing");
 
   const summary = readText(path.join(ticketRoot, "ticket_summary.txt"));
+  const summaryMap = parseKeyValueSummary(summary);
   assert(summary.includes("ticketPack=weftend"), "ticket summary missing header");
   assert(summary.includes("operatorReceiptFileDigest=sha256:"), "ticket summary missing operator receipt file digest");
   assert(summary.includes("safeReceiptFileDigest=sha256:"), "ticket summary missing safe receipt file digest");
@@ -57,6 +90,23 @@ const testTicketPack = async () => {
   assert(summary.includes("adapterEvidence="), "ticket summary missing adapterEvidence");
   assert(summary.includes("capabilities=requested:"), "ticket summary missing capability summary line");
   assert(!containsAbsPath(summary), "ticket summary contains absolute path");
+  assert(isSha256Line(summaryMap.operatorReceiptFileDigest), "operatorReceiptFileDigest must be sha256:<64hex>");
+  assert(isSha256Line(summaryMap.safeReceiptFileDigest), "safeReceiptFileDigest must be sha256:<64hex>");
+  assert(isSha256Line(summaryMap.reportCardFileDigest), "reportCardFileDigest must be sha256:<64hex>");
+  assert(String(summaryMap.reportRunId || "") === "run_deadbeefcafebabe", "reportRunId must match report_card_v0 source");
+  assert(String(summaryMap.reportLibraryKey || "") === "ticket_pack_test_key", "reportLibraryKey must match report_card_v0 source");
+  assert(String(summaryMap.reportStatus || "") === "SAME", "reportStatus must match report_card_v0 source");
+  assert(String(summaryMap.reportBaseline || "") === "run_baseline_seed", "reportBaseline must match report_card_v0 source");
+  assert(String(summaryMap.reportLatest || "") === "run_deadbeefcafebabe", "reportLatest must match report_card_v0 source");
+  assert(String(summaryMap.reportBuckets || "") === "-", "reportBuckets must match report_card_v0 source");
+  assert(
+    String(summaryMap.artifactFingerprint || "") === "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "artifactFingerprint must match report_card_v0 source"
+  );
+  assert(
+    String(summaryMap.artifactDigest || "") === "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "artifactDigest must match report_card_v0 source"
+  );
 
   if (process.platform === "win32") {
     const zipRun = await runCliCapture(["ticket-pack", runDir, "--out", packDir, "--zip"]);
@@ -119,9 +169,11 @@ const testTicketPack = async () => {
     "ticket pack missing adapter_findings_v0.json"
   );
   const adapterSummary = readText(path.join(adapterTicketRoot, "ticket_summary.txt"));
+  const adapterSummaryMap = parseKeyValueSummary(adapterSummary);
   assert(adapterSummary.includes("adapterEvidence=present"), "expected adapterEvidence=present in adapter ticket summary");
   assert(adapterSummary.includes("adapterClass=archive"), "expected adapterClass=archive in adapter ticket summary");
   assert(adapterSummary.includes("safeReceiptFileDigest=sha256:"), "expected safe receipt file digest in adapter ticket summary");
+  assert(isSha256Line(adapterSummaryMap.safeReceiptFileDigest), "adapter safeReceiptFileDigest must be sha256:<64hex>");
 };
 
 testTicketPack()
