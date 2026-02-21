@@ -14,6 +14,7 @@ Included
 - Quickstart now documents both GitHub workflows (`weftend_artifact_meter` and `weftend_verify360`) including managed verify command/output path.
 - Release checklist now includes optional GitHub Actions parity runs for both workflows before publish.
 - Release checklist now includes immutable-release change record checks (`CHANGELOG.md` and `docs/RELEASE_NOTES.txt` sync).
+- Release checklist now also calls out managed strict gate release-smoke env enforcement (`WEFTEND_RELEASE_DIR`, `WEFTEND_ALLOW_SKIP_RELEASE`).
 - Release announcement draft (`docs/RELEASE_ANNOUNCEMENT.txt`) refreshed to align with current adapter/verify/workflow scope.
 - Release bundle sidecar set now includes `CHANGELOG.md` so immutable history is shipped with release uploads.
 - `verify:360` docs-sync/etiquette coverage now includes `CHANGELOG.md` and release announcement references.

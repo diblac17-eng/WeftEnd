@@ -117,6 +117,14 @@ suite("greenteam/docs-release-contract", () => {
       "RELEASE_CHECKLIST_ALPHA missing managed verify command reference"
     );
     assert(
+      releaseChecklist.includes("WEFTEND_RELEASE_DIR"),
+      "RELEASE_CHECKLIST_ALPHA missing managed verify release fixture env reference"
+    );
+    assert(
+      releaseChecklist.includes("WEFTEND_ALLOW_SKIP_RELEASE"),
+      "RELEASE_CHECKLIST_ALPHA missing managed verify skip-override reference"
+    );
+    assert(
       releaseChecklist.includes("CHANGELOG.md"),
       "RELEASE_CHECKLIST_ALPHA missing immutable changelog check"
     );

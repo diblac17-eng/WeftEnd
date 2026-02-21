@@ -23,6 +23,7 @@ Short, strict release checklist (alpha).
     - npm run verify:360:release:cleanout
   - Optional managed strict release gate (auto-generates temporary adapter maintenance policy):
     - npm run verify:360:release:managed
+    - Managed helper enforces release smoke input (`WEFTEND_RELEASE_DIR`, default `tests/fixtures/release_demo`) and clears `WEFTEND_ALLOW_SKIP_RELEASE`.
   - Confirm receipt exists:
     - out\\verify_360\\latest.txt
     - out\\verify_360\\history\\run_<seq>\\verify_360_receipt.json
