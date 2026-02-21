@@ -307,6 +307,7 @@ suite("tools/windows shell assets", () => {
     assert(/Copy Doctor Output/.test(panelText), "expected launchpad doctor copy action");
     assert(/Shell doctor exitCode=/.test(panelText), "expected shell doctor output header");
     assert(/Shell doctor code=/.test(panelText), "expected shell doctor code header");
+    assert(panelText.includes("ShellDoctorStatus:\\s*FAIL\\s+code=([A-Z0-9_]+)"), "expected shell doctor explicit fail-status code parsing");
     assert(panelText.includes("code=([A-Z0-9_]+)"), "expected shell doctor output code parsing");
     assert(/"adapter", "doctor", "--text"/.test(panelText), "expected launchpad adapter doctor text-mode command");
     assert(/\$args \+= "--strict"/.test(panelText), "expected launchpad adapter doctor strict flag wiring");

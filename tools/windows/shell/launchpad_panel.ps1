@@ -416,11 +416,20 @@ function Invoke-ShellDoctorText {
     $code = "OK"
     if (-not $ok) {
       $code = "SHELL_DOCTOR_FAILED"
-      $codeMatch = [System.Text.RegularExpressions.Regex]::Match($outputText, "code=([A-Z0-9_]+)")
-      if ($codeMatch.Success -and $codeMatch.Groups.Count -gt 1) {
-        $parsedCode = [string]$codeMatch.Groups[1].Value
-        if ($parsedCode -and $parsedCode.Trim() -ne "") {
-          $code = $parsedCode.Trim()
+      $statusCodeMatch = [System.Text.RegularExpressions.Regex]::Match($outputText, "ShellDoctorStatus:\s*FAIL\s+code=([A-Z0-9_]+)")
+      if ($statusCodeMatch.Success -and $statusCodeMatch.Groups.Count -gt 1) {
+        $parsedStatusCode = [string]$statusCodeMatch.Groups[1].Value
+        if ($parsedStatusCode -and $parsedStatusCode.Trim() -ne "") {
+          $code = $parsedStatusCode.Trim()
+        }
+      }
+      if ($code -eq "SHELL_DOCTOR_FAILED") {
+        $codeMatch = [System.Text.RegularExpressions.Regex]::Match($outputText, "code=([A-Z0-9_]+)")
+        if ($codeMatch.Success -and $codeMatch.Groups.Count -gt 1) {
+          $parsedCode = [string]$codeMatch.Groups[1].Value
+          if ($parsedCode -and $parsedCode.Trim() -ne "") {
+            $code = $parsedCode.Trim()
+          }
         }
       }
     }

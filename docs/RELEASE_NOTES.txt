@@ -17,6 +17,7 @@ Included
 - Launchpad adapter doctor parsing now extracts bracketed deterministic reason codes from strict adapter-doctor output instead of returning only generic failure code.
 - Shell doctor now emits deterministic terminal status lines (`ShellDoctorStatus: PASS` or `ShellDoctorStatus: FAIL code=SHELL_DOCTOR_CONFIG_INVALID`) so Launchpad can surface stable non-repair failure codes.
 - Launchpad adapter doctor strict parsing now also supports `strict.reasons=...` fallback extraction (first deterministic reason code) when bracketed reason lines are absent.
+- Launchpad shell doctor parsing now prioritizes explicit `ShellDoctorStatus: FAIL code=...` extraction before generic `code=` fallback parsing.
 - Launchpad History successful report open now resets viewer startup state (`UseReportViewer=1`, `ReportViewerAutoOpen=1`, `ReportViewerStartFailCount=0`) so manual viewer opens self-heal auto-open disable state.
 - Evidence typing added to operator reports (additive, non-breaking):
 - `report_card.txt` now includes an evidence legend and claim mapping lines:
