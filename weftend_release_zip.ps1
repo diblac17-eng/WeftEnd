@@ -86,8 +86,15 @@ function New-ZipAndHash {
   if (Test-Path -LiteralPath $zipStagePath) {
     Remove-Item -Force -LiteralPath $zipStagePath
   }
-  Compress-Archive -Path (Join-Path $StagePath "*") -DestinationPath $zipStagePath -Force
-  Move-Item -LiteralPath $zipStagePath -Destination $zipPath -Force
+  try {
+    Compress-Archive -Path (Join-Path $StagePath "*") -DestinationPath $zipStagePath -Force
+    Move-Item -LiteralPath $zipStagePath -Destination $zipPath -Force
+  } catch {
+    if (Test-Path -LiteralPath $zipStagePath) {
+      Remove-Item -Force -LiteralPath $zipStagePath -ErrorAction SilentlyContinue
+    }
+    throw
+  }
   if (-not (Test-Path -LiteralPath $zipPath)) {
     Write-Fail "Zip not created: $zipName" "Check write permissions under $OutDirPath"
   }
@@ -97,8 +104,15 @@ function New-ZipAndHash {
   if (Test-Path -LiteralPath $shaStagePath) {
     Remove-Item -Force -LiteralPath $shaStagePath
   }
-  "$($hash.Hash.ToLower()) *$ZipName" | Set-Content -Path $shaStagePath -Encoding ascii
-  Move-Item -LiteralPath $shaStagePath -Destination $shaPath -Force
+  try {
+    "$($hash.Hash.ToLower()) *$ZipName" | Set-Content -Path $shaStagePath -Encoding ascii
+    Move-Item -LiteralPath $shaStagePath -Destination $shaPath -Force
+  } catch {
+    if (Test-Path -LiteralPath $shaStagePath) {
+      Remove-Item -Force -LiteralPath $shaStagePath -ErrorAction SilentlyContinue
+    }
+    throw
+  }
   return @{
     Zip = $zipPath
     Sha = $shaPath
@@ -114,8 +128,15 @@ function Copy-SidecarFileAtomic {
   if (Test-Path -LiteralPath $stagePath) {
     Remove-Item -Force -LiteralPath $stagePath
   }
-  Copy-Item -LiteralPath $SourcePath -Destination $stagePath -Force
-  Move-Item -LiteralPath $stagePath -Destination $DestinationPath -Force
+  try {
+    Copy-Item -LiteralPath $SourcePath -Destination $stagePath -Force
+    Move-Item -LiteralPath $stagePath -Destination $DestinationPath -Force
+  } catch {
+    if (Test-Path -LiteralPath $stagePath) {
+      Remove-Item -Force -LiteralPath $stagePath -ErrorAction SilentlyContinue
+    }
+    throw
+  }
 }
 
 function Remove-ReleaseNoise {
