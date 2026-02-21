@@ -175,6 +175,20 @@ suite("cli/run", () => {
     assert(!fs.existsSync(path.join(outDir, "stale_root.txt")), "stale out-root files must be replaced during finalize");
     assert(!fs.existsSync(`${outDir}.stage`), "examine stage directory must not remain after finalize");
   });
+
+  register("intake finalizes staged output and replaces stale roots", async () => {
+    const outDir = makeTempDir();
+    fs.writeFileSync(path.join(outDir, "stale_root.txt"), "stale", "utf8");
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "safe_no_caps");
+    const policyPath = path.join(process.cwd(), "policies", "web_component_default.json");
+    const result = await runCliCapture(["intake", inputPath, "--policy", policyPath, "--out", outDir]);
+    assertEq(result.status, 0, `expected intake success\n${result.stderr}`);
+    assert(fs.existsSync(path.join(outDir, "intake_decision.json")), "expected intake_decision.json after finalize");
+    assert(fs.existsSync(path.join(outDir, "disclosure.txt")), "expected disclosure.txt after finalize");
+    assert(fs.existsSync(path.join(outDir, "appeal_bundle.json")), "expected appeal_bundle.json after finalize");
+    assert(!fs.existsSync(path.join(outDir, "stale_root.txt")), "stale out-root files must be replaced during finalize");
+    assert(!fs.existsSync(`${outDir}.stage`), "intake stage directory must not remain after finalize");
+  });
 });
 
 if (!hasBDD) {

@@ -257,10 +257,24 @@ const runIntakeCli = (args: string[]): number => {
   }
 
   const output = buildIntakeDecisionV1(mint, policy, { scriptText });
-  fs.mkdirSync(outDir, { recursive: true });
-  fs.writeFileSync(path.join(outDir, "intake_decision.json"), `${canonicalJSON(output.decision)}\n`, "utf8");
-  fs.writeFileSync(path.join(outDir, "disclosure.txt"), `${output.disclosure}\n`, "utf8");
-  fs.writeFileSync(path.join(outDir, "appeal_bundle.json"), `${canonicalJSON(output.appeal)}\n`, "utf8");
+  const stageOutDir = `${outDir}.stage`;
+  try {
+    fs.rmSync(stageOutDir, { recursive: true, force: true });
+    fs.mkdirSync(stageOutDir, { recursive: true });
+    fs.writeFileSync(path.join(stageOutDir, "intake_decision.json"), `${canonicalJSON(output.decision)}\n`, "utf8");
+    fs.writeFileSync(path.join(stageOutDir, "disclosure.txt"), `${output.disclosure}\n`, "utf8");
+    fs.writeFileSync(path.join(stageOutDir, "appeal_bundle.json"), `${canonicalJSON(output.appeal)}\n`, "utf8");
+    fs.rmSync(outDir, { recursive: true, force: true });
+    fs.renameSync(stageOutDir, outDir);
+  } catch {
+    try {
+      fs.rmSync(stageOutDir, { recursive: true, force: true });
+    } catch {
+      // best-effort cleanup only
+    }
+    console.error("[INTAKE_FINALIZE_FAILED] unable to finalize staged intake output.");
+    return 1;
+  }
 
   switch (output.decision.action) {
     case "APPROVE":
