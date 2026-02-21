@@ -12,6 +12,7 @@ Included
 - Added usage guide: `docs/GITHUB_ACTIONS.md`
 - Quickstart now documents both GitHub workflows (`weftend_artifact_meter` and `weftend_verify360`) including managed verify command/output path.
 - Release checklist now includes optional GitHub Actions parity runs for both workflows before publish.
+- Release checklist now includes immutable-release change record checks (`CHANGELOG.md` and `docs/RELEASE_NOTES.txt` sync).
 - 360 commit gate added:
 - `npm run verify:360` now performs compile/test/proofcheck + deterministic replay + privacy lint + compare smoke.
 - Gate now always writes evidence artifacts (`verify_360_receipt.json` and `verify_360_report.txt`) for PASS/PARTIAL/FAIL outcomes.
@@ -42,6 +43,7 @@ Included
 - Added Green Team contract test for `.github/workflows/weftend_verify360.yml` to pin managed-verify workflow behavior and artifact upload path.
 - Added Green Team docs contract test for release-facing docs (`README.md`, `docs/QUICKSTART.txt`, `docs/RELEASE_NOTES.txt`, `docs/GITHUB_ACTIONS.md`) so workflow/command references stay in sync.
 - Extended docs contract coverage to include `docs/RELEASE_CHECKLIST_ALPHA.md` workflow parity references.
+- Docs contract now also enforces immutable-release checklist references to `CHANGELOG.md` and `docs/RELEASE_NOTES.txt`.
 - Emergency verify report path now preserves policy context lines (`policy.*`) so fail-closed receipts remain operator-readable under write-path fallback.
 - Safe-run now enforces a non-blocking evidence corridor check before completion:
 - Expected receipt artifacts are verified for presence and digest consistency.

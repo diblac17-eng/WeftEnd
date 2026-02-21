@@ -107,6 +107,14 @@ suite("greenteam/docs-release-contract", () => {
       releaseChecklist.includes("npm run verify:360:release:managed"),
       "RELEASE_CHECKLIST_ALPHA missing managed verify command reference"
     );
+    assert(
+      releaseChecklist.includes("CHANGELOG.md"),
+      "RELEASE_CHECKLIST_ALPHA missing immutable changelog check"
+    );
+    assert(
+      releaseChecklist.includes("docs/RELEASE_NOTES.txt"),
+      "RELEASE_CHECKLIST_ALPHA missing release-notes sync check"
+    );
   });
 });
 

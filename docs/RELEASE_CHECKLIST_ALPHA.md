@@ -5,6 +5,11 @@ Short, strict release checklist (alpha).
 - git status --short
 - Expect no pending changes before build/tag.
 
+1.1) Immutable-release change record check
+- Confirm `CHANGELOG.md` (`[Unreleased]`) is updated with all release-bound deltas.
+- Confirm `docs/RELEASE_NOTES.txt` matches release scope and validation commands.
+- Confirm release announcement text matches the same scope (if used).
+
 2) Full validation loop (no skips)
 - Preferred (single full-spin gate):
   - npm run verify:360
