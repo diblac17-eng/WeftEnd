@@ -246,7 +246,7 @@ Included
 - Native report viewer workflow is the default operator path; Notepad is no longer the primary report UX.
 - Report viewer startup hardened: host console launches hidden while the report viewer opens in normal visible state for review.
 - Report viewer summary now includes `report_card_v0.json`/`report_card.txt` digest plus `safe_run_receipt.json` and `operator_receipt.json` digests for fast cross-verification.
-- Report viewer now includes `Copy Digests` for digest-only clipboard export (`runId`, artifact fingerprint/digest, report-card digest, safe/operator receipt digests).
+- Report viewer now includes `Copy Digests` for digest-only clipboard export (`runId`, artifact fingerprint/digest, report-card digest, safe/operator receipt digests, compare receipt/report digests).
 - Report viewer now supports keyboard copy shortcuts: `Ctrl+C` for summary copy and `Ctrl+Shift+C` for digest-only copy.
 - Report viewer summary panel now also surfaces `Status`, `Run Id`, and `Library Key`; summary clipboard output includes `libraryKey`.
 - Launchpad History UX improvements: direct View Report action and keyboard open behavior (double-click/Enter).
@@ -260,7 +260,7 @@ Included
 - Launchpad History now supports keyboard copy (`Ctrl+C`) from history list/details pane for faster evidence sharing.
 - Launchpad History now includes `Copy Digests` for digest/fingerprint-only clipboard output in ticket/cross-verification workflows.
 - Launchpad History now supports keyboard digest copy (`Ctrl+Shift+C`) from history list/details pane.
-- Launchpad History details now include artifact fingerprint/digest and receipt digests (`report_card_v0.json`/`report_card.txt`, `safe_run_receipt.json`, `operator_receipt.json`) for quick cross-verification.
+- Launchpad History details now include artifact fingerprint/digest and receipt digests (`report_card_v0.json`/`report_card.txt`, `safe_run_receipt.json`, `operator_receipt.json`, `compare_receipt.json`, `compare_report.txt`) for quick cross-verification.
 - Launchpad Doctor tab now includes `Run Adapter Doctor`, executing deterministic text-mode adapter health checks (`adapter doctor --text`) directly from UI.
 - Launchpad Doctor tab now includes `Run Adapter Doctor (Strict)`, executing fail-closed adapter health checks (`adapter doctor --text --strict`) directly from UI.
 - Launchpad Doctor tab now includes `Copy Doctor Output` and supports keyboard copy (`Ctrl+C`) from the doctor output pane.

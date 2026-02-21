@@ -180,6 +180,8 @@ function Load-ReportModel {
   $jsonPath = Join-Path $ResolvedRunDir "report_card_v0.json"
   $safeReceiptDigest = Compute-FileSha256Digest -PathValue (Join-Path $ResolvedRunDir "safe_run_receipt.json")
   $operatorReceiptDigest = Compute-FileSha256Digest -PathValue (Join-Path $ResolvedRunDir "operator_receipt.json")
+  $compareReceiptDigest = Compute-FileSha256Digest -PathValue (Join-Path $ResolvedRunDir "compare_receipt.json")
+  $compareReportDigest = Compute-FileSha256Digest -PathValue (Join-Path $ResolvedRunDir "compare_report.txt")
   $reportCardDigest = if (Test-Path -LiteralPath $jsonPath) {
     Compute-FileSha256Digest -PathValue $jsonPath
   } else {
@@ -220,6 +222,8 @@ function Load-ReportModel {
         reportTextPath = $txtPath
         safeReceiptDigest = $safeReceiptDigest
         operatorReceiptDigest = $operatorReceiptDigest
+        compareReceiptDigest = $compareReceiptDigest
+        compareReportDigest = $compareReportDigest
         reportCardDigest = $reportCardDigest
       }
     } catch {
@@ -251,6 +255,8 @@ function Load-ReportModel {
     reportTextPath = $txtPath
     safeReceiptDigest = $safeReceiptDigest
     operatorReceiptDigest = $operatorReceiptDigest
+    compareReceiptDigest = $compareReceiptDigest
+    compareReportDigest = $compareReportDigest
     reportCardDigest = $reportCardDigest
   }
 }
@@ -341,6 +347,8 @@ function Build-SummaryClipboardText {
     "reportCardDigest=" + (Get-StringValue -Value $Model.reportCardDigest),
     "safeReceiptDigest=" + (Get-StringValue -Value $Model.safeReceiptDigest),
     "operatorReceiptDigest=" + (Get-StringValue -Value $Model.operatorReceiptDigest),
+    "compareReceiptDigest=" + (Get-StringValue -Value $Model.compareReceiptDigest),
+    "compareReportDigest=" + (Get-StringValue -Value $Model.compareReportDigest),
     "reason=" + (Get-StringValue -Value $Model.reason),
     "baseline=" + (Get-StringValue -Value $Model.baseline),
     "latest=" + (Get-StringValue -Value $Model.latest),
@@ -367,7 +375,9 @@ function Build-DigestClipboardText {
     "artifactDigest=" + (Get-StringValue -Value $Model.artifactDigest),
     "reportCardDigest=" + (Get-StringValue -Value $Model.reportCardDigest),
     "safeReceiptDigest=" + (Get-StringValue -Value $Model.safeReceiptDigest),
-    "operatorReceiptDigest=" + (Get-StringValue -Value $Model.operatorReceiptDigest)
+    "operatorReceiptDigest=" + (Get-StringValue -Value $Model.operatorReceiptDigest),
+    "compareReceiptDigest=" + (Get-StringValue -Value $Model.compareReceiptDigest),
+    "compareReportDigest=" + (Get-StringValue -Value $Model.compareReportDigest)
   ) -join [Environment]::NewLine)
 }
 
@@ -523,6 +533,8 @@ Add-SummaryLine -TextValue ("Artifact Digest: " + (Get-StringValue -Value $model
 Add-SummaryLine -TextValue ("Report Card Digest: " + (Get-StringValue -Value $model.reportCardDigest))
 Add-SummaryLine -TextValue ("Safe Receipt Digest: " + (Get-StringValue -Value $model.safeReceiptDigest))
 Add-SummaryLine -TextValue ("Operator Receipt Digest: " + (Get-StringValue -Value $model.operatorReceiptDigest))
+Add-SummaryLine -TextValue ("Compare Receipt Digest: " + (Get-StringValue -Value $model.compareReceiptDigest))
+Add-SummaryLine -TextValue ("Compare Report Digest: " + (Get-StringValue -Value $model.compareReportDigest))
 Add-SummaryLine -TextValue ("Reason: " + (Get-StringValue -Value $model.reason))
 Add-SummaryLine -TextValue ("Baseline: " + (Get-StringValue -Value $model.baseline))
 Add-SummaryLine -TextValue ("Latest: " + (Get-StringValue -Value $model.latest))

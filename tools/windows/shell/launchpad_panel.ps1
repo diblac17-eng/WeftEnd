@@ -591,6 +591,8 @@ function Read-RunEvidenceSnapshot {
     reportCardDigest = "-"
     safeReceiptDigest = "-"
     operatorReceiptDigest = "-"
+    compareReceiptDigest = "-"
+    compareReportDigest = "-"
   }
   if (-not $TargetDir -or -not $RunId -or $RunId -eq "-") { return $out }
   $runDir = Join-Path $TargetDir $RunId
@@ -637,6 +639,8 @@ function Read-RunEvidenceSnapshot {
 
   $safeReceiptPath = Join-Path $runDir "safe_run_receipt.json"
   $operatorReceiptPath = Join-Path $runDir "operator_receipt.json"
+  $compareReceiptPath = Join-Path $runDir "compare_receipt.json"
+  $compareReportPath = Join-Path $runDir "compare_report.txt"
   $reportCardJsonPath = Join-Path $runDir "report_card_v0.json"
   $reportCardTxtPath = Join-Path $runDir "report_card.txt"
   if (Test-Path -LiteralPath $reportCardJsonPath) {
@@ -646,6 +650,8 @@ function Read-RunEvidenceSnapshot {
   }
   $out.safeReceiptDigest = Compute-FileSha256Digest -PathValue $safeReceiptPath
   $out.operatorReceiptDigest = Compute-FileSha256Digest -PathValue $operatorReceiptPath
+  $out.compareReceiptDigest = Compute-FileSha256Digest -PathValue $compareReceiptPath
+  $out.compareReportDigest = Compute-FileSha256Digest -PathValue $compareReportPath
   return $out
 }
 
@@ -1012,6 +1018,8 @@ function Update-HistoryDetailsBox {
     $lines += "Report Card Digest: " + [string]$snapshot.reportCardDigest
     $lines += "Safe Receipt Digest: " + [string]$snapshot.safeReceiptDigest
     $lines += "Operator Receipt Digest: " + [string]$snapshot.operatorReceiptDigest
+    $lines += "Compare Receipt Digest: " + [string]$snapshot.compareReceiptDigest
+    $lines += "Compare Report Digest: " + [string]$snapshot.compareReportDigest
 
     $ev = Read-AdapterEvidenceForRun -TargetDir $targetDir -RunId $latestRun
     if ($ev.available) {
@@ -1098,7 +1106,9 @@ function Copy-HistoryDigestText {
       "Artifact Digest:",
       "Report Card Digest:",
       "Safe Receipt Digest:",
-      "Operator Receipt Digest:"
+      "Operator Receipt Digest:",
+      "Compare Receipt Digest:",
+      "Compare Report Digest:"
     )
     $digestLines = @()
     foreach ($lineObj in ($text -split "`r?`n")) {

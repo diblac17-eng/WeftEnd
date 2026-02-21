@@ -32,7 +32,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `safe-run` now writes `analysis/capability_ledger_v0.json` for raw-input adapter lanes, recording deterministic requested/granted/denied adapter and plugin capability decisions.
 - `container scan` now writes the same deterministic `analysis/capability_ledger_v0.json` artifact in success and fail-closed paths for consistent container capability evidence.
 - Windows report viewer now renders adapter evidence as an optional collapsed section (only when adapter/capability artifacts are present) with quick-open artifact actions.
-- Report viewer summary now includes report-card/safe/operator receipt digests and provides `Copy Digests` for digest-only share/export text.
+- Report viewer summary now includes report-card/safe/operator plus compare receipt/report digests and provides `Copy Digests` for digest-only share/export text.
 - Report viewer now supports keyboard copy shortcuts: `Ctrl+C` (summary) and `Ctrl+Shift+C` (digest-only).
 - Report viewer summary panel now also surfaces `Status`, `Run Id`, and `Library Key`; summary copy output includes `libraryKey`.
 - Launchpad History now shows a compact adapter tag (including plugin marker and denied-capability marker) from the latest run evidence.
@@ -44,7 +44,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Launchpad History now supports `Ctrl+C` copy from history list/details for faster evidence sharing.
 - Launchpad History now provides `Copy Digests` for digest/fingerprint-only clipboard output.
 - Launchpad History now supports `Ctrl+Shift+C` digest-only copy from history list/details.
-- Launchpad History details now include artifact fingerprint/digest plus report-card/safe/operator receipt digests for quick cross-verification.
+- Launchpad History details now include artifact fingerprint/digest plus report-card/safe/operator and compare receipt/report digests for quick cross-verification.
 - Launchpad Doctor tab now includes `Run Adapter Doctor` (text mode) so adapter/plugin maintenance health can be checked directly from UI.
 - Launchpad Doctor tab now includes `Run Adapter Doctor (Strict)` for fail-closed adapter maintenance checks from UI.
 - Launchpad Doctor tab now includes `Copy Doctor Output` and `Ctrl+C` clipboard support in doctor output pane for faster support sharing.
