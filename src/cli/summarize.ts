@@ -42,9 +42,22 @@ const parseArgs = (argv: string[]): { rest: string[]; flags: Flags } => {
   return { rest, flags };
 };
 
-const writeText = (filePath: string, text: string): void => {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, text, "utf8");
+const writeTextAtomic = (filePath: string, text: string): boolean => {
+  const resolved = path.resolve(process.cwd(), filePath);
+  const stagePath = `${resolved}.stage`;
+  try {
+    fs.mkdirSync(path.dirname(resolved), { recursive: true });
+    fs.writeFileSync(stagePath, text, "utf8");
+    fs.renameSync(stagePath, resolved);
+    return true;
+  } catch {
+    try {
+      if (fs.existsSync(stagePath)) fs.unlinkSync(stagePath);
+    } catch {
+      // best-effort cleanup only
+    }
+    return false;
+  }
 };
 
 const summarizeReasonPreview = (reasons: string[]): string => {
@@ -131,8 +144,10 @@ export const runExportJsonCli = (argv: string[]): number => {
     String(flags["out"] || "").trim().length > 0
       ? path.resolve(process.cwd(), String(flags["out"]))
       : path.resolve(process.cwd(), outRoot, "normalized_summary_v0.json");
-  writeText(outputPath, `${canonicalJSON(loaded.value)}\n`);
+  if (!writeTextAtomic(outputPath, `${canonicalJSON(loaded.value)}\n`)) {
+    console.error("[EXPORT_JSON_WRITE_FAILED] unable to finalize normalized summary output.");
+    return 1;
+  }
   console.log(`EXPORT_JSON OK format=normalized_v0 ${formatBuildDigestSummaryV0(loaded.value.weftendBuild)}`);
   return 0;
 };
-

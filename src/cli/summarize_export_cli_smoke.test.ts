@@ -38,10 +38,14 @@ const run = async (): Promise<void> => {
   assert(!hasAbsPath(summarize.stdout), "summarize output must not include absolute paths");
 
   const exportPath = path.join(temp, "normalized", "summary.json");
+  fs.mkdirSync(path.dirname(exportPath), { recursive: true });
+  fs.writeFileSync(exportPath, "stale", "utf8");
   const exported = await runCliCapture(["export-json", outDir, "--format", "normalized_v0", "--out", exportPath]);
   assertEq(exported.status, 0, `expected export-json success\n${exported.stderr}`);
   assert(fs.existsSync(exportPath), "normalized summary json missing");
+  assert(!fs.existsSync(`${exportPath}.stage`), "export-json stage file must not remain after finalize");
   const raw = readText(exportPath);
+  assert(raw !== "stale", "export-json output must replace stale file content");
   assert(!hasAbsPath(raw), "normalized summary must not include absolute paths");
   const parsed = JSON.parse(raw);
   const issues = validateNormalizedSummaryV0(parsed, "normalizedSummary");
@@ -60,4 +64,3 @@ run()
     console.error(error);
     process.exit(1);
   });
-
