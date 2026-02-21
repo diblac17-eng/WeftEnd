@@ -61,6 +61,7 @@ suite("greenteam/docs-release-contract", () => {
       "README missing verify360 workflow reference"
     );
     assert(readme.includes("docs/GITHUB_ACTIONS.md"), "README missing GitHub Actions guide reference");
+    assert(readme.includes("docs/RELEASE_HISTORY.md"), "README missing release history reference");
 
     assert(
       quickstart.includes(".github/workflows/weftend_artifact_meter.yml"),
@@ -145,6 +146,10 @@ suite("greenteam/docs-release-contract", () => {
       releaseChecklist.includes("docs/RELEASE_NOTES.txt"),
       "RELEASE_CHECKLIST_ALPHA missing release-notes sync check"
     );
+    assert(
+      releaseChecklist.includes("docs/RELEASE_HISTORY.md"),
+      "RELEASE_CHECKLIST_ALPHA missing release-history sync check"
+    );
 
     assert(
       releaseAnnouncement.includes(".github/workflows/weftend_artifact_meter.yml"),
@@ -159,6 +164,10 @@ suite("greenteam/docs-release-contract", () => {
       "RELEASE_ANNOUNCEMENT missing managed verify command reference"
     );
     assert(releaseAnnouncement.includes("CHANGELOG.md"), "RELEASE_ANNOUNCEMENT missing changelog reference");
+    assert(
+      releaseAnnouncement.includes("docs/RELEASE_HISTORY.md"),
+      "RELEASE_ANNOUNCEMENT missing release-history reference"
+    );
   });
 });
 

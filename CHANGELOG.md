@@ -79,12 +79,15 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Updated `docs/QUICKSTART.txt` GitHub Actions section to include both workflows and managed verify output path.
 - Updated `docs/RELEASE_CHECKLIST_ALPHA.md` with optional GitHub Actions parity runs for both workflows.
 - Updated `docs/RELEASE_CHECKLIST_ALPHA.md` with immutable-release change record checks for `CHANGELOG.md` and `docs/RELEASE_NOTES.txt`.
+- Added `docs/RELEASE_HISTORY.md` as the dedicated immutable release-history record page.
+- Updated `docs/RELEASE_CHECKLIST_ALPHA.md` immutable-change checks to include `docs/RELEASE_HISTORY.md`.
 - Updated `docs/RELEASE_CHECKLIST_ALPHA.md` to explicitly call out managed strict-gate release-smoke env enforcement (`WEFTEND_RELEASE_DIR`, `WEFTEND_ALLOW_SKIP_RELEASE`).
 - Updated legacy `docs/RELEASE_CHECKLIST.md` to explicitly point operators to active `docs/RELEASE_CHECKLIST_ALPHA.md`.
 - Refreshed `docs/RELEASE_ANNOUNCEMENT.txt` to match current adapter expansion, verify-gate, and workflow scope.
 - Updated release packaging to include `CHANGELOG.md` in staged bundle and copied release-sidecar artifacts.
-- Updated `verify:360` docs-sync and etiquette targets to include `CHANGELOG.md` and release announcement references.
-- Updated `docs/GIT_POSTING_ETIQUETTE.md` to match verify etiquette target set (includes `CHANGELOG.md`).
+- Updated release packaging to include `RELEASE_HISTORY.md` in copied release-sidecar artifacts.
+- Updated `verify:360` docs-sync and etiquette targets to include `CHANGELOG.md`, release notes, release announcement, and release history references.
+- Updated `docs/GIT_POSTING_ETIQUETTE.md` to match verify etiquette target set (includes `CHANGELOG.md` and `docs/RELEASE_HISTORY.md`).
 
 ### Safe-run evidence corridor
 - `safe-run` now verifies expected receipt artifacts for presence and digest consistency before completion.
@@ -186,10 +189,10 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added Green Team contract test for `.github/workflows/weftend_verify360.yml` to pin managed verify workflow command and artifact path invariants.
 - Added Green Team docs release contract test to pin workflow/command references across README/Quickstart/Release Notes/Actions guide.
 - Extended docs release contract coverage to include `docs/RELEASE_CHECKLIST_ALPHA.md`.
-- Extended docs release contract coverage to enforce immutable-release checklist references (`CHANGELOG.md`, `docs/RELEASE_NOTES.txt`).
+- Extended docs release contract coverage to enforce immutable-release checklist references (`CHANGELOG.md`, `docs/RELEASE_NOTES.txt`, `docs/RELEASE_HISTORY.md`).
 - Extended docs release contract coverage to enforce release announcement workflow/managed-verify references.
 - Extended release bundle contract coverage to enforce `CHANGELOG.md` in packaging/checklist outputs.
-- Extended release bundle contract coverage to enforce sidecar parity for release notes/announcement/quickstart/checklist outputs.
+- Extended release bundle contract coverage to enforce sidecar parity for release notes/announcement/quickstart/checklist/history outputs.
 - Added Green Team contract test for `verify_360` docs-sync target coverage (`CHANGELOG.md`, release announcement, release notes).
 - Added `npm run proofcheck:release` wrapper to enforce strict release-smoke proofcheck (`WEFTEND_RELEASE_DIR` required, skip override cleared).
 - Added Green Team contract test for `scripts/proofcheck_release.js` strict behavior.

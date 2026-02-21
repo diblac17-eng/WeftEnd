@@ -36,6 +36,7 @@ Validation on release state
 
 Reference docs
 - docs/RELEASE_NOTES.txt
+- docs/RELEASE_HISTORY.md
 - docs/QUICKSTART.txt
 - docs/GITHUB_ACTIONS.md
 - docs/ADAPTERS_MATRIX.md

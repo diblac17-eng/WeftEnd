@@ -8,6 +8,7 @@ Short, strict release checklist (alpha).
 1.1) Immutable-release change record check
 - Confirm `CHANGELOG.md` (`[Unreleased]`) is updated with all release-bound deltas.
 - Confirm `docs/RELEASE_NOTES.txt` matches release scope and validation commands.
+- Confirm `docs/RELEASE_HISTORY.md` is updated for the upcoming published entry.
 - Confirm release announcement text matches the same scope (if used).
 
 2) Full validation loop (no skips)
@@ -57,6 +58,7 @@ Short, strict release checklist (alpha).
 - RELEASE_ANNOUNCEMENT.txt
 - QUICKSTART.txt
 - RELEASE_CHECKLIST_ALPHA.md
+- RELEASE_HISTORY.md
 - CHANGELOG.md
 
 5) Verify SHA256

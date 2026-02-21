@@ -52,6 +52,7 @@ suite("greenteam/release-bundle", () => {
     expectFile("tools/windows/weftend_release_zip.ps1");
     expectFile("scripts/proofcheck_release.js");
     expectFile("docs/RELEASE_CHECKLIST_ALPHA.md");
+    expectFile("docs/RELEASE_HISTORY.md");
   });
 
   register("release zip script keeps immutable change-log sidecar contract", () => {
@@ -68,6 +69,7 @@ suite("greenteam/release-bundle", () => {
       script.includes("RELEASE_CHECKLIST_ALPHA.md copied"),
       "release zip sidecar copy must include RELEASE_CHECKLIST_ALPHA.md"
     );
+    assert(script.includes("RELEASE_HISTORY.md copied"), "release zip sidecar copy must include RELEASE_HISTORY.md");
 
     const checklist = readText("docs/RELEASE_CHECKLIST_ALPHA.md");
     assert(checklist.includes("CHANGELOG.md"), "release checklist required artifact set must include CHANGELOG.md");
@@ -81,6 +83,7 @@ suite("greenteam/release-bundle", () => {
       checklist.includes("RELEASE_CHECKLIST_ALPHA.md"),
       "release checklist required artifact set must include RELEASE_CHECKLIST_ALPHA.md"
     );
+    assert(checklist.includes("RELEASE_HISTORY.md"), "release checklist required artifact set must include RELEASE_HISTORY.md");
   });
 });
 

@@ -26,4 +26,5 @@ Gate enforcement
   - `README.md`
   - `docs/RELEASE_ANNOUNCEMENT.txt`
   - `docs/RELEASE_NOTES.txt`
+  - `docs/RELEASE_HISTORY.md`
 - Fails with `VERIFY360_GIT_ETIQUETTE_FAILED` if violations are detected.

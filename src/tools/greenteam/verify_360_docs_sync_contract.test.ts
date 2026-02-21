@@ -63,6 +63,10 @@ suite("greenteam/verify360-docs-sync-contract", () => {
       text.includes("docs/RELEASE_NOTES.txt"),
       "verify_360 docs-sync/etiquette contract missing release notes target"
     );
+    assert(
+      text.includes("docs/RELEASE_HISTORY.md"),
+      "verify_360 docs-sync/etiquette contract missing release history target"
+    );
     assert(text.includes("VERIFY360_DOC_SYNC_MISSING"), "verify_360 docs-sync fail code missing");
   });
 
@@ -75,6 +79,7 @@ suite("greenteam/verify360-docs-sync-contract", () => {
       "posting etiquette doc missing release announcement target"
     );
     assert(doc.includes("docs/RELEASE_NOTES.txt"), "posting etiquette doc missing release notes target");
+    assert(doc.includes("docs/RELEASE_HISTORY.md"), "posting etiquette doc missing release history target");
   });
 });
 

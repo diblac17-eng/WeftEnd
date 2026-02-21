@@ -44,6 +44,7 @@ Release history and immutable notes
 - Release assets are immutable once published.
 - Ongoing changes and hardening deltas are tracked in CHANGELOG.md under Unreleased.
 - Snapshot release detail is kept in docs/RELEASE_NOTES.txt.
+- Published release-history records are maintained in docs/RELEASE_HISTORY.md.
 
 Core behaviors
 - Analysis-first posture: native binaries are WITHHELD by default.

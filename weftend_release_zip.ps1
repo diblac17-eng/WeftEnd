@@ -421,6 +421,14 @@ if (Test-Path $releaseChecklist) {
   Write-Warn "docs/RELEASE_CHECKLIST_ALPHA.md not found, skipping"
 }
 
+$releaseHistory = Join-Path $root "docs\\RELEASE_HISTORY.md"
+if (Test-Path $releaseHistory) {
+  Copy-Item -Path $releaseHistory -Destination (Join-Path $outAbs "RELEASE_HISTORY.md") -Force
+  Write-Ok "RELEASE_HISTORY.md copied"
+} else {
+  Write-Warn "docs/RELEASE_HISTORY.md not found, skipping"
+}
+
 $changelog = Join-Path $root "CHANGELOG.md"
 if (Test-Path $changelog) {
   Copy-Item -Path $changelog -Destination (Join-Path $outAbs "CHANGELOG.md") -Force

@@ -345,7 +345,13 @@ const gitChangedFiles = () => {
 };
 
 const runPostingEtiquetteCheck = () => {
-  const targets = ["README.md", "CHANGELOG.md", "docs/RELEASE_ANNOUNCEMENT.txt", "docs/RELEASE_NOTES.txt"];
+  const targets = [
+    "README.md",
+    "CHANGELOG.md",
+    "docs/RELEASE_ANNOUNCEMENT.txt",
+    "docs/RELEASE_NOTES.txt",
+    "docs/RELEASE_HISTORY.md",
+  ];
   const issues = [];
   const bannedPatterns = [
     { code: "ETIQUETTE_AI_SELF_REFERENCE", re: /\b(as an ai|language model|chatgpt|llm)\b/i },
@@ -840,6 +846,7 @@ const main = () => {
         p === "README.md" ||
         p === "docs/RELEASE_ANNOUNCEMENT.txt" ||
         p === "docs/RELEASE_NOTES.txt" ||
+        p === "docs/RELEASE_HISTORY.md" ||
         p === "docs/QUICKSTART.txt" ||
         p === "docs/RELEASE_CHECKLIST_ALPHA.md"
     );
