@@ -554,7 +554,7 @@ $root.Dock = "Fill"
 $root.ColumnCount = 1
 $root.RowCount = 3
 $root.BackColor = $colorBg
-$root.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 78)))
+$root.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 86)))
 $root.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
 $root.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 44)))
 $form.Controls.Add($root)
@@ -573,21 +573,26 @@ $headerLeft = New-Object System.Windows.Forms.TableLayoutPanel
 $headerLeft.Dock = "Fill"
 $headerLeft.ColumnCount = 1
 $headerLeft.RowCount = 2
-$headerLeft.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 30)))
-$headerLeft.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 22)))
+$headerLeft.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+$headerLeft.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
 
 $title = New-Object System.Windows.Forms.Label
 $title.Text = "Report Card Viewer"
 $title.Font = $fontTitle
 $title.ForeColor = $colorText
-$title.Dock = "Fill"
+$title.AutoSize = $true
+$title.Anchor = [System.Windows.Forms.AnchorStyles]::Left
+$title.Margin = New-Object System.Windows.Forms.Padding(0, 2, 0, 1)
 $title.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
 $subtitle = New-Object System.Windows.Forms.Label
 $subtitle.Text = ("Target: " + (Get-StringValue -Value $model.libraryKey -Fallback $LibraryKey) + "   Run: " + (Get-StringValue -Value $model.runId))
 $subtitle.Font = $fontSmall
 $subtitle.ForeColor = $colorMuted
-$subtitle.Dock = "Fill"
+$subtitle.AutoSize = $true
+$subtitle.Anchor = [System.Windows.Forms.AnchorStyles]::Left
+$subtitle.AutoEllipsis = $true
+$subtitle.Margin = New-Object System.Windows.Forms.Padding(0, 1, 0, 1)
 $subtitle.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
 $headerLeft.Controls.Add($title, 0, 0) | Out-Null
@@ -642,6 +647,8 @@ $summaryTable.AutoSize = $true
 $summaryTable.AutoSizeMode = [System.Windows.Forms.AutoSizeMode]::GrowAndShrink
 $summaryTable.ColumnCount = 1
 $summaryTable.RowCount = 0
+$summaryTable.GrowStyle = [System.Windows.Forms.TableLayoutPanelGrowStyle]::AddRows
+$summaryTable.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
 $summaryTable.Margin = New-Object System.Windows.Forms.Padding(0)
 $summaryScroll.Controls.Add($summaryTable) | Out-Null
 
@@ -651,11 +658,14 @@ function Add-SummaryLine {
   $line.Text = $TextValue
   $line.ForeColor = $colorText
   $line.Font = $fontMain
-  $line.Dock = "Fill"
+  $line.AutoSize = $true
+  $line.Anchor = [System.Windows.Forms.AnchorStyles]::Left
   $line.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
-  $line.Margin = New-Object System.Windows.Forms.Padding(0)
-  $line.Padding = New-Object System.Windows.Forms.Padding(2, 0, 0, 0)
-  [void]$summaryTable.Controls.Add($line)
+  $line.Margin = New-Object System.Windows.Forms.Padding(0, 1, 0, 1)
+  $line.Padding = New-Object System.Windows.Forms.Padding(2, 1, 0, 1)
+  [void]$summaryTable.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+  [void]$summaryTable.Controls.Add($line, 0, $summaryTable.RowCount)
+  $summaryTable.RowCount += 1
 }
 
 Add-SummaryLine -TextValue ("Result: " + (Get-StringValue -Value $model.result))
@@ -764,7 +774,7 @@ function Add-AdapterLine {
   $line = New-Object System.Windows.Forms.Label
   $line.Text = $TextValue
   $line.AutoSize = $true
-  $line.Dock = "Fill"
+  $line.Anchor = [System.Windows.Forms.AnchorStyles]::Left
   $line.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
   $line.ForeColor = $colorText
   $line.Font = $fontSmall
