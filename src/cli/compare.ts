@@ -375,6 +375,16 @@ const writeText = (filePath: string, text: string) => {
   fs.writeFileSync(filePath, text, "utf8");
 };
 
+const finalizeCompareOutRoot = (stageRoot: string, outRoot: string): boolean => {
+  try {
+    fs.rmSync(outRoot, { recursive: true, force: true });
+    fs.renameSync(stageRoot, outRoot);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const buildCompareReceipt = (input: {
   weftendBuild: WeftendBuildV0;
   left: { summaryDigest: string; receiptKinds: string[] };
@@ -445,6 +455,11 @@ export const runCompareCliV0 = (options: RunCompareCliOptionsV0): number => {
   const compared = compareSummariesV0(leftNorm.summary, rightNorm.summary);
 
   const outRoot = path.resolve(process.cwd(), options.outRoot);
+  const outParent = path.dirname(outRoot);
+  const outName = path.basename(outRoot);
+  const stageRoot = path.join(outParent, `${outName}.stage`);
+  fs.rmSync(stageRoot, { recursive: true, force: true });
+  fs.mkdirSync(stageRoot, { recursive: true });
   const build = computeWeftendBuildV0({ filePath: process?.argv?.[1], source: "NODE_MAIN_JS" }).build;
 
   let receipt = buildCompareReceipt({
@@ -473,9 +488,9 @@ export const runCompareCliV0 = (options: RunCompareCliOptionsV0): number => {
     return 1;
   }
 
-  writeText(path.join(outRoot, COMPARE_RECEIPT_NAME), `${canonicalJSON(receipt)}\n`);
-  writeText(path.join(outRoot, COMPARE_REPORT_NAME), reportText);
-  writeReceiptReadmeV0(outRoot, receipt.weftendBuild, receipt.schemaVersion);
+  writeText(path.join(stageRoot, COMPARE_RECEIPT_NAME), `${canonicalJSON(receipt)}\n`);
+  writeText(path.join(stageRoot, COMPARE_REPORT_NAME), reportText);
+  writeReceiptReadmeV0(stageRoot, receipt.weftendBuild, receipt.schemaVersion);
 
   let operator = buildOperatorReceiptV0({
     command: "compare",
@@ -484,9 +499,9 @@ export const runCompareCliV0 = (options: RunCompareCliOptionsV0): number => {
     entries: [{ kind: "compare_receipt", relPath: COMPARE_RECEIPT_NAME, digest: receipt.receiptDigest }],
     warnings: [...(receipt.weftendBuild.reasonCodes ?? [])],
   });
-  writeOperatorReceiptV0(outRoot, operator);
+  writeOperatorReceiptV0(stageRoot, operator);
 
-  let privacy = runPrivacyLintV0({ root: outRoot, weftendBuild: receipt.weftendBuild });
+  let privacy = runPrivacyLintV0({ root: stageRoot, weftendBuild: receipt.weftendBuild });
   if (privacy.report.verdict === "FAIL") {
     receipt = buildCompareReceipt({
       weftendBuild: receipt.weftendBuild,
@@ -498,7 +513,7 @@ export const runCompareCliV0 = (options: RunCompareCliOptionsV0): number => {
       privacyLint: "FAIL",
       reasonCodes: ["COMPARE_PRIVACY_LINT_FAIL"],
     });
-    writeText(path.join(outRoot, COMPARE_RECEIPT_NAME), `${canonicalJSON(receipt)}\n`);
+    writeText(path.join(stageRoot, COMPARE_RECEIPT_NAME), `${canonicalJSON(receipt)}\n`);
     operator = buildOperatorReceiptV0({
       command: "compare",
       weftendBuild: receipt.weftendBuild,
@@ -506,8 +521,13 @@ export const runCompareCliV0 = (options: RunCompareCliOptionsV0): number => {
       entries: [{ kind: "compare_receipt", relPath: COMPARE_RECEIPT_NAME, digest: receipt.receiptDigest }],
       warnings: [...(receipt.weftendBuild.reasonCodes ?? []), ...receipt.reasonCodes],
     });
-    writeOperatorReceiptV0(outRoot, operator);
-    privacy = runPrivacyLintV0({ root: outRoot, weftendBuild: receipt.weftendBuild });
+    writeOperatorReceiptV0(stageRoot, operator);
+    privacy = runPrivacyLintV0({ root: stageRoot, weftendBuild: receipt.weftendBuild });
+  }
+
+  if (!finalizeCompareOutRoot(stageRoot, outRoot)) {
+    console.error("[COMPARE_FINALIZE_FAILED] compare output finalize failed.");
+    return 40;
   }
 
   const summary = `COMPARE ${receipt.verdict} ${formatBuildDigestSummaryV0(receipt.weftendBuild)} privacyLint=${privacy.report.verdict} changes=${receipt.changeBuckets.length}`;

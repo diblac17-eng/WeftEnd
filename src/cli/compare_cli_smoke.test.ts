@@ -86,8 +86,10 @@ suite("cli/compare", () => {
 
     const compareReceiptPath = path.join(outDir, "compare_receipt.json");
     const compareReportPath = path.join(outDir, "compare_report.txt");
+    const compareStagePath = `${outDir}.stage`;
     assert(fs.existsSync(compareReceiptPath), "expected compare_receipt.json");
     assert(fs.existsSync(compareReportPath), "expected compare_report.txt");
+    assert(!fs.existsSync(compareStagePath), "compare stage directory must not remain after finalize");
     const receipt = readJson(compareReceiptPath);
     const issues = validateCompareReceiptV0(receipt, "compareReceipt");
     assertEq(issues.length, 0, "expected compare receipt to validate");

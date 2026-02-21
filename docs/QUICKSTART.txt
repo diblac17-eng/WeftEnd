@@ -27,6 +27,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - Use:
   npm run weftend -- compare <oldOut> <newOut> --out <diffOut>
 - Read compare_report.txt
+- Compare output now stages to `<diffOut>.stage` and finalizes atomically to `<diffOut>` after lint/write checks.
 
 3.1) Universal artifact adapter lane (CLI)
 - List adapter coverage:
