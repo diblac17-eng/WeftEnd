@@ -141,6 +141,7 @@ suite("tools/windows shell assets", () => {
     assert(/if \(-not \(Test-Path -Path \$configKey\)\)/.test(text), "expected shell doctor repair path to create missing config key");
     assert(/Set-ItemProperty -Path \$configKey -Name "ReportViewerAutoOpen" -Value "1"/.test(text), "expected shell doctor to repair ReportViewerAutoOpen");
     assert(/Set-ItemProperty -Path \$configKey -Name "ReportViewerStartFailCount" -Value "0"/.test(text), "expected shell doctor to reset startup failure counter");
+    assert(/SHELL_DOCTOR_REPAIR_FAILED/.test(text), "expected deterministic shell doctor repair failure code");
     assert(/if \(-not \$repairOk\) \{ exit 40 \}/.test(text), "expected shell doctor repair mode to fail closed on write failure");
     assert(/HKCU:\\Software\\WeftEnd\\Shell/.test(text), "expected config registry key");
     assert(/HKCU:\\Software\\Classes\\\*\\shell\\WeftEndSafeRun\\command/.test(text), "expected star command key");
@@ -302,6 +303,7 @@ suite("tools/windows shell assets", () => {
     assert(/Copy Doctor Output/.test(panelText), "expected launchpad doctor copy action");
     assert(/Shell doctor exitCode=/.test(panelText), "expected shell doctor output header");
     assert(/Shell doctor code=/.test(panelText), "expected shell doctor code header");
+    assert(/code=\(\[A-Z0-9_\]\+\)/.test(panelText), "expected shell doctor output code parsing");
     assert(/"adapter", "doctor", "--text"/.test(panelText), "expected launchpad adapter doctor text-mode command");
     assert(/\$args \+= "--strict"/.test(panelText), "expected launchpad adapter doctor strict flag wiring");
     assert(/Copy-DoctorOutputText -DoctorBox \$doctorText -StatusLabel \$statusLabel/.test(panelText), "expected doctor copy button/key wiring");

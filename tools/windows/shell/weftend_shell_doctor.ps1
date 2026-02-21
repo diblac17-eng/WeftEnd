@@ -73,6 +73,7 @@ function Check-CommandKey {
 
 if ($RepairReportViewer.IsPresent) {
   $repairOk = $false
+  $repairCode = "SHELL_DOCTOR_REPAIR_FAILED"
   try {
     if (-not (Test-Path -Path $configKey)) {
       New-Item -Path $configKey | Out-Null
@@ -83,7 +84,7 @@ if ($RepairReportViewer.IsPresent) {
     $repairOk = $true
     Write-Host "RepairReportViewer: OK"
   } catch {
-    Write-Host "RepairReportViewer: FAILED"
+    Write-Host ("RepairReportViewer: FAILED code=" + $repairCode)
   }
   if (-not $repairOk) { exit 40 }
 }

@@ -392,7 +392,17 @@ function Invoke-ShellDoctorText {
     if (-not $outputText) { $outputText = "" }
     $exitCode = [int]$LASTEXITCODE
     $ok = ($exitCode -eq 0)
-    $code = if ($ok) { "OK" } else { "SHELL_DOCTOR_FAILED" }
+    $code = "OK"
+    if (-not $ok) {
+      $code = "SHELL_DOCTOR_FAILED"
+      $codeMatch = [System.Text.RegularExpressions.Regex]::Match($outputText, "code=([A-Z0-9_]+)")
+      if ($codeMatch.Success -and $codeMatch.Groups.Count -gt 1) {
+        $parsedCode = [string]$codeMatch.Groups[1].Value
+        if ($parsedCode -and $parsedCode.Trim() -ne "") {
+          $code = $parsedCode.Trim()
+        }
+      }
+    }
     return @{
       ok = $ok
       code = $code
