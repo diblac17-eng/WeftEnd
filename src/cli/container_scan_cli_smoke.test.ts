@@ -72,6 +72,11 @@ suite("cli/container-scan", () => {
     const entries = Array.isArray(operator?.receipts) ? operator.receipts : [];
     const hasReadmeEntry = entries.some((entry: any) => entry?.relPath === "weftend/README.txt");
     assert(hasReadmeEntry, "expected operator receipt to include README digest link");
+    const warnings = Array.isArray(operator?.warnings) ? operator.warnings : [];
+    assert(
+      !warnings.includes("SAFE_RUN_EVIDENCE_DIGEST_MISMATCH"),
+      "container evidence verification must not emit digest mismatch warnings in nominal fail-closed flow"
+    );
     assert(!fs.existsSync(`${outDir}.stage`), "container scan stage directory must not remain after finalize");
   });
 

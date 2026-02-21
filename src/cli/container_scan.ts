@@ -214,6 +214,10 @@ const evaluateEvidenceWarnings = (input: {
   operatorReceiptDigest: string;
   readmeText: string;
 }): string[] => {
+  const isPresenceOnlyEvidencePath = (relPath: string): boolean => {
+    const normalized = String(relPath || "").replace(/\\/g, "/").toLowerCase();
+    return normalized.endsWith("_receipt.json");
+  };
   const expected = new Map<string, string>();
   expected.set("safe_run_receipt.json", input.receipt.receiptDigest);
   expected.set("operator_receipt.json", input.operatorReceiptDigest);
@@ -234,6 +238,7 @@ const evaluateEvidenceWarnings = (input: {
       warnings.push("SAFE_RUN_EVIDENCE_MISSING");
       return;
     }
+    if (isPresenceOnlyEvidencePath(relPath)) return;
     let raw = "";
     try {
       raw = fs.readFileSync(abs, "utf8");

@@ -119,6 +119,11 @@ suite("cli/safe-run", () => {
     const opEntries = Array.isArray(operator.receipts) ? operator.receipts : [];
     const hasReadmeEntry = opEntries.some((entry: any) => entry?.kind === "receipt_readme" && entry?.relPath === "weftend/README.txt");
     assert(hasReadmeEntry, "expected operator receipt to include README digest link");
+    const opWarnings = Array.isArray(operator.warnings) ? operator.warnings : [];
+    assert(
+      !opWarnings.includes("SAFE_RUN_EVIDENCE_DIGEST_MISMATCH"),
+      "safe-run evidence verification must not emit digest mismatch warnings in nominal release flow"
+    );
 
     const combined = `${result.stdout}\n${result.stderr}`;
     assert(combined.includes("privacyLint=PASS"), "expected privacy lint summary");
@@ -165,6 +170,11 @@ suite("cli/safe-run", () => {
     const opEntries = Array.isArray(operator.receipts) ? operator.receipts : [];
     const hasAnalysisEntry = opEntries.some((entry: any) => entry?.kind === "analysis_receipt" && entry?.relPath === "analysis/intake_decision.json");
     assert(hasAnalysisEntry, "expected operator receipt to include analysis sub-receipt digest links");
+    const opWarnings = Array.isArray(operator.warnings) ? operator.warnings : [];
+    assert(
+      !opWarnings.includes("SAFE_RUN_EVIDENCE_DIGEST_MISMATCH"),
+      "safe-run evidence verification must not emit digest mismatch warnings in nominal raw flow"
+    );
     const privacy = runPrivacyLintV0({ root: outDir, weftendBuild: receipt.weftendBuild });
     assertEq(privacy.report.verdict, "PASS", "expected privacy lint pass");
   });
