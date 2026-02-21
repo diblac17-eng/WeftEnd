@@ -132,14 +132,31 @@ const computeFingerprint = (targetPath: string): string => {
   return capture.rootDigest || "sha256:0000000000000000000000000000000000000000000000000000000000000000";
 };
 
-const writeWatchTrigger = (outDir: string, options: { debounceMs: number; watchMode: string; eventCount: number }) => {
+const writeTextAtomic = (filePath: string, value: string): boolean => {
+  const stagePath = `${filePath}.stage`;
+  try {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(stagePath, value, "utf8");
+    fs.renameSync(stagePath, filePath);
+    return true;
+  } catch {
+    try {
+      if (fs.existsSync(stagePath)) fs.unlinkSync(stagePath);
+    } catch {
+      // best-effort cleanup only
+    }
+    return false;
+  }
+};
+
+const writeWatchTrigger = (outDir: string, options: { debounceMs: number; watchMode: string; eventCount: number }): boolean => {
   const lines = [
     "trigger=WATCH",
     `debounceMs=${options.debounceMs}`,
     `watchMode=${options.watchMode}`,
     `eventCount=${Math.max(0, Math.min(options.eventCount, 9999))}`,
   ];
-  fs.writeFileSync(path.join(outDir, "watch_trigger.txt"), `${lines.join("\n")}\n`, "utf8");
+  return writeTextAtomic(path.join(outDir, "watch_trigger.txt"), `${lines.join("\n")}\n`);
 };
 
 const loadLatestVerdict = (
@@ -259,7 +276,9 @@ export const runWatchCli = async (argv: string[]): Promise<number> => {
       executeRequested: false,
       withholdExec: true,
     });
-    writeWatchTrigger(outDir, { debounceMs, watchMode, eventCount });
+    if (!writeWatchTrigger(outDir, { debounceMs, watchMode, eventCount })) {
+      console.error("[WATCH_TRIGGER_WRITE_FAILED] unable to finalize watch trigger output.");
+    }
     const verdict = loadLatestVerdict(outDir, outRoot);
     if (!disablePopup && verdict.verdict === "CHANGED") {
       showChangePopup(targetKey, outRoot);

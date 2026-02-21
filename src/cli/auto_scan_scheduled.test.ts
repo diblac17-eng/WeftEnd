@@ -84,6 +84,7 @@ suite("auto scan poll mode triggers safe-run", async () => {
   const runDir = findRunDir(libraryRoot);
   const triggerPath = path.join(runDir, "watch_trigger.txt");
   assert(fs.existsSync(triggerPath), "watch_trigger.txt missing");
+  assert(!fs.existsSync(`${triggerPath}.stage`), "watch trigger stage file must not remain after finalize");
   const text = fs.readFileSync(triggerPath, "utf8");
   assert(text.includes("watchMode=POLL"), "expected poll watchMode");
 });

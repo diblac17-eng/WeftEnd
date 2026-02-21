@@ -298,6 +298,7 @@ Included
 - `intake` output now stages/finalizes (`<out>.stage` -> `<out>`), replacing stale out-roots and preventing partial intake-output residue from appearing as finalized evidence.
 - `license issue` output now stages/finalizes (`<out>.stage` -> `<out>`), preventing partial output residue and guaranteeing stale license-file replacement on successful finalize.
 - Library view-state persistence now writes `baseline.txt`, `latest.txt`, `blocked.txt`, and `view_state.json` with staged atomic finalize semantics, and returns explicit fail-closed write error codes on library-state write/clear failures.
+- Watch trigger output now stages/finalizes `watch_trigger.txt` atomically and cleans `.stage` residue on write failure.
 - Ticket-pack contract coverage now enforces report-state extraction from `report_card_v0.json` and validates digest identity line format (`sha256:<64hex>`) in `ticket_summary.txt`.
 - Ticket-pack contract coverage now also enforces text fallback parsing from `report_card.txt` (`STATUS/BASELINE/LATEST/BUCKETS` plus key-value lines) when structured report JSON is absent.
 - Windows shell `report_card.txt` and `report_card_v0.json` now include adapter metadata and capability counts when adapter evidence exists:
