@@ -291,6 +291,8 @@ Included
 - Compare now enforces explicit no-orphan evidence validation before finalize (`COMPARE_EVIDENCE_CHAIN_INVALID`), requiring all produced compare artifacts (except `operator_receipt.json`) to be referenced in operator receipt entries.
 - `run` command output now stages/finalizes (`<out>.stage` -> `<out>`), replacing stale out-roots and preventing partial output residue from appearing as finalized run evidence.
 - `run` staged finalize now records stale-output presence as deterministic operator warning (`SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT`) before replacing pre-existing unmanaged out-root files.
+- `email unpack` output now stages/finalizes (`<out>.stage` -> `<out>`), replacing stale out-roots and preventing partial email-export residue from appearing as finalized output.
+- `email safe-run` now prepares source-email normalization in a temporary workspace outside the target out-root, preventing self-input collisions and false orphan-output warnings under staged safe-run finalize behavior.
 - Ticket-pack contract coverage now enforces report-state extraction from `report_card_v0.json` and validates digest identity line format (`sha256:<64hex>`) in `ticket_summary.txt`.
 - Ticket-pack contract coverage now also enforces text fallback parsing from `report_card.txt` (`STATUS/BASELINE/LATEST/BUCKETS` plus key-value lines) when structured report JSON is absent.
 - Windows shell `report_card.txt` and `report_card_v0.json` now include adapter metadata and capability counts when adapter evidence exists:

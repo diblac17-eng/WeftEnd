@@ -12,6 +12,7 @@ declare const process: any;
 
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
 
 type EmailFlags = Record<string, string | boolean>;
 
@@ -372,6 +373,28 @@ const writeText = (filePath: string, text: string): void => {
   fs.writeFileSync(filePath, text, "utf8");
 };
 
+const prepareStagedOutRoot = (outDir: string): { ok: true; stageOutDir: string } | { ok: false } => {
+  const stageOutDir = `${outDir}.stage`;
+  try {
+    fs.rmSync(stageOutDir, { recursive: true, force: true });
+    fs.mkdirSync(path.dirname(stageOutDir), { recursive: true });
+    fs.mkdirSync(stageOutDir, { recursive: true });
+    return { ok: true, stageOutDir };
+  } catch {
+    return { ok: false };
+  }
+};
+
+const finalizeStagedOutRoot = (stageOutDir: string, outDir: string): boolean => {
+  try {
+    fs.rmSync(outDir, { recursive: true, force: true });
+    fs.renameSync(stageOutDir, outDir);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const isSafeRequiredRelPath = (value: string): boolean => {
   const rel = String(value || "").replace(/\\/g, "/").trim();
   if (!rel) return false;
@@ -565,7 +588,16 @@ export const runEmailUnpackCli = (argv: string[]): number => {
     return 40;
   }
   const outRoot = path.resolve(process.cwd(), outDir);
-  writeEmailExport(loaded.parsed, outRoot, loaded.format);
+  const stage = prepareStagedOutRoot(outRoot);
+  if (!stage.ok) {
+    console.error("[EMAIL_UNPACK_STAGE_INIT_FAILED] unable to initialize staged output path.");
+    return 1;
+  }
+  writeEmailExport(loaded.parsed, stage.stageOutDir, loaded.format);
+  if (!finalizeStagedOutRoot(stage.stageOutDir, outRoot)) {
+    console.error("[EMAIL_UNPACK_FINALIZE_FAILED] unable to finalize staged output.");
+    return 1;
+  }
   console.log(
     `EMAIL_UNPACK OK format=${loaded.format} headers=${Math.min(loaded.parsed.headers.length, MAX_HEADER_LINES)} links=${Math.min(
       loaded.parsed.links.length,
@@ -591,6 +623,7 @@ export const runEmailSafeRunCli = async (argv: string[]): Promise<number> => {
   const policyPath = isNonEmptyString(flags.policy) ? String(flags.policy) : undefined;
   const resolvedInput = path.resolve(process.cwd(), inputPath);
   let exportDir = path.join(outRoot, "email_export");
+  let tempExportRoot: string | null = null;
   if (fs.existsSync(resolvedInput) && fs.statSync(resolvedInput).isDirectory()) {
     const normalized = validateNormalizedEmailExport(resolvedInput);
     if (!normalized.ok) {
@@ -606,18 +639,25 @@ export const runEmailSafeRunCli = async (argv: string[]): Promise<number> => {
       console.error(`[${loaded.code}] unable to load email input.`);
       return 40;
     }
-    writeEmailExport(loaded.parsed, outRoot, loaded.format);
+    const exportWorkspace = fs.mkdtempSync(path.join(os.tmpdir(), "weftend-email-export-"));
+    tempExportRoot = exportWorkspace;
+    writeEmailExport(loaded.parsed, exportWorkspace, loaded.format);
+    exportDir = path.join(exportWorkspace, "email_export");
   }
-
-  return runSafeRun({
-    inputPath: exportDir,
-    outDir: outRoot,
-    policyPath,
-    profile: "web",
-    mode: "strict",
-    executeRequested: false,
-    withholdExec: true,
-  });
+  try {
+    return await runSafeRun({
+      inputPath: exportDir,
+      outDir: outRoot,
+      policyPath,
+      profile: "web",
+      mode: "strict",
+      executeRequested: false,
+      withholdExec: true,
+    });
+  } finally {
+    const cleanupRoot = tempExportRoot;
+    if (cleanupRoot !== null) fs.rmSync(cleanupRoot, { recursive: true, force: true });
+  }
 };
 
 export const runEmailCli = async (argv: string[]): Promise<number> => {

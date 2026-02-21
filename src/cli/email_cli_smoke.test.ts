@@ -61,6 +61,19 @@ suite("cli/email", () => {
     assert(links.includes("https://status.example.com/report"), "expected extracted link");
   });
 
+  register("email unpack finalizes staged output and replaces stale roots", async () => {
+    const temp = makeTempDir();
+    const outDir = path.join(temp, "run");
+    fs.mkdirSync(outDir, { recursive: true });
+    fs.writeFileSync(path.join(outDir, "stale.txt"), "stale", "utf8");
+    const input = path.join(process.cwd(), "tests", "fixtures", "email", "simple_html.eml");
+    const result = await runCliCapture(["email", "unpack", input, "--out", outDir]);
+    assertEq(result.status, 0, `expected email unpack success\n${result.stderr}`);
+    assert(fs.existsSync(path.join(outDir, "email_export", "adapter_manifest.json")), "expected adapter manifest after finalize");
+    assert(!fs.existsSync(path.join(outDir, "stale.txt")), "stale out-root file must be replaced during finalize");
+    assert(!fs.existsSync(`${outDir}.stage`), "email unpack stage directory must not remain after finalize");
+  });
+
   register("email unpack selects message from mbox index", async () => {
     const temp = makeTempDir();
     const outDir = path.join(temp, "run");
@@ -110,6 +123,9 @@ suite("cli/email", () => {
     assert(fs.existsSync(path.join(outDir, "operator_receipt.json")), "operator_receipt.json missing");
     const receipt = readJson(path.join(outDir, "safe_run_receipt.json"));
     assertEq(receipt.contentSummary.artifactKind, "webBundle", "expected web bundle summary");
+    const operator = readJson(path.join(outDir, "operator_receipt.json"));
+    const warnings = Array.isArray(operator?.warnings) ? operator.warnings : [];
+    assert(!warnings.includes("SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"), "email safe-run should not self-trigger orphan warning");
     const lint = runPrivacyLintV0({ root: outDir, writeReport: false });
     assertEq(lint.report.verdict, "PASS", "email safe-run output must pass privacy lint");
   });
