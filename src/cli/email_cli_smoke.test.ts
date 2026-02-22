@@ -198,6 +198,19 @@ suite("cli/email", () => {
     assert(!fs.existsSync(`${outFile}.stage`), "stage path must not be created when email unpack out is a file");
   });
 
+  register("email unpack fails closed when parent of out path is a file", async () => {
+    const temp = makeTempDir();
+    const input = path.join(process.cwd(), "tests", "fixtures", "email", "simple.eml");
+    const parentFile = path.join(temp, "parent-file.txt");
+    fs.writeFileSync(parentFile, "keep", "utf8");
+    const outPath = path.join(parentFile, "out");
+    const result = await runCliCapture(["email", "unpack", input, "--out", outPath]);
+    assertEq(result.status, 40, `expected email unpack out-parent-file fail-closed exit\n${result.stderr}`);
+    assert(result.stderr.includes("EMAIL_UNPACK_OUT_PATH_PARENT_NOT_DIRECTORY"), "expected email unpack out-parent-file code");
+    assertEq(readText(parentFile), "keep", "parent file must not be modified");
+    assert(!fs.existsSync(`${outPath}.stage`), "stage path must not be created when email unpack out parent is a file");
+  });
+
   register("email safe-run fails closed when out path is an existing file", async () => {
     const temp = makeTempDir();
     const input = path.join(process.cwd(), "tests", "fixtures", "email", "simple.eml");
@@ -208,6 +221,19 @@ suite("cli/email", () => {
     assert(result.stderr.includes("EMAIL_SAFE_RUN_OUT_PATH_NOT_DIRECTORY"), "expected email safe-run out-file code");
     assertEq(readText(outFile), "keep", "existing out file must not be replaced");
     assert(!fs.existsSync(`${outFile}.stage`), "stage path must not be created when email safe-run out is a file");
+  });
+
+  register("email safe-run fails closed when parent of out path is a file", async () => {
+    const temp = makeTempDir();
+    const input = path.join(process.cwd(), "tests", "fixtures", "email", "simple.eml");
+    const parentFile = path.join(temp, "parent-file.txt");
+    fs.writeFileSync(parentFile, "keep", "utf8");
+    const outPath = path.join(parentFile, "run");
+    const result = await runCliCapture(["email", "safe-run", input, "--out", outPath]);
+    assertEq(result.status, 40, `expected email safe-run out-parent-file fail-closed exit\n${result.stderr}`);
+    assert(result.stderr.includes("EMAIL_SAFE_RUN_OUT_PATH_PARENT_NOT_DIRECTORY"), "expected email safe-run out-parent-file code");
+    assertEq(readText(parentFile), "keep", "parent file must not be modified");
+    assert(!fs.existsSync(`${outPath}.stage`), "stage path must not be created when email safe-run out parent is a file");
   });
 
   register("email unpack handles attachment-only mail deterministically", async () => {

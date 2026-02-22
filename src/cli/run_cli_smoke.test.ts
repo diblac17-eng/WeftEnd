@@ -283,6 +283,20 @@ suite("cli/run", () => {
     assert(!fs.existsSync(`${outFile}.stage`), "run stage dir must not be created when out is a file");
   });
 
+  register("run fails closed when parent of out path is a file", async () => {
+    const root = makeTempDir();
+    const parentFile = path.join(root, "parent-file.txt");
+    fs.writeFileSync(parentFile, "keep", "utf8");
+    const outPath = path.join(parentFile, "run");
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "safe_no_caps");
+    const policyPath = path.join(process.cwd(), "policies", "web_component_default.json");
+    const result = await runCliCapture(["run", inputPath, "--policy", policyPath, "--out", outPath]);
+    assertEq(result.status, 40, `expected run out-parent-file fail-closed exit code\n${result.stderr}`);
+    assert(result.stderr.includes("RUN_OUT_PATH_PARENT_NOT_DIRECTORY"), "expected RUN_OUT_PATH_PARENT_NOT_DIRECTORY stderr");
+    assertEq(fs.readFileSync(parentFile, "utf8"), "keep", "parent file must not be modified");
+    assert(!fs.existsSync(`${outPath}.stage`), "run stage dir must not be created when out parent is a file");
+  });
+
   register("intake fails closed when out path overlaps policy file", async () => {
     const root = makeTempDir();
     const outDir = path.join(root, "out");
@@ -342,6 +356,19 @@ suite("cli/run", () => {
     assert(result.stderr.includes("EXAMINE_OUT_PATH_NOT_DIRECTORY"), "expected EXAMINE_OUT_PATH_NOT_DIRECTORY stderr");
     assertEq(fs.readFileSync(outFile, "utf8"), "keep", "existing out file must not be replaced");
     assert(!fs.existsSync(`${outFile}.stage`), "examine stage dir must not be created when out is a file");
+  });
+
+  register("examine fails closed when parent of out path is a file", async () => {
+    const root = makeTempDir();
+    const parentFile = path.join(root, "parent-file.txt");
+    fs.writeFileSync(parentFile, "keep", "utf8");
+    const outPath = path.join(parentFile, "exam");
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "safe_no_caps");
+    const result = await runCliCapture(["examine", inputPath, "--out", outPath, "--profile", "web"]);
+    assertEq(result.status, 40, `expected examine out-parent-file fail-closed exit code\n${result.stderr}`);
+    assert(result.stderr.includes("EXAMINE_OUT_PATH_PARENT_NOT_DIRECTORY"), "expected EXAMINE_OUT_PATH_PARENT_NOT_DIRECTORY stderr");
+    assertEq(fs.readFileSync(parentFile, "utf8"), "keep", "parent file must not be modified");
+    assert(!fs.existsSync(`${outPath}.stage`), "examine stage dir must not be created when out parent is a file");
   });
 
   register("intake finalizes staged output and replaces stale roots", async () => {

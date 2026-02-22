@@ -523,6 +523,20 @@ suite("cli/safe-run", () => {
     assert(!fs.existsSync(`${outFile}.stage`), "stage dir must not be created when out is a file");
   });
 
+  register("safe-run fails closed when parent of out path is a file", async () => {
+    const root = makeTempDir();
+    const parentFile = path.join(root, "parent-file.txt");
+    fs.writeFileSync(parentFile, "keep", "utf8");
+    const outPath = path.join(parentFile, "run");
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "safe_no_caps");
+    const policyPath = path.join(process.cwd(), "policies", "web_component_default.json");
+    const result = await runCliCapture(["safe-run", inputPath, "--policy", policyPath, "--out", outPath]);
+    assertEq(result.status, 40, `expected safe-run out-parent-file fail-closed exit code\n${result.stderr}`);
+    assert(result.stderr.includes("SAFE_RUN_OUT_PATH_PARENT_NOT_DIRECTORY"), "expected SAFE_RUN_OUT_PATH_PARENT_NOT_DIRECTORY stderr");
+    assertEq(fs.readFileSync(parentFile, "utf8"), "keep", "parent file must not be modified");
+    assert(!fs.existsSync(`${outPath}.stage`), "stage dir must not be created when out parent is a file");
+  });
+
   register("safe-run fails closed when out path overlaps adapter maintenance policy file", async () => {
     const root = makeTempDir();
     const outDir = path.join(root, "out");

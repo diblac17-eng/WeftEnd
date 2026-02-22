@@ -103,6 +103,24 @@ export const runExamine = (inputPath: string, options: ExamineCliOptions): numbe
       console.error("[EXAMINE_OUT_PATH_INVALID] unable to inspect --out path.");
       return 40;
     }
+  } else {
+    let probe = path.dirname(path.resolve(options.outDir));
+    while (probe && !fs.existsSync(probe)) {
+      const parent = path.dirname(probe);
+      if (parent === probe) break;
+      probe = parent;
+    }
+    if (probe && fs.existsSync(probe)) {
+      try {
+        if (!fs.statSync(probe).isDirectory()) {
+          console.error("[EXAMINE_OUT_PATH_PARENT_NOT_DIRECTORY] parent of --out must be a directory.");
+          return 40;
+        }
+      } catch {
+        console.error("[EXAMINE_OUT_PATH_INVALID] unable to inspect --out path.");
+        return 40;
+      }
+    }
   }
   const scriptText = options.scriptPath ? readTextFile(options.scriptPath) : undefined;
   const result = examineArtifactV1(inputPath, {

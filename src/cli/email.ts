@@ -615,6 +615,24 @@ export const runEmailUnpackCli = (argv: string[]): number => {
       console.error("[EMAIL_UNPACK_OUT_PATH_INVALID] unable to inspect --out path.");
       return 40;
     }
+  } else {
+    let probe = path.dirname(path.resolve(outRoot));
+    while (probe && !fs.existsSync(probe)) {
+      const parent = path.dirname(probe);
+      if (parent === probe) break;
+      probe = parent;
+    }
+    if (probe && fs.existsSync(probe)) {
+      try {
+        if (!fs.statSync(probe).isDirectory()) {
+          console.error("[EMAIL_UNPACK_OUT_PATH_PARENT_NOT_DIRECTORY] parent of --out must be a directory.");
+          return 40;
+        }
+      } catch {
+        console.error("[EMAIL_UNPACK_OUT_PATH_INVALID] unable to inspect --out path.");
+        return 40;
+      }
+    }
   }
   const indexRaw = isNonEmptyString(flags.index) ? String(flags.index) : undefined;
   const messageIdRaw = isNonEmptyString(flags["message-id"]) ? String(flags["message-id"]) : undefined;
@@ -668,6 +686,24 @@ export const runEmailSafeRunCli = async (argv: string[]): Promise<number> => {
     } catch {
       console.error("[EMAIL_SAFE_RUN_OUT_PATH_INVALID] unable to inspect --out path.");
       return 40;
+    }
+  } else {
+    let probe = path.dirname(path.resolve(outRoot));
+    while (probe && !fs.existsSync(probe)) {
+      const parent = path.dirname(probe);
+      if (parent === probe) break;
+      probe = parent;
+    }
+    if (probe && fs.existsSync(probe)) {
+      try {
+        if (!fs.statSync(probe).isDirectory()) {
+          console.error("[EMAIL_SAFE_RUN_OUT_PATH_PARENT_NOT_DIRECTORY] parent of --out must be a directory.");
+          return 40;
+        }
+      } catch {
+        console.error("[EMAIL_SAFE_RUN_OUT_PATH_INVALID] unable to inspect --out path.");
+        return 40;
+      }
     }
   }
   const policyPath = isNonEmptyString(flags.policy) ? String(flags.policy) : undefined;

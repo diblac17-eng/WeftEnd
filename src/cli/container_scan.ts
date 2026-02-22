@@ -647,6 +647,24 @@ export const runContainerCli = async (argv: string[]): Promise<number> => {
       console.error("[CONTAINER_SCAN_OUT_PATH_INVALID] unable to inspect --out path.");
       return 40;
     }
+  } else {
+    let probe = path.dirname(path.resolve(outDir));
+    while (probe && !fs.existsSync(probe)) {
+      const parent = path.dirname(probe);
+      if (parent === probe) break;
+      probe = parent;
+    }
+    if (probe && fs.existsSync(probe)) {
+      try {
+        if (!fs.statSync(probe).isDirectory()) {
+          console.error("[CONTAINER_SCAN_OUT_PATH_PARENT_NOT_DIRECTORY] parent of --out must be a directory.");
+          return 40;
+        }
+      } catch {
+        console.error("[CONTAINER_SCAN_OUT_PATH_INVALID] unable to inspect --out path.");
+        return 40;
+      }
+    }
   }
   const policyPath = String(flags["policy"] || POLICY_GENERIC);
   if (policyPath && pathsOverlap(outDir, policyPath)) {
