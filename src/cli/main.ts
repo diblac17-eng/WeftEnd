@@ -118,6 +118,9 @@ const pathsOverlap = (aPath: string, bPath: string): boolean => {
   return a.startsWith(bPrefix) || b.startsWith(aPrefix);
 };
 
+const outOverlapsDependency = (outDir: string, depPath?: string): boolean =>
+  Boolean(depPath && depPath.trim() && pathsOverlap(outDir, depPath));
+
 const parseInspectArgs = (argv: string[]) => {
   const args = [...argv];
   let portal = false;
@@ -156,6 +159,10 @@ const runExamineCli = (args: string[]) => {
   }
   const profile = (flags["profile"] as string) || "generic";
   const scriptPath = (flags["script"] as string) || undefined;
+  if (outOverlapsDependency(outDir, scriptPath)) {
+    console.error("[EXAMINE_OUT_CONFLICTS_SCRIPT] --out must not equal or overlap the --script path.");
+    return 40;
+  }
   const emitCapture = Boolean(flags["emit-capture"]);
   const exitCode = runExamine(inputPath, {
     profile: profile === "web" || profile === "mod" ? profile : "generic",
@@ -188,6 +195,10 @@ const runIntakeCli = (args: string[]): number => {
     console.error("[INPUT_INVALID] --out <dir> is required.");
     return 1;
   }
+  if (outOverlapsDependency(outDir, policyPath)) {
+    console.error("[INTAKE_OUT_CONFLICTS_POLICY] --out must not equal or overlap the --policy path.");
+    return 40;
+  }
   const fs = require("fs");
   const path = require("path");
   let policyRaw: unknown;
@@ -215,6 +226,10 @@ const runIntakeCli = (args: string[]): number => {
   }
   const profile = resolvedProfile.profile;
   const scriptPath = (flags["script"] as string) || undefined;
+  if (outOverlapsDependency(outDir, scriptPath)) {
+    console.error("[INTAKE_OUT_CONFLICTS_SCRIPT] --out must not equal or overlap the --script path.");
+    return 40;
+  }
   let scriptText: string | undefined;
   if (scriptPath) {
     try {
@@ -328,6 +343,10 @@ const runRunCli = async (args: string[]): Promise<number> => {
     console.error("[INPUT_INVALID] --out <dir> is required.");
     return 1;
   }
+  if (outOverlapsDependency(outDir, policyPath)) {
+    console.error("[RUN_OUT_CONFLICTS_POLICY] --out must not equal or overlap the --policy path.");
+    return 40;
+  }
   const mode = ((flags["mode"] as string) || "strict") as string;
   if (mode !== "strict" && mode !== "compatible" && mode !== "legacy") {
     console.error("[MODE_UNSUPPORTED] run supports mode strict|compatible|legacy.");
@@ -348,6 +367,11 @@ const runRunCli = async (args: string[]): Promise<number> => {
   }
 
   const fs = require("fs");
+  const scriptPath = (flags["script"] as string) || undefined;
+  if (outOverlapsDependency(outDir, scriptPath)) {
+    console.error("[RUN_OUT_CONFLICTS_SCRIPT] --out must not equal or overlap the --script path.");
+    return 40;
+  }
   try {
     fs.accessSync(inputPath, fs.constants.R_OK);
   } catch (err) {
@@ -370,7 +394,7 @@ const runRunCli = async (args: string[]): Promise<number> => {
     policyPath,
     profile: resolvedProfile.profile,
     mode: mode as any,
-    scriptPath: (flags["script"] as string) || undefined,
+    scriptPath,
   });
 };
 
@@ -433,6 +457,10 @@ const runSafeRunCli = async (args: string[]): Promise<number> => {
     console.error("[INPUT_INVALID] --out <dir> is required.");
     return 1;
   }
+  if (outOverlapsDependency(outDir, policyPath)) {
+    console.error("[SAFE_RUN_OUT_CONFLICTS_POLICY] --out must not equal or overlap the --policy path.");
+    return 40;
+  }
   const profileFlag = (flags["profile"] as string) || "";
   let policyProfile = "generic";
   try {
@@ -457,6 +485,11 @@ const runSafeRunCli = async (args: string[]): Promise<number> => {
       return 40;
     }
     pluginValues.push(value);
+  }
+  const scriptPath = (flags["script"] as string) || undefined;
+  if (outOverlapsDependency(outDir, scriptPath)) {
+    console.error("[SAFE_RUN_OUT_CONFLICTS_SCRIPT] --out must not equal or overlap the --script path.");
+    return 40;
   }
   const normalizedPlugins = pluginValues.map((value) => value.toLowerCase());
   const duplicatePlugins = Array.from(
@@ -499,7 +532,7 @@ const runSafeRunCli = async (args: string[]): Promise<number> => {
     policyPath: policyPath || undefined,
     profile: resolvedProfile.profile,
     mode: "strict",
-    scriptPath: (flags["script"] as string) || undefined,
+    scriptPath,
     executeRequested: Boolean(flags["execute"]),
     withholdExec: Boolean(flags["withhold-exec"] || flags["no-exec"]),
     adapter,

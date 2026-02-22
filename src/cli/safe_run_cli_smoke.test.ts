@@ -437,6 +437,20 @@ suite("cli/safe-run", () => {
     assert(!fs.existsSync(`${inputDir}.stage`), "stage dir must not be created on out conflict");
   });
 
+  register("safe-run fails closed when out path overlaps policy file", async () => {
+    const root = makeTempDir();
+    const outDir = path.join(root, "out");
+    fs.mkdirSync(outDir, { recursive: true });
+    const policyPath = path.join(outDir, "policy.json");
+    fs.copyFileSync(path.join(process.cwd(), "policies", "web_component_default.json"), policyPath);
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "safe_no_caps");
+    const result = await runCliCapture(["safe-run", inputPath, "--policy", policyPath, "--out", outDir]);
+    assertEq(result.status, 40, `expected safe-run policy/out conflict exit code\n${result.stderr}`);
+    assert(result.stderr.includes("SAFE_RUN_OUT_CONFLICTS_POLICY"), "expected SAFE_RUN_OUT_CONFLICTS_POLICY stderr");
+    assert(fs.existsSync(policyPath), "policy file must remain present after safe-run policy/out conflict");
+    assert(!fs.existsSync(`${outDir}.stage`), "stage dir must not be created on policy/out conflict");
+  });
+
   register("safe-run oversize release input exits 40", async () => {
     const outDir = makeTempDir();
     const releaseDir = path.join(outDir, "release");

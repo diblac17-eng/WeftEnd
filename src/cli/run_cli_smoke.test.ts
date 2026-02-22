@@ -227,6 +227,48 @@ suite("cli/run", () => {
     assert(!fs.existsSync(`${inputDir}.stage`), "examine stage dir must not be created on out conflict");
   });
 
+  register("run fails closed when out path overlaps policy file", async () => {
+    const root = makeTempDir();
+    const outDir = path.join(root, "out");
+    fs.mkdirSync(outDir, { recursive: true });
+    const policyPath = path.join(outDir, "policy.json");
+    fs.copyFileSync(path.join(process.cwd(), "policies", "web_component_default.json"), policyPath);
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "safe_no_caps");
+    const result = await runCliCapture(["run", inputPath, "--policy", policyPath, "--out", outDir]);
+    assertEq(result.status, 40, `expected run policy/out conflict exit code\n${result.stderr}`);
+    assert(result.stderr.includes("RUN_OUT_CONFLICTS_POLICY"), "expected RUN_OUT_CONFLICTS_POLICY stderr");
+    assert(fs.existsSync(policyPath), "policy file must remain present after run policy/out conflict");
+    assert(!fs.existsSync(`${outDir}.stage`), "run stage dir must not be created on policy/out conflict");
+  });
+
+  register("intake fails closed when out path overlaps policy file", async () => {
+    const root = makeTempDir();
+    const outDir = path.join(root, "out");
+    fs.mkdirSync(outDir, { recursive: true });
+    const policyPath = path.join(outDir, "policy.json");
+    fs.copyFileSync(path.join(process.cwd(), "policies", "web_component_default.json"), policyPath);
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "safe_no_caps");
+    const result = await runCliCapture(["intake", inputPath, "--policy", policyPath, "--out", outDir]);
+    assertEq(result.status, 40, `expected intake policy/out conflict exit code\n${result.stderr}`);
+    assert(result.stderr.includes("INTAKE_OUT_CONFLICTS_POLICY"), "expected INTAKE_OUT_CONFLICTS_POLICY stderr");
+    assert(fs.existsSync(policyPath), "policy file must remain present after intake policy/out conflict");
+    assert(!fs.existsSync(`${outDir}.stage`), "intake stage dir must not be created on policy/out conflict");
+  });
+
+  register("examine fails closed when out path overlaps script file", async () => {
+    const root = makeTempDir();
+    const outDir = path.join(root, "out");
+    fs.mkdirSync(outDir, { recursive: true });
+    const scriptPath = path.join(outDir, "rules.js");
+    fs.writeFileSync(scriptPath, "module.exports = {};\n", "utf8");
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "safe_no_caps");
+    const result = await runCliCapture(["examine", inputPath, "--out", outDir, "--profile", "web", "--script", scriptPath]);
+    assertEq(result.status, 40, `expected examine script/out conflict exit code\n${result.stderr}`);
+    assert(result.stderr.includes("EXAMINE_OUT_CONFLICTS_SCRIPT"), "expected EXAMINE_OUT_CONFLICTS_SCRIPT stderr");
+    assert(fs.existsSync(scriptPath), "script file must remain present after examine script/out conflict");
+    assert(!fs.existsSync(`${outDir}.stage`), "examine stage dir must not be created on script/out conflict");
+  });
+
   register("intake finalizes staged output and replaces stale roots", async () => {
     const outDir = makeTempDir();
     fs.writeFileSync(path.join(outDir, "stale_root.txt"), "stale", "utf8");

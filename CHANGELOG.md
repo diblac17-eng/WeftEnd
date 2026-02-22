@@ -217,6 +217,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added host CLI smoke assertions that host/operator receipt `.stage` files do not remain after finalize.
 
 ### Adapter maintenance controls
+- `examine`, `intake`, `run`, and `safe-run` now fail closed when `--out` overlaps dependency inputs such as `--policy` or `--script` (`*_OUT_CONFLICTS_POLICY`, `*_OUT_CONFLICTS_SCRIPT`), preventing staged-finalize cleanup from deleting command dependencies.
 - `host install` / `host update` now fail closed when `hostRoot` overlaps `releaseDir` (`HOST_ROOT_OVERLAPS_RELEASE_DIR`), preventing self-apply path collisions while still emitting a deterministic receipt.
 - `compare` now fails closed when `--out` overlaps either input root (including parent/child overlap), preventing staged compare finalize from deleting or writing inside compared evidence trees.
 - `watch` now fails closed when `--out-root` overlaps the watched target, preventing self-trigger loops and self-generated drift under the watched tree.
