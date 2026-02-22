@@ -12,9 +12,10 @@ const crypto = require("crypto");
 const { spawnSync } = require("child_process");
 
 const root = process.cwd();
+const OUT_BASE = path.join(root, "out");
 const OUT_ROOT = process.env.WEFTEND_360_OUT_ROOT
   ? path.resolve(root, process.env.WEFTEND_360_OUT_ROOT)
-  : path.join(root, "out", "verify_360");
+  : path.join(OUT_BASE, "verify_360");
 const HISTORY_ROOT = path.join(OUT_ROOT, "history");
 const MAX_STEPS = 64;
 const RUN_STATES = [
@@ -238,6 +239,15 @@ const sha256Text = (text) => {
   const h = crypto.createHash("sha256");
   h.update(String(text || ""));
   return `sha256:${h.digest("hex")}`;
+};
+
+const assertOutRootWithinRepoOut = () => {
+  const outBaseResolved = path.resolve(OUT_BASE);
+  const outRootResolved = path.resolve(OUT_ROOT);
+  const outBasePrefix = outBaseResolved.endsWith(path.sep) ? outBaseResolved : `${outBaseResolved}${path.sep}`;
+  if (outRootResolved === outBaseResolved || outRootResolved.startsWith(outBasePrefix)) return;
+  const detail = path.relative(root, outRootResolved) || outRootResolved;
+  throw new Error(`VERIFY360_OUT_ROOT_OUTSIDE_REPO_OUT:${detail}`);
 };
 
 const sha256File = (filePath) => {
@@ -681,6 +691,7 @@ const writeEmergencyOutputs = (runDir, payload, writeError) => {
 };
 
 const main = () => {
+  assertOutRootWithinRepoOut();
   const runDir = nextRunDir();
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "weftend-verify-360-"));
   const outA = path.join(tmpRoot, "run_a");

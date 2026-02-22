@@ -51,6 +51,20 @@ const readText = (relPath: string): string => {
 };
 
 suite("greenteam/verify360-docs-sync-contract", () => {
+  register("verify:360 constrains WEFTEND_360_OUT_ROOT to repo out/", () => {
+    const text = readScript();
+    assert(text.includes("const OUT_BASE = path.join(root, \"out\");"), "verify_360 must define canonical repo out/ base");
+    assert(
+      text.includes("const assertOutRootWithinRepoOut = () => {"),
+      "verify_360 must define out-root guard helper"
+    );
+    assert(
+      text.includes("VERIFY360_OUT_ROOT_OUTSIDE_REPO_OUT:"),
+      "verify_360 out-root guard must fail with explicit bounded reason token"
+    );
+    assert(text.includes("assertOutRootWithinRepoOut();"), "verify_360 must enforce out-root guard before run setup");
+  });
+
   register("verify:360 keeps docs-sync and etiquette targets for immutable release discipline", () => {
     const text = readScript();
 

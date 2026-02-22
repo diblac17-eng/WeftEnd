@@ -382,6 +382,7 @@ Included
 - Safe-run/container no longer silently swallow library view update failures after finalize; failures are now surfaced with explicit deterministic reason codes while preserving completed run artifacts.
 - `verify:360` now enforces a stage-residue gate (`stage_residue` step), failing closed with `VERIFY360_STAGE_RESIDUE_PRESENT` when `.stage` artifacts remain in deterministic run outputs.
 - `verify:360` stage-residue checks now execute across pass/partial/fail lanes (including dependency-missing, pair-failure, and fail-closed exception paths) and now scan the full temporary verify workspace so sibling `<out>.stage` roots are detected.
+- `verify:360` now constrains `WEFTEND_360_OUT_ROOT` to the repo `out/` tree before run setup, preventing destructive reuse against arbitrary paths.
 - `verify:360:harness` now asserts `stage_residue` step presence in verify reports across pass/partial/fail lanes.
 - `verify_360_audit` now fails closed on any `.stage` residue under the verify out-root (`VERIFY360_AUDIT_STAGE_RESIDUE_PRESENT`).
 - `verify:360:harness` now injects/removes an audit stage-residue probe to pin strict audit residue detection.
