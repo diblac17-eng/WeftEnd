@@ -217,6 +217,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added host CLI smoke assertions that host/operator receipt `.stage` files do not remain after finalize.
 
 ### Adapter maintenance controls
+- `safe-run`, `run`, and `examine` now fail closed when `--out` points to an existing non-directory path (`*_OUT_PATH_NOT_DIRECTORY`) instead of deleting/replacing that file.
 - `safe-run` now enforces `--out` vs `--policy` / `--script` overlap checks in `safe_run.ts` core (not only `main.ts` wrapper parsing), with direct-core smoke coverage added.
 - `run` and `examine` now enforce `--out` vs dependency-input overlap checks in their core staged-writer implementations (not only `main.ts` wrapper parsing), with direct-core smoke coverage added.
 - `host run/install/update` now fail closed when `--out` overlaps the `releaseDir` (`HOST_OUT_CONFLICTS_RELEASE_DIR`), preventing receipt writes from mutating the release source being verified.

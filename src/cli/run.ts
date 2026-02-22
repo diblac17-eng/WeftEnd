@@ -450,6 +450,17 @@ export const runWeftendRun = async (options: RunCliOptionsV0): Promise<number> =
     console.error("[RUN_OUT_CONFLICTS_SCRIPT] --out must not equal or overlap the --script path.");
     return 40;
   }
+  if (fs.existsSync(options.outDir)) {
+    try {
+      if (!fs.statSync(options.outDir).isDirectory()) {
+        console.error("[RUN_OUT_PATH_NOT_DIRECTORY] --out must be a directory path or a missing path.");
+        return 40;
+      }
+    } catch {
+      console.error("[RUN_OUT_PATH_INVALID] unable to inspect --out path.");
+      return 40;
+    }
+  }
   let policyRaw: unknown;
   try {
     policyRaw = JSON.parse(readTextFile(options.policyPath));

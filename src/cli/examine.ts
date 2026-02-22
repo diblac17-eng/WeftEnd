@@ -93,6 +93,17 @@ export const runExamine = (inputPath: string, options: ExamineCliOptions): numbe
     console.error("[EXAMINE_OUT_CONFLICTS_SCRIPT] --out must not equal or overlap the --script path.");
     return 40;
   }
+  if (fs.existsSync(options.outDir)) {
+    try {
+      if (!fs.statSync(options.outDir).isDirectory()) {
+        console.error("[EXAMINE_OUT_PATH_NOT_DIRECTORY] --out must be a directory path or a missing path.");
+        return 40;
+      }
+    } catch {
+      console.error("[EXAMINE_OUT_PATH_INVALID] unable to inspect --out path.");
+      return 40;
+    }
+  }
   const scriptText = options.scriptPath ? readTextFile(options.scriptPath) : undefined;
   const result = examineArtifactV1(inputPath, {
     profile: options.profile,

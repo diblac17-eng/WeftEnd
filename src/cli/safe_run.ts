@@ -802,6 +802,17 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
     console.error("[SAFE_RUN_OUT_CONFLICTS_SCRIPT] --out must not equal or overlap the --script path.");
     return 40;
   }
+  if (fs.existsSync(finalOutDir)) {
+    try {
+      if (!fs.statSync(finalOutDir).isDirectory()) {
+        console.error("[SAFE_RUN_OUT_PATH_NOT_DIRECTORY] --out must be a directory path or a missing path.");
+        return 40;
+      }
+    } catch {
+      console.error("[SAFE_RUN_OUT_PATH_INVALID] unable to inspect --out path.");
+      return 40;
+    }
+  }
   const adapterPolicyFile = String(process?.env?.[ADAPTER_DISABLE_FILE_ENV_V1] || "").trim();
   if (adapterPolicyFile && pathsOverlap(adapterPolicyFile, finalOutDir)) {
     console.error("[SAFE_RUN_OUT_CONFLICTS_ADAPTER_POLICY_FILE] --out must not equal or overlap WEFTEND_ADAPTER_DISABLE_FILE.");
