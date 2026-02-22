@@ -175,6 +175,17 @@ suite("cli/container-scan", () => {
     assert(!fs.existsSync(`${outDir}.stage`), "container scan stage directory must not be created on adapter policy file conflict");
   });
 
+  register("container scan fails closed when out path is an existing file", async () => {
+    const tmp = makeTempDir();
+    const outFile = path.join(tmp, "out.txt");
+    fs.writeFileSync(outFile, "keep", "utf8");
+    const res = await runCliCapture(["container", "scan", "ubuntu@sha256:deadbeef", "--out", outFile]);
+    assertEq(res.status, 40, `expected container out-file fail-closed exit code\n${res.stderr}`);
+    assert(res.stderr.includes("CONTAINER_SCAN_OUT_PATH_NOT_DIRECTORY"), "expected container out-file code");
+    assertEq(fs.readFileSync(outFile, "utf8"), "keep", "existing out file must not be replaced");
+    assert(!fs.existsSync(`${outFile}.stage`), "container scan stage directory must not be created when out is a file");
+  });
+
   register("container scan honors maintenance disable policy", async () => {
     const outDir = makeTempDir();
     const immutableRef = `docker.io/library/ubuntu@sha256:${"c".repeat(64)}`;

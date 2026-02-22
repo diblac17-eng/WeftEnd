@@ -186,6 +186,30 @@ suite("cli/email", () => {
     assert(!fs.existsSync(`${outDir}.stage`), "stage path must not be created on email safe-run policy/out conflict");
   });
 
+  register("email unpack fails closed when out path is an existing file", async () => {
+    const temp = makeTempDir();
+    const input = path.join(process.cwd(), "tests", "fixtures", "email", "simple.eml");
+    const outFile = path.join(temp, "out.txt");
+    fs.writeFileSync(outFile, "keep", "utf8");
+    const result = await runCliCapture(["email", "unpack", input, "--out", outFile]);
+    assertEq(result.status, 40, `expected email unpack out-file fail-closed exit\n${result.stderr}`);
+    assert(result.stderr.includes("EMAIL_UNPACK_OUT_PATH_NOT_DIRECTORY"), "expected email unpack out-file code");
+    assertEq(readText(outFile), "keep", "existing out file must not be replaced");
+    assert(!fs.existsSync(`${outFile}.stage`), "stage path must not be created when email unpack out is a file");
+  });
+
+  register("email safe-run fails closed when out path is an existing file", async () => {
+    const temp = makeTempDir();
+    const input = path.join(process.cwd(), "tests", "fixtures", "email", "simple.eml");
+    const outFile = path.join(temp, "out.txt");
+    fs.writeFileSync(outFile, "keep", "utf8");
+    const result = await runCliCapture(["email", "safe-run", input, "--out", outFile]);
+    assertEq(result.status, 40, `expected email safe-run out-file fail-closed exit\n${result.stderr}`);
+    assert(result.stderr.includes("EMAIL_SAFE_RUN_OUT_PATH_NOT_DIRECTORY"), "expected email safe-run out-file code");
+    assertEq(readText(outFile), "keep", "existing out file must not be replaced");
+    assert(!fs.existsSync(`${outFile}.stage`), "stage path must not be created when email safe-run out is a file");
+  });
+
   register("email unpack handles attachment-only mail deterministically", async () => {
     const temp = makeTempDir();
     const input = path.join(process.cwd(), "tests", "fixtures", "email", "attachment_only.eml");

@@ -604,6 +604,18 @@ export const runEmailUnpackCli = (argv: string[]): number => {
     console.error("[EMAIL_UNPACK_OUT_CONFLICTS_INPUT] --out must not equal or overlap the input path.");
     return 40;
   }
+  const outRoot = path.resolve(process.cwd(), outDir);
+  if (fs.existsSync(outRoot)) {
+    try {
+      if (!fs.statSync(outRoot).isDirectory()) {
+        console.error("[EMAIL_UNPACK_OUT_PATH_NOT_DIRECTORY] --out must be a directory path or a missing path.");
+        return 40;
+      }
+    } catch {
+      console.error("[EMAIL_UNPACK_OUT_PATH_INVALID] unable to inspect --out path.");
+      return 40;
+    }
+  }
   const indexRaw = isNonEmptyString(flags.index) ? String(flags.index) : undefined;
   const messageIdRaw = isNonEmptyString(flags["message-id"]) ? String(flags["message-id"]) : undefined;
   const loaded = readSourceEmail(inputPath, indexRaw, messageIdRaw);
@@ -611,7 +623,6 @@ export const runEmailUnpackCli = (argv: string[]): number => {
     console.error(`[${loaded.code}] unable to load email input.`);
     return 40;
   }
-  const outRoot = path.resolve(process.cwd(), outDir);
   const stage = prepareStagedOutRoot(outRoot);
   if (!stage.ok) {
     console.error("[EMAIL_UNPACK_STAGE_INIT_FAILED] unable to initialize staged output path.");
@@ -648,6 +659,17 @@ export const runEmailSafeRunCli = async (argv: string[]): Promise<number> => {
     return 40;
   }
   const outRoot = path.resolve(process.cwd(), outDir);
+  if (fs.existsSync(outRoot)) {
+    try {
+      if (!fs.statSync(outRoot).isDirectory()) {
+        console.error("[EMAIL_SAFE_RUN_OUT_PATH_NOT_DIRECTORY] --out must be a directory path or a missing path.");
+        return 40;
+      }
+    } catch {
+      console.error("[EMAIL_SAFE_RUN_OUT_PATH_INVALID] unable to inspect --out path.");
+      return 40;
+    }
+  }
   const policyPath = isNonEmptyString(flags.policy) ? String(flags.policy) : undefined;
   if (policyPath && pathsOverlap(policyPath, outRoot)) {
     console.error("[EMAIL_SAFE_RUN_OUT_CONFLICTS_POLICY] --out must not equal or overlap the --policy path.");

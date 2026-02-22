@@ -637,6 +637,17 @@ export const runContainerCli = async (argv: string[]): Promise<number> => {
     console.error("[OUT_REQUIRED] container scan requires --out <dir>.");
     return 40;
   }
+  if (fs.existsSync(outDir)) {
+    try {
+      if (!fs.statSync(outDir).isDirectory()) {
+        console.error("[CONTAINER_SCAN_OUT_PATH_NOT_DIRECTORY] --out must be a directory path or a missing path.");
+        return 40;
+      }
+    } catch {
+      console.error("[CONTAINER_SCAN_OUT_PATH_INVALID] unable to inspect --out path.");
+      return 40;
+    }
+  }
   const policyPath = String(flags["policy"] || POLICY_GENERIC);
   if (policyPath && pathsOverlap(outDir, policyPath)) {
     console.error("[CONTAINER_SCAN_OUT_CONFLICTS_POLICY] --out must not equal or overlap the --policy path.");
