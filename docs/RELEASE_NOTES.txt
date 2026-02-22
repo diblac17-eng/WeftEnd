@@ -385,6 +385,7 @@ Included
 - `verify:360:harness` now injects/removes an audit stage-residue probe to pin strict audit residue detection.
 - Added Green Team runtime coverage for strict audit stage-residue behavior (`src/tools/greenteam/verify_360_audit_stage_residue.test.ts`).
 - Root release packaging now enforces a no-stage-residue invariant in the release output folder, failing closed if `*.stage` files or `__stage_release*` directories are present before packaging starts or after sidecar finalize completes.
+- Root release packaging now treats release sidecar docs as required artifacts (`RELEASE_NOTES.txt`, `RELEASE_ANNOUNCEMENT.txt`, `QUICKSTART.txt`, `RELEASE_CHECKLIST_ALPHA.md`, `RELEASE_HISTORY.md`, `CHANGELOG.md`) and fails closed instead of warning/skipping when any are missing.
 - Ticket-pack contract coverage now enforces report-state extraction from `report_card_v0.json` and validates digest identity line format (`sha256:<64hex>`) in `ticket_summary.txt`.
 - Ticket-pack contract coverage now also enforces text fallback parsing from `report_card.txt` (`STATUS/BASELINE/LATEST/BUCKETS` plus key-value lines) when structured report JSON is absent.
 - Windows shell `report_card.txt` and `report_card_v0.json` now include adapter metadata and capability counts when adapter evidence exists:

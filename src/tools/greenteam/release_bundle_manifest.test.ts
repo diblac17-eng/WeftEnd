@@ -62,6 +62,14 @@ suite("greenteam/release-bundle", () => {
     assert(script.includes("${shaPath}.stage"), "release zip output must stage/finalize sha sidecar path");
     assert(script.includes("function Copy-SidecarFileAtomic"), "release zip script must provide atomic sidecar copy helper");
     assert(
+      script.includes("function Copy-RequiredSidecarFileAtomic"),
+      "release zip script must provide fail-closed required sidecar copy helper"
+    );
+    assert(
+      script.includes("Required release sidecar missing:"),
+      "release zip script must fail closed when required sidecar docs are missing"
+    );
+    assert(
       script.includes("function Assert-NoReleaseStageResidue"),
       "release zip script must enforce no-stage-residue invariant helper"
     );
@@ -79,18 +87,39 @@ suite("greenteam/release-bundle", () => {
       "release zip script must check stage residue around release output flow"
     );
     assert(script.includes("\"CHANGELOG.md\","), "release zip includeSingles must include CHANGELOG.md");
-    assert(script.includes("CHANGELOG.md copied"), "release zip sidecar copy must include CHANGELOG.md");
-    assert(script.includes("RELEASE_NOTES.txt copied"), "release zip sidecar copy must include RELEASE_NOTES.txt");
+    assert(script.includes("-Label \"CHANGELOG.md\""), "release zip sidecar copy must include CHANGELOG.md");
+    assert(script.includes("-Label \"RELEASE_NOTES.txt\""), "release zip sidecar copy must include RELEASE_NOTES.txt");
     assert(
-      script.includes("RELEASE_ANNOUNCEMENT.txt copied"),
+      script.includes("-Label \"RELEASE_ANNOUNCEMENT.txt\""),
       "release zip sidecar copy must include RELEASE_ANNOUNCEMENT.txt"
     );
-    assert(script.includes("QUICKSTART.txt copied"), "release zip sidecar copy must include QUICKSTART.txt");
+    assert(script.includes("-Label \"QUICKSTART.txt\""), "release zip sidecar copy must include QUICKSTART.txt");
     assert(
-      script.includes("RELEASE_CHECKLIST_ALPHA.md copied"),
+      script.includes("-Label \"RELEASE_CHECKLIST_ALPHA.md\""),
       "release zip sidecar copy must include RELEASE_CHECKLIST_ALPHA.md"
     );
-    assert(script.includes("RELEASE_HISTORY.md copied"), "release zip sidecar copy must include RELEASE_HISTORY.md");
+    assert(script.includes("-Label \"RELEASE_HISTORY.md\""), "release zip sidecar copy must include RELEASE_HISTORY.md");
+    assert(
+      !script.includes("docs/RELEASE_NOTES.txt not found, skipping"),
+      "release zip script must not silently skip release notes sidecar"
+    );
+    assert(
+      !script.includes("docs/RELEASE_ANNOUNCEMENT.txt not found, skipping"),
+      "release zip script must not silently skip release announcement sidecar"
+    );
+    assert(
+      !script.includes("docs/QUICKSTART.txt not found, skipping"),
+      "release zip script must not silently skip quickstart sidecar"
+    );
+    assert(
+      !script.includes("docs/RELEASE_CHECKLIST_ALPHA.md not found, skipping"),
+      "release zip script must not silently skip release checklist sidecar"
+    );
+    assert(
+      !script.includes("docs/RELEASE_HISTORY.md not found, skipping"),
+      "release zip script must not silently skip release history sidecar"
+    );
+    assert(!script.includes("CHANGELOG.md not found, skipping"), "release zip script must not silently skip changelog sidecar");
 
     const checklist = readText("docs/RELEASE_CHECKLIST_ALPHA.md");
     assert(checklist.includes("CHANGELOG.md"), "release checklist required artifact set must include CHANGELOG.md");

@@ -139,6 +139,19 @@ function Copy-SidecarFileAtomic {
   }
 }
 
+function Copy-RequiredSidecarFileAtomic {
+  param(
+    [string]$SourcePath,
+    [string]$DestinationPath,
+    [string]$Label
+  )
+  if (-not (Test-Path -LiteralPath $SourcePath)) {
+    Write-Fail "Required release sidecar missing: $Label" "Restore $Label before packaging a release."
+  }
+  Copy-SidecarFileAtomic -SourcePath $SourcePath -DestinationPath $DestinationPath
+  Write-Ok "$Label copied"
+}
+
 function Assert-NoReleaseStageResidue {
   param(
     [string]$OutDirPath
@@ -461,51 +474,21 @@ Get-ChildItem -Path $outAbs -Filter "weftend_*.zip.sha256" -File -ErrorAction Si
 
 Write-Section "Release Notes"
 $releaseNotes = Join-Path $root "docs\\RELEASE_NOTES.txt"
-if (Test-Path $releaseNotes) {
-  Copy-SidecarFileAtomic -SourcePath $releaseNotes -DestinationPath (Join-Path $outAbs "RELEASE_NOTES.txt")
-  Write-Ok "RELEASE_NOTES.txt copied"
-} else {
-  Write-Warn "docs/RELEASE_NOTES.txt not found, skipping"
-}
+Copy-RequiredSidecarFileAtomic -SourcePath $releaseNotes -DestinationPath (Join-Path $outAbs "RELEASE_NOTES.txt") -Label "RELEASE_NOTES.txt"
 
 $releaseAnnouncement = Join-Path $root "docs\\RELEASE_ANNOUNCEMENT.txt"
-if (Test-Path $releaseAnnouncement) {
-  Copy-SidecarFileAtomic -SourcePath $releaseAnnouncement -DestinationPath (Join-Path $outAbs "RELEASE_ANNOUNCEMENT.txt")
-  Write-Ok "RELEASE_ANNOUNCEMENT.txt copied"
-} else {
-  Write-Warn "docs/RELEASE_ANNOUNCEMENT.txt not found, skipping"
-}
+Copy-RequiredSidecarFileAtomic -SourcePath $releaseAnnouncement -DestinationPath (Join-Path $outAbs "RELEASE_ANNOUNCEMENT.txt") -Label "RELEASE_ANNOUNCEMENT.txt"
 
 $quickstart = Join-Path $root "docs\\QUICKSTART.txt"
-if (Test-Path $quickstart) {
-  Copy-SidecarFileAtomic -SourcePath $quickstart -DestinationPath (Join-Path $outAbs "QUICKSTART.txt")
-  Write-Ok "QUICKSTART.txt copied"
-} else {
-  Write-Warn "docs/QUICKSTART.txt not found, skipping"
-}
+Copy-RequiredSidecarFileAtomic -SourcePath $quickstart -DestinationPath (Join-Path $outAbs "QUICKSTART.txt") -Label "QUICKSTART.txt"
 
 $releaseChecklist = Join-Path $root "docs\\RELEASE_CHECKLIST_ALPHA.md"
-if (Test-Path $releaseChecklist) {
-  Copy-SidecarFileAtomic -SourcePath $releaseChecklist -DestinationPath (Join-Path $outAbs "RELEASE_CHECKLIST_ALPHA.md")
-  Write-Ok "RELEASE_CHECKLIST_ALPHA.md copied"
-} else {
-  Write-Warn "docs/RELEASE_CHECKLIST_ALPHA.md not found, skipping"
-}
+Copy-RequiredSidecarFileAtomic -SourcePath $releaseChecklist -DestinationPath (Join-Path $outAbs "RELEASE_CHECKLIST_ALPHA.md") -Label "RELEASE_CHECKLIST_ALPHA.md"
 
 $releaseHistory = Join-Path $root "docs\\RELEASE_HISTORY.md"
-if (Test-Path $releaseHistory) {
-  Copy-SidecarFileAtomic -SourcePath $releaseHistory -DestinationPath (Join-Path $outAbs "RELEASE_HISTORY.md")
-  Write-Ok "RELEASE_HISTORY.md copied"
-} else {
-  Write-Warn "docs/RELEASE_HISTORY.md not found, skipping"
-}
+Copy-RequiredSidecarFileAtomic -SourcePath $releaseHistory -DestinationPath (Join-Path $outAbs "RELEASE_HISTORY.md") -Label "RELEASE_HISTORY.md"
 
 $changelog = Join-Path $root "CHANGELOG.md"
-if (Test-Path $changelog) {
-  Copy-SidecarFileAtomic -SourcePath $changelog -DestinationPath (Join-Path $outAbs "CHANGELOG.md")
-  Write-Ok "CHANGELOG.md copied"
-} else {
-  Write-Warn "CHANGELOG.md not found, skipping"
-}
+Copy-RequiredSidecarFileAtomic -SourcePath $changelog -DestinationPath (Join-Path $outAbs "CHANGELOG.md") -Label "CHANGELOG.md"
 
 Assert-NoReleaseStageResidue -OutDirPath $outAbs
