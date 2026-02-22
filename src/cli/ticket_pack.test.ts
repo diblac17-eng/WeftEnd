@@ -240,6 +240,18 @@ const testTicketPack = async () => {
   assertEq(fs.readFileSync(outFile, "utf8"), "keep", "ticket-pack must not replace existing out file");
   assert(!fs.existsSync(`${outFile}.stage`), "ticket-pack must not create staged dir when out is a file");
 
+  const outParentFile = path.join(root, "ticket_pack_parent.txt");
+  fs.writeFileSync(outParentFile, "keep", "utf8");
+  const outUnderFile = path.join(outParentFile, "pack");
+  const outParentFileRes = await runCliCapture(["ticket-pack", runDir, "--out", outUnderFile]);
+  assert(outParentFileRes.status === 40, `expected out-parent-file fail-closed\n${outParentFileRes.stderr}`);
+  assert(
+    outParentFileRes.stderr.includes("TICKET_PACK_OUT_PATH_PARENT_NOT_DIRECTORY"),
+    "expected ticket-pack out parent-file rejection code"
+  );
+  assertEq(fs.readFileSync(outParentFile, "utf8"), "keep", "ticket-pack must not modify parent file");
+  assert(!fs.existsSync(path.join(outParentFile, "ticket_pack.stage")), "ticket-pack must not create staged dir under parent file");
+
   const adapterRunDir = path.join(root, "adapter_run");
   const adapterPackDir = path.join(root, "adapter_pack");
   const adapterInput = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");

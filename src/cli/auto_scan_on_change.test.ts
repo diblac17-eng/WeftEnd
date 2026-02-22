@@ -122,3 +122,18 @@ suite("watch fails closed when explicit out-root path is an existing file", asyn
   assert(fs.readFileSync(outRootFile, "utf8") === "keep", "watch must not replace existing out-root file");
   assert(!fs.existsSync(path.join(root, "watch_out.txt", "Library")), "watch must not create Library under file out-root");
 });
+
+suite("watch fails closed when parent of explicit out-root path is a file", async () => {
+  const root = makeTempDir();
+  const target = path.join(root, "input");
+  fs.mkdirSync(target, { recursive: true });
+  fs.writeFileSync(path.join(target, "sample.txt"), "alpha", "utf8");
+  const parentFile = path.join(root, "watch-parent.txt");
+  fs.writeFileSync(parentFile, "keep", "utf8");
+  const outRootPath = path.join(parentFile, "nested");
+
+  const res = await runCliCapture(["watch", target, "--out-root", outRootPath, "--mode", "safe-run"]);
+  assert(res.status === 40, `expected watch out-root parent-file fail-closed\n${res.stderr}`);
+  assert(res.stderr.includes("WATCH_OUT_ROOT_PATH_PARENT_NOT_DIRECTORY"), "expected watch out-root parent-file rejection code");
+  assert(fs.readFileSync(parentFile, "utf8") === "keep", "watch must not modify out-root parent file");
+});

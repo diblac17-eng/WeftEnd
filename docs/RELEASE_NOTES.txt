@@ -376,6 +376,7 @@ Included
 - `safe-run`, `run`, and `examine` now fail closed when `--out` points to an existing non-directory path (`*_OUT_PATH_NOT_DIRECTORY`) instead of deleting/replacing that file.
 - `email unpack`, `email safe-run`, and `container scan` now also fail closed when `--out` points to an existing non-directory path (`*_OUT_PATH_NOT_DIRECTORY`) instead of deleting/replacing that file.
 - `compare`, `ticket-pack`, and `watch` now also fail closed when their directory-style output roots point to existing non-directory paths (`*_OUT_PATH_NOT_DIRECTORY` / `WATCH_OUT_ROOT_PATH_NOT_DIRECTORY`).
+- `compare`, `ticket-pack`, and `watch` now also fail closed when the parent of the requested directory-style output path is a file (`*_OUT_PATH_PARENT_NOT_DIRECTORY` / `WATCH_OUT_ROOT_PATH_PARENT_NOT_DIRECTORY`), avoiding generic stage-init failures.
 - `safe-run`, `run`, and `examine` now fail closed when `--out` equals or overlaps the input path (`*_OUT_CONFLICTS_INPUT`), preventing staged-finalize cleanup from deleting or replacing the source input.
 - `email unpack` and `email safe-run` now also fail closed when `--out` equals or overlaps the input path, preventing staged-finalize cleanup from deleting or replacing source email inputs or normalized email exports.
 - `intake` now also fails closed when `--out` equals or overlaps the input path (`INTAKE_OUT_CONFLICTS_INPUT`), preventing staged-finalize cleanup from deleting or replacing the source input.

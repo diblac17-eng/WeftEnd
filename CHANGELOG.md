@@ -217,6 +217,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added host CLI smoke assertions that host/operator receipt `.stage` files do not remain after finalize.
 
 ### Adapter maintenance controls
+- `compare`, `ticket-pack`, and `watch` now also fail closed when the parent of the requested directory-style output path is a file (`*_OUT_PATH_PARENT_NOT_DIRECTORY` / `WATCH_OUT_ROOT_PATH_PARENT_NOT_DIRECTORY`).
 - `compare`, `ticket-pack`, and `watch` now fail closed when their directory-style output roots point to existing non-directory paths (`*_OUT_PATH_NOT_DIRECTORY` / `WATCH_OUT_ROOT_PATH_NOT_DIRECTORY`).
 - `email unpack`, `email safe-run`, and `container scan` now also fail closed when `--out` points to an existing non-directory path (`*_OUT_PATH_NOT_DIRECTORY`) instead of deleting/replacing that file.
 - `safe-run`, `run`, and `examine` now fail closed when `--out` points to an existing non-directory path (`*_OUT_PATH_NOT_DIRECTORY`) instead of deleting/replacing that file.

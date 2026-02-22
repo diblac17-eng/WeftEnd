@@ -34,15 +34,28 @@ const pathsOverlap = (aPath: string, bPath: string): boolean => {
 };
 
 const assertDirectoryPathOrMissing = (targetPath: string, codeBase: string): boolean => {
-  if (!fs.existsSync(targetPath)) return true;
-  try {
-    if (fs.statSync(targetPath).isDirectory()) return true;
-    console.error(`[${codeBase}_NOT_DIRECTORY] --out must be a directory path or a missing path.`);
-    return false;
-  } catch {
-    console.error(`[${codeBase}_INVALID] unable to inspect --out path.`);
-    return false;
+  let probe = path.resolve(targetPath);
+  while (!fs.existsSync(probe)) {
+    const parent = path.dirname(probe);
+    if (parent === probe) break;
+    probe = parent;
   }
+  if (fs.existsSync(probe)) {
+    try {
+      if (!fs.statSync(probe).isDirectory()) {
+        if (path.resolve(probe) === path.resolve(targetPath)) {
+          console.error(`[${codeBase}_NOT_DIRECTORY] --out must be a directory path or a missing path.`);
+        } else {
+          console.error(`[${codeBase}_PARENT_NOT_DIRECTORY] parent of --out must be a directory.`);
+        }
+        return false;
+      }
+    } catch {
+      console.error(`[${codeBase}_INVALID] unable to inspect --out path.`);
+      return false;
+    }
+  }
+  return true;
 };
 
 const dedupeSort = (values: string[]): string[] =>

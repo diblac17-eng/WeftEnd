@@ -283,6 +283,22 @@ suite("cli/compare", () => {
     assert(!fs.existsSync(`${outFile}.stage`), "compare stage dir must not be created when out is a file");
   });
 
+  register("compare fails closed when parent of out path is a file", async () => {
+    const root = makeTempDir();
+    const leftDir = path.join(root, "left");
+    const rightDir = path.join(root, "right");
+    await runSafeRunFixture("safe_no_caps", leftDir);
+    await runSafeRunFixture("net_attempt", rightDir);
+    const parentFile = path.join(root, "parent-file.txt");
+    fs.writeFileSync(parentFile, "keep", "utf8");
+    const outPath = path.join(parentFile, "cmp");
+    const result = await runCliCapture(["compare", leftDir, rightDir, "--out", outPath]);
+    assertEq(result.status, 40, `expected compare out-parent-file fail-closed exit code\n${result.stderr}`);
+    assert(result.stderr.includes("COMPARE_OUT_PATH_PARENT_NOT_DIRECTORY"), "expected compare out parent-file code");
+    assertEq(fs.readFileSync(parentFile, "utf8"), "keep", "parent file must not be modified");
+    assert(!fs.existsSync(`${outPath}.stage`), "compare stage dir must not be created when out parent is a file");
+  });
+
   register("compare fails closed on old-contract receipts", async () => {
     const root = makeTempDir();
     const oldDir = path.join(root, "old");
