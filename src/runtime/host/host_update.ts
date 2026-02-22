@@ -37,6 +37,15 @@ const RECEIPT_NAME = "host_update_receipt.json";
 const MAX_INPUT_BYTES = 1024 * 1024;
 const ZERO_DIGEST = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
 
+const pathsOverlap = (aPath: string, bPath: string): boolean => {
+  const a = path.resolve(process.cwd(), aPath || "");
+  const b = path.resolve(process.cwd(), bPath || "");
+  if (a === b) return true;
+  const aPrefix = a.endsWith(path.sep) ? a : `${a}${path.sep}`;
+  const bPrefix = b.endsWith(path.sep) ? b : `${b}${path.sep}`;
+  return a.startsWith(bPrefix) || b.startsWith(aPrefix);
+};
+
 export interface HostInstallOptionsV0 {
   releaseDir: string;
   hostRoot: string;
@@ -180,6 +189,10 @@ export const installHostUpdateV0 = (options: HostInstallOptionsV0): { receipt: H
 
   if (!options.releaseDir || !fs.existsSync(releaseDir)) verifyReasons.push("RELEASE_DIR_MISSING");
   if (!options.hostRoot) decisionReasons.push("HOST_ROOT_MISSING");
+  if (options.releaseDir && options.hostRoot && pathsOverlap(releaseDir, hostRoot)) {
+    verifyReasons.push("HOST_ROOT_OVERLAPS_RELEASE_DIR");
+    decisionReasons.push("HOST_ROOT_OVERLAPS_RELEASE_DIR");
+  }
   const trust = readTrustRoot(trustRootPath);
   if (!trust.ok) {
     verifyReasons.push(trust.reason);

@@ -46,6 +46,20 @@ function suite(name: string, define: () => void): void {
 
 const makeTempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), "weftend-host-update-"));
 
+const copyDir = (src: string, dst: string): void => {
+  if (typeof fs.cpSync === "function") {
+    fs.cpSync(src, dst, { recursive: true });
+    return;
+  }
+  fs.mkdirSync(dst, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const from = path.join(src, entry.name);
+    const to = path.join(dst, entry.name);
+    if (entry.isDirectory()) copyDir(from, to);
+    else fs.copyFileSync(from, to);
+  }
+};
+
 suite("runtime/host update", () => {
   register("verify UNVERIFIED implies no apply", () => {
     const hostRoot = makeTempDir();
@@ -82,6 +96,33 @@ suite("runtime/host update", () => {
 
     const issuesWrong = validateHostUpdateReceiptV0({ ...res.receipt, schemaVersion: 1 }, "receipt");
     assert(issuesWrong.some((i) => i.code === "RECEIPT_SCHEMA_VERSION_BAD"), "expected schemaVersion invalid");
+  });
+
+  register("fails closed when host root overlaps release dir", () => {
+    const temp = makeTempDir();
+    const fixtureReleaseDir = path.join(process.cwd(), "tests", "fixtures", "release_demo_js");
+    const releaseDir = path.join(temp, "release");
+    copyDir(fixtureReleaseDir, releaseDir);
+
+    const trustRootPath = path.join(temp, "trust_root.json");
+    const keyId = "host-demo-key";
+    const secret = "host-update-demo";
+    const publicKey = deriveDemoPublicKey(secret);
+    fs.writeFileSync(trustRootPath, JSON.stringify({ keyId, publicKey }), "utf8");
+
+    const res = installHostUpdateV0({
+      releaseDir,
+      hostRoot: releaseDir,
+      trustRootPath,
+      signingSecret: secret,
+      outDir: path.join(temp, "receipts"),
+    });
+
+    assertEq(res.exitCode, 40, "expected fail-closed exit code");
+    assertEq(res.receipt.decision, "DENY", "expected decision DENY");
+    assertEq(res.receipt.apply.result, "SKIP", "overlap must not attempt apply");
+    assert(res.receipt.verify.reasonCodes.includes("HOST_ROOT_OVERLAPS_RELEASE_DIR"), "expected verify overlap reason");
+    assert(res.receipt.reasonCodes.includes("HOST_ROOT_OVERLAPS_RELEASE_DIR"), "expected decision overlap reason");
   });
 });
 
