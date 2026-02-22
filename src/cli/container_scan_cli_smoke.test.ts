@@ -157,6 +157,24 @@ suite("cli/container-scan", () => {
     assert(!fs.existsSync(`${outDir}.stage`), "container scan stage directory must not be created on policy/out conflict");
   });
 
+  register("container scan fails closed when out path overlaps adapter maintenance policy file", async () => {
+    const tmp = makeTempDir();
+    const outDir = path.join(tmp, "out");
+    fs.mkdirSync(outDir, { recursive: true });
+    const maintenancePolicyPath = path.join(outDir, "adapter_maintenance.json");
+    fs.writeFileSync(maintenancePolicyPath, "{\"disabledAdapters\":[]}\n", "utf8");
+    const res = await runCliCapture(["container", "scan", "ubuntu@sha256:deadbeef", "--out", outDir], {
+      env: { WEFTEND_ADAPTER_DISABLE_FILE: maintenancePolicyPath },
+    });
+    assertEq(res.status, 40, `expected container adapter-policy-file/out conflict exit code\n${res.stderr}`);
+    assert(
+      res.stderr.includes("CONTAINER_SCAN_OUT_CONFLICTS_ADAPTER_POLICY_FILE"),
+      "expected container adapter maintenance policy file conflict code"
+    );
+    assert(fs.existsSync(maintenancePolicyPath), "adapter maintenance policy file must remain present after conflict");
+    assert(!fs.existsSync(`${outDir}.stage`), "container scan stage directory must not be created on adapter policy file conflict");
+  });
+
   register("container scan honors maintenance disable policy", async () => {
     const outDir = makeTempDir();
     const immutableRef = `docker.io/library/ubuntu@sha256:${"c".repeat(64)}`;

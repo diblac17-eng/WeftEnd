@@ -172,6 +172,20 @@ suite("cli/email", () => {
     assert(!fs.existsSync(`${outDir}.stage`), "stage path must not be created on email safe-run out conflict");
   });
 
+  register("email safe-run fails closed when out path overlaps policy file", async () => {
+    const temp = makeTempDir();
+    const input = path.join(process.cwd(), "tests", "fixtures", "email", "simple_html.eml");
+    const outDir = path.join(temp, "run");
+    fs.mkdirSync(outDir, { recursive: true });
+    const policyPath = path.join(outDir, "policy.json");
+    fs.copyFileSync(path.join(process.cwd(), "policies", "web_component_default.json"), policyPath);
+    const result = await runCliCapture(["email", "safe-run", input, "--out", outDir, "--policy", policyPath]);
+    assertEq(result.status, 40, `expected email safe-run policy/out conflict exit\n${result.stderr}`);
+    assert(result.stderr.includes("EMAIL_SAFE_RUN_OUT_CONFLICTS_POLICY"), "expected email safe-run policy/out conflict code");
+    assert(fs.existsSync(policyPath), "policy file must remain present after email safe-run policy/out conflict");
+    assert(!fs.existsSync(`${outDir}.stage`), "stage path must not be created on email safe-run policy/out conflict");
+  });
+
   register("email unpack handles attachment-only mail deterministically", async () => {
     const temp = makeTempDir();
     const input = path.join(process.cwd(), "tests", "fixtures", "email", "attachment_only.eml");

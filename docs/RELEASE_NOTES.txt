@@ -367,6 +367,8 @@ Included
 - `host install` / `host update` now fail closed when `hostRoot` overlaps `releaseDir` (`HOST_ROOT_OVERLAPS_RELEASE_DIR`), preventing self-apply path collisions while still emitting a deterministic host update receipt.
 - `examine`, `intake`, `run`, and `safe-run` now fail closed when `--out` overlaps dependency inputs such as `--policy` or `--script` (`*_OUT_CONFLICTS_POLICY`, `*_OUT_CONFLICTS_SCRIPT`), preventing staged-finalize cleanup from deleting command dependencies.
 - `container scan` now fails closed when `--out` overlaps `--policy` (`CONTAINER_SCAN_OUT_CONFLICTS_POLICY`), preventing staged failure finalization from deleting the container-scan policy file.
+- `container scan` now also fails closed when `--out` overlaps `WEFTEND_ADAPTER_DISABLE_FILE` (`CONTAINER_SCAN_OUT_CONFLICTS_ADAPTER_POLICY_FILE`), preventing staged failure finalization from deleting adapter maintenance policy files.
+- `email safe-run` now fails closed when `--out` overlaps `--policy` (`EMAIL_SAFE_RUN_OUT_CONFLICTS_POLICY`), preventing safe-run staged finalize from deleting the email lane policy file.
 - `safe-run`, `run`, and `examine` now fail closed when `--out` equals or overlaps the input path (`*_OUT_CONFLICTS_INPUT`), preventing staged-finalize cleanup from deleting or replacing the source input.
 - `email unpack` and `email safe-run` now also fail closed when `--out` equals or overlaps the input path, preventing staged-finalize cleanup from deleting or replacing source email inputs or normalized email exports.
 - `intake` now also fails closed when `--out` equals or overlaps the input path (`INTAKE_OUT_CONFLICTS_INPUT`), preventing staged-finalize cleanup from deleting or replacing the source input.

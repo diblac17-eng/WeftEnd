@@ -649,6 +649,10 @@ export const runEmailSafeRunCli = async (argv: string[]): Promise<number> => {
   }
   const outRoot = path.resolve(process.cwd(), outDir);
   const policyPath = isNonEmptyString(flags.policy) ? String(flags.policy) : undefined;
+  if (policyPath && pathsOverlap(policyPath, outRoot)) {
+    console.error("[EMAIL_SAFE_RUN_OUT_CONFLICTS_POLICY] --out must not equal or overlap the --policy path.");
+    return 40;
+  }
   const resolvedInput = path.resolve(process.cwd(), inputPath);
   let exportDir = path.join(outRoot, "email_export");
   let tempExportRoot: string | null = null;

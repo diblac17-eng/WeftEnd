@@ -17,7 +17,7 @@ import {
   probeDockerImageLocalV0,
   type DockerProbeSuccessV0,
 } from "../runtime/container/docker_probe_v0";
-import { getAdapterMaintenanceStatusV1 } from "../runtime/adapters/artifact_adapter_v1";
+import { ADAPTER_DISABLE_FILE_ENV_V1, getAdapterMaintenanceStatusV1 } from "../runtime/adapters/artifact_adapter_v1";
 import { updateLibraryViewFromRunV0 } from "./library_state";
 
 declare const require: any;
@@ -640,6 +640,13 @@ export const runContainerCli = async (argv: string[]): Promise<number> => {
   const policyPath = String(flags["policy"] || POLICY_GENERIC);
   if (policyPath && pathsOverlap(outDir, policyPath)) {
     console.error("[CONTAINER_SCAN_OUT_CONFLICTS_POLICY] --out must not equal or overlap the --policy path.");
+    return 40;
+  }
+  const maintenancePolicyPath = String(process?.env?.[ADAPTER_DISABLE_FILE_ENV_V1] || "").trim();
+  if (maintenancePolicyPath && pathsOverlap(outDir, maintenancePolicyPath)) {
+    console.error(
+      "[CONTAINER_SCAN_OUT_CONFLICTS_ADAPTER_POLICY_FILE] --out must not equal or overlap WEFTEND_ADAPTER_DISABLE_FILE."
+    );
     return 40;
   }
   const stage = prepareStagedOutRoot(outDir);
