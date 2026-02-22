@@ -126,6 +126,33 @@ suite("runtime/host cli", () => {
     assert(!fs.existsSync(path.join(outDir, "host_run_receipt.json")), "must not write host run receipt into release dir");
     assert(!fs.existsSync(path.join(outDir, "operator_receipt.json")), "must not write operator receipt into release dir");
   });
+
+  register("host run fails closed when out path is a file or parent is a file", async () => {
+    const host = setupHostRoot();
+    const releaseDir = path.join(process.cwd(), "tests", "fixtures", "release_demo");
+    const tmp = makeTempDir();
+
+    const outFile = path.join(tmp, "host_out_root_file.txt");
+    fs.writeFileSync(outFile, "x", "utf8");
+    const outFileRes = await runCliCapture(
+      ["host", "run", releaseDir, "--out", outFile, "--root", host.hostRoot, "--trust-root", host.trustRootPath],
+      { env: { WEFTEND_HOST_ROOT: host.hostRoot, WEFTEND_HOST_TRUST_ROOT: host.trustRootPath } }
+    );
+    assertEq(outFileRes.status, 40, `expected fail-closed out-file exit code\n${outFileRes.stderr}`);
+    assert(outFileRes.stderr.includes("HOST_OUT_PATH_NOT_DIRECTORY"), "expected HOST_OUT_PATH_NOT_DIRECTORY");
+    assert(!fs.existsSync(path.join(outFile, "host_run_receipt.json")), "must not create receipt under host out-file path");
+
+    const outParentFile = path.join(tmp, "host_out_parent_file.txt");
+    fs.writeFileSync(outParentFile, "x", "utf8");
+    const outUnderFile = path.join(outParentFile, "receipts");
+    const outParentFileRes = await runCliCapture(
+      ["host", "run", releaseDir, "--out", outUnderFile, "--root", host.hostRoot, "--trust-root", host.trustRootPath],
+      { env: { WEFTEND_HOST_ROOT: host.hostRoot, WEFTEND_HOST_TRUST_ROOT: host.trustRootPath } }
+    );
+    assertEq(outParentFileRes.status, 40, `expected fail-closed out-parent-file exit code\n${outParentFileRes.stderr}`);
+    assert(outParentFileRes.stderr.includes("HOST_OUT_PATH_PARENT_NOT_DIRECTORY"), "expected HOST_OUT_PATH_PARENT_NOT_DIRECTORY");
+    assert(!fs.existsSync(`${outUnderFile}.stage`), "must not create stage path when host out-root parent is a file");
+  });
 });
 
 if (!hasBDD) {

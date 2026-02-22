@@ -13,6 +13,7 @@ import { runPrivacyLintV0 } from "../privacy_lint";
 declare const require: any;
 
 const path = require("path");
+const fs = require("fs");
 
 declare const process: any;
 
@@ -37,6 +38,40 @@ const pathsOverlap = (aPath: string, bPath: string): boolean => {
   const aPrefix = a.endsWith(path.sep) ? a : `${a}${path.sep}`;
   const bPrefix = b.endsWith(path.sep) ? b : `${b}${path.sep}`;
   return a.startsWith(bPrefix) || b.startsWith(aPrefix);
+};
+
+const validateHostOutRootPath = (outRoot: string): { ok: true } | { ok: false; code: string; message: string } => {
+  const resolved = path.resolve(process.cwd(), String(outRoot || ""));
+  try {
+    if (fs.existsSync(resolved)) {
+      const stat = fs.statSync(resolved);
+      if (!stat.isDirectory()) {
+        return {
+          ok: false,
+          code: "HOST_OUT_PATH_NOT_DIRECTORY",
+          message: "--out/WEFTEND_HOST_OUT_ROOT must be a directory path or a missing path.",
+        };
+      }
+    }
+  } catch {
+    return { ok: false, code: "HOST_OUT_PATH_INVALID", message: "unable to inspect host out-root path." };
+  }
+  const parentDir = path.dirname(resolved);
+  if (parentDir && fs.existsSync(parentDir)) {
+    try {
+      const parentStat = fs.statSync(parentDir);
+      if (!parentStat.isDirectory()) {
+        return {
+          ok: false,
+          code: "HOST_OUT_PATH_PARENT_NOT_DIRECTORY",
+          message: "parent of --out/WEFTEND_HOST_OUT_ROOT must be a directory.",
+        };
+      }
+    } catch {
+      return { ok: false, code: "HOST_OUT_PATH_INVALID", message: "unable to inspect host out-root path." };
+    }
+  }
+  return { ok: true };
 };
 
 const parseArgs = (argv: string[]) => {
@@ -78,6 +113,11 @@ export const runHostMain = async (argv: string[]): Promise<number> => {
   const outRootSource = outArg ? "ARG_OUT" : hostOutRootEnv ? "ENV_OUT_ROOT" : "";
   if (!outRoot) {
     console.error("[HOST_OUT_MISSING] --out or WEFTEND_HOST_OUT_ROOT is required.");
+    return 40;
+  }
+  const outRootCheck = validateHostOutRootPath(outRoot);
+  if (!outRootCheck.ok) {
+    console.error(`[${outRootCheck.code}] ${outRootCheck.message}`);
     return 40;
   }
   if ((command === "run" || command === "install" || command === "update") && rest[0] && pathsOverlap(rest[0], outRoot)) {

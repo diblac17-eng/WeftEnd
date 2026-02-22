@@ -154,6 +154,39 @@ suite("runtime/host update cli", () => {
     assert(!fs.existsSync(path.join(outDir, "host_update_receipt.json")), "must not write host update receipt into release dir");
     assert(!fs.existsSync(path.join(outDir, "operator_receipt.json")), "must not write operator receipt into release dir");
   });
+
+  register("host install fails closed when out path is a file", async () => {
+    const hostRoot = makeTempDir();
+    const trustRootPath = path.join(hostRoot, "trust_root.json");
+    const keyId = "host-demo-key";
+    const secret = "host-update-demo";
+    const publicKey = deriveDemoPublicKey(secret);
+    fs.writeFileSync(trustRootPath, JSON.stringify({ keyId, publicKey }), "utf8");
+    const releaseDir = path.join(process.cwd(), "tests", "fixtures", "release_demo_js");
+    const outFile = path.join(makeTempDir(), "host_out_root_file.txt");
+    fs.writeFileSync(outFile, "x", "utf8");
+
+    const env = { WEFTEND_HOST_ROOT: hostRoot, WEFTEND_HOST_TRUST_ROOT: trustRootPath, WEFTEND_HOST_OUT_ROOT: outFile };
+    const install = await runCliCapture(
+      [
+        "host",
+        "install",
+        releaseDir,
+        "--root",
+        hostRoot,
+        "--trust-root",
+        trustRootPath,
+        "--out",
+        outFile,
+        "--signing-secret",
+        secret,
+      ],
+      { env }
+    );
+    assertEq(install.status, 40, `expected fail-closed out-file exit code\n${install.stderr}`);
+    assert(install.stderr.includes("HOST_OUT_PATH_NOT_DIRECTORY"), "expected HOST_OUT_PATH_NOT_DIRECTORY");
+    assert(!fs.existsSync(path.join(outFile, "host_update_receipt.json")), "must not create host update receipt under host out-file path");
+  });
 });
 
 if (!hasBDD) {

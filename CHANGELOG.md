@@ -328,6 +328,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `license issue` now fails closed when `--out` is an existing directory (`LICENSE_OUT_PATH_IS_DIRECTORY`) or when the parent of `--out` is a file (`LICENSE_OUT_PATH_PARENT_NOT_DIRECTORY`), avoiding generic file-write failures before key use/signing.
 - `adapter doctor --write-policy` now fails closed on invalid file-output path kinds (`ADAPTER_POLICY_OUT_PATH_IS_DIRECTORY`, `ADAPTER_POLICY_OUT_PATH_PARENT_NOT_DIRECTORY`) instead of returning a generic write error.
 - `shortcut create` now fails closed when `--out` matches `--target` (`SHORTCUT_OUT_CONFLICTS_TARGET`) and when `--out` is a directory or has a file parent (`SHORTCUT_OUT_PATH_IS_DIRECTORY`, `SHORTCUT_OUT_PATH_PARENT_NOT_DIRECTORY`), avoiding destructive or ambiguous shortcut output writes.
+- `host run/install/update/status` now fail closed when `--out` / `WEFTEND_HOST_OUT_ROOT` points to a file or has a file parent (`HOST_OUT_PATH_NOT_DIRECTORY`, `HOST_OUT_PATH_PARENT_NOT_DIRECTORY`) before any host status/operator receipts are written.
 
 ## [Alpha 0.3] - 2026-02-13
 
