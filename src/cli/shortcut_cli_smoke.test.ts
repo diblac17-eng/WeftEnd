@@ -29,6 +29,32 @@ const run = async () => {
   fs.writeFileSync(target, "stub", "utf8");
   const outLnk = path.join(temp, "Demo App (WeftEnd).lnk");
 
+  {
+    const res = await runCliCapture(["shortcut", "create", "--target", target, "--out", target]);
+    assert(res.status === 40, "shortcut create must fail closed when --out matches --target");
+    assert(res.stderr.includes("SHORTCUT_OUT_CONFLICTS_TARGET"), "shortcut target/out conflict must report explicit code");
+  }
+
+  {
+    const outDirPath = path.join(temp, "shortcut_out_dir");
+    fs.mkdirSync(outDirPath, { recursive: true });
+    const res = await runCliCapture(["shortcut", "create", "--target", target, "--out", outDirPath]);
+    assert(res.status === 40, "shortcut create must fail closed when --out is a directory");
+    assert(res.stderr.includes("SHORTCUT_OUT_PATH_IS_DIRECTORY"), "shortcut directory out path must report explicit code");
+  }
+
+  {
+    const parentFile = path.join(temp, "shortcut_parent_file.txt");
+    fs.writeFileSync(parentFile, "x", "utf8");
+    const outUnderFile = path.join(parentFile, "Demo App (WeftEnd).lnk");
+    const res = await runCliCapture(["shortcut", "create", "--target", target, "--out", outUnderFile]);
+    assert(res.status === 40, "shortcut create must fail closed when parent of --out is a file");
+    assert(
+      res.stderr.includes("SHORTCUT_OUT_PATH_PARENT_NOT_DIRECTORY"),
+      "shortcut out parent-file path must report explicit code"
+    );
+  }
+
   const result = await runCliCapture(["shortcut", "create", "--target", target, "--out", outLnk]);
   if (result.status !== 0 && /SHORTCUT_POWERSHELL_BLOCKED/.test(result.stderr)) {
     console.log("shortcut_cli_smoke: SKIP (powershell spawn blocked)");

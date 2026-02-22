@@ -77,6 +77,47 @@ const resolveDesktopShortcutPath = (targetPath: string): string => {
   return path.join(desktop, `${base} (WeftEnd).lnk`);
 };
 
+const sameResolvedPath = (aPath: string, bPath: string): boolean =>
+  path.resolve(process.cwd(), String(aPath || "")) === path.resolve(process.cwd(), String(bPath || ""));
+
+const validateShortcutOutputPath = (outPath: string): { ok: true } | { ok: false; code: string; message: string } => {
+  const resolved = path.resolve(process.cwd(), String(outPath || ""));
+  try {
+    if (fs.existsSync(resolved)) {
+      const stat = fs.statSync(resolved);
+      if (stat.isDirectory()) {
+        return {
+          ok: false,
+          code: "SHORTCUT_OUT_PATH_IS_DIRECTORY",
+          message: "--out must be a file path or a missing path.",
+        };
+      }
+    }
+  } catch {
+    return { ok: false, code: "SHORTCUT_OUT_PATH_STAT_FAILED", message: "unable to inspect --out path." };
+  }
+  const parentDir = path.dirname(resolved);
+  if (parentDir && fs.existsSync(parentDir)) {
+    try {
+      const parentStat = fs.statSync(parentDir);
+      if (!parentStat.isDirectory()) {
+        return {
+          ok: false,
+          code: "SHORTCUT_OUT_PATH_PARENT_NOT_DIRECTORY",
+          message: "parent of --out must be a directory.",
+        };
+      }
+    } catch {
+      return {
+        ok: false,
+        code: "SHORTCUT_OUT_PATH_PARENT_STAT_FAILED",
+        message: "unable to inspect parent of --out.",
+      };
+    }
+  }
+  return { ok: true };
+};
+
 export const runShortcutCli = (argv: string[]): number => {
   if (argv.length === 0 || argv[0] !== "create") {
     printUsage();
@@ -106,6 +147,15 @@ export const runShortcutCli = (argv: string[]): number => {
   }
 
   const outPath = parsed.out && parsed.out.trim().length > 0 ? parsed.out : resolveDesktopShortcutPath(parsed.target);
+  if (sameResolvedPath(outPath, parsed.target)) {
+    console.error("[SHORTCUT_OUT_CONFLICTS_TARGET] --out must differ from --target.");
+    return 40;
+  }
+  const outPathCheck = validateShortcutOutputPath(outPath);
+  if (!outPathCheck.ok) {
+    console.error(`[${outPathCheck.code}] ${outPathCheck.message}`);
+    return 40;
+  }
   const args = [
     "-NoProfile",
     "-ExecutionPolicy",
