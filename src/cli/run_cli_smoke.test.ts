@@ -241,6 +241,19 @@ suite("cli/run", () => {
     assert(!fs.existsSync(`${outDir}.stage`), "intake stage directory must not remain after finalize");
     assertEq(listStageResidue(outDir).length, 0, "intake output must not include staged file residue");
   });
+
+  register("intake out path conflict fails closed without modifying input", async () => {
+    const root = makeTempDir();
+    const inputDir = path.join(root, "input");
+    fs.mkdirSync(inputDir, { recursive: true });
+    fs.writeFileSync(path.join(inputDir, "blob.txt"), "hello", "utf8");
+    const policyPath = path.join(process.cwd(), "policies", "web_component_default.json");
+    const result = await runCliCapture(["intake", inputDir, "--policy", policyPath, "--out", inputDir]);
+    assertEq(result.status, 40, `expected intake out-conflict exit code\n${result.stderr}`);
+    assert(result.stderr.includes("INTAKE_OUT_CONFLICTS_INPUT"), "expected INTAKE_OUT_CONFLICTS_INPUT stderr");
+    assert(fs.existsSync(path.join(inputDir, "blob.txt")), "input file must remain present after intake out conflict");
+    assert(!fs.existsSync(`${inputDir}.stage`), "intake stage dir must not be created on out conflict");
+  });
 });
 
 if (!hasBDD) {

@@ -5,6 +5,8 @@ declare const process: any;
 declare const require: any;
 declare const module: any;
 
+const path = require("path");
+
 import { runExamine } from "./examine";
 import { runWeftendRun } from "./run";
 import { runSafeRun } from "./safe_run";
@@ -105,6 +107,15 @@ const getErrCode = (err: unknown): string | undefined => {
   if (!err || typeof err !== "object") return undefined;
   const code = (err as { code?: unknown }).code;
   return typeof code === "string" ? code : undefined;
+};
+
+const pathsOverlap = (aPath: string, bPath: string): boolean => {
+  const a = path.resolve(process.cwd(), aPath || "");
+  const b = path.resolve(process.cwd(), bPath || "");
+  if (a === b) return true;
+  const aPrefix = a.endsWith(path.sep) ? a : `${a}${path.sep}`;
+  const bPrefix = b.endsWith(path.sep) ? b : `${b}${path.sep}`;
+  return a.startsWith(bPrefix) || b.startsWith(aPrefix);
 };
 
 const parseInspectArgs = (argv: string[]) => {
@@ -257,6 +268,10 @@ const runIntakeCli = (args: string[]): number => {
   }
 
   const output = buildIntakeDecisionV1(mint, policy, { scriptText });
+  if (pathsOverlap(inputPath, outDir)) {
+    console.error("[INTAKE_OUT_CONFLICTS_INPUT] --out must not equal or overlap the input path.");
+    return 40;
+  }
   const stageOutDir = `${outDir}.stage`;
   const writeStageText = (filePath: string, text: string) => {
     const stagePath = `${filePath}.stage`;
