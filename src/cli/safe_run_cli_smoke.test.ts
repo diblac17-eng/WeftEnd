@@ -424,6 +424,19 @@ suite("cli/safe-run", () => {
     assertEq(result.status, 40, `expected malformed-input exit code\n${result.stderr}`);
   });
 
+  register("safe-run out path conflict fails closed without modifying input", async () => {
+    const root = makeTempDir();
+    const inputDir = path.join(root, "input");
+    fs.mkdirSync(inputDir, { recursive: true });
+    fs.writeFileSync(path.join(inputDir, "blob.bin"), "bin", "utf8");
+    const policyPath = path.join(process.cwd(), "policies", "web_component_default.json");
+    const result = await runCliCapture(["safe-run", inputDir, "--policy", policyPath, "--out", inputDir]);
+    assertEq(result.status, 40, `expected out-conflict exit code\n${result.stderr}`);
+    assert(result.stderr.includes("SAFE_RUN_OUT_CONFLICTS_INPUT"), "expected SAFE_RUN_OUT_CONFLICTS_INPUT stderr");
+    assert(fs.existsSync(path.join(inputDir, "blob.bin")), "input file must remain present after out conflict");
+    assert(!fs.existsSync(`${inputDir}.stage`), "stage dir must not be created on out conflict");
+  });
+
   register("safe-run oversize release input exits 40", async () => {
     const outDir = makeTempDir();
     const releaseDir = path.join(outDir, "release");

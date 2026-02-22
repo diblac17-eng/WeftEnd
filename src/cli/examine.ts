@@ -51,6 +51,15 @@ const finalizeStagedOutRoot = (stageOutDir: string, outDir: string): boolean => 
   }
 };
 
+const pathsOverlap = (aPath: string, bPath: string): boolean => {
+  const a = path.resolve(process.cwd(), aPath || "");
+  const b = path.resolve(process.cwd(), bPath || "");
+  if (a === b) return true;
+  const aPrefix = a.endsWith(path.sep) ? a : `${a}${path.sep}`;
+  const bPrefix = b.endsWith(path.sep) ? b : `${b}${path.sep}`;
+  return a.startsWith(bPrefix) || b.startsWith(aPrefix);
+};
+
 const copyCapture = (capture: ReturnType<typeof examineArtifactV1>["capture"], outDir: string) => {
   const captureDir = path.join(outDir, "capture");
   fs.mkdirSync(captureDir, { recursive: true });
@@ -76,6 +85,10 @@ const copyCapture = (capture: ReturnType<typeof examineArtifactV1>["capture"], o
 };
 
 export const runExamine = (inputPath: string, options: ExamineCliOptions): number => {
+  if (pathsOverlap(inputPath, options.outDir)) {
+    console.error("[EXAMINE_OUT_CONFLICTS_INPUT] --out must not equal or overlap the input path.");
+    return 40;
+  }
   const scriptText = options.scriptPath ? readTextFile(options.scriptPath) : undefined;
   const result = examineArtifactV1(inputPath, {
     profile: options.profile,

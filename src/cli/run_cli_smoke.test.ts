@@ -202,6 +202,31 @@ suite("cli/run", () => {
     assertEq(listStageResidue(outDir).length, 0, "examine output must not include staged file residue");
   });
 
+  register("run out path conflict fails closed without modifying input", async () => {
+    const root = makeTempDir();
+    const inputDir = path.join(root, "input");
+    fs.mkdirSync(inputDir, { recursive: true });
+    fs.writeFileSync(path.join(inputDir, "blob.txt"), "hello", "utf8");
+    const policyPath = path.join(process.cwd(), "policies", "web_component_default.json");
+    const result = await runCliCapture(["run", inputDir, "--policy", policyPath, "--out", inputDir]);
+    assertEq(result.status, 40, `expected run out-conflict exit code\n${result.stderr}`);
+    assert(result.stderr.includes("RUN_OUT_CONFLICTS_INPUT"), "expected RUN_OUT_CONFLICTS_INPUT stderr");
+    assert(fs.existsSync(path.join(inputDir, "blob.txt")), "input file must remain present after run out conflict");
+    assert(!fs.existsSync(`${inputDir}.stage`), "run stage dir must not be created on out conflict");
+  });
+
+  register("examine out path conflict fails closed without modifying input", async () => {
+    const root = makeTempDir();
+    const inputDir = path.join(root, "input");
+    fs.mkdirSync(inputDir, { recursive: true });
+    fs.writeFileSync(path.join(inputDir, "blob.txt"), "hello", "utf8");
+    const result = await runCliCapture(["examine", inputDir, "--out", inputDir, "--profile", "web"]);
+    assertEq(result.status, 40, `expected examine out-conflict exit code\n${result.stderr}`);
+    assert(result.stderr.includes("EXAMINE_OUT_CONFLICTS_INPUT"), "expected EXAMINE_OUT_CONFLICTS_INPUT stderr");
+    assert(fs.existsSync(path.join(inputDir, "blob.txt")), "input file must remain present after examine out conflict");
+    assert(!fs.existsSync(`${inputDir}.stage`), "examine stage dir must not be created on out conflict");
+  });
+
   register("intake finalizes staged output and replaces stale roots", async () => {
     const outDir = makeTempDir();
     fs.writeFileSync(path.join(outDir, "stale_root.txt"), "stale", "utf8");

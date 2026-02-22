@@ -147,6 +147,15 @@ const finalizeStagedOutRoot = (stageOutDir: string, outDir: string): boolean => 
   }
 };
 
+const pathsOverlap = (aPath: string, bPath: string): boolean => {
+  const a = path.resolve(process.cwd(), aPath || "");
+  const b = path.resolve(process.cwd(), bPath || "");
+  if (a === b) return true;
+  const aPrefix = a.endsWith(path.sep) ? a : `${a}${path.sep}`;
+  const bPrefix = b.endsWith(path.sep) ? b : `${b}${path.sep}`;
+  return a.startsWith(bPrefix) || b.startsWith(aPrefix);
+};
+
 const evaluateEvidenceWarnings = (input: {
   outDir: string;
   receipt: SafeRunReceiptV0;
@@ -776,6 +785,10 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
   };
 
   const finalOutDir = options.outDir;
+  if (pathsOverlap(resolvedInput, finalOutDir)) {
+    console.error("[SAFE_RUN_OUT_CONFLICTS_INPUT] --out must not equal or overlap the input path.");
+    return 40;
+  }
   const stage = prepareStagedOutRoot(finalOutDir);
   if (!stage.ok) {
     console.error("[SAFE_RUN_STAGE_INIT_FAILED] unable to initialize staged output path.");

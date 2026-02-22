@@ -217,6 +217,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added host CLI smoke assertions that host/operator receipt `.stage` files do not remain after finalize.
 
 ### Adapter maintenance controls
+- Path-based CLI lanes now fail closed on `--out` overlap with the input path (`safe-run`, `run`, `examine`), preventing staged-finalize cleanup from deleting or replacing the source input.
 - `verify:360` now constrains `WEFTEND_360_OUT_ROOT` to the repo `out/` tree before run setup, preventing destructive reuse of the gate script against arbitrary paths.
 - `verify:360:release:managed` now constrains `WEFTEND_360_OUT_ROOT` to the repo `out/` tree before cleanup, preventing recursive delete/write outside the managed verify workspace.
 - `verify:360:release:managed` now fails closed if the generated adapter maintenance policy file is missing after doctor write or if `adapter_maintenance.generated.json.stage` residue remains.
