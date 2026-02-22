@@ -60,6 +60,28 @@ const writeTextAtomic = (filePath: string, text: string): boolean => {
   }
 };
 
+const sameResolvedPath = (aPath: string, bPath: string): boolean =>
+  path.resolve(process.cwd(), String(aPath || "")) === path.resolve(process.cwd(), String(bPath || ""));
+
+const exportWouldOverwriteSourceEvidence = (outRoot: string, outputPath: string): boolean => {
+  const protectedRelPaths = [
+    "operator_receipt.json",
+    "safe_run_receipt.json",
+    "run_receipt.json",
+    "host_run_receipt.json",
+    "host/host_run_receipt.json",
+    "compare_receipt.json",
+    "compare_report.txt",
+    "report_card.txt",
+    "report_card_v0.json",
+    "weftend_mint_v1.json",
+    "intake_decision.json",
+    "weftend/README.txt",
+    "weftend/privacy_lint_v0.json",
+  ];
+  return protectedRelPaths.some((relPath) => sameResolvedPath(path.join(outRoot, relPath), outputPath));
+};
+
 const summarizeReasonPreview = (reasons: string[]): string => {
   if (reasons.length === 0) return "-";
   const preview = reasons.slice(0, 6);
@@ -144,6 +166,10 @@ export const runExportJsonCli = (argv: string[]): number => {
     String(flags["out"] || "").trim().length > 0
       ? path.resolve(process.cwd(), String(flags["out"]))
       : path.resolve(process.cwd(), outRoot, "normalized_summary_v0.json");
+  if (exportWouldOverwriteSourceEvidence(outRoot, outputPath)) {
+    console.error("[EXPORT_JSON_OUT_CONFLICTS_SOURCE] --out must not overwrite source evidence files.");
+    return 40;
+  }
   if (!writeTextAtomic(outputPath, `${canonicalJSON(loaded.value)}\n`)) {
     console.error("[EXPORT_JSON_WRITE_FAILED] unable to finalize normalized summary output.");
     return 1;

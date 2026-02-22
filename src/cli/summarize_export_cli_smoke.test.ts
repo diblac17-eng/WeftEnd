@@ -53,6 +53,16 @@ const run = async (): Promise<void> => {
 
   const bad = await runCliCapture(["export-json", outDir, "--format", "other"]);
   assertEq(bad.status, 40, "unsupported format should fail closed");
+
+  const operatorReceiptPath = path.join(outDir, "operator_receipt.json");
+  const operatorReceiptBefore = readText(operatorReceiptPath);
+  const conflict = await runCliCapture(["export-json", outDir, "--format", "normalized_v0", "--out", operatorReceiptPath]);
+  assertEq(conflict.status, 40, `export-json source evidence overwrite must fail closed\n${conflict.stderr}`);
+  assert(
+    conflict.stderr.includes("EXPORT_JSON_OUT_CONFLICTS_SOURCE"),
+    "export-json source evidence overwrite must emit explicit conflict code"
+  );
+  assertEq(readText(operatorReceiptPath), operatorReceiptBefore, "export-json conflict must not modify source evidence file");
 };
 
 run()
