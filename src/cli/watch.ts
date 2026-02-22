@@ -101,6 +101,18 @@ const pathsOverlap = (aPath: string, bPath: string): boolean => {
   return a.startsWith(bPrefix) || b.startsWith(aPrefix);
 };
 
+const assertDirectoryPathOrMissing = (targetPath: string, codeBase: string, flagName: string): boolean => {
+  if (!fs.existsSync(targetPath)) return true;
+  try {
+    if (fs.statSync(targetPath).isDirectory()) return true;
+    console.error(`[${codeBase}_NOT_DIRECTORY] ${flagName} must be a directory path or a missing path.`);
+    return false;
+  } catch {
+    console.error(`[${codeBase}_INVALID] unable to inspect ${flagName} path.`);
+    return false;
+  }
+};
+
 const resolvePowerShellExe = (): string => {
   if (process.platform !== "win32") return "powershell.exe";
   const windir = String(process.env?.WINDIR || "").trim();
@@ -259,8 +271,17 @@ export const runWatchCli = async (argv: string[]): Promise<number> => {
       ? Math.floor(Number(pollIntervalOverride))
       : config.config.autoScan.pollIntervalMs;
 
+  if (args.outRoot && args.outRoot.trim()) {
+    const explicitBase = path.resolve(process.cwd(), args.outRoot);
+    if (!assertDirectoryPathOrMissing(explicitBase, "WATCH_OUT_ROOT_PATH", "--out-root")) {
+      return 40;
+    }
+  }
   const outRoot =
     args.outRoot && args.outRoot.trim() ? normalizeLibraryRoot(args.outRoot) : resolveLibraryRootV0().root;
+  if (!assertDirectoryPathOrMissing(outRoot, "WATCH_LIBRARY_ROOT_PATH", "library root")) {
+    return 40;
+  }
   if (pathsOverlap(inputPath, outRoot)) {
     console.error("[WATCH_OUT_ROOT_CONFLICTS_TARGET] --out-root must not equal or overlap the watch target.");
     return 40;

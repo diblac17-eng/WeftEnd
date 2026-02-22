@@ -232,6 +232,14 @@ const testTicketPack = async () => {
   assert(fs.existsSync(path.join(runDir, "operator_receipt.json")), "ticket-pack overlap must not modify source run root");
   assert(!fs.existsSync(path.join(runDir, "ticket_pack.stage")), "ticket-pack overlap must not create staged pack under source root");
 
+  const outFile = path.join(root, "ticket_pack_out.txt");
+  fs.writeFileSync(outFile, "keep", "utf8");
+  const outFileRes = await runCliCapture(["ticket-pack", runDir, "--out", outFile]);
+  assert(outFileRes.status === 40, `expected out-file fail-closed\n${outFileRes.stderr}`);
+  assert(outFileRes.stderr.includes("TICKET_PACK_OUT_PATH_NOT_DIRECTORY"), "expected ticket-pack out-file rejection code");
+  assertEq(fs.readFileSync(outFile, "utf8"), "keep", "ticket-pack must not replace existing out file");
+  assert(!fs.existsSync(`${outFile}.stage`), "ticket-pack must not create staged dir when out is a file");
+
   const adapterRunDir = path.join(root, "adapter_run");
   const adapterPackDir = path.join(root, "adapter_pack");
   const adapterInput = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");

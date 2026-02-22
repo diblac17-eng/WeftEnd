@@ -50,6 +50,18 @@ const pathsOverlap = (aPath: string, bPath: string): boolean => {
   return a.startsWith(bPrefix) || b.startsWith(aPrefix);
 };
 
+const assertDirectoryPathOrMissing = (targetPath: string, codeBase: string): boolean => {
+  if (!fs.existsSync(targetPath)) return true;
+  try {
+    if (fs.statSync(targetPath).isDirectory()) return true;
+    console.error(`[${codeBase}_NOT_DIRECTORY] --out must be a directory path or a missing path.`);
+    return false;
+  } catch {
+    console.error(`[${codeBase}_INVALID] unable to inspect --out path.`);
+    return false;
+  }
+};
+
 const sha256File = (filePath: string): string => {
   const hash = crypto.createHash("sha256");
   hash.update(fs.readFileSync(filePath));
@@ -238,6 +250,9 @@ export const runTicketPackCli = (options: {
   const outDir = path.resolve(process.cwd(), options.outDir);
   if (pathsOverlap(outRoot, outDir)) {
     console.error("[TICKET_PACK_OUT_CONFLICTS_INPUT] --out must not equal or overlap outRoot.");
+    return 40;
+  }
+  if (!assertDirectoryPathOrMissing(outDir, "TICKET_PACK_OUT_PATH")) {
     return 40;
   }
   if (!fs.existsSync(outRoot)) {

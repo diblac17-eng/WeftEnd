@@ -268,6 +268,21 @@ suite("cli/compare", () => {
     assert(outParentOfInputs.stderr.includes("COMPARE_OUT_CONFLICTS_INPUT"), "expected overlap reason for parent out");
   });
 
+  register("compare fails closed when out path is an existing file", async () => {
+    const root = makeTempDir();
+    const leftDir = path.join(root, "left");
+    const rightDir = path.join(root, "right");
+    await runSafeRunFixture("safe_no_caps", leftDir);
+    await runSafeRunFixture("net_attempt", rightDir);
+    const outFile = path.join(root, "cmp.txt");
+    fs.writeFileSync(outFile, "keep", "utf8");
+    const result = await runCliCapture(["compare", leftDir, rightDir, "--out", outFile]);
+    assertEq(result.status, 40, `expected compare out-file fail-closed exit code\n${result.stderr}`);
+    assert(result.stderr.includes("COMPARE_OUT_PATH_NOT_DIRECTORY"), "expected compare out-file code");
+    assertEq(fs.readFileSync(outFile, "utf8"), "keep", "existing out file must not be replaced");
+    assert(!fs.existsSync(`${outFile}.stage`), "compare stage dir must not be created when out is a file");
+  });
+
   register("compare fails closed on old-contract receipts", async () => {
     const root = makeTempDir();
     const oldDir = path.join(root, "old");

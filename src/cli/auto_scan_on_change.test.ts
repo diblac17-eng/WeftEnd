@@ -107,3 +107,18 @@ suite("watch fails closed when out-root overlaps target", async () => {
   );
   assert(!fs.existsSync(path.join(target, "Library")), "watch overlap conflict must not create Library inside target");
 });
+
+suite("watch fails closed when explicit out-root path is an existing file", async () => {
+  const root = makeTempDir();
+  const target = path.join(root, "input");
+  fs.mkdirSync(target, { recursive: true });
+  fs.writeFileSync(path.join(target, "sample.txt"), "alpha", "utf8");
+  const outRootFile = path.join(root, "watch_out.txt");
+  fs.writeFileSync(outRootFile, "keep", "utf8");
+
+  const res = await runCliCapture(["watch", target, "--out-root", outRootFile, "--mode", "safe-run"]);
+  assert(res.status === 40, `expected watch out-root file fail-closed\n${res.stderr}`);
+  assert(res.stderr.includes("WATCH_OUT_ROOT_PATH_NOT_DIRECTORY"), "expected watch out-root file rejection code");
+  assert(fs.readFileSync(outRootFile, "utf8") === "keep", "watch must not replace existing out-root file");
+  assert(!fs.existsSync(path.join(root, "watch_out.txt", "Library")), "watch must not create Library under file out-root");
+});
