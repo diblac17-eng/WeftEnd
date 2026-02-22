@@ -220,6 +220,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Root release packager now enforces a no-stage-residue invariant in the release output folder, failing closed if `*.stage` files or `__stage_release*` directories are present before or after packaging.
 - Root release packager now treats release sidecar docs as required artifacts (release notes, announcement, quickstart, alpha checklist, release history, changelog) and fails closed instead of warning/skipping when one is missing.
 - Root release packager now performs best-effort cleanup of `__stage_release*` directories in a script-level `finally` block, reducing stale stage residue after interrupted/failed packaging runs.
+- Root release packager now validates the post-prune release bundle set (standard/portable zips plus matching `.sha256` files) and fails closed if stale or missing release artifacts remain.
 - Added `weftend adapter doctor` for deterministic adapter readiness/maintenance reporting.
 - Added `weftend adapter doctor --text` for a human-readable maintenance report with deterministic local actions.
 - Added `weftend adapter doctor --strict` for fail-closed maintenance checks (invalid policy and unresolved missing-plugin requirements return exit 40).

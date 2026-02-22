@@ -210,6 +210,32 @@ function Remove-ReleaseStageDirIfPresent {
   }
 }
 
+function Assert-ReleaseBundleSet {
+  param(
+    [string]$OutDirPath,
+    [string[]]$ExpectedZipNames,
+    [string[]]$ExpectedHashNames
+  )
+  $zipFiles = @(
+    Get-ChildItem -Path $OutDirPath -Filter "weftend_*.zip" -File -ErrorAction SilentlyContinue
+  )
+  $hashFiles = @(
+    Get-ChildItem -Path $OutDirPath -Filter "weftend_*.zip.sha256" -File -ErrorAction SilentlyContinue
+  )
+  $actualZipNames = @($zipFiles | ForEach-Object { $_.Name }) | Sort-Object
+  $actualHashNames = @($hashFiles | ForEach-Object { $_.Name }) | Sort-Object
+  $expectedZipSorted = @($ExpectedZipNames) | Sort-Object
+  $expectedHashSorted = @($ExpectedHashNames) | Sort-Object
+  $zipMismatch = (@($actualZipNames) -join "|") -ne (@($expectedZipSorted) -join "|")
+  $hashMismatch = (@($actualHashNames) -join "|") -ne (@($expectedHashSorted) -join "|")
+  if (-not $zipMismatch -and -not $hashMismatch) {
+    return
+  }
+  $zipSummary = if ($actualZipNames.Count -gt 0) { $actualZipNames -join ", " } else { "(none)" }
+  $hashSummary = if ($actualHashNames.Count -gt 0) { $actualHashNames -join ", " } else { "(none)" }
+  Write-Fail "Release bundle set mismatch after prune." "Zips: $zipSummary | Hashes: $hashSummary"
+}
+
 $stagePath = $null
 $portableStagePath = $null
 
@@ -491,6 +517,7 @@ Get-ChildItem -Path $outAbs -Filter "weftend_*.zip" -File -ErrorAction SilentlyC
 Get-ChildItem -Path $outAbs -Filter "weftend_*.zip.sha256" -File -ErrorAction SilentlyContinue | Where-Object { $keepHashes -notcontains $_.Name } | ForEach-Object {
   Remove-Item -Force $_.FullName
 }
+Assert-ReleaseBundleSet -OutDirPath $outAbs -ExpectedZipNames $keepZips -ExpectedHashNames $keepHashes
 
 Write-Section "Release Notes"
 $releaseNotes = Join-Path $root "docs\\RELEASE_NOTES.txt"

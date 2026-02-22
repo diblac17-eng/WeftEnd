@@ -77,6 +77,11 @@ suite("greenteam/release-bundle", () => {
       script.includes("function Remove-ReleaseStageDirIfPresent"),
       "release zip script must provide best-effort release stage cleanup helper"
     );
+    assert(script.includes("function Assert-ReleaseBundleSet"), "release zip script must enforce post-prune bundle-set contract");
+    assert(
+      script.includes("Release bundle set mismatch after prune."),
+      "release zip script must fail closed on stale/missing release zip/hash set after prune"
+    );
     assert(script.includes("} finally {"), "release zip script must use finally cleanup for stage dirs");
     assert(
       script.includes("Remove-ReleaseStageDirIfPresent -PathToRemove $portableStagePath"),
@@ -98,6 +103,10 @@ suite("greenteam/release-bundle", () => {
     assert(
       script.includes("Assert-NoReleaseStageResidue -OutDirPath $outAbs"),
       "release zip script must check stage residue around release output flow"
+    );
+    assert(
+      script.includes("Assert-ReleaseBundleSet -OutDirPath $outAbs -ExpectedZipNames $keepZips -ExpectedHashNames $keepHashes"),
+      "release zip script must validate exact release zip/hash set after prune"
     );
     assert(script.includes("\"CHANGELOG.md\","), "release zip includeSingles must include CHANGELOG.md");
     assert(script.includes("-Label \"CHANGELOG.md\""), "release zip sidecar copy must include CHANGELOG.md");
