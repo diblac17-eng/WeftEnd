@@ -30,6 +30,15 @@ const toRelPath = (root: string, targetPath: string): string => {
   return rel.split(path.sep).join("/");
 };
 
+const pathsOverlap = (aPath: string, bPath: string): boolean => {
+  const a = path.resolve(process.cwd(), aPath || "");
+  const b = path.resolve(process.cwd(), bPath || "");
+  if (a === b) return true;
+  const aPrefix = a.endsWith(path.sep) ? a : `${a}${path.sep}`;
+  const bPrefix = b.endsWith(path.sep) ? b : `${b}${path.sep}`;
+  return a.startsWith(bPrefix) || b.startsWith(aPrefix);
+};
+
 const parseArgs = (argv: string[]) => {
   const args = [...argv];
   const command = args.shift();
@@ -63,11 +72,16 @@ export const runHostMain = async (argv: string[]): Promise<number> => {
     }
     return "";
   };
+  const { command, flags, rest } = parseArgs(argv);
   const outArg = scanFlag(argv, "--out");
   const outRoot = outArg || hostOutRootEnv || "";
   const outRootSource = outArg ? "ARG_OUT" : hostOutRootEnv ? "ENV_OUT_ROOT" : "";
   if (!outRoot) {
     console.error("[HOST_OUT_MISSING] --out or WEFTEND_HOST_OUT_ROOT is required.");
+    return 40;
+  }
+  if ((command === "run" || command === "install" || command === "update") && rest[0] && pathsOverlap(rest[0], outRoot)) {
+    console.error("[HOST_OUT_CONFLICTS_RELEASE_DIR] --out must not equal or overlap the releaseDir.");
     return 40;
   }
   const hostRootPre = scanFlag(argv, "--root") || hostRootEnv;
@@ -81,7 +95,6 @@ export const runHostMain = async (argv: string[]): Promise<number> => {
   });
   const startupBuildSummary = formatBuildDigestSummaryV0(statusReceipt.receipt.weftendBuild);
 
-  const { command, flags, rest } = parseArgs(argv);
   const requiresVerified = command === "run" || command === "install" || command === "update";
   const writeOperator = (
     cmd: "host status" | "host run" | "host update",

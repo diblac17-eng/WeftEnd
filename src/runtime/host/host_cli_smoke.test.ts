@@ -48,6 +48,20 @@ function suite(name: string, define: () => void): void {
 
 const makeTempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), "weftend-host-cli-"));
 
+const copyDir = (src: string, dst: string): void => {
+  if (typeof fs.cpSync === "function") {
+    fs.cpSync(src, dst, { recursive: true });
+    return;
+  }
+  fs.mkdirSync(dst, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const from = path.join(src, entry.name);
+    const to = path.join(dst, entry.name);
+    if (entry.isDirectory()) copyDir(from, to);
+    else fs.copyFileSync(from, to);
+  }
+};
+
 const setupHostRoot = (): { hostRoot: string; trustRootPath: string } => {
   const hostRoot = makeTempDir();
   const trustRootPath = path.join(hostRoot, "trust_root.json");
@@ -95,6 +109,22 @@ suite("runtime/host cli", () => {
     assert(combined.includes("privacyLint=PASS"), "expected privacy lint summary");
     const privacy = runPrivacyLintV0({ root: outDir, weftendBuild: receipt.weftendBuild });
     assertEq(privacy.report.verdict, "PASS", "expected privacy lint pass");
+  });
+
+  register("host run fails closed when out overlaps release dir", async () => {
+    const host = setupHostRoot();
+    const tmp = makeTempDir();
+    const releaseDir = path.join(tmp, "release_demo");
+    copyDir(path.join(process.cwd(), "tests", "fixtures", "release_demo"), releaseDir);
+    const outDir = path.join(releaseDir, "receipts");
+    const res = await runCliCapture(
+      ["host", "run", releaseDir, "--out", outDir, "--root", host.hostRoot, "--trust-root", host.trustRootPath],
+      { env: { WEFTEND_HOST_ROOT: host.hostRoot, WEFTEND_HOST_TRUST_ROOT: host.trustRootPath } }
+    );
+    assertEq(res.status, 40, `expected fail-closed exit code\n${res.stderr}`);
+    assert(res.stderr.includes("HOST_OUT_CONFLICTS_RELEASE_DIR"), "expected host out/release conflict code");
+    assert(!fs.existsSync(path.join(outDir, "host_run_receipt.json")), "must not write host run receipt into release dir");
+    assert(!fs.existsSync(path.join(outDir, "operator_receipt.json")), "must not write operator receipt into release dir");
   });
 });
 
