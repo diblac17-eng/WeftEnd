@@ -365,6 +365,7 @@ Included
 - Compare CLI smoke coverage now pins staged-finalize replacement behavior (stale pre-existing output roots are replaced and `.stage` residue is absent after successful finalize).
 - Compare now fails closed when `--out` matches either input root (`COMPARE_OUT_CONFLICTS_INPUT`) to prevent destructive output-finalize collisions.
 - `safe-run`, `run`, and `examine` now fail closed when `--out` equals or overlaps the input path (`*_OUT_CONFLICTS_INPUT`), preventing staged-finalize cleanup from deleting or replacing the source input.
+- `email unpack` and `email safe-run` now also fail closed when `--out` equals or overlaps the input path, preventing staged-finalize cleanup from deleting or replacing source email inputs or normalized email exports.
 - Compare operator receipts now include full compare evidence links (`compare_receipt.json`, `compare_report.txt`, `weftend/README.txt`) instead of compare-receipt-only linkage.
 - Compare operator receipts now also include `weftend/privacy_lint_v0.json`, and compare runs perform a final no-write privacy-lint recheck after final operator receipt write.
 - Compare now enforces explicit no-orphan evidence validation before finalize (`COMPARE_EVIDENCE_CHAIN_INVALID`), requiring all produced compare artifacts (except `operator_receipt.json`) to be referenced in operator receipt entries.

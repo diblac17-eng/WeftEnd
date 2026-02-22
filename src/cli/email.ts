@@ -406,6 +406,15 @@ const finalizeStagedOutRoot = (stageOutDir: string, outDir: string): boolean => 
   }
 };
 
+const pathsOverlap = (aPath: string, bPath: string): boolean => {
+  const a = path.resolve(process.cwd(), aPath || "");
+  const b = path.resolve(process.cwd(), bPath || "");
+  if (a === b) return true;
+  const aPrefix = a.endsWith(path.sep) ? a : `${a}${path.sep}`;
+  const bPrefix = b.endsWith(path.sep) ? b : `${b}${path.sep}`;
+  return a.startsWith(bPrefix) || b.startsWith(aPrefix);
+};
+
 const isSafeRequiredRelPath = (value: string): boolean => {
   const rel = String(value || "").replace(/\\/g, "/").trim();
   if (!rel) return false;
@@ -591,6 +600,10 @@ export const runEmailUnpackCli = (argv: string[]): number => {
     printEmailUsage();
     return 40;
   }
+  if (pathsOverlap(inputPath, outDir)) {
+    console.error("[EMAIL_UNPACK_OUT_CONFLICTS_INPUT] --out must not equal or overlap the input path.");
+    return 40;
+  }
   const indexRaw = isNonEmptyString(flags.index) ? String(flags.index) : undefined;
   const messageIdRaw = isNonEmptyString(flags["message-id"]) ? String(flags["message-id"]) : undefined;
   const loaded = readSourceEmail(inputPath, indexRaw, messageIdRaw);
@@ -628,6 +641,10 @@ export const runEmailSafeRunCli = async (argv: string[]): Promise<number> => {
   const outDir = String(flags.out || "");
   if (!inputPath || !outDir) {
     printEmailUsage();
+    return 40;
+  }
+  if (pathsOverlap(inputPath, outDir)) {
+    console.error("[EMAIL_SAFE_RUN_OUT_CONFLICTS_INPUT] --out must not equal or overlap the input path.");
     return 40;
   }
   const outRoot = path.resolve(process.cwd(), outDir);

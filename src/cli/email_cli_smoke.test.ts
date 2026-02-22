@@ -129,6 +129,17 @@ suite("cli/email", () => {
     assert(manifest.markers.includes("EMAIL_BODY_TEXT_TRUNCATED"), "expected text truncation marker");
   });
 
+  register("email unpack out path conflict fails closed without modifying input", async () => {
+    const temp = makeTempDir();
+    const input = path.join(temp, "mail.eml");
+    fs.writeFileSync(input, "Subject: Test\n\nhello", "utf8");
+    const result = await runCliCapture(["email", "unpack", input, "--out", input]);
+    assertEq(result.status, 40, `expected email unpack out-conflict exit\n${result.stderr}`);
+    assert(result.stderr.includes("EMAIL_UNPACK_OUT_CONFLICTS_INPUT"), "expected email unpack out-conflict code");
+    assertEq(readText(input), "Subject: Test\n\nhello", "email input file must remain unchanged");
+    assert(!fs.existsSync(`${input}.stage`), "stage path must not be created on email unpack out conflict");
+  });
+
   register("email safe-run pipeline writes receipts and passes privacy lint", async () => {
     const temp = makeTempDir();
     const outDir = path.join(temp, "run");
@@ -144,6 +155,21 @@ suite("cli/email", () => {
     assert(!warnings.includes("SAFE_RUN_EVIDENCE_ORPHAN_OUTPUT"), "email safe-run should not self-trigger orphan warning");
     const lint = runPrivacyLintV0({ root: outDir, writeReport: false });
     assertEq(lint.report.verdict, "PASS", "email safe-run output must pass privacy lint");
+  });
+
+  register("email safe-run out path conflict fails closed without modifying normalized input", async () => {
+    const temp = makeTempDir();
+    const outDir = path.join(temp, "email_export");
+    const input = path.join(process.cwd(), "tests", "fixtures", "email", "simple_html.eml");
+    const unpack = await runCliCapture(["email", "unpack", input, "--out", outDir]);
+    assertEq(unpack.status, 0, `expected setup unpack success\n${unpack.stderr}`);
+    const adapterManifestPath = path.join(outDir, "email_export", "adapter_manifest.json");
+    const before = readText(adapterManifestPath);
+    const result = await runCliCapture(["email", "safe-run", path.join(outDir, "email_export"), "--out", outDir]);
+    assertEq(result.status, 40, `expected email safe-run out-conflict exit\n${result.stderr}`);
+    assert(result.stderr.includes("EMAIL_SAFE_RUN_OUT_CONFLICTS_INPUT"), "expected email safe-run out-conflict code");
+    assertEq(readText(adapterManifestPath), before, "normalized email input must remain unchanged");
+    assert(!fs.existsSync(`${outDir}.stage`), "stage path must not be created on email safe-run out conflict");
   });
 
   register("email unpack handles attachment-only mail deterministically", async () => {
