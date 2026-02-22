@@ -24,6 +24,15 @@ const MAX_DIFF_ITEMS = 50;
 const COMPARE_RECEIPT_NAME = "compare_receipt.json";
 const COMPARE_REPORT_NAME = "compare_report.txt";
 
+const pathsOverlap = (aPath: string, bPath: string): boolean => {
+  const a = path.resolve(process.cwd(), aPath || "");
+  const b = path.resolve(process.cwd(), bPath || "");
+  if (a === b) return true;
+  const aPrefix = a.endsWith(path.sep) ? a : `${a}${path.sep}`;
+  const bPrefix = b.endsWith(path.sep) ? b : `${b}${path.sep}`;
+  return a.startsWith(bPrefix) || b.startsWith(aPrefix);
+};
+
 const dedupeSort = (values: string[]): string[] =>
   stableSortUniqueStringsV0(values.filter((v) => typeof v === "string" && v.length > 0));
 
@@ -531,6 +540,13 @@ export const runCompareCliV0 = (options: RunCompareCliOptionsV0): number => {
     console.error("[OUT_REQUIRED] compare requires --out <dir>.");
     return 40;
   }
+  const leftRoot = path.resolve(process.cwd(), options.leftRoot);
+  const rightRoot = path.resolve(process.cwd(), options.rightRoot);
+  const outRoot = path.resolve(process.cwd(), options.outRoot);
+  if (pathsOverlap(outRoot, leftRoot) || pathsOverlap(outRoot, rightRoot)) {
+    console.error("[COMPARE_OUT_CONFLICTS_INPUT] --out must not equal or overlap left/right roots.");
+    return 40;
+  }
   const leftLoaded = loadCompareSourceV0(options.leftRoot, "left");
   if (!leftLoaded.ok) {
     console.error(`[${leftLoaded.error.code}] ${leftLoaded.error.message}`);
@@ -546,13 +562,6 @@ export const runCompareCliV0 = (options: RunCompareCliOptionsV0): number => {
   const rightNorm = normalizeCompareSourceV0(rightLoaded.value);
   const compared = compareSummariesV0(leftNorm.summary, rightNorm.summary);
 
-  const leftRoot = path.resolve(process.cwd(), options.leftRoot);
-  const rightRoot = path.resolve(process.cwd(), options.rightRoot);
-  const outRoot = path.resolve(process.cwd(), options.outRoot);
-  if (outRoot === leftRoot || outRoot === rightRoot) {
-    console.error("[COMPARE_OUT_CONFLICTS_INPUT] --out must differ from left and right roots.");
-    return 40;
-  }
   const outParent = path.dirname(outRoot);
   const outName = path.basename(outRoot);
   const stageRoot = path.join(outParent, `${outName}.stage`);

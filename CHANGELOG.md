@@ -217,6 +217,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added host CLI smoke assertions that host/operator receipt `.stage` files do not remain after finalize.
 
 ### Adapter maintenance controls
+- `compare` now fails closed when `--out` overlaps either input root (including parent/child overlap), preventing staged compare finalize from deleting or writing inside compared evidence trees.
 - `watch` now fails closed when `--out-root` overlaps the watched target, preventing self-trigger loops and self-generated drift under the watched tree.
 - `export-json --format normalized_v0` now fails closed when `--out` targets known source evidence files inside the source out-root (for example `operator_receipt.json`, `safe_run_receipt.json`, `run_receipt.json`), preventing accidental overwrite of evidence used for normalization.
 - `ticket-pack` now fails closed when `--out` overlaps the source run/out root, preventing self-packing and staged bundle writes inside the evidence source tree.
