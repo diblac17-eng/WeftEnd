@@ -63,6 +63,32 @@ const run = async (): Promise<void> => {
     "export-json source evidence overwrite must emit explicit conflict code"
   );
   assertEq(readText(operatorReceiptPath), operatorReceiptBefore, "export-json conflict must not modify source evidence file");
+
+  const outAsDirectory = path.join(temp, "export_as_dir");
+  fs.mkdirSync(outAsDirectory, { recursive: true });
+  const outDirResult = await runCliCapture(["export-json", outDir, "--format", "normalized_v0", "--out", outAsDirectory]);
+  assertEq(outDirResult.status, 40, `export-json directory out path must fail closed\n${outDirResult.stderr}`);
+  assert(
+    outDirResult.stderr.includes("EXPORT_JSON_OUT_PATH_IS_DIRECTORY"),
+    "export-json directory out path must report explicit code"
+  );
+
+  const parentFile = path.join(temp, "parent_file.txt");
+  fs.writeFileSync(parentFile, "x", "utf8");
+  const childUnderFile = path.join(parentFile, "summary.json");
+  const outParentFileResult = await runCliCapture([
+    "export-json",
+    outDir,
+    "--format",
+    "normalized_v0",
+    "--out",
+    childUnderFile,
+  ]);
+  assertEq(outParentFileResult.status, 40, `export-json out parent-file path must fail closed\n${outParentFileResult.stderr}`);
+  assert(
+    outParentFileResult.stderr.includes("EXPORT_JSON_OUT_PATH_PARENT_NOT_DIRECTORY"),
+    "export-json out parent-file path must report explicit code"
+  );
 };
 
 run()

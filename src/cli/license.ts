@@ -71,6 +71,44 @@ const writeTextAtomic = (p: string, text: string): boolean => {
 const sameResolvedPath = (aPath: string, bPath: string): boolean =>
   path.resolve(process.cwd(), String(aPath || "")) === path.resolve(process.cwd(), String(bPath || ""));
 
+const validateLicenseIssueOutputPath = (outPath: string): { ok: true } | { ok: false; code: string; message: string } => {
+  const resolvedOut = path.resolve(process.cwd(), String(outPath || ""));
+  try {
+    if (fs.existsSync(resolvedOut)) {
+      const existing = fs.statSync(resolvedOut);
+      if (existing.isDirectory()) {
+        return {
+          ok: false,
+          code: "LICENSE_OUT_PATH_IS_DIRECTORY",
+          message: "--out must be a file path or a missing path.",
+        };
+      }
+    }
+  } catch {
+    return { ok: false, code: "LICENSE_OUT_PATH_STAT_FAILED", message: "unable to inspect --out path." };
+  }
+  const parentDir = path.dirname(resolvedOut);
+  if (parentDir && fs.existsSync(parentDir)) {
+    try {
+      const parentStat = fs.statSync(parentDir);
+      if (!parentStat.isDirectory()) {
+        return {
+          ok: false,
+          code: "LICENSE_OUT_PATH_PARENT_NOT_DIRECTORY",
+          message: "parent of --out must be a directory.",
+        };
+      }
+    } catch {
+      return {
+        ok: false,
+        code: "LICENSE_OUT_PATH_PARENT_STAT_FAILED",
+        message: "unable to inspect parent of --out.",
+      };
+    }
+  }
+  return { ok: true };
+};
+
 const issueLicense = (flags: Record<string, string | boolean>): number => {
   const keyPath = String(flags["key"] || "");
   const outPath = String(flags["out"] || "");
@@ -95,6 +133,11 @@ const issueLicense = (flags: Record<string, string | boolean>): number => {
   }
   if (sameResolvedPath(keyPath, outPath)) {
     console.error("[LICENSE_OUT_CONFLICTS_KEY] --out must differ from --key.");
+    return 40;
+  }
+  const outPathCheck = validateLicenseIssueOutputPath(outPath);
+  if (!outPathCheck.ok) {
+    console.error(`[${outPathCheck.code}] ${outPathCheck.message}`);
     return 40;
   }
 

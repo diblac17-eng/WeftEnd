@@ -90,6 +90,62 @@ const testLicenseFlow = async () => {
     "license issue key/out conflict must report explicit code"
   );
   assert(fs.readFileSync(privPath, "utf8") === keyBefore, "license issue key/out conflict must not modify private key file");
+
+  const outDirPath = path.join(root, "license_out_dir");
+  fs.mkdirSync(outDirPath, { recursive: true });
+  const outDirIssue = await runCliCapture([
+    "license",
+    "issue",
+    "--key",
+    privPath,
+    "--out",
+    outDirPath,
+    "--customer",
+    "acme",
+    "--tier",
+    "enterprise",
+    "--features",
+    "watchlist,auto_scan",
+    "--issued",
+    "2026-02-05",
+    "--key-id",
+    "weftend-vendor-1",
+  ]);
+  assert(outDirIssue.status === 40, `license issue directory out path must fail closed: ${outDirIssue.stderr}`);
+  assert(
+    outDirIssue.stderr.includes("LICENSE_OUT_PATH_IS_DIRECTORY"),
+    "license issue directory out path must report explicit code"
+  );
+
+  const parentFile = path.join(root, "out_parent_file.txt");
+  fs.writeFileSync(parentFile, "x", "utf8");
+  const outUnderParentFile = path.join(parentFile, "license.json");
+  const outParentFileIssue = await runCliCapture([
+    "license",
+    "issue",
+    "--key",
+    privPath,
+    "--out",
+    outUnderParentFile,
+    "--customer",
+    "acme",
+    "--tier",
+    "enterprise",
+    "--features",
+    "watchlist,auto_scan",
+    "--issued",
+    "2026-02-05",
+    "--key-id",
+    "weftend-vendor-1",
+  ]);
+  assert(
+    outParentFileIssue.status === 40,
+    `license issue out parent-file path must fail closed: ${outParentFileIssue.stderr}`
+  );
+  assert(
+    outParentFileIssue.stderr.includes("LICENSE_OUT_PATH_PARENT_NOT_DIRECTORY"),
+    "license issue out parent-file path must report explicit code"
+  );
 };
 
 testLicenseFlow()

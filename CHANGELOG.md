@@ -320,6 +320,12 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `node dist/src/runtime/adapters/artifact_adapter_v1.test.js`: pass
 - `node dist/src/cli/adapter_cli_smoke.test.js`: pass
 - `npm run verify:360 --silent`: pass
+- `node dist/src/cli/summarize_export_cli_smoke.test.js`: pass
+- `node dist/src/cli/license_cli_smoke.test.js`: pass
+
+### File-output path-kind hardening
+- `export-json --format normalized_v0` now fails closed when `--out` is an existing directory (`EXPORT_JSON_OUT_PATH_IS_DIRECTORY`) or when the parent of `--out` is a file (`EXPORT_JSON_OUT_PATH_PARENT_NOT_DIRECTORY`), avoiding generic file-write failures.
+- `license issue` now fails closed when `--out` is an existing directory (`LICENSE_OUT_PATH_IS_DIRECTORY`) or when the parent of `--out` is a file (`LICENSE_OUT_PATH_PARENT_NOT_DIRECTORY`), avoiding generic file-write failures before key use/signing.
 
 ## [Alpha 0.3] - 2026-02-13
 

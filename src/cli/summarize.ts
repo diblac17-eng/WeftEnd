@@ -63,6 +63,47 @@ const writeTextAtomic = (filePath: string, text: string): boolean => {
 const sameResolvedPath = (aPath: string, bPath: string): boolean =>
   path.resolve(process.cwd(), String(aPath || "")) === path.resolve(process.cwd(), String(bPath || ""));
 
+const validateExportJsonOutputPath = (outputPath: string): { ok: true } | { ok: false; code: string; message: string } => {
+  try {
+    if (fs.existsSync(outputPath)) {
+      const existing = fs.statSync(outputPath);
+      if (existing.isDirectory()) {
+        return {
+          ok: false,
+          code: "EXPORT_JSON_OUT_PATH_IS_DIRECTORY",
+          message: "--out must be a file path or a missing path.",
+        };
+      }
+    }
+  } catch {
+    return {
+      ok: false,
+      code: "EXPORT_JSON_OUT_PATH_STAT_FAILED",
+      message: "unable to inspect --out path.",
+    };
+  }
+  const parentDir = path.dirname(outputPath);
+  if (parentDir && fs.existsSync(parentDir)) {
+    try {
+      const parentStat = fs.statSync(parentDir);
+      if (!parentStat.isDirectory()) {
+        return {
+          ok: false,
+          code: "EXPORT_JSON_OUT_PATH_PARENT_NOT_DIRECTORY",
+          message: "parent of --out must be a directory.",
+        };
+      }
+    } catch {
+      return {
+        ok: false,
+        code: "EXPORT_JSON_OUT_PATH_PARENT_STAT_FAILED",
+        message: "unable to inspect parent of --out.",
+      };
+    }
+  }
+  return { ok: true };
+};
+
 const exportWouldOverwriteSourceEvidence = (outRoot: string, outputPath: string): boolean => {
   const protectedRelPaths = [
     "operator_receipt.json",
@@ -168,6 +209,11 @@ export const runExportJsonCli = (argv: string[]): number => {
       : path.resolve(process.cwd(), outRoot, "normalized_summary_v0.json");
   if (exportWouldOverwriteSourceEvidence(outRoot, outputPath)) {
     console.error("[EXPORT_JSON_OUT_CONFLICTS_SOURCE] --out must not overwrite source evidence files.");
+    return 40;
+  }
+  const outputPathCheck = validateExportJsonOutputPath(outputPath);
+  if (!outputPathCheck.ok) {
+    console.error(`[${outputPathCheck.code}] ${outputPathCheck.message}`);
     return 40;
   }
   if (!writeTextAtomic(outputPath, `${canonicalJSON(loaded.value)}\n`)) {

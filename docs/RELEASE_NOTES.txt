@@ -378,6 +378,8 @@ Included
 - `compare`, `ticket-pack`, and `watch` now also fail closed when their directory-style output roots point to existing non-directory paths (`*_OUT_PATH_NOT_DIRECTORY` / `WATCH_OUT_ROOT_PATH_NOT_DIRECTORY`).
 - `compare`, `ticket-pack`, and `watch` now also fail closed when the parent of the requested directory-style output path is a file (`*_OUT_PATH_PARENT_NOT_DIRECTORY` / `WATCH_OUT_ROOT_PATH_PARENT_NOT_DIRECTORY`), avoiding generic stage-init failures.
 - `safe-run`, `run`, `examine`, `email unpack`, `email safe-run`, and `container scan` now also fail closed when the parent of the requested directory-style output path is a file (`*_OUT_PATH_PARENT_NOT_DIRECTORY`), avoiding generic stage-init failures.
+- `export-json --format normalized_v0` now fails closed when `--out` is an existing directory (`EXPORT_JSON_OUT_PATH_IS_DIRECTORY`) or when the parent of `--out` is a file (`EXPORT_JSON_OUT_PATH_PARENT_NOT_DIRECTORY`), avoiding generic file-write failures before staged finalize.
+- `license issue` now fails closed when `--out` is an existing directory (`LICENSE_OUT_PATH_IS_DIRECTORY`) or when the parent of `--out` is a file (`LICENSE_OUT_PATH_PARENT_NOT_DIRECTORY`), avoiding generic file-write failures before signing/output finalize.
 - `safe-run`, `run`, and `examine` now fail closed when `--out` equals or overlaps the input path (`*_OUT_CONFLICTS_INPUT`), preventing staged-finalize cleanup from deleting or replacing the source input.
 - `email unpack` and `email safe-run` now also fail closed when `--out` equals or overlaps the input path, preventing staged-finalize cleanup from deleting or replacing source email inputs or normalized email exports.
 - `intake` now also fails closed when `--out` equals or overlaps the input path (`INTAKE_OUT_CONFLICTS_INPUT`), preventing staged-finalize cleanup from deleting or replacing the source input.
@@ -430,6 +432,8 @@ Validation
 - npm run compile --silent: pass
 - node dist/src/tools/windows_shell_assets.test.js: pass
 - node dist/src/tools/greenteam/release_artifacts_present.test.js: pass
+- node dist/src/cli/summarize_export_cli_smoke.test.js: pass
+- node dist/src/cli/license_cli_smoke.test.js: pass
 - npm test: pass (on release hardening sweep state)
 
 Not included
