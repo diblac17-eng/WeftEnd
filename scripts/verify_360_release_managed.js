@@ -12,9 +12,10 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 
 const root = process.cwd();
+const outBase = path.join(root, "out");
 const outRoot = process.env.WEFTEND_360_OUT_ROOT
   ? path.resolve(root, process.env.WEFTEND_360_OUT_ROOT)
-  : path.join(root, "out", "verify_360_release_managed");
+  : path.join(outBase, "verify_360_release_managed");
 const policyPath = path.join(outRoot, "adapter_maintenance.generated.json");
 const releaseDirEnv = process.env.WEFTEND_RELEASE_DIR || "tests/fixtures/release_demo";
 const releaseDirAbs = path.resolve(root, releaseDirEnv);
@@ -39,6 +40,14 @@ const npmCli = String(process.env.npm_execpath || "");
 if (!npmCli) {
   console.error("Missing npm_execpath.");
   process.exit(1);
+}
+
+const outBaseResolved = path.resolve(outBase);
+const outRootResolved = path.resolve(outRoot);
+const outBasePrefix = outBaseResolved.endsWith(path.sep) ? outBaseResolved : `${outBaseResolved}${path.sep}`;
+if (!(outRootResolved === outBaseResolved || outRootResolved.startsWith(outBasePrefix))) {
+  console.error(`Managed verify out-root must stay under repo out/: ${path.relative(root, outRootResolved) || outRootResolved}`);
+  process.exit(40);
 }
 
 fs.rmSync(outRoot, { recursive: true, force: true });

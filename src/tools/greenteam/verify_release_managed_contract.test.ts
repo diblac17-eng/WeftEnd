@@ -47,6 +47,15 @@ suite("greenteam/verify-release-managed-contract", () => {
   register("managed release helper keeps strict preflight and no env leakage contract", () => {
     const text = readScript();
     assert(text.includes("adapter_maintenance.generated.json"), "managed policy file contract missing");
+    assert(text.includes("const outBase = path.join(root, \"out\");"), "managed verify must derive canonical repo out/ base");
+    assert(
+      text.includes("Managed verify out-root must stay under repo out/:"),
+      "managed verify must fail closed when WEFTEND_360_OUT_ROOT escapes repo out/"
+    );
+    assert(
+      text.includes("process.exit(40);"),
+      "managed verify must use precondition exit code for out-root path guard"
+    );
     assert(text.includes("--include-missing-plugins"), "managed policy generation must include missing plugins");
     assert(
       text.includes("Managed adapter policy file missing after doctor write"),
