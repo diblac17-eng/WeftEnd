@@ -49,6 +49,15 @@ suite("greenteam/verify-release-managed-contract", () => {
     assert(text.includes("adapter_maintenance.generated.json"), "managed policy file contract missing");
     assert(text.includes("--include-missing-plugins"), "managed policy generation must include missing plugins");
     assert(
+      text.includes("Managed adapter policy file missing after doctor write"),
+      "managed verify must fail closed if generated adapter policy file is missing"
+    );
+    assert(
+      text.includes("Managed adapter policy stage residue present"),
+      "managed verify must fail closed on generated adapter policy stage residue"
+    );
+    assert(text.includes("const policyStagePath = `${policyPath}.stage`;"), "managed verify must check policy .stage residue path");
+    assert(
       text.includes("WEFTEND_ADAPTER_DISABLE_FILE: policyPath"),
       "strict adapter doctor preflight must use generated maintenance policy"
     );

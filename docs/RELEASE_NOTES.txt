@@ -158,6 +158,7 @@ Included
 - Added smoke coverage for strict text mode failure path (`adapter doctor --text --strict` returns 40 and emits strict FAIL/reason lines).
 - Added policy writer mode: `weftend adapter doctor --write-policy <path> [--include-missing-plugins]`.
 - Policy writer now uses two-phase finalize (`<path>.stage -> <path>`) and fails closed with explicit write error on output failure.
+- `verify:360:release:managed` now fails closed if the generated adapter maintenance policy file is missing after doctor write or if `adapter_maintenance.generated.json.stage` residue remains before strict doctor/verify continues.
 - `--include-missing-plugins` now requires `--write-policy` (no more silent no-op flag usage).
 - Adapter maintenance gate added (operator-controlled, fail-closed):
 - `WEFTEND_ADAPTER_DISABLE=<adapter[,adapter...]>` disables selected adapter lanes without removing code.

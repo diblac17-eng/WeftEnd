@@ -61,6 +61,15 @@ const doctorStatus = run(process.execPath, [
   "--include-missing-plugins",
 ], {}, { quiet: true });
 if (doctorStatus !== 0) process.exit(doctorStatus);
+if (!fs.existsSync(policyPath) || !fs.statSync(policyPath).isFile()) {
+  console.error(`Managed adapter policy file missing after doctor write: ${path.basename(policyPath)}`);
+  process.exit(1);
+}
+const policyStagePath = `${policyPath}.stage`;
+if (fs.existsSync(policyStagePath)) {
+  console.error(`Managed adapter policy stage residue present: ${path.basename(policyStagePath)}`);
+  process.exit(1);
+}
 
 const strictDoctorStatus = run(
   process.execPath,
