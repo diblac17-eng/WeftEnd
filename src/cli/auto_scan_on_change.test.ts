@@ -92,3 +92,18 @@ suite("auto scan on change triggers safe-run", async () => {
   const text = fs.readFileSync(triggerPath, "utf8");
   assert(text.includes("trigger=WATCH"), "expected trigger=WATCH");
 });
+
+suite("watch fails closed when out-root overlaps target", async () => {
+  const root = makeTempDir();
+  const target = path.join(root, "input");
+  fs.mkdirSync(target, { recursive: true });
+  fs.writeFileSync(path.join(target, "sample.txt"), "alpha", "utf8");
+
+  const res = await runCliCapture(["watch", target, "--out-root", target, "--mode", "safe-run"]);
+  assert(res.status === 40, `expected watch out-root overlap fail-closed\n${res.stderr}`);
+  assert(
+    res.stderr.includes("WATCH_OUT_ROOT_CONFLICTS_TARGET"),
+    "expected watch out-root overlap explicit rejection code"
+  );
+  assert(!fs.existsSync(path.join(target, "Library")), "watch overlap conflict must not create Library inside target");
+});

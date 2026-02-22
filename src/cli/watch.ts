@@ -92,6 +92,15 @@ const normalizeLibraryRoot = (base: string): string => {
   return path.join(trimmed, "Library");
 };
 
+const pathsOverlap = (aPath: string, bPath: string): boolean => {
+  const a = path.resolve(process.cwd(), aPath || "");
+  const b = path.resolve(process.cwd(), bPath || "");
+  if (a === b) return true;
+  const aPrefix = a.endsWith(path.sep) ? a : `${a}${path.sep}`;
+  const bPrefix = b.endsWith(path.sep) ? b : `${b}${path.sep}`;
+  return a.startsWith(bPrefix) || b.startsWith(aPrefix);
+};
+
 const resolvePowerShellExe = (): string => {
   if (process.platform !== "win32") return "powershell.exe";
   const windir = String(process.env?.WINDIR || "").trim();
@@ -252,6 +261,10 @@ export const runWatchCli = async (argv: string[]): Promise<number> => {
 
   const outRoot =
     args.outRoot && args.outRoot.trim() ? normalizeLibraryRoot(args.outRoot) : resolveLibraryRootV0().root;
+  if (pathsOverlap(inputPath, outRoot)) {
+    console.error("[WATCH_OUT_ROOT_CONFLICTS_TARGET] --out-root must not equal or overlap the watch target.");
+    return 40;
+  }
   const targetKind = detectTargetKind(inputPath);
   const targetNameOnly = path.basename(inputPath);
   const targetKey = sanitizeLibraryTargetKeyV0(targetNameOnly);
