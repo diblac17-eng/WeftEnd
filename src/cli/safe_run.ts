@@ -46,7 +46,12 @@ import { buildOperatorReceiptV0, writeOperatorReceiptV0 } from "../runtime/opera
 import { classifyArtifactKindV0 } from "../runtime/classify/artifact_kind_v0";
 import { updateLibraryViewFromRunV0 } from "./library_state";
 import { validateNormalizedArtifactV0 } from "../runtime/adapters/intake_adapter_v0";
-import { runArtifactAdapterV1, type AdapterRunResultV1, type AdapterSelectionV1 } from "../runtime/adapters/artifact_adapter_v1";
+import {
+  ADAPTER_DISABLE_FILE_ENV_V1,
+  runArtifactAdapterV1,
+  type AdapterRunResultV1,
+  type AdapterSelectionV1,
+} from "../runtime/adapters/artifact_adapter_v1";
 
 const fs = require("fs");
 const path = require("path");
@@ -787,6 +792,11 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
   const finalOutDir = options.outDir;
   if (pathsOverlap(resolvedInput, finalOutDir)) {
     console.error("[SAFE_RUN_OUT_CONFLICTS_INPUT] --out must not equal or overlap the input path.");
+    return 40;
+  }
+  const adapterPolicyFile = String(process?.env?.[ADAPTER_DISABLE_FILE_ENV_V1] || "").trim();
+  if (adapterPolicyFile && pathsOverlap(adapterPolicyFile, finalOutDir)) {
+    console.error("[SAFE_RUN_OUT_CONFLICTS_ADAPTER_POLICY_FILE] --out must not equal or overlap WEFTEND_ADAPTER_DISABLE_FILE.");
     return 40;
   }
   const stage = prepareStagedOutRoot(finalOutDir);

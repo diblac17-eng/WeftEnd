@@ -217,6 +217,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added host CLI smoke assertions that host/operator receipt `.stage` files do not remain after finalize.
 
 ### Adapter maintenance controls
+- `safe-run` now fails closed when `--out` overlaps `WEFTEND_ADAPTER_DISABLE_FILE` (`SAFE_RUN_OUT_CONFLICTS_ADAPTER_POLICY_FILE`), preventing staged-finalize cleanup from deleting adapter maintenance policy files.
 - `email safe-run` now fails closed when `--out` overlaps `--policy` (`EMAIL_SAFE_RUN_OUT_CONFLICTS_POLICY`), preventing safe-run staged finalize from deleting the email lane policy file.
 - `container scan` now also fails closed when `--out` overlaps `WEFTEND_ADAPTER_DISABLE_FILE` (`CONTAINER_SCAN_OUT_CONFLICTS_ADAPTER_POLICY_FILE`), preventing staged failure finalization from deleting adapter maintenance policy files.
 - `container scan` now fails closed when `--out` overlaps `--policy` (`CONTAINER_SCAN_OUT_CONFLICTS_POLICY`), preventing staged failure finalization from deleting the container-scan policy file.

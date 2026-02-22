@@ -451,6 +451,25 @@ suite("cli/safe-run", () => {
     assert(!fs.existsSync(`${outDir}.stage`), "stage dir must not be created on policy/out conflict");
   });
 
+  register("safe-run fails closed when out path overlaps adapter maintenance policy file", async () => {
+    const root = makeTempDir();
+    const outDir = path.join(root, "out");
+    fs.mkdirSync(outDir, { recursive: true });
+    const maintenancePolicyPath = path.join(outDir, "adapter_maintenance.json");
+    fs.writeFileSync(maintenancePolicyPath, "{\"disabledAdapters\":[]}\n", "utf8");
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "safe_no_caps");
+    const result = await runCliCapture(["safe-run", inputPath, "--out", outDir], {
+      env: { WEFTEND_ADAPTER_DISABLE_FILE: maintenancePolicyPath },
+    });
+    assertEq(result.status, 40, `expected safe-run adapter-policy-file/out conflict exit code\n${result.stderr}`);
+    assert(
+      result.stderr.includes("SAFE_RUN_OUT_CONFLICTS_ADAPTER_POLICY_FILE"),
+      "expected SAFE_RUN_OUT_CONFLICTS_ADAPTER_POLICY_FILE stderr"
+    );
+    assert(fs.existsSync(maintenancePolicyPath), "adapter maintenance policy file must remain present after conflict");
+    assert(!fs.existsSync(`${outDir}.stage`), "stage dir must not be created on adapter policy file conflict");
+  });
+
   register("safe-run oversize release input exits 40", async () => {
     const outDir = makeTempDir();
     const releaseDir = path.join(outDir, "release");
