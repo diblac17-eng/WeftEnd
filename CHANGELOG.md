@@ -326,6 +326,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 ### File-output path-kind hardening
 - `export-json --format normalized_v0` now fails closed when `--out` is an existing directory (`EXPORT_JSON_OUT_PATH_IS_DIRECTORY`) or when the parent of `--out` is a file (`EXPORT_JSON_OUT_PATH_PARENT_NOT_DIRECTORY`), avoiding generic file-write failures.
 - `license issue` now fails closed when `--out` is an existing directory (`LICENSE_OUT_PATH_IS_DIRECTORY`) or when the parent of `--out` is a file (`LICENSE_OUT_PATH_PARENT_NOT_DIRECTORY`), avoiding generic file-write failures before key use/signing.
+- `adapter doctor --write-policy` now fails closed on invalid file-output path kinds (`ADAPTER_POLICY_OUT_PATH_IS_DIRECTORY`, `ADAPTER_POLICY_OUT_PATH_PARENT_NOT_DIRECTORY`) instead of returning a generic write error.
 
 ## [Alpha 0.3] - 2026-02-13
 

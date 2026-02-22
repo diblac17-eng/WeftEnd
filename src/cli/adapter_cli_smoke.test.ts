@@ -393,9 +393,26 @@ const run = async (): Promise<void> => {
     fs.mkdirSync(outPath, { recursive: true });
     const stagePath = `${outPath}.stage`;
     const res = await runCliCapture(["adapter", "doctor", "--write-policy", outPath]);
-    assertEq(res.status, 1, "adapter doctor --write-policy should fail closed when output path is not writable as file");
-    assert(res.stderr.includes("[ADAPTER_POLICY_WRITE_FAILED]"), "expected ADAPTER_POLICY_WRITE_FAILED on write failure");
+    assertEq(res.status, 40, "adapter doctor --write-policy should fail closed when output path is a directory");
+    assert(
+      res.stderr.includes("[ADAPTER_POLICY_OUT_PATH_IS_DIRECTORY]"),
+      "expected ADAPTER_POLICY_OUT_PATH_IS_DIRECTORY on directory output path"
+    );
     assert(!fs.existsSync(stagePath), "failed policy write should clean staged temp file");
+  }
+
+  {
+    const tmp = mkTmp();
+    const parentFile = path.join(tmp, "policy_parent_file.txt");
+    fs.writeFileSync(parentFile, "x", "utf8");
+    const outPath = path.join(parentFile, "adapter_maintenance.json");
+    const res = await runCliCapture(["adapter", "doctor", "--write-policy", outPath]);
+    assertEq(res.status, 40, "adapter doctor --write-policy should fail closed when output parent is a file");
+    assert(
+      res.stderr.includes("[ADAPTER_POLICY_OUT_PATH_PARENT_NOT_DIRECTORY]"),
+      "expected ADAPTER_POLICY_OUT_PATH_PARENT_NOT_DIRECTORY on output parent-file path"
+    );
+    assert(!fs.existsSync(`${outPath}.stage`), "parent-file output-path rejection must not leave stage residue");
   }
 
   {

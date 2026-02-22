@@ -17,6 +17,44 @@ const printUsage = () => {
   console.log("  weftend adapter doctor [--text] [--strict] [--write-policy <path>] [--include-missing-plugins]");
 };
 
+const validatePolicyOutputPath = (outPath: string): { ok: true } | { ok: false; code: string; message: string } => {
+  const resolved = path.resolve(process.cwd(), String(outPath || ""));
+  try {
+    if (fs.existsSync(resolved)) {
+      const stat = fs.statSync(resolved);
+      if (stat.isDirectory()) {
+        return {
+          ok: false,
+          code: "ADAPTER_POLICY_OUT_PATH_IS_DIRECTORY",
+          message: "--write-policy must be a file path or a missing path.",
+        };
+      }
+    }
+  } catch {
+    return { ok: false, code: "ADAPTER_POLICY_OUT_PATH_STAT_FAILED", message: "unable to inspect --write-policy path." };
+  }
+  const parentDir = path.dirname(resolved);
+  if (parentDir && fs.existsSync(parentDir)) {
+    try {
+      const parentStat = fs.statSync(parentDir);
+      if (!parentStat.isDirectory()) {
+        return {
+          ok: false,
+          code: "ADAPTER_POLICY_OUT_PATH_PARENT_NOT_DIRECTORY",
+          message: "parent of --write-policy path must be a directory.",
+        };
+      }
+    } catch {
+      return {
+        ok: false,
+        code: "ADAPTER_POLICY_OUT_PATH_PARENT_STAT_FAILED",
+        message: "unable to inspect parent of --write-policy path.",
+      };
+    }
+  }
+  return { ok: true };
+};
+
 const writeCanonicalPolicyAtomic = (outPath: string, payload: unknown): void => {
   const resolved = path.resolve(process.cwd(), outPath);
   const dir = path.dirname(resolved);
@@ -121,6 +159,11 @@ export const runAdapterCli = (args: string[]): number => {
         }
       : report;
   if (command === "doctor" && writePolicyPath.length > 0) {
+    const outPathCheck = validatePolicyOutputPath(writePolicyPath);
+    if (!outPathCheck.ok) {
+      process.stderr.write(`[${outPathCheck.code}] ${outPathCheck.message}\n`);
+      return 40;
+    }
     const disabled = new Set<string>();
     const knownDisabled = Array.isArray((report as any).policy?.disabledAdapters) ? (report as any).policy.disabledAdapters : [];
     knownDisabled.forEach((name: any) => {
