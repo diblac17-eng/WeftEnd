@@ -144,6 +144,19 @@ suite("cli/container-scan", () => {
     assertEq(listStageResidue(outDir).length, 0, "container scan output must not include staged file residue");
   });
 
+  register("container scan fails closed when out path overlaps policy file", async () => {
+    const tmp = makeTempDir();
+    const outDir = path.join(tmp, "out");
+    fs.mkdirSync(outDir, { recursive: true });
+    const policyPath = path.join(outDir, "policy.json");
+    fs.copyFileSync(path.join(process.cwd(), "policies", "generic_default.json"), policyPath);
+    const res = await runCliCapture(["container", "scan", "ubuntu@sha256:deadbeef", "--out", outDir, "--policy", policyPath]);
+    assertEq(res.status, 40, `expected container policy/out conflict exit code\n${res.stderr}`);
+    assert(res.stderr.includes("CONTAINER_SCAN_OUT_CONFLICTS_POLICY"), "expected container policy/out conflict code");
+    assert(fs.existsSync(policyPath), "policy file must remain present after container policy/out conflict");
+    assert(!fs.existsSync(`${outDir}.stage`), "container scan stage directory must not be created on policy/out conflict");
+  });
+
   register("container scan honors maintenance disable policy", async () => {
     const outDir = makeTempDir();
     const immutableRef = `docker.io/library/ubuntu@sha256:${"c".repeat(64)}`;

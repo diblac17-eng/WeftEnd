@@ -27,6 +27,15 @@ const fs = require("fs");
 const path = require("path");
 
 const POLICY_GENERIC = path.join(process.cwd(), "policies", "generic_default.json");
+
+const pathsOverlap = (aPath: string, bPath: string): boolean => {
+  const a = path.resolve(process.cwd(), aPath || "");
+  const b = path.resolve(process.cwd(), bPath || "");
+  if (a === b) return true;
+  const aPrefix = a.endsWith(path.sep) ? a : `${a}${path.sep}`;
+  const bPrefix = b.endsWith(path.sep) ? b : `${b}${path.sep}`;
+  return a.startsWith(bPrefix) || b.startsWith(aPrefix);
+};
 const MAX_TOP_DOMAINS = 10;
 const MAX_REASON_CODES = 64;
 
@@ -628,13 +637,16 @@ export const runContainerCli = async (argv: string[]): Promise<number> => {
     console.error("[OUT_REQUIRED] container scan requires --out <dir>.");
     return 40;
   }
+  const policyPath = String(flags["policy"] || POLICY_GENERIC);
+  if (policyPath && pathsOverlap(outDir, policyPath)) {
+    console.error("[CONTAINER_SCAN_OUT_CONFLICTS_POLICY] --out must not equal or overlap the --policy path.");
+    return 40;
+  }
   const stage = prepareStagedOutRoot(outDir);
   if (!stage.ok) {
     console.error("[CONTAINER_SCAN_STAGE_INIT_FAILED] unable to initialize staged output path.");
     return 1;
   }
-
-  const policyPath = String(flags["policy"] || POLICY_GENERIC);
   const policyRead = readPolicy(policyPath);
   if (!policyRead.ok) {
     console.error(`[${policyRead.reasonCode}] ${policyRead.message}`);
