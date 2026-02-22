@@ -4,6 +4,8 @@
  */
 
 import { runCliCapture } from "./cli_test_runner";
+import { runExamine } from "./examine";
+import { runWeftendRun } from "./run";
 import { validateOperatorReceiptV0, validateRunReceiptV0 } from "../core/validate";
 import { buildReceiptReadmeV0 } from "../runtime/receipt_readme";
 import { runPrivacyLintV0 } from "../runtime/privacy_lint";
@@ -241,6 +243,33 @@ suite("cli/run", () => {
     assert(!fs.existsSync(`${outDir}.stage`), "run stage dir must not be created on policy/out conflict");
   });
 
+  register("run core fails closed when out path overlaps policy file", async () => {
+    const root = makeTempDir();
+    const outDir = path.join(root, "out");
+    fs.mkdirSync(outDir, { recursive: true });
+    const policyPath = path.join(outDir, "policy.json");
+    fs.copyFileSync(path.join(process.cwd(), "policies", "web_component_default.json"), policyPath);
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "safe_no_caps");
+    const prevErr = console.error;
+    const errors: string[] = [];
+    (console as any).error = (...args: any[]) => errors.push(args.map((a) => String(a)).join(" "));
+    try {
+      const status = await runWeftendRun({
+        inputPath,
+        outDir,
+        policyPath,
+        profile: "web",
+        mode: "strict",
+      });
+      assertEq(status, 40, "expected run core fail-closed code");
+    } finally {
+      (console as any).error = prevErr;
+    }
+    assert(errors.some((line) => line.includes("RUN_OUT_CONFLICTS_POLICY")), "expected RUN_OUT_CONFLICTS_POLICY stderr");
+    assert(fs.existsSync(policyPath), "policy file must remain present after run core policy/out conflict");
+    assert(!fs.existsSync(`${outDir}.stage`), "run core stage dir must not be created on policy/out conflict");
+  });
+
   register("intake fails closed when out path overlaps policy file", async () => {
     const root = makeTempDir();
     const outDir = path.join(root, "out");
@@ -267,6 +296,27 @@ suite("cli/run", () => {
     assert(result.stderr.includes("EXAMINE_OUT_CONFLICTS_SCRIPT"), "expected EXAMINE_OUT_CONFLICTS_SCRIPT stderr");
     assert(fs.existsSync(scriptPath), "script file must remain present after examine script/out conflict");
     assert(!fs.existsSync(`${outDir}.stage`), "examine stage dir must not be created on script/out conflict");
+  });
+
+  register("examine core fails closed when out path overlaps script file", async () => {
+    const root = makeTempDir();
+    const outDir = path.join(root, "out");
+    fs.mkdirSync(outDir, { recursive: true });
+    const scriptPath = path.join(outDir, "rules.js");
+    fs.writeFileSync(scriptPath, "module.exports = {};\n", "utf8");
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "safe_no_caps");
+    const prevErr = console.error;
+    const errors: string[] = [];
+    (console as any).error = (...args: any[]) => errors.push(args.map((a) => String(a)).join(" "));
+    try {
+      const status = runExamine(inputPath, { outDir, profile: "web", scriptPath });
+      assertEq(status, 40, "expected examine core fail-closed code");
+    } finally {
+      (console as any).error = prevErr;
+    }
+    assert(errors.some((line) => line.includes("EXAMINE_OUT_CONFLICTS_SCRIPT")), "expected EXAMINE_OUT_CONFLICTS_SCRIPT stderr");
+    assert(fs.existsSync(scriptPath), "script file must remain present after examine core script/out conflict");
+    assert(!fs.existsSync(`${outDir}.stage`), "examine core stage dir must not be created on script/out conflict");
   });
 
   register("intake finalizes staged output and replaces stale roots", async () => {

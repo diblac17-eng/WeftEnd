@@ -89,6 +89,10 @@ export const runExamine = (inputPath: string, options: ExamineCliOptions): numbe
     console.error("[EXAMINE_OUT_CONFLICTS_INPUT] --out must not equal or overlap the input path.");
     return 40;
   }
+  if (options.scriptPath && pathsOverlap(options.scriptPath, options.outDir)) {
+    console.error("[EXAMINE_OUT_CONFLICTS_SCRIPT] --out must not equal or overlap the --script path.");
+    return 40;
+  }
   const scriptText = options.scriptPath ? readTextFile(options.scriptPath) : undefined;
   const result = examineArtifactV1(inputPath, {
     profile: options.profile,

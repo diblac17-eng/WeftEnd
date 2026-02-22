@@ -217,6 +217,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added host CLI smoke assertions that host/operator receipt `.stage` files do not remain after finalize.
 
 ### Adapter maintenance controls
+- `run` and `examine` now enforce `--out` vs dependency-input overlap checks in their core staged-writer implementations (not only `main.ts` wrapper parsing), with direct-core smoke coverage added.
 - `host run/install/update` now fail closed when `--out` overlaps the `releaseDir` (`HOST_OUT_CONFLICTS_RELEASE_DIR`), preventing receipt writes from mutating the release source being verified.
 - `safe-run` now fails closed when `--out` overlaps `WEFTEND_ADAPTER_DISABLE_FILE` (`SAFE_RUN_OUT_CONFLICTS_ADAPTER_POLICY_FILE`), preventing staged-finalize cleanup from deleting adapter maintenance policy files.
 - `email safe-run` now fails closed when `--out` overlaps `--policy` (`EMAIL_SAFE_RUN_OUT_CONFLICTS_POLICY`), preventing safe-run staged finalize from deleting the email lane policy file.

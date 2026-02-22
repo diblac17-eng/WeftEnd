@@ -442,6 +442,14 @@ const buildRunReceipt = (
 };
 
 export const runWeftendRun = async (options: RunCliOptionsV0): Promise<number> => {
+  if (pathsOverlap(options.outDir, options.policyPath)) {
+    console.error("[RUN_OUT_CONFLICTS_POLICY] --out must not equal or overlap the --policy path.");
+    return 40;
+  }
+  if (options.scriptPath && pathsOverlap(options.outDir, options.scriptPath)) {
+    console.error("[RUN_OUT_CONFLICTS_SCRIPT] --out must not equal or overlap the --script path.");
+    return 40;
+  }
   let policyRaw: unknown;
   try {
     policyRaw = JSON.parse(readTextFile(options.policyPath));
