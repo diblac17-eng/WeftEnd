@@ -64,6 +64,32 @@ const testLicenseFlow = async () => {
   ]);
   assert(verify.status === 0, `license verify failed: ${verify.stderr}`);
   assert(!containsAbsPath(verify.stdout + verify.stderr), "license verify output leaks path");
+
+  const keyBefore = fs.readFileSync(privPath, "utf8");
+  const conflictIssue = await runCliCapture([
+    "license",
+    "issue",
+    "--key",
+    privPath,
+    "--out",
+    privPath,
+    "--customer",
+    "acme",
+    "--tier",
+    "enterprise",
+    "--features",
+    "watchlist,auto_scan",
+    "--issued",
+    "2026-02-05",
+    "--key-id",
+    "weftend-vendor-1",
+  ]);
+  assert(conflictIssue.status === 40, `license issue key/out conflict must fail closed: ${conflictIssue.stderr}`);
+  assert(
+    conflictIssue.stderr.includes("LICENSE_OUT_CONFLICTS_KEY"),
+    "license issue key/out conflict must report explicit code"
+  );
+  assert(fs.readFileSync(privPath, "utf8") === keyBefore, "license issue key/out conflict must not modify private key file");
 };
 
 testLicenseFlow()

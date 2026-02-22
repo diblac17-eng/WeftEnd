@@ -223,6 +223,15 @@ const testTicketPack = async () => {
     "expected unsafe relPath rejection code"
   );
 
+  const overlapPack = await runCliCapture(["ticket-pack", runDir, "--out", runDir]);
+  assert(overlapPack.status === 40, `expected out/input overlap fail-closed\n${overlapPack.stderr}`);
+  assert(
+    overlapPack.stderr.includes("TICKET_PACK_OUT_CONFLICTS_INPUT"),
+    "expected ticket-pack out/input overlap rejection code"
+  );
+  assert(fs.existsSync(path.join(runDir, "operator_receipt.json")), "ticket-pack overlap must not modify source run root");
+  assert(!fs.existsSync(path.join(runDir, "ticket_pack.stage")), "ticket-pack overlap must not create staged pack under source root");
+
   const adapterRunDir = path.join(root, "adapter_run");
   const adapterPackDir = path.join(root, "adapter_pack");
   const adapterInput = path.join(process.cwd(), "tests", "fixtures", "intake", "tampered_manifest", "tampered.zip");

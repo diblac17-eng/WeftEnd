@@ -41,6 +41,15 @@ const resolveWithinRoot = (root: string, relPath: string): string | null => {
   return candidate;
 };
 
+const pathsOverlap = (aPath: string, bPath: string): boolean => {
+  const a = path.resolve(process.cwd(), aPath || "");
+  const b = path.resolve(process.cwd(), bPath || "");
+  if (a === b) return true;
+  const aPrefix = a.endsWith(path.sep) ? a : `${a}${path.sep}`;
+  const bPrefix = b.endsWith(path.sep) ? b : `${b}${path.sep}`;
+  return a.startsWith(bPrefix) || b.startsWith(aPrefix);
+};
+
 const sha256File = (filePath: string): string => {
   const hash = crypto.createHash("sha256");
   hash.update(fs.readFileSync(filePath));
@@ -227,6 +236,10 @@ export const runTicketPackCli = (options: {
 
   const outRoot = path.resolve(process.cwd(), options.outRoot);
   const outDir = path.resolve(process.cwd(), options.outDir);
+  if (pathsOverlap(outRoot, outDir)) {
+    console.error("[TICKET_PACK_OUT_CONFLICTS_INPUT] --out must not equal or overlap outRoot.");
+    return 40;
+  }
   if (!fs.existsSync(outRoot)) {
     console.error("[TICKET_PACK_MISSING_OUTROOT] outRoot not found.");
     return 40;

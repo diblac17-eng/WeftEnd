@@ -217,6 +217,8 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added host CLI smoke assertions that host/operator receipt `.stage` files do not remain after finalize.
 
 ### Adapter maintenance controls
+- `ticket-pack` now fails closed when `--out` overlaps the source run/out root, preventing self-packing and staged bundle writes inside the evidence source tree.
+- `license issue` now fails closed when `--out` matches `--key`, preventing accidental overwrite of the private signing key file.
 - `intake` now fails closed when `--out` overlaps the input path, preventing staged-finalize cleanup from deleting or replacing the source input.
 - Email CLI lanes now fail closed when `--out` overlaps the input path (`email unpack`, `email safe-run`), preventing staged-finalize cleanup from deleting or replacing source email artifacts/normalized exports.
 - Path-based CLI lanes now fail closed on `--out` overlap with the input path (`safe-run`, `run`, `examine`), preventing staged-finalize cleanup from deleting or replacing the source input.

@@ -68,6 +68,9 @@ const writeTextAtomic = (p: string, text: string): boolean => {
   }
 };
 
+const sameResolvedPath = (aPath: string, bPath: string): boolean =>
+  path.resolve(process.cwd(), String(aPath || "")) === path.resolve(process.cwd(), String(bPath || ""));
+
 const issueLicense = (flags: Record<string, string | boolean>): number => {
   const keyPath = String(flags["key"] || "");
   const outPath = String(flags["out"] || "");
@@ -88,6 +91,10 @@ const issueLicense = (flags: Record<string, string | boolean>): number => {
   }
   if (!customerId || !tier || !featuresRaw || !issuedAt || !keyId) {
     console.error("[LICENSE_INPUT_MISSING] customer/tier/features/issued/key-id required.");
+    return 40;
+  }
+  if (sameResolvedPath(keyPath, outPath)) {
+    console.error("[LICENSE_OUT_CONFLICTS_KEY] --out must differ from --key.");
     return 40;
   }
 
