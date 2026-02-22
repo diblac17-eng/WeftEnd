@@ -4,6 +4,7 @@
  */
 
 import { runCliCapture } from "./cli_test_runner";
+import { runSafeRun } from "./safe_run";
 import { validateOperatorReceiptV0, validateSafeRunReceiptV0 } from "../core/validate";
 import { installHostUpdateV0 } from "../runtime/host/host_update";
 import { deriveDemoPublicKey } from "../ports/crypto-demo";
@@ -449,6 +450,64 @@ suite("cli/safe-run", () => {
     assert(result.stderr.includes("SAFE_RUN_OUT_CONFLICTS_POLICY"), "expected SAFE_RUN_OUT_CONFLICTS_POLICY stderr");
     assert(fs.existsSync(policyPath), "policy file must remain present after safe-run policy/out conflict");
     assert(!fs.existsSync(`${outDir}.stage`), "stage dir must not be created on policy/out conflict");
+  });
+
+  register("safe-run core fails closed when out path overlaps policy file", async () => {
+    const root = makeTempDir();
+    const outDir = path.join(root, "out");
+    fs.mkdirSync(outDir, { recursive: true });
+    const policyPath = path.join(outDir, "policy.json");
+    fs.copyFileSync(path.join(process.cwd(), "policies", "web_component_default.json"), policyPath);
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "safe_no_caps");
+    const prevErr = console.error;
+    const errors: string[] = [];
+    (console as any).error = (...args: any[]) => errors.push(args.map((a) => String(a)).join(" "));
+    try {
+      const status = await runSafeRun({
+        inputPath,
+        outDir,
+        policyPath,
+        profile: "web",
+        mode: "strict",
+        executeRequested: false,
+        withholdExec: true,
+      });
+      assertEq(status, 40, "expected safe-run core fail-closed code");
+    } finally {
+      (console as any).error = prevErr;
+    }
+    assert(errors.some((line) => line.includes("SAFE_RUN_OUT_CONFLICTS_POLICY")), "expected SAFE_RUN_OUT_CONFLICTS_POLICY stderr");
+    assert(fs.existsSync(policyPath), "policy file must remain present after safe-run core policy/out conflict");
+    assert(!fs.existsSync(`${outDir}.stage`), "stage dir must not be created on safe-run core policy/out conflict");
+  });
+
+  register("safe-run core fails closed when out path overlaps script file", async () => {
+    const root = makeTempDir();
+    const outDir = path.join(root, "out");
+    fs.mkdirSync(outDir, { recursive: true });
+    const scriptPath = path.join(outDir, "rules.js");
+    fs.writeFileSync(scriptPath, "module.exports = {};\n", "utf8");
+    const inputPath = path.join(process.cwd(), "tests", "fixtures", "intake", "safe_no_caps");
+    const prevErr = console.error;
+    const errors: string[] = [];
+    (console as any).error = (...args: any[]) => errors.push(args.map((a) => String(a)).join(" "));
+    try {
+      const status = await runSafeRun({
+        inputPath,
+        outDir,
+        profile: "web",
+        mode: "strict",
+        scriptPath,
+        executeRequested: false,
+        withholdExec: true,
+      });
+      assertEq(status, 40, "expected safe-run core fail-closed code");
+    } finally {
+      (console as any).error = prevErr;
+    }
+    assert(errors.some((line) => line.includes("SAFE_RUN_OUT_CONFLICTS_SCRIPT")), "expected SAFE_RUN_OUT_CONFLICTS_SCRIPT stderr");
+    assert(fs.existsSync(scriptPath), "script file must remain present after safe-run core script/out conflict");
+    assert(!fs.existsSync(`${outDir}.stage`), "stage dir must not be created on safe-run core script/out conflict");
   });
 
   register("safe-run fails closed when out path overlaps adapter maintenance policy file", async () => {

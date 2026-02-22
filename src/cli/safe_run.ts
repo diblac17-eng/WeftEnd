@@ -794,6 +794,14 @@ export const runSafeRun = async (options: SafeRunCliOptionsV0): Promise<number> 
     console.error("[SAFE_RUN_OUT_CONFLICTS_INPUT] --out must not equal or overlap the input path.");
     return 40;
   }
+  if (options.policyPath && pathsOverlap(options.policyPath, finalOutDir)) {
+    console.error("[SAFE_RUN_OUT_CONFLICTS_POLICY] --out must not equal or overlap the --policy path.");
+    return 40;
+  }
+  if (options.scriptPath && pathsOverlap(options.scriptPath, finalOutDir)) {
+    console.error("[SAFE_RUN_OUT_CONFLICTS_SCRIPT] --out must not equal or overlap the --script path.");
+    return 40;
+  }
   const adapterPolicyFile = String(process?.env?.[ADAPTER_DISABLE_FILE_ENV_V1] || "").trim();
   if (adapterPolicyFile && pathsOverlap(adapterPolicyFile, finalOutDir)) {
     console.error("[SAFE_RUN_OUT_CONFLICTS_ADAPTER_POLICY_FILE] --out must not equal or overlap WEFTEND_ADAPTER_DISABLE_FILE.");

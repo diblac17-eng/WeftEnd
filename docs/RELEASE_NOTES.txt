@@ -372,6 +372,7 @@ Included
 - `safe-run` now fails closed when `--out` overlaps `WEFTEND_ADAPTER_DISABLE_FILE` (`SAFE_RUN_OUT_CONFLICTS_ADAPTER_POLICY_FILE`), preventing staged-finalize cleanup from deleting adapter maintenance policy files.
 - `host run/install/update` now fail closed when `--out` overlaps the `releaseDir` (`HOST_OUT_CONFLICTS_RELEASE_DIR`), preventing receipt writes from mutating the release source being verified.
 - `run` and `examine` now also enforce dependency-input overlap checks in their core staged-writer implementations (not only CLI wrapper parsing), with direct-core tests added.
+- `safe-run` now also enforces `--out` vs `--policy` / `--script` overlap checks in `safe_run.ts` core (not only CLI wrapper parsing), with direct-core tests added.
 - `safe-run`, `run`, and `examine` now fail closed when `--out` equals or overlaps the input path (`*_OUT_CONFLICTS_INPUT`), preventing staged-finalize cleanup from deleting or replacing the source input.
 - `email unpack` and `email safe-run` now also fail closed when `--out` equals or overlaps the input path, preventing staged-finalize cleanup from deleting or replacing source email inputs or normalized email exports.
 - `intake` now also fails closed when `--out` equals or overlaps the input path (`INTAKE_OUT_CONFLICTS_INPUT`), preventing staged-finalize cleanup from deleting or replacing the source input.
