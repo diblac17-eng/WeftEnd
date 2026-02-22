@@ -74,6 +74,19 @@ suite("greenteam/release-bundle", () => {
       "release zip script must enforce no-stage-residue invariant helper"
     );
     assert(
+      script.includes("function Remove-ReleaseStageDirIfPresent"),
+      "release zip script must provide best-effort release stage cleanup helper"
+    );
+    assert(script.includes("} finally {"), "release zip script must use finally cleanup for stage dirs");
+    assert(
+      script.includes("Remove-ReleaseStageDirIfPresent -PathToRemove $portableStagePath"),
+      "release zip script finally cleanup must include portable stage dir"
+    );
+    assert(
+      script.includes("Remove-ReleaseStageDirIfPresent -PathToRemove $stagePath"),
+      "release zip script finally cleanup must include standard stage dir"
+    );
+    assert(
       script.includes("-Recurse -File -Filter \"*.stage\""),
       "release zip script must scan release output for staged file residue"
     );

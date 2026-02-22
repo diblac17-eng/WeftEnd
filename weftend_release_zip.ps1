@@ -200,6 +200,21 @@ function Remove-ReleaseNoise {
   return $removedCount
 }
 
+function Remove-ReleaseStageDirIfPresent {
+  param(
+    [string]$PathToRemove
+  )
+  if ([string]::IsNullOrWhiteSpace($PathToRemove)) { return }
+  if (Test-Path -LiteralPath $PathToRemove) {
+    Remove-Item -Recurse -Force -LiteralPath $PathToRemove -ErrorAction SilentlyContinue
+  }
+}
+
+$stagePath = $null
+$portableStagePath = $null
+
+try {
+
 Write-Section "Repo Root"
 $root = Get-RepoRoot
 Set-Location $root
@@ -308,6 +323,11 @@ if (-not (Test-Path $outAbs)) {
   New-Item -ItemType Directory -Path $outAbs | Out-Null
 }
 Assert-NoReleaseStageResidue -OutDirPath $outAbs
+
+} finally {
+  Remove-ReleaseStageDirIfPresent -PathToRemove $portableStagePath
+  Remove-ReleaseStageDirIfPresent -PathToRemove $stagePath
+}
 $zipName = "weftend_${version}_${dateStamp}.zip"
 $portableZipName = "weftend_${version}_${dateStamp}_portable.zip"
 
