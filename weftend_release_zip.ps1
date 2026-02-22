@@ -139,6 +139,31 @@ function Copy-SidecarFileAtomic {
   }
 }
 
+function Assert-NoReleaseStageResidue {
+  param(
+    [string]$OutDirPath
+  )
+  $stageFiles = @(
+    Get-ChildItem -Path $OutDirPath -Recurse -File -Filter "*.stage" -ErrorAction SilentlyContinue
+  )
+  $stageDirs = @(
+    Get-ChildItem -Path $OutDirPath -Directory -Filter "__stage_release*" -ErrorAction SilentlyContinue
+  )
+  if ($stageFiles.Count -eq 0 -and $stageDirs.Count -eq 0) {
+    return
+  }
+
+  $samples = New-Object System.Collections.Generic.List[string]
+  foreach ($stageFile in ($stageFiles | Select-Object -First 3)) {
+    $samples.Add($stageFile.Name) | Out-Null
+  }
+  foreach ($stageDir in ($stageDirs | Select-Object -First 3)) {
+    $samples.Add($stageDir.Name) | Out-Null
+  }
+  $sampleText = if ($samples.Count -gt 0) { ($samples -join ", ") } else { "unknown residue" }
+  Write-Fail "Release output contains stage residue (*.stage or __stage_release*): $sampleText" "Delete residue under $OutDirPath and retry."
+}
+
 function Remove-ReleaseNoise {
   param(
     [string]$StageRoot
@@ -269,6 +294,7 @@ $outAbs = Resolve-UnderRoot $root $OutDir $false
 if (-not (Test-Path $outAbs)) {
   New-Item -ItemType Directory -Path $outAbs | Out-Null
 }
+Assert-NoReleaseStageResidue -OutDirPath $outAbs
 $zipName = "weftend_${version}_${dateStamp}.zip"
 $portableZipName = "weftend_${version}_${dateStamp}_portable.zip"
 
@@ -481,3 +507,5 @@ if (Test-Path $changelog) {
 } else {
   Write-Warn "CHANGELOG.md not found, skipping"
 }
+
+Assert-NoReleaseStageResidue -OutDirPath $outAbs

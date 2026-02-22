@@ -217,6 +217,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added host CLI smoke assertions that host/operator receipt `.stage` files do not remain after finalize.
 
 ### Adapter maintenance controls
+- Root release packager now enforces a no-stage-residue invariant in the release output folder, failing closed if `*.stage` files or `__stage_release*` directories are present before or after packaging.
 - Added `weftend adapter doctor` for deterministic adapter readiness/maintenance reporting.
 - Added `weftend adapter doctor --text` for a human-readable maintenance report with deterministic local actions.
 - Added `weftend adapter doctor --strict` for fail-closed maintenance checks (invalid policy and unresolved missing-plugin requirements return exit 40).

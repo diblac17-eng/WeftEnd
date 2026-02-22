@@ -61,7 +61,23 @@ suite("greenteam/release-bundle", () => {
     assert(script.includes("${zipPath}.stage"), "release zip output must stage/finalize zip path");
     assert(script.includes("${shaPath}.stage"), "release zip output must stage/finalize sha sidecar path");
     assert(script.includes("function Copy-SidecarFileAtomic"), "release zip script must provide atomic sidecar copy helper");
+    assert(
+      script.includes("function Assert-NoReleaseStageResidue"),
+      "release zip script must enforce no-stage-residue invariant helper"
+    );
+    assert(
+      script.includes("-Recurse -File -Filter \"*.stage\""),
+      "release zip script must scan release output for staged file residue"
+    );
+    assert(
+      script.includes("-Directory -Filter \"__stage_release*\""),
+      "release zip script must scan release output for staged directory residue"
+    );
     assert(script.includes("${DestinationPath}.stage"), "release zip script sidecar copies must stage before finalize");
+    assert(
+      script.includes("Assert-NoReleaseStageResidue -OutDirPath $outAbs"),
+      "release zip script must check stage residue around release output flow"
+    );
     assert(script.includes("\"CHANGELOG.md\","), "release zip includeSingles must include CHANGELOG.md");
     assert(script.includes("CHANGELOG.md copied"), "release zip sidecar copy must include CHANGELOG.md");
     assert(script.includes("RELEASE_NOTES.txt copied"), "release zip sidecar copy must include RELEASE_NOTES.txt");
