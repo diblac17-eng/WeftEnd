@@ -399,6 +399,7 @@ Included
 - Adapter report-card placeholders (`adapterMeta`, `adapterSignals`) now also use explicit tokens (`UNKNOWN`, `NOT_REPORTED`, `NOT_APPLICABLE`) instead of ambiguous `-` placeholders when adapter evidence metadata is partial.
 - Windows report-card viewer adapter-evidence toggle now persists expanded/collapsed state correctly across clicks and forces layout row refresh, fixing cases where "Hide Adapter Evidence" did not collapse the panel.
 - Fallback report-card generation and default receipt-summary placeholders now also use explicit tokens (`UNKNOWN`, `NONE`, `NOT_REPORTED`, `NOT_APPLICABLE`) so degraded/error paths follow the same operator semantics as nominal report generation.
+- Report-card viewer summary and adapter-evidence panels now normalize display placeholders to explicit state tokens (`UNKNOWN`, `NOT_REPORTED`, `NOT_APPLICABLE`, `BASELINE_UNAVAILABLE`, `LATEST_UNAVAILABLE`) instead of raw `-` placeholders.
 - `compare_report.txt` now also includes a deterministic explanation layer (`EXPLAIN V0`) with evidence-tagged readout lines (`OBS`/`INF`/`POL`) explaining why compare says SAME/CHANGED without introducing freeform verdict language.
 - Compare explanation branching now uses explicit state tokens (for example `NOT_APPLICABLE` for change buckets on SAME results) instead of implicit blanks.
 - Compare detail lines now also use explicit unavailable tokens (`UNKNOWN`, `NOT_APPLICABLE`) instead of numeric placeholders (`-1`) or generic `N/A`.

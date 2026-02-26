@@ -19,6 +19,16 @@ function Get-StringValue {
   return $text
 }
 
+function Get-DisplayStateValue {
+  param(
+    [object]$Value,
+    [string]$Fallback = "NOT_REPORTED"
+  )
+  $text = Get-StringValue -Value $Value -Fallback $Fallback
+  if ($text -eq "-") { return $Fallback }
+  return $text
+}
+
 function Resolve-RunDirectory {
   param(
     [string]$RunDirValue,
@@ -668,47 +678,47 @@ function Add-SummaryLine {
   $summaryTable.RowCount += 1
 }
 
-Add-SummaryLine -TextValue ("Result: " + (Get-StringValue -Value $model.result))
-Add-SummaryLine -TextValue ("Status: " + (Get-StringValue -Value $model.status))
-Add-SummaryLine -TextValue ("Run Id: " + (Get-StringValue -Value $model.runId))
-Add-SummaryLine -TextValue ("Library Key: " + (Get-StringValue -Value $model.libraryKey))
-Add-SummaryLine -TextValue ("Fingerprint: " + (Get-StringValue -Value $model.artifactFingerprint))
-Add-SummaryLine -TextValue ("Artifact Digest: " + (Get-StringValue -Value $model.artifactDigest))
-Add-SummaryLine -TextValue ("Report Card Digest: " + (Get-StringValue -Value $model.reportCardDigest))
-Add-SummaryLine -TextValue ("Safe Receipt Digest: " + (Get-StringValue -Value $model.safeReceiptDigest))
-Add-SummaryLine -TextValue ("Privacy Lint Digest: " + (Get-StringValue -Value $model.privacyLintDigest))
-Add-SummaryLine -TextValue ("Operator Receipt Digest: " + (Get-StringValue -Value $model.operatorReceiptDigest))
-Add-SummaryLine -TextValue ("Compare Receipt Digest: " + (Get-StringValue -Value $model.compareReceiptDigest))
-Add-SummaryLine -TextValue ("Compare Report Digest: " + (Get-StringValue -Value $model.compareReportDigest))
-Add-SummaryLine -TextValue ("Compare Verdict: " + (Get-StringValue -Value $model.compareVerdict))
-Add-SummaryLine -TextValue ("Compare Buckets: " + (Get-StringValue -Value $model.compareBuckets))
-Add-SummaryLine -TextValue ("Compare Bucket Count: " + (Get-StringValue -Value $model.compareBucketCount))
-Add-SummaryLine -TextValue ("Compare Change Count: " + (Get-StringValue -Value $model.compareChangeCount))
-Add-SummaryLine -TextValue ("Reason: " + (Get-StringValue -Value $model.reason))
-Add-SummaryLine -TextValue ("Baseline: " + (Get-StringValue -Value $model.baseline))
-Add-SummaryLine -TextValue ("Latest: " + (Get-StringValue -Value $model.latest))
-Add-SummaryLine -TextValue ("Buckets: " + (Get-StringValue -Value $model.buckets))
-Add-SummaryLine -TextValue ("Next: " + (Get-StringValue -Value $model.next))
-Add-SummaryLine -TextValue ("Requested: " + (Get-StringValue -Value $model.requestedTarget))
-Add-SummaryLine -TextValue ("Scanned: " + (Get-StringValue -Value $model.scanTarget))
-Add-SummaryLine -TextValue ("Target Kind: " + (Get-StringValue -Value $model.targetKind))
-Add-SummaryLine -TextValue ("Artifact Kind: " + (Get-StringValue -Value $model.artifactKind))
-Add-SummaryLine -TextValue ("Meaning: " + (Get-StringValue -Value $model.meaning))
+Add-SummaryLine -TextValue ("Result: " + (Get-DisplayStateValue -Value $model.result))
+Add-SummaryLine -TextValue ("Status: " + (Get-DisplayStateValue -Value $model.status))
+Add-SummaryLine -TextValue ("Run Id: " + (Get-DisplayStateValue -Value $model.runId))
+Add-SummaryLine -TextValue ("Library Key: " + (Get-DisplayStateValue -Value $model.libraryKey))
+Add-SummaryLine -TextValue ("Fingerprint: " + (Get-DisplayStateValue -Value $model.artifactFingerprint -Fallback "UNKNOWN"))
+Add-SummaryLine -TextValue ("Artifact Digest: " + (Get-DisplayStateValue -Value $model.artifactDigest -Fallback "UNKNOWN"))
+Add-SummaryLine -TextValue ("Report Card Digest: " + (Get-DisplayStateValue -Value $model.reportCardDigest -Fallback "UNKNOWN"))
+Add-SummaryLine -TextValue ("Safe Receipt Digest: " + (Get-DisplayStateValue -Value $model.safeReceiptDigest -Fallback "UNKNOWN"))
+Add-SummaryLine -TextValue ("Privacy Lint Digest: " + (Get-DisplayStateValue -Value $model.privacyLintDigest -Fallback "NOT_APPLICABLE"))
+Add-SummaryLine -TextValue ("Operator Receipt Digest: " + (Get-DisplayStateValue -Value $model.operatorReceiptDigest -Fallback "UNKNOWN"))
+Add-SummaryLine -TextValue ("Compare Receipt Digest: " + (Get-DisplayStateValue -Value $model.compareReceiptDigest -Fallback "NOT_APPLICABLE"))
+Add-SummaryLine -TextValue ("Compare Report Digest: " + (Get-DisplayStateValue -Value $model.compareReportDigest -Fallback "NOT_APPLICABLE"))
+Add-SummaryLine -TextValue ("Compare Verdict: " + (Get-DisplayStateValue -Value $model.compareVerdict -Fallback "NOT_APPLICABLE"))
+Add-SummaryLine -TextValue ("Compare Buckets: " + (Get-DisplayStateValue -Value $model.compareBuckets -Fallback "NOT_APPLICABLE"))
+Add-SummaryLine -TextValue ("Compare Bucket Count: " + (Get-DisplayStateValue -Value $model.compareBucketCount -Fallback "NOT_APPLICABLE"))
+Add-SummaryLine -TextValue ("Compare Change Count: " + (Get-DisplayStateValue -Value $model.compareChangeCount -Fallback "NOT_APPLICABLE"))
+Add-SummaryLine -TextValue ("Reason: " + (Get-DisplayStateValue -Value $model.reason))
+Add-SummaryLine -TextValue ("Baseline: " + (Get-DisplayStateValue -Value $model.baseline -Fallback "BASELINE_UNAVAILABLE"))
+Add-SummaryLine -TextValue ("Latest: " + (Get-DisplayStateValue -Value $model.latest -Fallback "LATEST_UNAVAILABLE"))
+Add-SummaryLine -TextValue ("Buckets: " + (Get-DisplayStateValue -Value $model.buckets -Fallback "NOT_APPLICABLE"))
+Add-SummaryLine -TextValue ("Next: " + (Get-DisplayStateValue -Value $model.next -Fallback "REVIEW_REPORT"))
+Add-SummaryLine -TextValue ("Requested: " + (Get-DisplayStateValue -Value $model.requestedTarget))
+Add-SummaryLine -TextValue ("Scanned: " + (Get-DisplayStateValue -Value $model.scanTarget))
+Add-SummaryLine -TextValue ("Target Kind: " + (Get-DisplayStateValue -Value $model.targetKind -Fallback "UNKNOWN"))
+Add-SummaryLine -TextValue ("Artifact Kind: " + (Get-DisplayStateValue -Value $model.artifactKind -Fallback "UNKNOWN"))
+Add-SummaryLine -TextValue ("Meaning: " + (Get-DisplayStateValue -Value $model.meaning -Fallback "NOT_REPORTED"))
 if ($model.adapterEvidence -and $model.adapterEvidence.available) {
   $modeText = if ($model.adapterEvidence.mode -and $model.adapterEvidence.mode -ne "-") {
     [string]$model.adapterEvidence.mode
   } else {
     "built_in"
   }
-  Add-SummaryLine -TextValue ("Adapter Class: " + (Get-StringValue -Value $model.adapterEvidence.class))
-  Add-SummaryLine -TextValue ("Adapter: " + (Get-StringValue -Value $model.adapterEvidence.adapterId) + " (" + $modeText + ")")
-  Add-SummaryLine -TextValue ("Source Format: " + (Get-StringValue -Value $model.adapterEvidence.sourceFormat))
+  Add-SummaryLine -TextValue ("Adapter Class: " + (Get-DisplayStateValue -Value $model.adapterEvidence.class -Fallback "UNKNOWN"))
+  Add-SummaryLine -TextValue ("Adapter: " + (Get-DisplayStateValue -Value $model.adapterEvidence.adapterId) + " (" + $modeText + ")")
+  Add-SummaryLine -TextValue ("Source Format: " + (Get-DisplayStateValue -Value $model.adapterEvidence.sourceFormat))
   Add-SummaryLine -TextValue (
     "Capabilities: requested=" + [string]$model.adapterEvidence.requested +
     " granted=" + [string]$model.adapterEvidence.granted +
     " denied=" + [string]$model.adapterEvidence.denied
   )
-  Add-SummaryLine -TextValue ("Adapter Reasons: " + (Get-StringValue -Value $model.adapterEvidence.reasons))
+  Add-SummaryLine -TextValue ("Adapter Reasons: " + (Get-DisplayStateValue -Value $model.adapterEvidence.reasons -Fallback "NOT_APPLICABLE"))
 }
 
 $detailsPanel = New-Object System.Windows.Forms.Panel
@@ -791,15 +801,15 @@ if ($hasAdapterEvidence) {
   } else {
     "built_in"
   }
-  Add-AdapterLine -TextValue ("Class: " + (Get-StringValue -Value $model.adapterEvidence.class))
-  Add-AdapterLine -TextValue ("Adapter: " + (Get-StringValue -Value $model.adapterEvidence.adapterId))
-  Add-AdapterLine -TextValue ("Mode: " + $modeText + "   Source: " + (Get-StringValue -Value $model.adapterEvidence.sourceFormat))
+  Add-AdapterLine -TextValue ("Class: " + (Get-DisplayStateValue -Value $model.adapterEvidence.class -Fallback "UNKNOWN"))
+  Add-AdapterLine -TextValue ("Adapter: " + (Get-DisplayStateValue -Value $model.adapterEvidence.adapterId))
+  Add-AdapterLine -TextValue ("Mode: " + $modeText + "   Source: " + (Get-DisplayStateValue -Value $model.adapterEvidence.sourceFormat))
   Add-AdapterLine -TextValue (
     "Capabilities: requested=" + [string]$model.adapterEvidence.requested +
     " granted=" + [string]$model.adapterEvidence.granted +
     " denied=" + [string]$model.adapterEvidence.denied
   )
-  Add-AdapterLine -TextValue ("Reasons: " + (Get-StringValue -Value $model.adapterEvidence.reasons))
+  Add-AdapterLine -TextValue ("Reasons: " + (Get-DisplayStateValue -Value $model.adapterEvidence.reasons -Fallback "NOT_APPLICABLE"))
 
   $adapterActions = New-Object System.Windows.Forms.FlowLayoutPanel
   $adapterActions.Dock = "Fill"
