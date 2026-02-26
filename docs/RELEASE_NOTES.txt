@@ -21,6 +21,7 @@ Included
 - Shell doctor now supports `-RepairShortcuts` to repair Start Menu WeftEnd shortcuts (and update existing desktop WeftEnd shortcuts when present) to the configured repo script paths.
 - Shell doctor now validates Launchpad/Download shortcut wiring (`STARTMENU_*` required, `DESKTOP_*` optional) and fails closed on required shortcut mismatch.
 - Shell doctor Download shortcut repair/check now matches installer wiring (`tools/windows/open_release_folder.ps1 -BuildIfMissing`) to prevent false mismatch failures.
+- Shell doctor shortcut validation now requires exact target host-path match (no bare `powershell.exe` acceptance when full path is expected), tightening stale-shortcut drift detection.
 - Launchpad Doctor tab now includes a `Repair Shortcuts` action wired to shell doctor shortcut repair mode.
 - Report viewer startup reliability hardening:
 - Windows shell now tracks consecutive report-viewer startup failures via `ReportViewerStartFailCount`.

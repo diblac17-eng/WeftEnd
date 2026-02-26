@@ -129,9 +129,7 @@ function Check-ShortcutLink {
     if ($ExpectedTargetPath -and $ExpectedTargetPath.Trim() -ne "") {
       $expectedLower = $ExpectedTargetPath.Trim().ToLowerInvariant()
       $targetLower = if ($targetPath) { $targetPath.Trim().ToLowerInvariant() } else { "" }
-      if ($targetLower -ne $expectedLower -and $targetLower -ne "powershell.exe") {
-        $targetOk = $false
-      }
+      $targetOk = ($targetLower -eq $expectedLower)
     }
     $argsOk = $true
     foreach ($tokenObj in @($RequiredArgTokens)) {
