@@ -1156,13 +1156,10 @@ function Update-HistoryDetailsBox {
     return
   }
   $selected = $ListView.SelectedItems[0]
-  $meta = $selected.Tag
-  $targetDir = if ($meta -and $meta.targetDir) { [string]$meta.targetDir } else { "" }
-  $targetKey = if ($meta -and $meta.targetKey) { [string]$meta.targetKey } else { [string]$selected.Text }
-  $latestRun = if ($meta -and $meta.latestRun) { [string]$meta.latestRun } else { "-" }
-  if ($latestRun -eq "-" -and $targetDir) {
-    $latestRun = Get-LatestRunIdForTargetDir -TargetDir $targetDir
-  }
+  $row = Sync-HistoryRowSnapshot -Item $selected
+  $targetDir = [string]$row.targetDir
+  $targetKey = [string]$row.targetKey
+  $latestRun = [string]$row.latestRun
   $status = if ($selected.SubItems.Count -gt 1) { [string]$selected.SubItems[1].Text } else { "UNKNOWN" }
   $adapterTag = if ($selected.SubItems.Count -gt 2) { [string]$selected.SubItems[2].Text } else { "-" }
   $baseline = if ($selected.SubItems.Count -gt 3) { [string]$selected.SubItems[3].Text } else { "-" }
@@ -1227,12 +1224,9 @@ function Update-HistoryActionButtons {
   if ($EvidenceButton) { $EvidenceButton.Enabled = $false }
   if (-not $ListView -or $ListView.SelectedItems.Count -lt 1) { return }
   $selected = $ListView.SelectedItems[0]
-  $meta = $selected.Tag
-  $targetDir = if ($meta -and $meta.targetDir) { [string]$meta.targetDir } else { "" }
-  $latestRun = if ($meta -and $meta.latestRun) { [string]$meta.latestRun } else { "-" }
-  if ($latestRun -eq "-" -and $targetDir) {
-    $latestRun = Get-LatestRunIdForTargetDir -TargetDir $targetDir
-  }
+  $row = Sync-HistoryRowSnapshot -Item $selected
+  $targetDir = [string]$row.targetDir
+  $latestRun = [string]$row.latestRun
   if ($RunButton -and $targetDir -and (Test-Path -LiteralPath $targetDir)) {
     $RunButton.Enabled = $true
   }
@@ -1354,6 +1348,57 @@ function Load-HistoryRows {
   return $dirs.Count
 }
 
+function Sync-HistoryRowSnapshot {
+  param([System.Windows.Forms.ListViewItem]$Item)
+
+  $out = @{
+    targetDir = ""
+    targetKey = ""
+    latestRun = "-"
+  }
+  if (-not $Item) { return $out }
+
+  $meta = $Item.Tag
+  $targetDir = if ($meta -and $meta.targetDir) { [string]$meta.targetDir } else { "" }
+  $targetKey = if ($meta -and $meta.targetKey) { [string]$meta.targetKey } else { [string]$Item.Text }
+  $latestRun = if ($meta -and $meta.latestRun) { [string]$meta.latestRun } else { "-" }
+
+  $out.targetDir = $targetDir
+  $out.targetKey = $targetKey
+  $out.latestRun = $latestRun
+
+  if (-not $targetDir -or -not (Test-Path -LiteralPath $targetDir)) {
+    return $out
+  }
+
+  try {
+    $s = Read-ViewStateSummary -TargetDir $targetDir
+    if ($s) {
+      if ($Item.SubItems.Count -gt 1) { $Item.SubItems[1].Text = [string]$s.status }
+      if ($Item.SubItems.Count -gt 2) { $Item.SubItems[2].Text = [string]$s.adapter }
+      if ($Item.SubItems.Count -gt 3) { $Item.SubItems[3].Text = [string]$s.baseline }
+      if ($Item.SubItems.Count -gt 4) { $Item.SubItems[4].Text = [string]$s.latest }
+      if ($Item.SubItems.Count -gt 5) { $Item.SubItems[5].Text = [string]$s.buckets }
+      if (-not $meta) {
+        $meta = [PSCustomObject]@{
+          targetDir = $targetDir
+          targetKey = $targetKey
+          latestRun = "-"
+        }
+        $Item.Tag = $meta
+      }
+      if ($meta) {
+        $meta.latestRun = if ($s.latest) { [string]$s.latest } else { "-" }
+      }
+      $out.latestRun = if ($s.latest) { [string]$s.latest } else { "-" }
+    }
+  } catch {
+    # best effort only; keep cached row values
+  }
+
+  return $out
+}
+
 function Open-ReportViewerFromHistory {
   param(
     [System.Windows.Forms.ListView]$ListView,
@@ -1364,13 +1409,10 @@ function Open-ReportViewerFromHistory {
     return
   }
   $selected = $ListView.SelectedItems[0]
-  $meta = $selected.Tag
-  $targetDir = if ($meta -and $meta.targetDir) { [string]$meta.targetDir } else { "" }
-  $targetKey = if ($meta -and $meta.targetKey) { [string]$meta.targetKey } else { [string]$selected.Text }
-  $latestRun = if ($meta -and $meta.latestRun) { [string]$meta.latestRun } else { "" }
-  if (-not $latestRun -or $latestRun -eq "-") {
-    $latestRun = Get-LatestRunIdForTargetDir -TargetDir $targetDir
-  }
+  $row = Sync-HistoryRowSnapshot -Item $selected
+  $targetDir = [string]$row.targetDir
+  $targetKey = [string]$row.targetKey
+  $latestRun = [string]$row.latestRun
   if (-not $targetDir -or -not (Test-Path -LiteralPath $targetDir)) {
     Set-StatusLine -StatusLabel $StatusLabel -Message "Target history folder missing." -IsError $true
     return
@@ -1430,13 +1472,10 @@ function Open-HistoryRunFolder {
     return
   }
   $selected = $ListView.SelectedItems[0]
-  $meta = $selected.Tag
-  $targetDir = if ($meta -and $meta.targetDir) { [string]$meta.targetDir } else { "" }
-  $latestRun = if ($meta -and $meta.latestRun) { [string]$meta.latestRun } else { "-" }
-  $targetKey = if ($meta -and $meta.targetKey) { [string]$meta.targetKey } else { [string]$selected.Text }
-  if ($latestRun -eq "-" -and $targetDir) {
-    $latestRun = Get-LatestRunIdForTargetDir -TargetDir $targetDir
-  }
+  $row = Sync-HistoryRowSnapshot -Item $selected
+  $targetDir = [string]$row.targetDir
+  $latestRun = [string]$row.latestRun
+  $targetKey = [string]$row.targetKey
   if (-not $targetDir -or -not (Test-Path -LiteralPath $targetDir)) {
     Set-StatusLine -StatusLabel $StatusLabel -Message "Target history folder missing." -IsError $true
     return
@@ -1459,13 +1498,10 @@ function Open-HistoryAdapterEvidenceFolder {
     return
   }
   $selected = $ListView.SelectedItems[0]
-  $meta = $selected.Tag
-  $targetDir = if ($meta -and $meta.targetDir) { [string]$meta.targetDir } else { "" }
-  $latestRun = if ($meta -and $meta.latestRun) { [string]$meta.latestRun } else { "-" }
-  $targetKey = if ($meta -and $meta.targetKey) { [string]$meta.targetKey } else { [string]$selected.Text }
-  if ($latestRun -eq "-" -and $targetDir) {
-    $latestRun = Get-LatestRunIdForTargetDir -TargetDir $targetDir
-  }
+  $row = Sync-HistoryRowSnapshot -Item $selected
+  $targetDir = [string]$row.targetDir
+  $latestRun = [string]$row.latestRun
+  $targetKey = [string]$row.targetKey
   if (-not $targetDir -or -not $latestRun -or $latestRun -eq "-") {
     Set-StatusLine -StatusLabel $StatusLabel -Message "No latest run available for adapter evidence." -IsError $true
     return

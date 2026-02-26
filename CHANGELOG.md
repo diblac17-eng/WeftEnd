@@ -5,6 +5,11 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 
 ## [Unreleased]
 
+### Launchpad History latest-run resync
+- Launchpad History actions now re-sync the selected row from library view-state before opening reports/run folders/adapter evidence, so an already-open Launchpad window does not open stale runs after an external right-click `Run with WeftEnd` scan updates the library.
+- Launchpad History details preview and action-button enablement now use the same row re-sync path, keeping the visible status/baseline/latest/buckets fields aligned with the current latest run on disk.
+- Added Windows shell asset contract coverage to pin the Launchpad History row resync helper and action usage.
+
 ### Report Viewer Startup Resilience
 - Windows shell report viewer startup now tracks consecutive startup failures in registry (`ReportViewerStartFailCount`).
 - Auto-open is no longer disabled on first startup failure; disable now occurs only after thresholded consecutive failures.

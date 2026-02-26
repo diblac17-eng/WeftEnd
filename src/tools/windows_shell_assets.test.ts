@@ -283,6 +283,15 @@ suite("tools/windows shell assets", () => {
     assert(doctorCmdText.includes("%*"), "expected shell doctor cmd wrapper to forward arguments");
   });
 
+  register("launchpad history actions resync latest run before opening artifacts", () => {
+    const launchpadPath = path.join(shellDir, "launchpad_panel.ps1");
+    const text = fs.readFileSync(launchpadPath, "utf8");
+    assert(/function Sync-HistoryRowSnapshot/.test(text), "expected launchpad history row snapshot sync helper");
+    assert(/function Open-ReportViewerFromHistory[\s\S]*?Sync-HistoryRowSnapshot -Item \$selected/.test(text), "report viewer history action must resync selected row");
+    assert(/function Open-HistoryRunFolder[\s\S]*?Sync-HistoryRowSnapshot -Item \$selected/.test(text), "run-folder history action must resync selected row");
+    assert(/function Open-HistoryAdapterEvidenceFolder[\s\S]*?Sync-HistoryRowSnapshot -Item \$selected/.test(text), "adapter-evidence history action must resync selected row");
+  });
+
   register("wrapper emits deterministic result fields", () => {
     const wrapperPath = path.join(shellDir, "weftend_safe_run.ps1");
     const text = fs.readFileSync(wrapperPath, "utf8");
