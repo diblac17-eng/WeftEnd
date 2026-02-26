@@ -132,6 +132,8 @@ suite("blueteam/report-card", () => {
     assert(report.includes("explain.disclosure=[POL]"), "expected explain disclosure claim");
     assert(report.includes("explain.system=[SYS]"), "expected explain system claim");
     assert(report.includes("disclosure=DISCLOSURE_NOT_REQUIRED"), "expected explicit disclosure sentinel in report card");
+    assert(report.includes("bounded=NONE"), "expected explicit bounded NONE token");
+    assert(!/observed=.*\?/.test(report), "observed line must not use '?' placeholders");
     assert(!/[A-Za-z]:\\/.test(report), "report card must not include absolute Windows paths");
     assert(!/\/Users\//.test(report), "report card must not include user paths");
     assert(!/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/.test(report), "report card must not include wall-clock timestamp strings");

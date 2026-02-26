@@ -696,11 +696,11 @@ function Write-ReportCard {
     [string]$RequestedTargetName = "",
     [string]$ScanTargetName = ""
   )
-  $requestedLabel = "-"
+  $requestedLabel = "NOT_REPORTED"
   if ($RequestedTargetName -and $RequestedTargetName.Trim() -ne "") {
     $requestedLabel = $RequestedTargetName
   }
-  $scanLabel = "-"
+  $scanLabel = "NOT_REPORTED"
   if ($ScanTargetName -and $ScanTargetName.Trim() -ne "") {
     $scanLabel = $ScanTargetName
   }
@@ -796,15 +796,17 @@ function Write-ReportCard {
     }
     $targetKind = if ($Summary.targetKind) { $Summary.targetKind } else { "unknown" }
     $artifactKind = if ($Summary.artifactKind) { $Summary.artifactKind } else { "unknown" }
-    $files = if ($null -ne $Summary.totalFiles) { $Summary.totalFiles } else { "?" }
-    $bytes = if ($null -ne $Summary.totalBytesBounded) { $Summary.totalBytesBounded } else { "?" }
-    $hasScripts = if ($null -ne $Summary.hasScripts) { $Summary.hasScripts } else { "?" }
+    $files = if ($null -ne $Summary.totalFiles) { $Summary.totalFiles } else { "UNKNOWN" }
+    $bytes = if ($null -ne $Summary.totalBytesBounded) { $Summary.totalBytesBounded } else { "UNKNOWN" }
+    $hasScripts = if ($null -ne $Summary.hasScripts) { $Summary.hasScripts } else { "UNKNOWN" }
     $hasNative = if ($null -ne $Summary.hasNativeBinaries) { $Summary.hasNativeBinaries } else { "?" }
-    $extRefs = if ($null -ne $Summary.externalRefCount) { $Summary.externalRefCount } else { "?" }
+    if ($null -eq $hasNative) { $hasNative = "UNKNOWN" }
+    if ([string]$hasNative -eq "?") { $hasNative = "UNKNOWN" }
+    $extRefs = if ($null -ne $Summary.externalRefCount) { $Summary.externalRefCount } else { "UNKNOWN" }
     $analysis = if ($Summary.analysisVerdict) { $Summary.analysisVerdict } else { "UNKNOWN" }
     $execution = if ($Summary.executionVerdict) { $Summary.executionVerdict } else { "UNKNOWN" }
     $entry = if ($Summary.entryHints -and $Summary.entryHints.Count -gt 0) { ($Summary.entryHints -join ",") } else { "none" }
-    $bounded = if ($Summary.boundednessMarkers -and $Summary.boundednessMarkers.Count -gt 0) { ($Summary.boundednessMarkers -join ",") } else { "-" }
+    $bounded = if ($Summary.boundednessMarkers -and $Summary.boundednessMarkers.Count -gt 0) { ($Summary.boundednessMarkers -join ",") } else { "NONE" }
     $webLane = "NOT_APPLICABLE"
     $webEntry = "NONE"
     if ($artifactKind -eq "webBundle" -or ($Summary.hasHtml -eq $true)) {
