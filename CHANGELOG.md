@@ -342,6 +342,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Report-card evidence mapping now tags disclosure state as policy evidence (`evidence.disclosure=[POL]`) in both text and structured JSON outputs.
 - Compare reports now also include a deterministic explanation block (`EXPLAIN V0`) with evidence-tagged readout lines (`OBS`/`INF`/`POL`) that explain why compare says SAME/CHANGED without introducing freeform verdict text.
 - Compare explanation branching now uses explicit state tokens (for example `NOT_APPLICABLE` for change buckets on SAME results) instead of implicit blanks.
+- Compare detail lines now also use explicit unavailable tokens (`UNKNOWN`, `NOT_APPLICABLE`) instead of numeric placeholders (`-1`) or generic `N/A`.
 
 ### Library view-state malformed path hardening
 - Library view refresh/update now fails closed with explicit path-kind codes (`LIBRARY_VIEW_DIR_PATH_NOT_DIRECTORY`, `LIBRARY_VIEW_DIR_PATH_PARENT_NOT_DIRECTORY`, `LIBRARY_VIEW_DIR_PATH_INVALID`) when a target's `view` path is malformed (for example, a file exists at `.../view`).

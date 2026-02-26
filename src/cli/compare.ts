@@ -77,6 +77,11 @@ const explicitToken = (value: unknown, missing: string): string => {
   return text;
 };
 
+const compareNumberToken = (value: unknown, missing: string = "UNKNOWN"): string => {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) return String(value);
+  return missing;
+};
+
 const setDiff = (left: string[], right: string[]) => {
   const lset = new Set(left);
   const rset = new Set(right);
@@ -414,16 +419,16 @@ export const renderCompareReportV0 = (input: {
   lines.push(`explain.policy=[POL] ${policyReadoutText}`);
   lines.push("");
   lines.push(`artifactDigest=${input.leftSummary.artifactDigest ?? "UNKNOWN"} -> ${input.rightSummary.artifactDigest ?? "UNKNOWN"}`);
-  lines.push(`result=${input.leftSummary.result} -> ${input.rightSummary.result}`);
+  lines.push(`result=${explicitToken(input.leftSummary.result, "UNKNOWN")} -> ${explicitToken(input.rightSummary.result, "UNKNOWN")}`);
   lines.push(`policy=${input.leftSummary.policyDigest ?? "POLICY_UNKNOWN"} -> ${input.rightSummary.policyDigest ?? "POLICY_UNKNOWN"}`);
   lines.push(
     `kindProfile=${input.leftSummary.targetKind ?? "UNKNOWN"}:${input.leftSummary.artifactKind ?? "unknown"} -> ${input.rightSummary.targetKind ?? "UNKNOWN"}:${input.rightSummary.artifactKind ?? "unknown"}`
   );
   lines.push(
-    `contentFiles=${input.leftSummary.totalFiles ?? -1}->${input.rightSummary.totalFiles ?? -1} bytes=${input.leftSummary.totalBytesBounded ?? -1}->${input.rightSummary.totalBytesBounded ?? -1}`
+    `contentFiles=${compareNumberToken(input.leftSummary.totalFiles)}->${compareNumberToken(input.rightSummary.totalFiles)} bytes=${compareNumberToken(input.leftSummary.totalBytesBounded)}->${compareNumberToken(input.rightSummary.totalBytesBounded)}`
   );
   lines.push(
-    `contentFlags=scripts:${input.leftSummary.hasScripts ?? "?"}->${input.rightSummary.hasScripts ?? "?"} native:${input.leftSummary.hasNativeBinaries ?? "?"}->${input.rightSummary.hasNativeBinaries ?? "?"} html:${input.leftSummary.hasHtml ?? "?"}->${input.rightSummary.hasHtml ?? "?"}`
+    `contentFlags=scripts:${explicitToken(input.leftSummary.hasScripts, "UNKNOWN")}->${explicitToken(input.rightSummary.hasScripts, "UNKNOWN")} native:${explicitToken(input.leftSummary.hasNativeBinaries, "UNKNOWN")}->${explicitToken(input.rightSummary.hasNativeBinaries, "UNKNOWN")} html:${explicitToken(input.leftSummary.hasHtml, "UNKNOWN")}->${explicitToken(input.rightSummary.hasHtml, "UNKNOWN")}`
   );
   lines.push(
     `hostTruth=release:${input.leftSummary.hostReleaseStatus ?? "UNKNOWN"}->${input.rightSummary.hostReleaseStatus ?? "UNKNOWN"} verify:${input.leftSummary.strictVerify ?? "UNKNOWN"}->${input.rightSummary.strictVerify ?? "UNKNOWN"} execute:${input.leftSummary.strictExecute ?? "UNKNOWN"}->${input.rightSummary.strictExecute ?? "UNKNOWN"}`
@@ -442,10 +447,10 @@ export const renderCompareReportV0 = (input: {
     lines.push("reasonCodes.removed=0");
   }
   lines.push("");
-  lines.push(`externalRefs=${input.leftSummary.externalRefCount ?? -1}->${input.rightSummary.externalRefCount ?? -1}`);
-  lines.push(`domains=${input.leftSummary.uniqueDomainCount ?? -1}->${input.rightSummary.uniqueDomainCount ?? -1}`);
-  const capsLeft = input.leftSummary.capsDenied === undefined ? "N/A" : String(input.leftSummary.capsDenied);
-  const capsRight = input.rightSummary.capsDenied === undefined ? "N/A" : String(input.rightSummary.capsDenied);
+  lines.push(`externalRefs=${compareNumberToken(input.leftSummary.externalRefCount)}->${compareNumberToken(input.rightSummary.externalRefCount)}`);
+  lines.push(`domains=${compareNumberToken(input.leftSummary.uniqueDomainCount)}->${compareNumberToken(input.rightSummary.uniqueDomainCount)}`);
+  const capsLeft = input.leftSummary.capsDenied === undefined ? "NOT_APPLICABLE" : compareNumberToken(input.leftSummary.capsDenied);
+  const capsRight = input.rightSummary.capsDenied === undefined ? "NOT_APPLICABLE" : compareNumberToken(input.rightSummary.capsDenied);
   lines.push(`capsDenied=${capsLeft}->${capsRight}`);
   lines.push("");
   return `${lines.join("\n")}\n`;

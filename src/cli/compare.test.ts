@@ -124,6 +124,23 @@ suite("cli/compare", () => {
     assert(changedText.includes("verdict=CHANGED"), "expected CHANGED verdict in report");
     assert(changedText.includes("buckets=DIGEST_CHANGED,CONTENT_CHANGED"), "expected deterministic bucket summary in explain content");
   });
+
+  register("renderCompareReportV0 uses explicit unavailable tokens instead of numeric placeholders", () => {
+    const text = renderCompareReportV0({
+      verdict: "SAME",
+      changeBuckets: [],
+      leftSummary: { result: "ALLOW" } as any,
+      rightSummary: { result: "ALLOW" } as any,
+      changes: [],
+    });
+    assert(text.includes("contentFiles=UNKNOWN->UNKNOWN"), "expected explicit UNKNOWN content file token");
+    assert(text.includes("bytes=UNKNOWN->UNKNOWN"), "expected explicit UNKNOWN byte token");
+    assert(text.includes("externalRefs=UNKNOWN->UNKNOWN"), "expected explicit UNKNOWN external ref token");
+    assert(text.includes("domains=UNKNOWN->UNKNOWN"), "expected explicit UNKNOWN domain token");
+    assert(text.includes("capsDenied=NOT_APPLICABLE->NOT_APPLICABLE"), "expected explicit NOT_APPLICABLE caps token");
+    assert(!text.includes("->-1"), "must not emit -1 placeholder tokens");
+    assert(!text.includes("N/A"), "must not emit N/A placeholder tokens");
+  });
 });
 
 if (!hasBDD) {

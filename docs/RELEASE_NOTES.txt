@@ -396,6 +396,7 @@ Included
 - Report-card evidence mapping now tags disclosure state as policy evidence (`evidence.disclosure=[POL]`) in both `report_card.txt` and `report_card_v0.json`.
 - `compare_report.txt` now also includes a deterministic explanation layer (`EXPLAIN V0`) with evidence-tagged readout lines (`OBS`/`INF`/`POL`) explaining why compare says SAME/CHANGED without introducing freeform verdict language.
 - Compare explanation branching now uses explicit state tokens (for example `NOT_APPLICABLE` for change buckets on SAME results) instead of implicit blanks.
+- Compare detail lines now also use explicit unavailable tokens (`UNKNOWN`, `NOT_APPLICABLE`) instead of numeric placeholders (`-1`) or generic `N/A`.
 - Library view refresh/update now fails closed with explicit malformed view-path codes (`LIBRARY_VIEW_DIR_PATH_NOT_DIRECTORY`, `LIBRARY_VIEW_DIR_PATH_PARENT_NOT_DIRECTORY`, `LIBRARY_VIEW_DIR_PATH_INVALID`) when a target's `view` path is corrupted (for example, a file exists where the view directory should be).
 - Added direct-core regression coverage for malformed `view` path cases in both `updateLibraryViewFromRunV0` and `updateLibraryViewForTargetV0`, including no `.stage` residue expectations.
 - Library view refresh/update now also fails closed with explicit file-target path-kind codes for `baseline.txt`, `latest.txt`, `blocked.txt`, and `view_state.json` (for example `LIBRARY_BASELINE_PATH_IS_DIRECTORY`, `LIBRARY_VIEWSTATE_PATH_IS_DIRECTORY`) instead of generic write-failure codes when those paths are malformed.
