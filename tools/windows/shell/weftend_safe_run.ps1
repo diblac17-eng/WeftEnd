@@ -1211,21 +1211,21 @@ function New-DefaultReceiptSummary {
     inputDigest = ""
     targetKind = "unknown"
     artifactKind = "unknown"
-    totalFiles = "?"
-    totalBytesBounded = "?"
-    hasScripts = "?"
+    totalFiles = "UNKNOWN"
+    totalBytesBounded = "UNKNOWN"
+    hasScripts = "UNKNOWN"
     hasHtml = $false
-    hasNativeBinaries = "?"
-    externalRefCount = "?"
+    hasNativeBinaries = "UNKNOWN"
+    externalRefCount = "UNKNOWN"
     externalDomainCount = 0
     entryHints = @()
     boundednessMarkers = @()
-    adapterId = "-"
-    adapterMode = "-"
-    adapterSourceFormat = "-"
-    adapterClass = "-"
-    adapterReasons = "-"
-    adapterSignalMarkers = "-"
+    adapterId = "NOT_REPORTED"
+    adapterMode = "NOT_REPORTED"
+    adapterSourceFormat = "NOT_REPORTED"
+    adapterClass = "UNKNOWN"
+    adapterReasons = "NOT_APPLICABLE"
+    adapterSignalMarkers = "NOT_APPLICABLE"
     capabilityRequested = 0
     capabilityGranted = 0
     capabilityDenied = 0
@@ -2010,11 +2010,12 @@ try {
   $summary = Read-ReceiptSummary
   $targetKind = if ($summary.targetKind) { $summary.targetKind } else { "unknown" }
   $artifactKind = if ($summary.artifactKind) { $summary.artifactKind } else { "unknown" }
-  $files = if ($null -ne $summary.totalFiles) { $summary.totalFiles } else { "?" }
-  $bytes = if ($null -ne $summary.totalBytesBounded) { $summary.totalBytesBounded } else { "?" }
-  $hasScripts = if ($null -ne $summary.hasScripts) { $summary.hasScripts } else { "?" }
-  $hasNative = if ($null -ne $summary.hasNativeBinaries) { $summary.hasNativeBinaries } else { "?" }
-  $extRefs = if ($null -ne $summary.externalRefCount) { $summary.externalRefCount } else { "?" }
+  $files = if ($null -ne $summary.totalFiles) { $summary.totalFiles } else { "UNKNOWN" }
+  $bytes = if ($null -ne $summary.totalBytesBounded) { $summary.totalBytesBounded } else { "UNKNOWN" }
+  $hasScripts = if ($null -ne $summary.hasScripts) { $summary.hasScripts } else { "UNKNOWN" }
+  $hasNative = if ($null -ne $summary.hasNativeBinaries) { $summary.hasNativeBinaries } else { "UNKNOWN" }
+  $extRefs = if ($null -ne $summary.externalRefCount) { $summary.externalRefCount } else { "UNKNOWN" }
+  if ([string]$hasNative -eq "?") { $hasNative = "UNKNOWN" }
   $analysis = if ($summary.analysisVerdict) { $summary.analysisVerdict } else { "UNKNOWN" }
   $execution = if ($summary.executionVerdict) { $summary.executionVerdict } else { "UNKNOWN" }
   $entry = if ($summary.entryHints -and $summary.entryHints.Count -gt 0) { ($summary.entryHints -join ",") } else { "none" }
@@ -2026,7 +2027,7 @@ try {
     "evidence.privacyLint=[SYS]",
     "evidence.buildDigest=[SYS]",
     "classification=target:$targetKind artifact:$artifactKind entryHints=$entry",
-    "observed=files:$files bytes:$bytes scripts:$hasScripts native:$hasNative externalRefs:$extRefs bounded=-",
+    "observed=files:$files bytes:$bytes scripts:$hasScripts native:$hasNative externalRefs:$extRefs bounded=NONE",
     "posture=analysis:$analysis exec:$execution reason:$reason",
     "runId=$runId",
     "result=$result",
