@@ -343,6 +343,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Report-card deterministic explanation (`EXPLAIN V0`) now also includes an explicit disclosure-state readout claim (`explain.disclosure=[POL]`) so the readout explains disclosure presence/absence state rather than only listing the raw token.
 - Report-card observed/target placeholders now use explicit tokens (`UNKNOWN`, `NONE`, `NOT_REPORTED`) instead of ambiguous `?` / `-` placeholders in operator-facing text lines where absence is intentional.
 - Adapter report-card placeholders (`adapterMeta`, `adapterSignals`) now also use explicit tokens (`UNKNOWN`, `NOT_REPORTED`, `NOT_APPLICABLE`) instead of ambiguous `-` placeholders when adapter evidence metadata is partial.
+- Windows report-card viewer adapter-evidence toggle now persists expanded/collapsed state correctly across clicks and forces layout row refresh, fixing cases where "Hide Adapter Evidence" did not collapse the panel.
 - Compare reports now also include a deterministic explanation block (`EXPLAIN V0`) with evidence-tagged readout lines (`OBS`/`INF`/`POL`) that explain why compare says SAME/CHANGED without introducing freeform verdict text.
 - Compare explanation branching now uses explicit state tokens (for example `NOT_APPLICABLE` for change buckets on SAME results) instead of implicit blanks.
 - Compare detail lines now also use explicit unavailable tokens (`UNKNOWN`, `NOT_APPLICABLE`) instead of numeric placeholders (`-1`) or generic `N/A`.

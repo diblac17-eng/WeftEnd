@@ -841,17 +841,41 @@ if ($hasAdapterEvidence) {
   $adapterTable.RowCount += 1
 }
 
-$adapterExpanded = $false
 if ($hasAdapterEvidence) {
   $btnToggleEvidence.Visible = $true
+  $btnToggleEvidence.Tag = $false
   $btnToggleEvidence.Add_Click({
-    $adapterExpanded = -not $adapterExpanded
-    if ($adapterExpanded) {
+    $isExpanded = $false
+    try {
+      $isExpanded = [bool]$btnToggleEvidence.Tag
+    } catch {
+      $isExpanded = $false
+    }
+    $nextExpanded = -not $isExpanded
+    $btnToggleEvidence.Tag = $nextExpanded
+    if ($nextExpanded) {
       $adapterPanel.Visible = $true
+      try {
+        $detailsLayout.RowStyles[1].SizeType = [System.Windows.Forms.SizeType]::AutoSize
+      } catch {
+        # best effort only
+      }
       $btnToggleEvidence.Text = "Hide Adapter Evidence"
     } else {
       $adapterPanel.Visible = $false
+      try {
+        $detailsLayout.RowStyles[1].SizeType = [System.Windows.Forms.SizeType]::Absolute
+        $detailsLayout.RowStyles[1].Height = 0
+      } catch {
+        # best effort only
+      }
       $btnToggleEvidence.Text = "Show Adapter Evidence"
+    }
+    try {
+      $adapterPanel.Parent.PerformLayout()
+      $detailsLayout.PerformLayout()
+    } catch {
+      # best effort only
     }
   })
 }
