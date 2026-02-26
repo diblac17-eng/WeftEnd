@@ -339,6 +339,10 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Explanation wording explicitly frames SAME/CHANGED/BLOCKED as measurement notifications and not final safety verdicts.
 - Explanation templates use explicit state tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, etc.) instead of silent blanks for missing values.
 
+### Library view-state malformed path hardening
+- Library view refresh/update now fails closed with explicit path-kind codes (`LIBRARY_VIEW_DIR_PATH_NOT_DIRECTORY`, `LIBRARY_VIEW_DIR_PATH_PARENT_NOT_DIRECTORY`, `LIBRARY_VIEW_DIR_PATH_INVALID`) when a target's `view` path is malformed (for example, a file exists at `.../view`).
+- Added direct-core regression coverage for both `updateLibraryViewFromRunV0` and `updateLibraryViewForTargetV0` malformed `view` path cases, including no `.stage` residue expectations.
+
 ## [Alpha 0.3] - 2026-02-13
 
 Baseline release for Windows shell + trust hardening bundle.

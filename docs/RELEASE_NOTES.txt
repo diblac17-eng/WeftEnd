@@ -392,6 +392,8 @@ Included
 - Explanation claims are fixed templates (not freeform generation), tagged by evidence class (`OBS`/`INF`/`POL`/`SYS`), and tied to source fields for clearer operator, non-technical, and tooling consumption.
 - Explanation wording explicitly frames SAME/CHANGED/BLOCKED as measurement notifications, not final safety verdicts.
 - Explanation templates use explicit state tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, etc.) instead of silent blanks when values are unavailable.
+- Library view refresh/update now fails closed with explicit malformed view-path codes (`LIBRARY_VIEW_DIR_PATH_NOT_DIRECTORY`, `LIBRARY_VIEW_DIR_PATH_PARENT_NOT_DIRECTORY`, `LIBRARY_VIEW_DIR_PATH_INVALID`) when a target's `view` path is corrupted (for example, a file exists where the view directory should be).
+- Added direct-core regression coverage for malformed `view` path cases in both `updateLibraryViewFromRunV0` and `updateLibraryViewForTargetV0`, including no `.stage` residue expectations.
 - `safe-run`, `run`, and `examine` now fail closed when `--out` equals or overlaps the input path (`*_OUT_CONFLICTS_INPUT`), preventing staged-finalize cleanup from deleting or replacing the source input.
 - `email unpack` and `email safe-run` now also fail closed when `--out` equals or overlaps the input path, preventing staged-finalize cleanup from deleting or replacing source email inputs or normalized email exports.
 - `intake` now also fails closed when `--out` equals or overlaps the input path (`INTAKE_OUT_CONFLICTS_INPUT`), preventing staged-finalize cleanup from deleting or replacing the source input.

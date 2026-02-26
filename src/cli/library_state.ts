@@ -17,6 +17,27 @@ const path = require("path");
 const MAX_HISTORY = 8;
 const MAX_BLOCKED_REASONS = 8;
 
+const checkDirPathOrMissing = (dirPath: string, codeBase: string): { ok: true } | { ok: false; code: string } => {
+  try {
+    if (fs.existsSync(dirPath)) {
+      const stat = fs.statSync(dirPath);
+      if (!stat.isDirectory()) return { ok: false, code: `${codeBase}_NOT_DIRECTORY` };
+    }
+  } catch {
+    return { ok: false, code: `${codeBase}_INVALID` };
+  }
+  const parentDir = path.dirname(dirPath);
+  if (parentDir && fs.existsSync(parentDir)) {
+    try {
+      const parentStat = fs.statSync(parentDir);
+      if (!parentStat.isDirectory()) return { ok: false, code: `${codeBase}_PARENT_NOT_DIRECTORY` };
+    } catch {
+      return { ok: false, code: `${codeBase}_INVALID` };
+    }
+  }
+  return { ok: true };
+};
+
 export type LibraryViewKeyV0 = {
   verdictVsBaseline: "SAME" | "CHANGED";
   buckets: string[];
@@ -246,6 +267,8 @@ export const updateLibraryViewFromRunV0 = (options: {
 }): { ok: boolean; code?: string; skipped?: boolean; viewState?: LibraryViewStateV0 } => {
   const ctx = resolveViewContext(options.outDir);
   if (!ctx.ok || !ctx.targetDir || !ctx.viewDir || !ctx.runId || !ctx.targetKey) return { ok: false, skipped: true };
+  const viewDirCheck = checkDirPathOrMissing(ctx.viewDir, "LIBRARY_VIEW_DIR_PATH");
+  if (!viewDirCheck.ok) return { ok: false, code: viewDirCheck.code };
 
   const runIds = listRunDirs(ctx.targetDir);
   const baselinePath = path.join(ctx.viewDir, "baseline.txt");
@@ -304,6 +327,8 @@ export const updateLibraryViewForTargetV0 = (options: {
   const targetDir = path.join(root, options.targetKey);
   const viewDir = path.join(targetDir, "view");
   if (!fs.existsSync(targetDir)) return { ok: false, code: "LIBRARY_TARGET_MISSING" };
+  const viewDirCheck = checkDirPathOrMissing(viewDir, "LIBRARY_VIEW_DIR_PATH");
+  if (!viewDirCheck.ok) return { ok: false, code: viewDirCheck.code };
 
   const runIds = listRunDirs(targetDir);
   if (runIds.length === 0) return { ok: false, code: "LIBRARY_RUNS_MISSING" };

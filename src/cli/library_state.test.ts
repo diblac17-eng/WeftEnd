@@ -4,6 +4,7 @@
  */
 
 import { runCliCapture } from "./cli_test_runner";
+import { updateLibraryViewForTargetV0, updateLibraryViewFromRunV0 } from "./library_state";
 
 declare const require: any;
 declare const process: any;
@@ -119,6 +120,51 @@ suite("library state view", () => {
     const state4 = readJson(viewPath);
     assert(state4.blocked && state4.blocked.runId, "expected blocked state set");
     assertNoStageFiles(viewDir);
+  });
+
+  register("fails closed with explicit code when view path is a file (from run)", () => {
+    const temp = makeTempDir();
+    const libraryRoot = path.join(temp, "Library");
+    const targetKey = "broken_view_target";
+    const runDir = path.join(libraryRoot, targetKey, "run_000001");
+    const viewPath = path.join(libraryRoot, targetKey, "view");
+    fs.mkdirSync(runDir, { recursive: true });
+    fs.writeFileSync(viewPath, "not-a-directory\n", "utf8");
+
+    const priorRoot = process.env.WEFTEND_LIBRARY_ROOT;
+    process.env.WEFTEND_LIBRARY_ROOT = libraryRoot;
+    try {
+      const res = updateLibraryViewFromRunV0({ outDir: runDir, privacyVerdict: "PASS" });
+      assertEq(res.ok, false, "expected updateLibraryViewFromRunV0 to fail");
+      assertEq(res.code, "LIBRARY_VIEW_DIR_PATH_NOT_DIRECTORY", "expected explicit view dir path-kind code");
+      assert(!fs.existsSync(`${viewPath}.stage`), "expected no view stage residue");
+    } finally {
+      if (typeof priorRoot === "string") process.env.WEFTEND_LIBRARY_ROOT = priorRoot;
+      else delete process.env.WEFTEND_LIBRARY_ROOT;
+    }
+  });
+
+  register("fails closed with explicit code when view path is a file (target refresh)", () => {
+    const temp = makeTempDir();
+    const libraryRoot = path.join(temp, "Library");
+    const targetKey = "broken_view_target";
+    const targetDir = path.join(libraryRoot, targetKey);
+    const runDir = path.join(targetDir, "run_000001");
+    const viewPath = path.join(targetDir, "view");
+    fs.mkdirSync(runDir, { recursive: true });
+    fs.writeFileSync(viewPath, "not-a-directory\n", "utf8");
+
+    const priorRoot = process.env.WEFTEND_LIBRARY_ROOT;
+    process.env.WEFTEND_LIBRARY_ROOT = libraryRoot;
+    try {
+      const res = updateLibraryViewForTargetV0({ targetKey });
+      assertEq(res.ok, false, "expected updateLibraryViewForTargetV0 to fail");
+      assertEq(res.code, "LIBRARY_VIEW_DIR_PATH_NOT_DIRECTORY", "expected explicit view dir path-kind code");
+      assert(!fs.existsSync(`${viewPath}.stage`), "expected no view stage residue");
+    } finally {
+      if (typeof priorRoot === "string") process.env.WEFTEND_LIBRARY_ROOT = priorRoot;
+      else delete process.env.WEFTEND_LIBRARY_ROOT;
+    }
   });
 });
 
