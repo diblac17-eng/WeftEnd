@@ -25,3 +25,9 @@ This contract defines what downstream tools may and may not do when they integra
 WeftEnd is a deterministic evidence and change-control engine.
 Integrations can add workflow value, but they must not change core trust semantics.
 
+## Hosted integration note (future)
+
+- A GitHub-hosted integration mode is allowed as a wrapper around the WeftEnd CLI/engine.
+- Hosted mode must preserve WeftEnd receipts and semantics exactly; it must not replace them with platform-specific verdict logic.
+- Hosted evidence is convenience/pipeline evidence, not a substitute for independent local verification.
+- Hosted wrappers must remain explicit about trust surface (runner environment, workflow permissions, artifact retention).

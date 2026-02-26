@@ -59,3 +59,21 @@ Expected outputs
 - `out/ci_meter/current/analysis/adapter_summary_v0.json` (when adapter applied)
 - `out/ci_meter/current/analysis/adapter_findings_v0.json` (when adapter applied)
 - `out/ci_meter/compare/compare_report.txt` (when `baseline_path` is provided)
+
+Future roadmap (not shipped): hosted GitHub integration mode
+- Goal:
+  - Let operators run WeftEnd on GitHub-hosted runners for repository/release evidence workflows without requiring a local install first.
+- Trust boundary (must remain explicit):
+  - This is not "trust GitHub instead of WeftEnd."
+  - It is "trust a GitHub-hosted execution of WeftEnd under a documented workflow."
+- Requirements before marketplace-style packaging:
+  - Keep WeftEnd as the engine and use a thin Action wrapper (no duplicate logic).
+  - Preserve the same receipt/report schemas and compare semantics as local CLI runs.
+  - Tag execution context in a bounded, non-identifying way (for example local vs github_action) without hostnames, usernames, or runner paths.
+  - Keep analysis-first defaults (`--withhold-exec`) and no implicit network behavior inside the scanner.
+  - Document permissions and artifact retention expectations for the workflow.
+  - Treat GitHub-hosted evidence as convenience/pipeline evidence; local WeftEnd remains the independent verification path.
+- Optional later additions:
+  - Publish a reusable Action with versioned inputs/outputs.
+  - Add release-asset compare workflows (previous tag vs current tag).
+  - Add Marketplace metadata once the Action interface is stable.
