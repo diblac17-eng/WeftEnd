@@ -292,6 +292,15 @@ suite("tools/windows shell assets", () => {
     assert(/function Open-HistoryAdapterEvidenceFolder[\s\S]*?Sync-HistoryRowSnapshot -Item \$selected/.test(text), "adapter-evidence history action must resync selected row");
   });
 
+  register("report viewer normalizes clipboard and subtitle placeholders", () => {
+    const viewerPath = path.join(shellDir, "report_card_viewer.ps1");
+    const text = fs.readFileSync(viewerPath, "utf8");
+    assert(/function Get-DisplayStateValue/.test(text), "report viewer missing display-state normalizer");
+    assert(/function Build-SummaryClipboardText[\s\S]*Get-DisplayStateValue -Value \$Model\.compareVerdict -Fallback "NOT_APPLICABLE"/.test(text), "report viewer summary clipboard must normalize compare placeholders");
+    assert(/function Build-DigestClipboardText[\s\S]*Get-DisplayStateValue -Value \$Model\.reportCardDigest -Fallback "NOT_AVAILABLE"/.test(text), "report viewer digest clipboard must normalize missing digest placeholders");
+    assert(/\$subtitle\.Text = \("Target: " \+ \(Get-DisplayStateValue -Value \$model\.libraryKey -Fallback \$LibraryKey\)/.test(text), "report viewer subtitle must normalize display placeholders");
+  });
+
   register("wrapper emits deterministic result fields", () => {
     const wrapperPath = path.join(shellDir, "weftend_safe_run.ps1");
     const text = fs.readFileSync(wrapperPath, "utf8");

@@ -476,33 +476,38 @@ function Style-Button {
 function Build-SummaryClipboardText {
   param([object]$Model)
   $summary = @(
-    "status=" + (Get-StringValue -Value $Model.status),
-    "result=" + (Get-StringValue -Value $Model.result),
-    "libraryKey=" + (Get-StringValue -Value $Model.libraryKey),
-    "runId=" + (Get-StringValue -Value $Model.runId),
-    "artifactFingerprint=" + (Get-StringValue -Value $Model.artifactFingerprint),
-    "artifactDigest=" + (Get-StringValue -Value $Model.artifactDigest),
-    "reportCardDigest=" + (Get-StringValue -Value $Model.reportCardDigest),
-    "safeReceiptDigest=" + (Get-StringValue -Value $Model.safeReceiptDigest),
-    "privacyLintDigest=" + (Get-StringValue -Value $Model.privacyLintDigest),
-    "operatorReceiptDigest=" + (Get-StringValue -Value $Model.operatorReceiptDigest),
-    "compareReceiptDigest=" + (Get-StringValue -Value $Model.compareReceiptDigest),
-    "compareReportDigest=" + (Get-StringValue -Value $Model.compareReportDigest),
-    "compareVerdict=" + (Get-StringValue -Value $Model.compareVerdict),
-    "compareBuckets=" + (Get-StringValue -Value $Model.compareBuckets),
-    "compareBucketCount=" + (Get-StringValue -Value $Model.compareBucketCount),
-    "compareChangeCount=" + (Get-StringValue -Value $Model.compareChangeCount),
-    "reason=" + (Get-StringValue -Value $Model.reason),
-    "baseline=" + (Get-StringValue -Value $Model.baseline),
-    "latest=" + (Get-StringValue -Value $Model.latest),
-    "buckets=" + (Get-StringValue -Value $Model.buckets)
+    "status=" + (Get-DisplayStateValue -Value $Model.status -Fallback "UNKNOWN"),
+    "result=" + (Get-DisplayStateValue -Value $Model.result -Fallback "UNKNOWN"),
+    "libraryKey=" + (Get-DisplayStateValue -Value $Model.libraryKey -Fallback "NOT_REPORTED"),
+    "runId=" + (Get-DisplayStateValue -Value $Model.runId -Fallback "LATEST_UNAVAILABLE"),
+    "artifactFingerprint=" + (Get-DisplayStateValue -Value $Model.artifactFingerprint -Fallback "NOT_REPORTED"),
+    "artifactDigest=" + (Get-DisplayStateValue -Value $Model.artifactDigest -Fallback "NOT_REPORTED"),
+    "reportCardDigest=" + (Get-DisplayStateValue -Value $Model.reportCardDigest -Fallback "NOT_AVAILABLE"),
+    "safeReceiptDigest=" + (Get-DisplayStateValue -Value $Model.safeReceiptDigest -Fallback "NOT_AVAILABLE"),
+    "privacyLintDigest=" + (Get-DisplayStateValue -Value $Model.privacyLintDigest -Fallback "NOT_APPLICABLE"),
+    "operatorReceiptDigest=" + (Get-DisplayStateValue -Value $Model.operatorReceiptDigest -Fallback "NOT_AVAILABLE"),
+    "compareReceiptDigest=" + (Get-DisplayStateValue -Value $Model.compareReceiptDigest -Fallback "NOT_APPLICABLE"),
+    "compareReportDigest=" + (Get-DisplayStateValue -Value $Model.compareReportDigest -Fallback "NOT_APPLICABLE"),
+    "compareVerdict=" + (Get-DisplayStateValue -Value $Model.compareVerdict -Fallback "NOT_APPLICABLE"),
+    "compareBuckets=" + (Get-DisplayStateValue -Value $Model.compareBuckets -Fallback "NOT_APPLICABLE"),
+    "compareBucketCount=" + (Get-DisplayStateValue -Value $Model.compareBucketCount -Fallback "NOT_APPLICABLE"),
+    "compareChangeCount=" + (Get-DisplayStateValue -Value $Model.compareChangeCount -Fallback "NOT_APPLICABLE"),
+    "reason=" + (Get-DisplayStateValue -Value $Model.reason -Fallback "NOT_REPORTED"),
+    "baseline=" + (Get-DisplayStateValue -Value $Model.baseline -Fallback "BASELINE_UNAVAILABLE"),
+    "latest=" + (Get-DisplayStateValue -Value $Model.latest -Fallback "LATEST_UNAVAILABLE"),
+    "buckets=" + (Get-DisplayStateValue -Value $Model.buckets -Fallback "NOT_APPLICABLE")
   ) -join [Environment]::NewLine
   if ($Model.adapterEvidence -and $Model.adapterEvidence.available) {
+    $adapterMode = if ($Model.adapterEvidence.mode -and [string]$Model.adapterEvidence.mode -ne "-") {
+      [string]$Model.adapterEvidence.mode
+    } else {
+      "built_in"
+    }
     $summary = $summary + [Environment]::NewLine + (
       @(
-        "adapterClass=" + (Get-StringValue -Value $Model.adapterEvidence.class),
-        "adapterId=" + (Get-StringValue -Value $Model.adapterEvidence.adapterId),
-        "adapterMode=" + (Get-StringValue -Value $Model.adapterEvidence.mode),
+        "adapterClass=" + (Get-DisplayStateValue -Value $Model.adapterEvidence.class -Fallback "UNKNOWN"),
+        "adapterId=" + (Get-DisplayStateValue -Value $Model.adapterEvidence.adapterId -Fallback "NOT_REPORTED"),
+        "adapterMode=" + $adapterMode,
         "capabilities=requested:" + [string]$Model.adapterEvidence.requested + ",granted:" + [string]$Model.adapterEvidence.granted + ",denied:" + [string]$Model.adapterEvidence.denied
       ) -join [Environment]::NewLine
     )
@@ -513,15 +518,15 @@ function Build-SummaryClipboardText {
 function Build-DigestClipboardText {
   param([object]$Model)
   return (@(
-    "runId=" + (Get-StringValue -Value $Model.runId),
-    "artifactFingerprint=" + (Get-StringValue -Value $Model.artifactFingerprint),
-    "artifactDigest=" + (Get-StringValue -Value $Model.artifactDigest),
-    "reportCardDigest=" + (Get-StringValue -Value $Model.reportCardDigest),
-    "safeReceiptDigest=" + (Get-StringValue -Value $Model.safeReceiptDigest),
-    "privacyLintDigest=" + (Get-StringValue -Value $Model.privacyLintDigest),
-    "operatorReceiptDigest=" + (Get-StringValue -Value $Model.operatorReceiptDigest),
-    "compareReceiptDigest=" + (Get-StringValue -Value $Model.compareReceiptDigest),
-    "compareReportDigest=" + (Get-StringValue -Value $Model.compareReportDigest)
+    "runId=" + (Get-DisplayStateValue -Value $Model.runId -Fallback "LATEST_UNAVAILABLE"),
+    "artifactFingerprint=" + (Get-DisplayStateValue -Value $Model.artifactFingerprint -Fallback "NOT_REPORTED"),
+    "artifactDigest=" + (Get-DisplayStateValue -Value $Model.artifactDigest -Fallback "NOT_REPORTED"),
+    "reportCardDigest=" + (Get-DisplayStateValue -Value $Model.reportCardDigest -Fallback "NOT_AVAILABLE"),
+    "safeReceiptDigest=" + (Get-DisplayStateValue -Value $Model.safeReceiptDigest -Fallback "NOT_AVAILABLE"),
+    "privacyLintDigest=" + (Get-DisplayStateValue -Value $Model.privacyLintDigest -Fallback "NOT_APPLICABLE"),
+    "operatorReceiptDigest=" + (Get-DisplayStateValue -Value $Model.operatorReceiptDigest -Fallback "NOT_AVAILABLE"),
+    "compareReceiptDigest=" + (Get-DisplayStateValue -Value $Model.compareReceiptDigest -Fallback "NOT_APPLICABLE"),
+    "compareReportDigest=" + (Get-DisplayStateValue -Value $Model.compareReportDigest -Fallback "NOT_APPLICABLE")
   ) -join [Environment]::NewLine)
 }
 
@@ -536,7 +541,7 @@ function Try-CopyClipboardText {
   }
 }
 
-$statusValue = Get-StringValue -Value $model.status
+$statusValue = Get-DisplayStateValue -Value $model.status -Fallback "UNKNOWN"
 $statusBack = [System.Drawing.Color]::FromArgb(68, 88, 100)
 if ($statusValue -eq "SAME") {
   $statusBack = [System.Drawing.Color]::FromArgb(47, 117, 83)
@@ -596,7 +601,7 @@ $title.Margin = New-Object System.Windows.Forms.Padding(0, 2, 0, 1)
 $title.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
 $subtitle = New-Object System.Windows.Forms.Label
-$subtitle.Text = ("Target: " + (Get-StringValue -Value $model.libraryKey -Fallback $LibraryKey) + "   Run: " + (Get-StringValue -Value $model.runId))
+$subtitle.Text = ("Target: " + (Get-DisplayStateValue -Value $model.libraryKey -Fallback $LibraryKey) + "   Run: " + (Get-DisplayStateValue -Value $model.runId -Fallback "LATEST_UNAVAILABLE"))
 $subtitle.Font = $fontSmall
 $subtitle.ForeColor = $colorMuted
 $subtitle.AutoSize = $true

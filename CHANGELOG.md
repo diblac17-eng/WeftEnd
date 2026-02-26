@@ -12,6 +12,11 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Launchpad History evidence/detail lines now also normalize missing compare/artifact/adapter fields to explicit tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, `NONE`) instead of raw `-` placeholders.
 - Added Windows shell asset contract coverage to pin the Launchpad History row resync helper and action usage.
 
+### Report viewer placeholder consistency
+- Report viewer `Copy Summary` and `Copy Digests` clipboard outputs now normalize missing/unavailable values to explicit tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, `LATEST_UNAVAILABLE`, `NOT_REPORTED`) instead of raw internal `-` placeholders.
+- Report viewer header subtitle/status display now also routes through display-state normalization for consistent placeholder semantics across on-screen and copied outputs.
+- Added Windows shell asset contract coverage to pin report viewer clipboard/subtitle placeholder normalization usage.
+
 ### Report Viewer Startup Resilience
 - Windows shell report viewer startup now tracks consecutive startup failures in registry (`ReportViewerStartFailCount`).
 - Auto-open is no longer disabled on first startup failure; disable now occurs only after thresholded consecutive failures.
