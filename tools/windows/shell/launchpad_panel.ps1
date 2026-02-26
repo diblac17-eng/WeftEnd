@@ -1171,6 +1171,7 @@ function Update-HistoryDetailsBox {
   $targetDir = [string]$row.targetDir
   $targetKey = [string]$row.targetKey
   $latestRun = [string]$row.latestRun
+  $latestRunDisplay = $latestRun
   $status = if ($selected.SubItems.Count -gt 1) { [string]$selected.SubItems[1].Text } else { "UNKNOWN" }
   $adapterTag = if ($selected.SubItems.Count -gt 2) { [string]$selected.SubItems[2].Text } else { "NOT_REPORTED" }
   $baseline = if ($selected.SubItems.Count -gt 3) { [string]$selected.SubItems[3].Text } else { "NONE" }
@@ -1178,14 +1179,14 @@ function Update-HistoryDetailsBox {
   if (-not $adapterTag -or $adapterTag.Trim() -eq "" -or $adapterTag -eq "-") { $adapterTag = "NOT_REPORTED" }
   if (-not $baseline -or $baseline.Trim() -eq "" -or $baseline -eq "-") { $baseline = "NONE" }
   if (-not $buckets -or $buckets.Trim() -eq "" -or $buckets -eq "-") { $buckets = "NONE" }
-  if (-not $latestRun -or $latestRun.Trim() -eq "" -or $latestRun -eq "-") { $latestRun = "LATEST_UNAVAILABLE" }
+  if (-not $latestRunDisplay -or $latestRunDisplay.Trim() -eq "" -or $latestRunDisplay -eq "-") { $latestRunDisplay = "LATEST_UNAVAILABLE" }
 
   $lines = @(
     "Target: " + $targetKey,
     "Status: " + $status,
     "Adapter Tag: " + $adapterTag,
     "Baseline: " + $baseline,
-    "Latest: " + $latestRun,
+    "Latest: " + $latestRunDisplay,
     "Buckets: " + $buckets
   )
 

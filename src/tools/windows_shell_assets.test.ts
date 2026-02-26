@@ -308,6 +308,14 @@ suite("tools/windows shell assets", () => {
     assert(/\$historyActions\.AutoScroll = \$true/.test(text), "history actions row must enable horizontal scrolling");
   });
 
+  register("launchpad history details keep latest-run logic separate from display token", () => {
+    const launchpadPath = path.join(shellDir, "launchpad_panel.ps1");
+    const text = fs.readFileSync(launchpadPath, "utf8");
+    assert(/function Update-HistoryDetailsBox[\s\S]*?\$latestRunDisplay = \$latestRun/.test(text), "history details must derive a separate display token for latest run");
+    assert(/function Update-HistoryDetailsBox[\s\S]*?if \(-not \$latestRunDisplay[\s\S]*?\$latestRunDisplay = "LATEST_UNAVAILABLE"/.test(text), "history details must map missing latest run to display token");
+    assert(!/function Update-HistoryDetailsBox[\s\S]*?\$latestRun = "LATEST_UNAVAILABLE"/.test(text), "history details must not replace latest run logic value with display token");
+  });
+
   register("report viewer normalizes clipboard and subtitle placeholders", () => {
     const viewerPath = path.join(shellDir, "report_card_viewer.ps1");
     const text = fs.readFileSync(viewerPath, "utf8");
