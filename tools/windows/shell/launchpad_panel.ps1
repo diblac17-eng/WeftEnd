@@ -1721,7 +1721,7 @@ $historyLayout.Dock = "Fill"
 $historyLayout.ColumnCount = 1
 $historyLayout.RowCount = 3
 $historyLayout.Padding = New-Object System.Windows.Forms.Padding(6, 8, 6, 8)
-$historyLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 42)))
+$historyLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 56)))
 $historyLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
 $historyLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 132)))
 $tabHistory.Controls.Add($historyLayout)
@@ -1730,7 +1730,9 @@ $historyActions = New-Object System.Windows.Forms.FlowLayoutPanel
 $historyActions.Dock = "Fill"
 $historyActions.FlowDirection = "LeftToRight"
 $historyActions.WrapContents = $false
+$historyActions.AutoScroll = $true
 $historyActions.BackColor = $colorBg
+$historyActions.Padding = New-Object System.Windows.Forms.Padding(0, 0, 6, 0)
 
 $btnHistoryRefresh = New-Object System.Windows.Forms.Button
 $btnHistoryRefresh.Text = "Refresh History"
