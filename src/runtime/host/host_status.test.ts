@@ -106,6 +106,43 @@ suite("runtime/host status", () => {
     assertEq(readme, expected, "README must match expected snapshot");
   });
 
+  register("startup fails closed on invalid out-root path kind without throwing", () => {
+    const hostRoot = makeTempDir();
+    const tmp = makeTempDir();
+
+    const outFile = path.join(tmp, "host_status_out_file.txt");
+    fs.writeFileSync(outFile, "x", "utf8");
+    const fileRes = emitHostStatusReceiptV0({
+      hostRoot,
+      hostOutRoot: outFile,
+      trustRootPath: "",
+      outRootSource: "ARG_OUT",
+      outRootEffective: outFile,
+    });
+    assertEq(fileRes.receiptPath, "", "invalid host status out-file path should not emit receipt file");
+    assertEq(fileRes.ok, false, "invalid host status out-file path should be UNVERIFIED");
+    assert(fileRes.receipt.reasonCodes.includes("HOST_OUT_PATH_NOT_DIRECTORY"), "expected HOST_OUT_PATH_NOT_DIRECTORY");
+    assert(!fs.existsSync(`${outFile}.stage`), "invalid out-file path must not create stage residue");
+
+    const outParentFile = path.join(tmp, "host_status_out_parent_file.txt");
+    fs.writeFileSync(outParentFile, "x", "utf8");
+    const outUnderFile = path.join(outParentFile, "receipts");
+    const parentRes = emitHostStatusReceiptV0({
+      hostRoot,
+      hostOutRoot: outUnderFile,
+      trustRootPath: "",
+      outRootSource: "ARG_OUT",
+      outRootEffective: outUnderFile,
+    });
+    assertEq(parentRes.receiptPath, "", "invalid host status out parent-file path should not emit receipt file");
+    assertEq(parentRes.ok, false, "invalid host status out parent-file path should be UNVERIFIED");
+    assert(
+      parentRes.receipt.reasonCodes.includes("HOST_OUT_PATH_PARENT_NOT_DIRECTORY"),
+      "expected HOST_OUT_PATH_PARENT_NOT_DIRECTORY"
+    );
+    assert(!fs.existsSync(`${path.join(outUnderFile, "weftend", "host", "host_status_000001.json")}.stage`), "invalid out parent-file path must not create stage residue");
+  });
+
   register("corrupt host binary yields UNVERIFIED and denies run", async () => {
     const host = setupHostRoot();
     const outDir = makeTempDir();

@@ -48,6 +48,28 @@ export interface HostStatusOptionsV0 {
 
 const isNonEmptyString = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
 
+const validateHostOutRootPath = (outRoot: string): { ok: true } | { ok: false; code: string } => {
+  const resolved = path.resolve(process.cwd(), String(outRoot || ""));
+  try {
+    if (fs.existsSync(resolved)) {
+      const stat = fs.statSync(resolved);
+      if (!stat.isDirectory()) return { ok: false, code: "HOST_OUT_PATH_NOT_DIRECTORY" };
+    }
+  } catch {
+    return { ok: false, code: "HOST_OUT_PATH_INVALID" };
+  }
+  const parentDir = path.dirname(resolved);
+  if (parentDir && fs.existsSync(parentDir)) {
+    try {
+      const parentStat = fs.statSync(parentDir);
+      if (!parentStat.isDirectory()) return { ok: false, code: "HOST_OUT_PATH_PARENT_NOT_DIRECTORY" };
+    } catch {
+      return { ok: false, code: "HOST_OUT_PATH_INVALID" };
+    }
+  }
+  return { ok: true };
+};
+
 const toBinaryString = (buf: unknown): string => {
   if (Buffer && Buffer.isBuffer && Buffer.isBuffer(buf)) {
     return (buf as any).toString("binary");
@@ -160,6 +182,10 @@ export const createHostStatusReceiptV0 = (options: HostStatusOptionsV0) => {
   const reasons: string[] = [];
   const hostRoot = isNonEmptyString(options.hostRoot) ? path.resolve(options.hostRoot) : process.cwd();
   const trustRootPath = isNonEmptyString(options.trustRootPath) ? path.resolve(options.trustRootPath) : "";
+  if (isNonEmptyString(options.hostOutRoot)) {
+    const outPathCheck = validateHostOutRootPath(options.hostOutRoot);
+    if (!outPathCheck.ok) reasons.push(outPathCheck.code);
+  }
 
   const binaryPath =
     options.binaryPathOverride ||
@@ -255,6 +281,10 @@ export const emitHostStatusReceiptV0 = (options: HostStatusOptionsV0) => {
     : isNonEmptyString(options.hostRoot)
       ? path.resolve(options.hostRoot)
       : process.cwd();
+  const outPathCheck = validateHostOutRootPath(outRoot);
+  if (!outPathCheck.ok) {
+    return { receipt, ok, receiptPath: "" };
+  }
   const receiptPath = nextReceiptPath(outRoot);
   const stagePath = `${receiptPath}.stage`;
   fs.rmSync(stagePath, { recursive: true, force: true });
