@@ -544,6 +544,7 @@ function New-ReportCardExplanationV0 {
     [string]$Analysis,
     [string]$Execution,
     [string]$Reason,
+    [string]$Disclosure,
     [string]$Meaning,
     [string]$Next,
     [string]$PrivacyLint,
@@ -563,6 +564,7 @@ function New-ReportCardExplanationV0 {
   $analysisToken = Get-ExplicitStateToken -Value $Analysis -MissingToken "UNKNOWN"
   $executionToken = Get-ExplicitStateToken -Value $Execution -MissingToken "UNKNOWN"
   $reasonToken = Get-ExplicitStateToken -Value $Reason -MissingToken "NOT_REPORTED"
+  $disclosureToken = Get-ExplicitStateToken -Value $Disclosure -MissingToken "DISCLOSURE_UNAVAILABLE"
   $meaningToken = Get-ExplicitStateToken -Value $Meaning -MissingToken "See report card and receipts."
   $nextToken = Get-ExplicitStateToken -Value $Next -MissingToken "REVIEW_REPORT"
   $privacyToken = Get-ExplicitStateToken -Value $PrivacyLint -MissingToken "UNKNOWN"
@@ -585,6 +587,7 @@ function New-ReportCardExplanationV0 {
 
   $observedText = "Observed artifact shape: target=$targetToken artifact=$artifactToken files=$filesToken bytes=$bytesToken scripts=$scriptsToken native=$nativeToken externalRefs=$refsToken."
   $postureText = "Execution posture: analysis=$analysisToken exec=$executionToken reason=$reasonToken."
+  $disclosureText = "Disclosure state: disclosure=$disclosureToken. This is policy/disclosure output state, not a content verdict."
   $nextText = "Operator guidance: $meaningToken Next hint=$nextToken."
   $systemText = "System checks: privacyLint=$privacyToken buildDigest=$buildToken."
   $noteText = "Claims below are deterministic templates linked to evidence tags and source fields."
@@ -607,6 +610,12 @@ function New-ReportCardExplanationV0 {
       class = "POL"
       text = $postureText
       sourceFields = @("posture")
+    },
+    [ordered]@{
+      id = "disclosure_state"
+      class = "POL"
+      text = $disclosureText
+      sourceFields = @("disclosure")
     },
     [ordered]@{
       id = "operator_next"
@@ -637,6 +646,7 @@ function New-ReportCardExplanationV0 {
     "explain.note=$noteText",
     "explain.observed=[OBS] $observedText",
     "explain.posture=[POL] $postureText",
+    "explain.disclosure=[POL] $disclosureText",
     "explain.next=[POL] $nextText",
     "explain.system=[SYS] $systemText"
   )
@@ -912,6 +922,7 @@ function Write-ReportCard {
         $meaning = "Denied by policy or trust gate."
       }
     }
+    $disclosureState = Get-DisclosureStateToken -RunOutDir $outDir
     $explanation = New-ReportCardExplanationV0 `
       -Status $status `
       -Baseline $baselineId `
@@ -927,6 +938,7 @@ function Write-ReportCard {
       -Analysis $analysis `
       -Execution $execution `
       -Reason $Reason `
+      -Disclosure $disclosureState `
       -Meaning $meaning `
       -Next $next `
       -PrivacyLint $PrivacyLint `
@@ -943,7 +955,6 @@ function Write-ReportCard {
       }
       $adapterLines += "capabilities=requested:$capabilityRequested granted:$capabilityGranted denied:$capabilityDenied"
     }
-    $disclosureState = Get-DisclosureStateToken -RunOutDir $outDir
     $lines = @(
       "input=inputType:$inputType adapter:$adapter"
     ) + $adapterLines + @(
@@ -1130,6 +1141,7 @@ function Write-ReportCard {
       -Analysis "UNKNOWN" `
       -Execution "UNKNOWN" `
       -Reason $Reason `
+      -Disclosure $fallbackDisclosureState `
       -Meaning "Report card generated from fallback state." `
       -Next "REVIEW_RECEIPTS" `
       -PrivacyLint $PrivacyLint `

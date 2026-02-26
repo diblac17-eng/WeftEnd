@@ -394,6 +394,7 @@ Included
 - Explanation templates use explicit state tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, etc.) instead of silent blanks when values are unavailable.
 - Windows shell report cards now surface explicit disclosure state (`disclosure=...`) from `analysis/disclosure.txt` (or `disclosure.txt` fallback), with deterministic `DISCLOSURE_UNAVAILABLE` fallback instead of blank/missing disclosure output.
 - Report-card evidence mapping now tags disclosure state as policy evidence (`evidence.disclosure=[POL]`) in both `report_card.txt` and `report_card_v0.json`.
+- Report-card deterministic explanation (`EXPLAIN V0`) now also includes a disclosure-state readout claim (`explain.disclosure=[POL]`) so the readout explains disclosure presence/absence state instead of only listing the token.
 - `compare_report.txt` now also includes a deterministic explanation layer (`EXPLAIN V0`) with evidence-tagged readout lines (`OBS`/`INF`/`POL`) explaining why compare says SAME/CHANGED without introducing freeform verdict language.
 - Compare explanation branching now uses explicit state tokens (for example `NOT_APPLICABLE` for change buckets on SAME results) instead of implicit blanks.
 - Compare detail lines now also use explicit unavailable tokens (`UNKNOWN`, `NOT_APPLICABLE`) instead of numeric placeholders (`-1`) or generic `N/A`.

@@ -129,6 +129,7 @@ suite("blueteam/report-card", () => {
     assert(report.includes("explain.note=Claims below are deterministic templates linked to evidence tags and source fields."), "expected explain note line");
     assert(report.includes("explain.observed=[OBS]"), "expected explain observed claim");
     assert(report.includes("explain.posture=[POL]"), "expected explain posture claim");
+    assert(report.includes("explain.disclosure=[POL]"), "expected explain disclosure claim");
     assert(report.includes("explain.system=[SYS]"), "expected explain system claim");
     assert(report.includes("disclosure=DISCLOSURE_NOT_REQUIRED"), "expected explicit disclosure sentinel in report card");
     assert(!/[A-Za-z]:\\/.test(report), "report card must not include absolute Windows paths");
