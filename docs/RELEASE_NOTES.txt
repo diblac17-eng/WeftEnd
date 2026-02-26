@@ -9,6 +9,7 @@ Included
 - This prevents stale report opens when Launchpad stays open while a newer run is created externally (for example via right-click `Run with WeftEnd`).
 - History details pane and action-button enablement now use the same re-sync path so row metadata stays aligned with current on-disk latest run.
 - History details pane now uses explicit placeholder tokens (`NOT_REPORTED`, `NONE`, `LATEST_UNAVAILABLE`, `NOT_AVAILABLE`) instead of ambiguous `-` placeholders when data is missing/unavailable.
+- History evidence/detail lines (artifact digests, compare fields, adapter summary fields) now also normalize missing values to explicit tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, `NONE`) instead of raw `-`.
 - Windows shell contract tests now pin this resync helper/action usage.
 - Report viewer startup reliability hardening:
 - Windows shell now tracks consecutive report-viewer startup failures via `ReportViewerStartFailCount`.

@@ -1145,6 +1145,17 @@ function Read-ViewStateSummary {
   }
 }
 
+function Get-HistoryDetailToken {
+  param(
+    [object]$Value,
+    [string]$MissingToken = "NOT_REPORTED"
+  )
+  $s = ""
+  if ($null -ne $Value) { $s = [string]$Value }
+  if (-not $s -or $s.Trim() -eq "" -or $s -eq "-") { return $MissingToken }
+  return $s
+}
+
 function Update-HistoryDetailsBox {
   param(
     [System.Windows.Forms.ListView]$ListView,
@@ -1181,29 +1192,29 @@ function Update-HistoryDetailsBox {
   if ($targetDir -and $latestRun -and $latestRun -ne "-") {
     $snapshot = Read-RunEvidenceSnapshot -TargetDir $targetDir -RunId $latestRun
     $lines += ""
-    $lines += "RunId: " + [string]$snapshot.runId
-    $lines += "Artifact Fingerprint: " + [string]$snapshot.artifactFingerprint
-    $lines += "Artifact Digest: " + [string]$snapshot.artifactDigest
-    $lines += "Report Card Digest: " + [string]$snapshot.reportCardDigest
-    $lines += "Safe Receipt Digest: " + [string]$snapshot.safeReceiptDigest
-    $lines += "Privacy Lint Digest: " + [string]$snapshot.privacyLintDigest
-    $lines += "Operator Receipt Digest: " + [string]$snapshot.operatorReceiptDigest
-    $lines += "Compare Receipt Digest: " + [string]$snapshot.compareReceiptDigest
-    $lines += "Compare Report Digest: " + [string]$snapshot.compareReportDigest
-    $lines += "Compare Verdict: " + [string]$snapshot.compareVerdict
-    $lines += "Compare Buckets: " + [string]$snapshot.compareBuckets
-    $lines += "Compare Bucket Count: " + [string]$snapshot.compareBucketCount
-    $lines += "Compare Change Count: " + [string]$snapshot.compareChangeCount
+    $lines += "RunId: " + (Get-HistoryDetailToken -Value $snapshot.runId -MissingToken "LATEST_UNAVAILABLE")
+    $lines += "Artifact Fingerprint: " + (Get-HistoryDetailToken -Value $snapshot.artifactFingerprint -MissingToken "NOT_REPORTED")
+    $lines += "Artifact Digest: " + (Get-HistoryDetailToken -Value $snapshot.artifactDigest -MissingToken "NOT_REPORTED")
+    $lines += "Report Card Digest: " + (Get-HistoryDetailToken -Value $snapshot.reportCardDigest -MissingToken "NOT_AVAILABLE")
+    $lines += "Safe Receipt Digest: " + (Get-HistoryDetailToken -Value $snapshot.safeReceiptDigest -MissingToken "NOT_AVAILABLE")
+    $lines += "Privacy Lint Digest: " + (Get-HistoryDetailToken -Value $snapshot.privacyLintDigest -MissingToken "NOT_AVAILABLE")
+    $lines += "Operator Receipt Digest: " + (Get-HistoryDetailToken -Value $snapshot.operatorReceiptDigest -MissingToken "NOT_AVAILABLE")
+    $lines += "Compare Receipt Digest: " + (Get-HistoryDetailToken -Value $snapshot.compareReceiptDigest -MissingToken "NOT_APPLICABLE")
+    $lines += "Compare Report Digest: " + (Get-HistoryDetailToken -Value $snapshot.compareReportDigest -MissingToken "NOT_APPLICABLE")
+    $lines += "Compare Verdict: " + (Get-HistoryDetailToken -Value $snapshot.compareVerdict -MissingToken "NOT_APPLICABLE")
+    $lines += "Compare Buckets: " + (Get-HistoryDetailToken -Value $snapshot.compareBuckets -MissingToken "NONE")
+    $lines += "Compare Bucket Count: " + (Get-HistoryDetailToken -Value $snapshot.compareBucketCount -MissingToken "NOT_APPLICABLE")
+    $lines += "Compare Change Count: " + (Get-HistoryDetailToken -Value $snapshot.compareChangeCount -MissingToken "NOT_APPLICABLE")
 
     $ev = Read-AdapterEvidenceForRun -TargetDir $targetDir -RunId $latestRun
     if ($ev.available) {
       $lines += ""
-      $lines += "Adapter Class: " + [string]$ev.adapterClass
-      $lines += "Adapter Id: " + [string]$ev.adapterId
-      $lines += "Adapter Mode: " + [string]$ev.adapterMode
-      $lines += "Source Format: " + [string]$ev.sourceFormat
-      $lines += "Adapter Reasons: " + [string]$ev.reasons
-      $lines += "Capabilities: requested=" + [string]$ev.requested + " granted=" + [string]$ev.granted + " denied=" + [string]$ev.denied
+      $lines += "Adapter Class: " + (Get-HistoryDetailToken -Value $ev.adapterClass -MissingToken "NOT_REPORTED")
+      $lines += "Adapter Id: " + (Get-HistoryDetailToken -Value $ev.adapterId -MissingToken "NOT_REPORTED")
+      $lines += "Adapter Mode: " + (Get-HistoryDetailToken -Value $ev.adapterMode -MissingToken "NOT_REPORTED")
+      $lines += "Source Format: " + (Get-HistoryDetailToken -Value $ev.sourceFormat -MissingToken "NOT_REPORTED")
+      $lines += "Adapter Reasons: " + (Get-HistoryDetailToken -Value $ev.reasons -MissingToken "NONE")
+      $lines += "Capabilities: requested=" + (Get-HistoryDetailToken -Value $ev.requested -MissingToken "0") + " granted=" + (Get-HistoryDetailToken -Value $ev.granted -MissingToken "0") + " denied=" + (Get-HistoryDetailToken -Value $ev.denied -MissingToken "0")
     } else {
       $lines += ""
       $lines += "Adapter evidence: NOT_AVAILABLE for latest run."
