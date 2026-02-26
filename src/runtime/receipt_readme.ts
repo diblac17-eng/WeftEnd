@@ -11,6 +11,28 @@ const path = require("path");
 
 const README_NAME = "README.txt";
 
+const validateOutRootPath = (outRoot: string): { ok: true } | { ok: false; code: string } => {
+  const resolved = path.resolve(String(outRoot || ""));
+  try {
+    if (fs.existsSync(resolved)) {
+      const stat = fs.statSync(resolved);
+      if (!stat.isDirectory()) return { ok: false, code: "RECEIPT_README_OUT_ROOT_NOT_DIRECTORY" };
+    }
+  } catch {
+    return { ok: false, code: "RECEIPT_README_OUT_ROOT_INVALID" };
+  }
+  const parentDir = path.dirname(resolved);
+  if (parentDir && fs.existsSync(parentDir)) {
+    try {
+      const parentStat = fs.statSync(parentDir);
+      if (!parentStat.isDirectory()) return { ok: false, code: "RECEIPT_README_OUT_ROOT_PARENT_NOT_DIRECTORY" };
+    } catch {
+      return { ok: false, code: "RECEIPT_README_OUT_ROOT_INVALID" };
+    }
+  }
+  return { ok: true };
+};
+
 export const buildReceiptReadmeV0 = (build: WeftendBuildV0, schemaVersion: number = 0): string => {
   const reasons = stableSortUniqueReasonsV0(build?.reasonCodes ?? []);
   const unavailable = reasons.includes("WEFTEND_BUILD_DIGEST_UNAVAILABLE");
@@ -26,6 +48,8 @@ export const buildReceiptReadmeV0 = (build: WeftendBuildV0, schemaVersion: numbe
 };
 
 export const writeReceiptReadmeV0 = (outRoot: string, build: WeftendBuildV0, schemaVersion: number = 0): string => {
+  const outRootCheck = validateOutRootPath(outRoot);
+  if (!outRootCheck.ok) throw new Error(outRootCheck.code);
   const dir = path.join(outRoot, "weftend");
   fs.mkdirSync(dir, { recursive: true });
   const contents = buildReceiptReadmeV0(build, schemaVersion);

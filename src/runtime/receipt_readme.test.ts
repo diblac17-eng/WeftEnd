@@ -75,6 +75,40 @@ suite("runtime/receipt_readme", () => {
     assert(text.includes("schemaVersion=0"), "expected schemaVersion line");
     assert(text.includes("weftendBuild.digest=sha256:22222222"), "expected digest line");
   });
+
+  register("write fails with explicit code when outRoot is a file or has file parent", () => {
+    const build = { algo: "sha256", digest: "sha256:33333333", source: "NODE_MAIN_JS" } as any;
+    const tmp = makeTempDir();
+
+    const outFile = path.join(tmp, "readme_out_file.txt");
+    fs.writeFileSync(outFile, "x", "utf8");
+    let fileErr = "";
+    try {
+      writeReceiptReadmeV0(outFile, build, 0);
+      fail("expected out-file path rejection");
+    } catch (e: any) {
+      fileErr = String(e?.message || e);
+    }
+    assertEq(fileErr, "RECEIPT_README_OUT_ROOT_NOT_DIRECTORY", "expected explicit out-file rejection code");
+    assert(!fs.existsSync(`${path.join(outFile, "weftend", "README.txt")}.stage`), "must not leave stage file for out-file path");
+
+    const outParentFile = path.join(tmp, "readme_out_parent_file.txt");
+    fs.writeFileSync(outParentFile, "x", "utf8");
+    const outUnderFile = path.join(outParentFile, "receipts");
+    let parentErr = "";
+    try {
+      writeReceiptReadmeV0(outUnderFile, build, 0);
+      fail("expected out-parent-file path rejection");
+    } catch (e: any) {
+      parentErr = String(e?.message || e);
+    }
+    assertEq(
+      parentErr,
+      "RECEIPT_README_OUT_ROOT_PARENT_NOT_DIRECTORY",
+      "expected explicit out-parent-file rejection code"
+    );
+    assert(!fs.existsSync(`${path.join(outUnderFile, "weftend", "README.txt")}.stage`), "must not leave stage file for parent-file path");
+  });
 });
 
 if (!hasBDD) {
@@ -93,4 +127,3 @@ if (!hasBDD) {
     }, 0);
   });
 }
-

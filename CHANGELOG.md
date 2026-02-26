@@ -331,6 +331,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `host run/install/update/status` now fail closed when `--out` / `WEFTEND_HOST_OUT_ROOT` points to a file or has a file parent (`HOST_OUT_PATH_NOT_DIRECTORY`, `HOST_OUT_PATH_PARENT_NOT_DIRECTORY`) before any host status/operator receipts are written.
 - `runHostStrictV0` and `installHostUpdateV0` now enforce the same host out-root path-kind guards in core runtime (not only host CLI wrapper), returning deterministic deny receipts and skipping execute/apply when out-root is invalid.
 - `emitHostStatusReceiptV0` / `createHostStatusReceiptV0` now also enforce host out-root path-kind guards in core runtime, producing deterministic `UNVERIFIED` status receipts and skipping status receipt writes (no throw) when out-root is invalid.
+- Shared runtime writers `writeOperatorReceiptV0` and `writeReceiptReadmeV0` now fail with explicit out-root path-kind error codes (`*_OUT_ROOT_NOT_DIRECTORY`, `*_OUT_ROOT_PARENT_NOT_DIRECTORY`, `*_OUT_ROOT_INVALID`) instead of raw filesystem exceptions on invalid direct caller paths.
 
 ## [Alpha 0.3] - 2026-02-13
 

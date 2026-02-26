@@ -83,6 +83,46 @@ suite("runtime/operator_receipt", () => {
     const parsed = JSON.parse(fs.readFileSync(target, "utf8"));
     assertEq(parsed.schema, "weftend.operatorReceipt/0", "expected schema marker");
   });
+
+  register("write fails with explicit code when outRoot is a file or has file parent", () => {
+    const receipt = buildOperatorReceiptV0({
+      command: "run",
+      schemaVersion: 0,
+      weftendBuild: { algo: "sha256", digest: "sha256:33333333", source: "NODE_MAIN_JS" } as any,
+      entries: [{ kind: "receipt", relPath: "safe_run_receipt.json", digest: "sha256:4" }],
+      warnings: [],
+    });
+
+    const tmp = makeTempDir();
+    const outFile = path.join(tmp, "operator_out_file.txt");
+    fs.writeFileSync(outFile, "x", "utf8");
+    let fileErr = "";
+    try {
+      writeOperatorReceiptV0(outFile, receipt);
+      fail("expected out-file path rejection");
+    } catch (e: any) {
+      fileErr = String(e?.message || e);
+    }
+    assertEq(fileErr, "OPERATOR_RECEIPT_OUT_ROOT_NOT_DIRECTORY", "expected explicit out-file rejection code");
+    assert(!fs.existsSync(`${path.join(outFile, "operator_receipt.json")}.stage`), "must not leave stage file for out-file path");
+
+    const outParentFile = path.join(tmp, "operator_out_parent_file.txt");
+    fs.writeFileSync(outParentFile, "x", "utf8");
+    const outUnderFile = path.join(outParentFile, "receipts");
+    let parentErr = "";
+    try {
+      writeOperatorReceiptV0(outUnderFile, receipt);
+      fail("expected out-parent-file path rejection");
+    } catch (e: any) {
+      parentErr = String(e?.message || e);
+    }
+    assertEq(
+      parentErr,
+      "OPERATOR_RECEIPT_OUT_ROOT_PARENT_NOT_DIRECTORY",
+      "expected explicit out-parent-file rejection code"
+    );
+    assert(!fs.existsSync(`${path.join(outUnderFile, "operator_receipt.json")}.stage`), "must not leave stage file for parent-file path");
+  });
 });
 
 if (!hasBDD) {
