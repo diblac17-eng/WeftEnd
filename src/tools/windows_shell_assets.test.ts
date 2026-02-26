@@ -200,6 +200,13 @@ suite("tools/windows shell assets", () => {
     const doctorPath = path.join(shellDir, "weftend_shell_doctor.ps1");
     const text = fs.readFileSync(doctorPath, "utf8");
     assert(/RepairReportViewer/.test(text), "expected report-viewer repair switch in shell doctor");
+    assert(/RepairShortcuts/.test(text), "expected shortcut-repair switch in shell doctor");
+    assert(/RepairShortcuts: OK/.test(text), "expected shell doctor shortcut repair success status");
+    assert(/SHELL_DOCTOR_REPAIR_SHORTCUTS_FAILED/.test(text), "expected deterministic shell doctor shortcut-repair failure code");
+    assert(/STARTMENU_LAUNCHPAD_SHORTCUT/.test(text), "expected start-menu launchpad shortcut check");
+    assert(/STARTMENU_DOWNLOAD_SHORTCUT/.test(text), "expected start-menu download shortcut check");
+    assert(/DESKTOP_LAUNCHPAD_SHORTCUT/.test(text), "expected desktop launchpad shortcut check");
+    assert(/DESKTOP_DOWNLOAD_SHORTCUT/.test(text), "expected desktop download shortcut check");
     assert(/if \(-not \(Test-Path -Path \$configKey\)\)/.test(text), "expected shell doctor repair path to create missing config key");
     assert(/Set-ItemProperty -Path \$configKey -Name "ReportViewerAutoOpen" -Value "1"/.test(text), "expected shell doctor to repair ReportViewerAutoOpen");
     assert(/Set-ItemProperty -Path \$configKey -Name "ReportViewerStartFailCount" -Value "0"/.test(text), "expected shell doctor to reset startup failure counter");
@@ -281,6 +288,13 @@ suite("tools/windows shell assets", () => {
     assert(/if not exist "%psExe%" set "psExe=powershell\.exe"/i.test(doctorCmdText), "expected shell doctor cmd wrapper to fallback when resolved powershell path is missing");
     assert(/"%psExe%" -NoProfile -ExecutionPolicy Bypass -File/i.test(doctorCmdText), "expected shell doctor cmd wrapper to invoke resolved powershell executable");
     assert(doctorCmdText.includes("%*"), "expected shell doctor cmd wrapper to forward arguments");
+  });
+
+  register("launchpad doctor includes shortcut repair action", () => {
+    const launchpadPath = path.join(shellDir, "launchpad_panel.ps1");
+    const text = fs.readFileSync(launchpadPath, "utf8");
+    assert(/Repair Shortcuts/.test(text), "expected launchpad doctor shortcut repair button text");
+    assert(/Invoke-ShellDoctorText -RepairShortcuts/.test(text), "expected launchpad doctor shortcut repair invocation");
   });
 
   register("launchpad history actions resync latest run before opening artifacts", () => {

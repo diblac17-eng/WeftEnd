@@ -21,6 +21,10 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added Windows shell asset contract coverage to pin History action-strip scroll behavior.
 - Launchpad History details logic now keeps raw `latestRun` for run-resolution checks and uses a separate display token (`LATEST_UNAVAILABLE`) only for rendered text, preventing accidental attempts to resolve a synthetic display token as a run id.
 - Added Windows shell asset contract coverage to pin this latest-run logic/display separation.
+- Shell doctor now supports `-RepairShortcuts` to deterministically repair Start Menu WeftEnd shortcuts (and update existing desktop WeftEnd shortcuts when present) to the configured repo scripts.
+- Shell doctor now checks Launchpad/Download shortcut wiring (`STARTMENU_*` required, `DESKTOP_*` optional) and fails closed on required shortcut mismatch.
+- Launchpad Doctor tab now includes a `Repair Shortcuts` action wired to shell doctor shortcut repair mode.
+- Added Windows shell asset contract coverage to pin shell doctor shortcut checks/repair switch and Launchpad shortcut-repair action wiring.
 
 ### Report viewer placeholder consistency
 - Report viewer `Copy Summary` and `Copy Digests` clipboard outputs now normalize missing/unavailable values to explicit tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, `LATEST_UNAVAILABLE`, `NOT_REPORTED`) instead of raw internal `-` placeholders.

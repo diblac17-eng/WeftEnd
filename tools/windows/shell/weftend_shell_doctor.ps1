@@ -2,7 +2,8 @@
 # Sanity check WeftEnd Safe-Run registry wiring (per-user).
 
 param(
-  [switch]$RepairReportViewer
+  [switch]$RepairReportViewer,
+  [switch]$RepairShortcuts
 )
 
 Set-StrictMode -Version Latest
@@ -71,6 +72,92 @@ function Check-CommandKey {
   return $ok
 }
 
+function Resolve-PowerShellHostPath {
+  $candidate = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
+  if (Test-Path -LiteralPath $candidate) { return $candidate }
+  return "powershell.exe"
+}
+
+function Ensure-ShortcutLink {
+  param(
+    [string]$ShortcutPath,
+    [string]$TargetPath,
+    [string]$Arguments,
+    [string]$WorkingDirectory,
+    [string]$IconLocation
+  )
+  $parent = Split-Path -Parent $ShortcutPath
+  if (-not (Test-Path -LiteralPath $parent)) {
+    New-Item -ItemType Directory -Path $parent -Force | Out-Null
+  }
+  $shell = New-Object -ComObject WScript.Shell
+  $shortcut = $shell.CreateShortcut($ShortcutPath)
+  $shortcut.TargetPath = $TargetPath
+  $shortcut.Arguments = $Arguments
+  $shortcut.WindowStyle = 7
+  if ($WorkingDirectory -and $WorkingDirectory.Trim() -ne "") {
+    $shortcut.WorkingDirectory = $WorkingDirectory
+  }
+  if ($IconLocation -and $IconLocation.Trim() -ne "") {
+    $shortcut.IconLocation = $IconLocation
+  }
+  $shortcut.Save()
+}
+
+function Check-ShortcutLink {
+  param(
+    [string]$Label,
+    [string]$ShortcutPath,
+    [string]$ExpectedTargetPath,
+    [string[]]$RequiredArgTokens,
+    [switch]$Optional
+  )
+  if (-not (Test-Path -LiteralPath $ShortcutPath)) {
+    if ($Optional.IsPresent) {
+      Write-Host ("${Label}: MISSING (optional)")
+      return $true
+    }
+    Write-Host ("${Label}: BAD (missing shortcut)")
+    return $false
+  }
+  try {
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut($ShortcutPath)
+    $targetPath = [string]$shortcut.TargetPath
+    $argText = [string]$shortcut.Arguments
+    $targetOk = $true
+    if ($ExpectedTargetPath -and $ExpectedTargetPath.Trim() -ne "") {
+      $expectedLower = $ExpectedTargetPath.Trim().ToLowerInvariant()
+      $targetLower = if ($targetPath) { $targetPath.Trim().ToLowerInvariant() } else { "" }
+      if ($targetLower -ne $expectedLower -and $targetLower -ne "powershell.exe") {
+        $targetOk = $false
+      }
+    }
+    $argsOk = $true
+    foreach ($tokenObj in @($RequiredArgTokens)) {
+      $token = [string]$tokenObj
+      if (-not $token -or $token.Trim() -eq "") { continue }
+      if ($argText -notlike "*$token*") {
+        $argsOk = $false
+        break
+      }
+    }
+    if ($targetOk -and $argsOk) {
+      Write-Host ("${Label}: OK")
+      return $true
+    }
+    Write-Host ("${Label}: BAD (shortcut target/args mismatch)")
+    return $false
+  } catch {
+    if ($Optional.IsPresent) {
+      Write-Host ("${Label}: BAD (optional shortcut read error)")
+      return $true
+    }
+    Write-Host ("${Label}: BAD (shortcut read error)")
+    return $false
+  }
+}
+
 if ($RepairReportViewer.IsPresent) {
   $repairOk = $false
   $repairCode = "SHELL_DOCTOR_REPAIR_FAILED"
@@ -87,6 +174,45 @@ if ($RepairReportViewer.IsPresent) {
     Write-Host ("RepairReportViewer: FAILED code=" + $repairCode)
   }
   if (-not $repairOk) { exit 40 }
+}
+
+if ($RepairShortcuts.IsPresent) {
+  $shortcutRepairOk = $false
+  $shortcutRepairCode = "SHELL_DOCTOR_REPAIR_SHORTCUTS_FAILED"
+  try {
+    $repairRepoRoot = Read-RegistryValue -Path $configKey -Name "RepoRoot"
+    if (-not $repairRepoRoot -or $repairRepoRoot.Trim() -eq "" -or -not (Test-Path -LiteralPath $repairRepoRoot)) {
+      throw "missing reporoot"
+    }
+    $psExe = Resolve-PowerShellHostPath
+    $launchpadPanel = Join-Path $repairRepoRoot "tools\windows\shell\launchpad_panel.ps1"
+    $downloadScript = Join-Path $repairRepoRoot "tools\windows\weftend_download_and_build.ps1"
+    if (-not (Test-Path -LiteralPath $launchpadPanel)) { throw "missing launchpad panel script" }
+    if (-not (Test-Path -LiteralPath $downloadScript)) { throw "missing download script" }
+    $iconPath = Join-Path $repairRepoRoot "assets\weftend_logo.ico"
+    if (-not (Test-Path -LiteralPath $iconPath)) { $iconPath = $psExe }
+    $launchpadArgs = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$launchpadPanel`""
+    $downloadArgs = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$downloadScript`" -BuildIfMissing"
+    $startMenu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
+    $desktop = [Environment]::GetFolderPath("Desktop")
+    $startLaunchpad = Join-Path $startMenu "WeftEnd Launchpad.lnk"
+    $startDownload = Join-Path $startMenu "WeftEnd Download.lnk"
+    Ensure-ShortcutLink -ShortcutPath $startLaunchpad -TargetPath $psExe -Arguments $launchpadArgs -WorkingDirectory $repairRepoRoot -IconLocation $iconPath
+    Ensure-ShortcutLink -ShortcutPath $startDownload -TargetPath $psExe -Arguments $downloadArgs -WorkingDirectory $repairRepoRoot -IconLocation $iconPath
+    $desktopLaunchpad = Join-Path $desktop "WeftEnd Launchpad.lnk"
+    if (Test-Path -LiteralPath $desktopLaunchpad) {
+      Ensure-ShortcutLink -ShortcutPath $desktopLaunchpad -TargetPath $psExe -Arguments $launchpadArgs -WorkingDirectory $repairRepoRoot -IconLocation $iconPath
+    }
+    $desktopDownload = Join-Path $desktop "WeftEnd Download.lnk"
+    if (Test-Path -LiteralPath $desktopDownload) {
+      Ensure-ShortcutLink -ShortcutPath $desktopDownload -TargetPath $psExe -Arguments $downloadArgs -WorkingDirectory $repairRepoRoot -IconLocation $iconPath
+    }
+    $shortcutRepairOk = $true
+    Write-Host "RepairShortcuts: OK"
+  } catch {
+    Write-Host ("RepairShortcuts: FAILED code=" + $shortcutRepairCode)
+  }
+  if (-not $shortcutRepairOk) { exit 40 }
 }
 
 $repoRoot = Read-RegistryValue -Path $configKey -Name "RepoRoot"
@@ -148,6 +274,20 @@ if (-not (Check-CommandKey -Label "LNK_BIND" -KeyPath $lnkBindKey -Token "-Actio
 if (-not (Check-CommandKey -Label "LNK_UNBIND" -KeyPath $lnkUnbindKey -Token "-Action unbind")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "DIR_BIND" -KeyPath $dirBindKey -Token "-Action bind")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "DIR_UNBIND" -KeyPath $dirUnbindKey -Token "-Action unbind")) { $allOk = $false }
+
+$startMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
+$desktopDir = [Environment]::GetFolderPath("Desktop")
+$startLaunchpadShortcut = Join-Path $startMenuDir "WeftEnd Launchpad.lnk"
+$startDownloadShortcut = Join-Path $startMenuDir "WeftEnd Download.lnk"
+$desktopLaunchpadShortcut = Join-Path $desktopDir "WeftEnd Launchpad.lnk"
+$desktopDownloadShortcut = Join-Path $desktopDir "WeftEnd Download.lnk"
+$expectedPsExe = Resolve-PowerShellHostPath
+$launchpadScriptPath = if ($repoRoot -and $repoRoot.Trim() -ne "") { Join-Path $repoRoot "tools\windows\shell\launchpad_panel.ps1" } else { "" }
+$downloadScriptPath = if ($repoRoot -and $repoRoot.Trim() -ne "") { Join-Path $repoRoot "tools\windows\weftend_download_and_build.ps1" } else { "" }
+if (-not (Check-ShortcutLink -Label "STARTMENU_LAUNCHPAD_SHORTCUT" -ShortcutPath $startLaunchpadShortcut -ExpectedTargetPath $expectedPsExe -RequiredArgTokens @("launchpad_panel.ps1", $launchpadScriptPath))) { $allOk = $false }
+if (-not (Check-ShortcutLink -Label "STARTMENU_DOWNLOAD_SHORTCUT" -ShortcutPath $startDownloadShortcut -ExpectedTargetPath $expectedPsExe -RequiredArgTokens @("weftend_download_and_build.ps1", "-BuildIfMissing", $downloadScriptPath))) { $allOk = $false }
+[void](Check-ShortcutLink -Label "DESKTOP_LAUNCHPAD_SHORTCUT" -ShortcutPath $desktopLaunchpadShortcut -ExpectedTargetPath $expectedPsExe -RequiredArgTokens @("launchpad_panel.ps1", $launchpadScriptPath) -Optional)
+[void](Check-ShortcutLink -Label "DESKTOP_DOWNLOAD_SHORTCUT" -ShortcutPath $desktopDownloadShortcut -ExpectedTargetPath $expectedPsExe -RequiredArgTokens @("weftend_download_and_build.ps1", "-BuildIfMissing", $downloadScriptPath) -Optional)
 
 if ($allOk) {
   Write-Host "ShellDoctorStatus: PASS"

@@ -411,7 +411,10 @@ function Invoke-AdapterDoctorText {
 }
 
 function Invoke-ShellDoctorText {
-  param([switch]$RepairReportViewer)
+  param(
+    [switch]$RepairReportViewer,
+    [switch]$RepairShortcuts
+  )
   if (-not $shellDoctorScript -or -not (Test-Path -LiteralPath $shellDoctorScript)) {
     return @{
       ok = $false
@@ -424,6 +427,9 @@ function Invoke-ShellDoctorText {
     $args = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $shellDoctorScript)
     if ($RepairReportViewer.IsPresent) {
       $args += "-RepairReportViewer"
+    }
+    if ($RepairShortcuts.IsPresent) {
+      $args += "-RepairShortcuts"
     }
     $outputRaw = @(& $powershellExe @args 2>&1)
     $outputText = [string](($outputRaw | ForEach-Object { [string]$_ }) -join [Environment]::NewLine)
@@ -1839,6 +1845,13 @@ $btnDoctorRepairViewer.Height = 30
 Style-Button -Button $btnDoctorRepairViewer -Primary:$false
 $doctorActions.Controls.Add($btnDoctorRepairViewer) | Out-Null
 
+$btnDoctorRepairShortcuts = New-Object System.Windows.Forms.Button
+$btnDoctorRepairShortcuts.Text = "Repair Shortcuts"
+$btnDoctorRepairShortcuts.Width = 124
+$btnDoctorRepairShortcuts.Height = 30
+Style-Button -Button $btnDoctorRepairShortcuts -Primary:$false
+$doctorActions.Controls.Add($btnDoctorRepairShortcuts) | Out-Null
+
 $btnAdapterDoctorRun = New-Object System.Windows.Forms.Button
 $btnAdapterDoctorRun.Text = "Run Adapter Doctor"
 $btnAdapterDoctorRun.Width = 132
@@ -2041,6 +2054,25 @@ $btnDoctorRepairViewer.Add_Click({
     Set-StatusLine -StatusLabel $statusLabel -Message "Viewer repair completed." -IsError $false
   } else {
     Set-StatusLine -StatusLabel $statusLabel -Message ("Viewer repair failed (" + [string]$result.code + ").") -IsError $true
+  }
+})
+$btnDoctorRepairShortcuts.Add_Click({
+  $result = Invoke-ShellDoctorText -RepairShortcuts
+  $header = @(
+    "Shell doctor repairShortcuts=true",
+    "Shell doctor exitCode=" + [string]$result.exitCode,
+    "Shell doctor code=" + [string]$result.code
+  )
+  $body = if ($result.output -and [string]$result.output -ne "") {
+    [string]$result.output
+  } else {
+    "(no shell doctor output)"
+  }
+  $doctorText.Text = (($header + @("", $body)) -join [Environment]::NewLine)
+  if ($result.ok) {
+    Set-StatusLine -StatusLabel $statusLabel -Message "Shortcut repair completed." -IsError $false
+  } else {
+    Set-StatusLine -StatusLabel $statusLabel -Message ("Shortcut repair failed (" + [string]$result.code + ").") -IsError $true
   }
 })
 $btnAdapterDoctorRun.Add_Click({
