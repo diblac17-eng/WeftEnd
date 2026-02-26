@@ -13,6 +13,8 @@ Included
 - Windows shell contract tests now pin this resync helper/action usage.
 - Report viewer clipboard outputs (`Copy Summary`, `Copy Digests`) now normalize missing/unavailable fields to explicit tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, `LATEST_UNAVAILABLE`, `NOT_REPORTED`) instead of raw `-`.
 - Report viewer subtitle/status display now also uses the same display-state normalization path for consistent on-screen vs copied placeholder semantics.
+- Launchpad Doctor tab action buttons now sit in a horizontally scrollable single-row strip, so the far-right buttons remain reachable at narrow Launchpad widths.
+- Doctor action row height was increased to avoid clipping when the horizontal scrollbar is shown.
 - Report viewer startup reliability hardening:
 - Windows shell now tracks consecutive report-viewer startup failures via `ReportViewerStartFailCount`.
 - `ReportViewerAutoOpen` is no longer disabled on first startup failure; disable now happens only after thresholded consecutive startup failures.

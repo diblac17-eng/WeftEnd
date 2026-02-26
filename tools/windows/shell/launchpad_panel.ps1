@@ -1810,7 +1810,7 @@ $doctorLayout.Dock = "Fill"
 $doctorLayout.ColumnCount = 1
 $doctorLayout.RowCount = 2
 $doctorLayout.Padding = New-Object System.Windows.Forms.Padding(6, 8, 6, 8)
-$doctorLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 42)))
+$doctorLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 56)))
 $doctorLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
 $tabDoctor.Controls.Add($doctorLayout)
 
@@ -1818,7 +1818,9 @@ $doctorActions = New-Object System.Windows.Forms.FlowLayoutPanel
 $doctorActions.Dock = "Fill"
 $doctorActions.FlowDirection = "LeftToRight"
 $doctorActions.WrapContents = $false
+$doctorActions.AutoScroll = $true
 $doctorActions.BackColor = $colorBg
+$doctorActions.Padding = New-Object System.Windows.Forms.Padding(0, 0, 6, 0)
 
 $btnDoctorRun = New-Object System.Windows.Forms.Button
 $btnDoctorRun.Text = "Run Shell Doctor"

@@ -292,6 +292,14 @@ suite("tools/windows shell assets", () => {
     assert(/function Open-HistoryAdapterEvidenceFolder[\s\S]*?Sync-HistoryRowSnapshot -Item \$selected/.test(text), "adapter-evidence history action must resync selected row");
   });
 
+  register("launchpad doctor actions row is horizontally scrollable", () => {
+    const launchpadPath = path.join(shellDir, "launchpad_panel.ps1");
+    const text = fs.readFileSync(launchpadPath, "utf8");
+    assert(/\$doctorLayout\.RowStyles\.Add\(\(New-Object System\.Windows\.Forms\.RowStyle\(\[System\.Windows\.Forms\.SizeType\]::Absolute, 56\)\)\)/.test(text), "doctor actions row must reserve height for horizontal scrollbar");
+    assert(/\$doctorActions\.WrapContents = \$false/.test(text), "doctor actions row must stay single-line scroll strip");
+    assert(/\$doctorActions\.AutoScroll = \$true/.test(text), "doctor actions row must enable horizontal scrolling");
+  });
+
   register("report viewer normalizes clipboard and subtitle placeholders", () => {
     const viewerPath = path.join(shellDir, "report_card_viewer.ps1");
     const text = fs.readFileSync(viewerPath, "utf8");

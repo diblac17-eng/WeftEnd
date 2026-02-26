@@ -12,6 +12,11 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Launchpad History evidence/detail lines now also normalize missing compare/artifact/adapter fields to explicit tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, `NONE`) instead of raw `-` placeholders.
 - Added Windows shell asset contract coverage to pin the Launchpad History row resync helper and action usage.
 
+### Launchpad Doctor tab layout fit
+- Launchpad Doctor action-button row is now horizontally scrollable (single-row strip) so the rightmost buttons remain reachable at narrow Launchpad widths.
+- Doctor action row height increased to reserve space for the horizontal scrollbar without clipping button text.
+- Added Windows shell asset contract coverage to pin Doctor action-strip scroll behavior.
+
 ### Report viewer placeholder consistency
 - Report viewer `Copy Summary` and `Copy Digests` clipboard outputs now normalize missing/unavailable values to explicit tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, `LATEST_UNAVAILABLE`, `NOT_REPORTED`) instead of raw internal `-` placeholders.
 - Report viewer header subtitle/status display now also routes through display-state normalization for consistent placeholder semantics across on-screen and copied outputs.
