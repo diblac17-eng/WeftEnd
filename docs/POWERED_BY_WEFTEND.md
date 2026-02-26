@@ -31,3 +31,14 @@ Integrations can add workflow value, but they must not change core trust semanti
 - Hosted mode must preserve WeftEnd receipts and semantics exactly; it must not replace them with platform-specific verdict logic.
 - Hosted evidence is convenience/pipeline evidence, not a substitute for independent local verification.
 - Hosted wrappers must remain explicit about trust surface (runner environment, workflow permissions, artifact retention).
+
+## Deterministic readout layer note (future)
+
+- A richer human-readable "readout" page is allowed if it remains deterministic and evidence-linked.
+- The compact report card remains the primary measurement surface; the readout is an explanation layer over the same fields.
+- Readout requirements:
+  - fixed/template branching only (same input tuple => same text)
+  - explicit unavailable/not-applicable tokens (no ambiguous blanks)
+  - evidence-class tagging for claims (`OBS`, `INF`, `POL`, `SYS`)
+  - source-field linkage for every explanation claim
+- The readout must not introduce freeform verdict claims or replace receipts as the source of truth.
