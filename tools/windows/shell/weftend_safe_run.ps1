@@ -647,6 +647,30 @@ function New-ReportCardExplanationV0 {
   }
 }
 
+function Get-DisclosureStateToken {
+  param([string]$RunOutDir)
+  if (-not $RunOutDir -or $RunOutDir.Trim() -eq "") { return "DISCLOSURE_UNAVAILABLE" }
+  $candidates = @(
+    (Join-Path (Join-Path $RunOutDir "analysis") "disclosure.txt"),
+    (Join-Path $RunOutDir "disclosure.txt")
+  )
+  foreach ($candidate in $candidates) {
+    try {
+      if (-not (Test-Path -LiteralPath $candidate)) { continue }
+      $raw = Get-Content -Path $candidate -Raw -ErrorAction Stop
+      $line = ""
+      if ($null -ne $raw) {
+        $line = (($raw -replace "`r","") -split "`n")[0]
+      }
+      $token = Get-ExplicitStateToken -Value $line -MissingToken "DISCLOSURE_UNAVAILABLE"
+      return $token
+    } catch {
+      continue
+    }
+  }
+  return "DISCLOSURE_UNAVAILABLE"
+}
+
 function Write-ReportCard {
   param(
     [string]$RunId,
@@ -684,6 +708,7 @@ function Write-ReportCard {
     "evidence.classification=[INF]",
     "evidence.observed=[OBS]",
     "evidence.posture=[POL]",
+    "evidence.disclosure=[POL]",
     "evidence.privacyLint=[SYS]",
     "evidence.buildDigest=[SYS]"
   )
@@ -918,6 +943,7 @@ function Write-ReportCard {
       }
       $adapterLines += "capabilities=requested:$capabilityRequested granted:$capabilityGranted denied:$capabilityDenied"
     }
+    $disclosureState = Get-DisclosureStateToken -RunOutDir $outDir
     $lines = @(
       "input=inputType:$inputType adapter:$adapter"
     ) + $adapterLines + @(
@@ -929,6 +955,7 @@ function Write-ReportCard {
       "webLane=$webLane webEntry=$webEntry",
       "observed=files:$files bytes:$bytes scripts:$hasScripts native:$hasNative externalRefs:$extRefs bounded=$bounded",
       "posture=analysis:$analysis exec:$execution reason:$Reason",
+      "disclosure=$disclosureState",
       "meaning=$meaning",
       "next=$next",
       "runId=$RunId",
@@ -1002,10 +1029,12 @@ function Write-ReportCard {
           classification = "INF"
           observed = "OBS"
           posture = "POL"
+          disclosure = "POL"
           privacyLint = "SYS"
           buildDigest = "SYS"
         }
       }
+      disclosure = $disclosureState
       explanation = $(if ($explanation -and $explanation.json) { $explanation.json } else { $null })
       meaning = $meaning
       next = $next
@@ -1080,10 +1109,12 @@ function Write-ReportCard {
       "evidence.classification=[INF]",
       "evidence.observed=[OBS]",
       "evidence.posture=[POL]",
+      "evidence.disclosure=[POL]",
       "evidence.privacyLint=[SYS]",
       "evidence.buildDigest=[SYS]",
       "targets=requested:$requestedLabel scan:$scanLabel"
     )
+    $fallbackDisclosureState = Get-DisclosureStateToken -RunOutDir $outDir
     $fallbackExplanation = New-ReportCardExplanationV0 `
       -Status $statusFallback `
       -Baseline $baselineFallback `
@@ -1111,6 +1142,7 @@ function Write-ReportCard {
       "runId=$RunId",
       "result=$Result",
       "reason=$Reason",
+      "disclosure=$fallbackDisclosureState",
       "privacyLint=$PrivacyLint",
       "buildDigest=$BuildDigest"
     )
@@ -1143,10 +1175,12 @@ function Write-ReportCard {
           classification = "INF"
           observed = "OBS"
           posture = "POL"
+          disclosure = "POL"
           privacyLint = "SYS"
           buildDigest = "SYS"
         }
       }
+      disclosure = $fallbackDisclosureState
       explanation = $(if ($fallbackExplanation -and $fallbackExplanation.json) { $fallbackExplanation.json } else { $null })
       lines = $fallback
     }

@@ -338,6 +338,8 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Explanation claims are template-based (not freeform), evidence-tagged (`OBS`/`INF`/`POL`/`SYS`), and tied to explicit source fields for operator/non-technical/tooling-ready consumption.
 - Explanation wording explicitly frames SAME/CHANGED/BLOCKED as measurement notifications and not final safety verdicts.
 - Explanation templates use explicit state tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, etc.) instead of silent blanks for missing values.
+- Windows shell report cards now surface an explicit disclosure state sentinel (`disclosure=...`) from `analysis/disclosure.txt` (or `disclosure.txt` fallback), with deterministic `DISCLOSURE_UNAVAILABLE` fallback instead of blank/missing disclosure output.
+- Report-card evidence mapping now tags disclosure state as policy evidence (`evidence.disclosure=[POL]`) in both text and structured JSON outputs.
 
 ### Library view-state malformed path hardening
 - Library view refresh/update now fails closed with explicit path-kind codes (`LIBRARY_VIEW_DIR_PATH_NOT_DIRECTORY`, `LIBRARY_VIEW_DIR_PATH_PARENT_NOT_DIRECTORY`, `LIBRARY_VIEW_DIR_PATH_INVALID`) when a target's `view` path is malformed (for example, a file exists at `.../view`).

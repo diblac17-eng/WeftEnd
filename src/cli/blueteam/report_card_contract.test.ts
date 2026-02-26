@@ -121,6 +121,7 @@ suite("blueteam/report-card", () => {
     assert(report.includes("evidence.classification=[INF]"), "expected classification evidence mapping in report card");
     assert(report.includes("evidence.observed=[OBS]"), "expected observed evidence mapping in report card");
     assert(report.includes("evidence.posture=[POL]"), "expected posture evidence mapping in report card");
+    assert(report.includes("evidence.disclosure=[POL]"), "expected disclosure evidence mapping in report card");
     assert(report.includes("evidence.privacyLint=[SYS]"), "expected privacy evidence mapping in report card");
     assert(report.includes("evidence.buildDigest=[SYS]"), "expected build evidence mapping in report card");
     assert(report.includes("EXPLAIN V0: deterministic template (measurement, not verdict)"), "expected explain block header");
@@ -129,6 +130,7 @@ suite("blueteam/report-card", () => {
     assert(report.includes("explain.observed=[OBS]"), "expected explain observed claim");
     assert(report.includes("explain.posture=[POL]"), "expected explain posture claim");
     assert(report.includes("explain.system=[SYS]"), "expected explain system claim");
+    assert(report.includes("disclosure=DISCLOSURE_NOT_REQUIRED"), "expected explicit disclosure sentinel in report card");
     assert(!/[A-Za-z]:\\/.test(report), "report card must not include absolute Windows paths");
     assert(!/\/Users\//.test(report), "report card must not include user paths");
     assert(!/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/.test(report), "report card must not include wall-clock timestamp strings");
@@ -137,6 +139,7 @@ suite("blueteam/report-card", () => {
     const reportJson = fs.readFileSync(path.join(latestRun, "report_card_v0.json"), "utf8");
     assert(/"explanation"\s*:/.test(reportJson), "report card json must include explanation block");
     assert(/"schema"\s*:\s*"weftend\.reportCardExplanation\/0"/.test(reportJson), "report card json explanation schema missing");
+    assert(/"disclosure"\s*:\s*"DISCLOSURE_NOT_REQUIRED"/.test(reportJson), "report card json must include explicit disclosure sentinel");
     assert(!/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/.test(reportJson), "report card json must not include wall-clock timestamp strings");
     assert(!/"createdAt"\s*:/.test(reportJson), "report card json must not include createdAt fields");
     assert(!/"updatedAt"\s*:/.test(reportJson), "report card json must not include updatedAt fields");
