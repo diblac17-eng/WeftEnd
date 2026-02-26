@@ -3,7 +3,7 @@
  * Unit tests for compare lane semantics.
  */
 
-import { compareSummariesV0 } from "./compare";
+import { compareSummariesV0, renderCompareReportV0 } from "./compare";
 import { computeCompareReceiptDigestV0, validateCompareReceiptV0 } from "../core/validate";
 
 type TestFn = () => void | Promise<void>;
@@ -91,6 +91,38 @@ suite("cli/compare", () => {
     receipt.receiptDigest = computeCompareReceiptDigestV0(receipt);
     const issues = validateCompareReceiptV0(receipt, "compareReceipt");
     assert(issues.some((i) => i.code === "FIELD_INVALID"), "expected FIELD_INVALID for sensitive marker");
+  });
+
+  register("renderCompareReportV0 explain layer branches deterministically for SAME and CHANGED", () => {
+    const sameSummary: any = {
+      result: "ALLOW",
+      artifactDigest: "sha256:1111",
+      policyDigest: "sha256:2222",
+      targetKind: "file",
+      artifactKind: "unknown",
+      totalFiles: 1,
+      totalBytesBounded: 10,
+    };
+    const sameText = renderCompareReportV0({
+      verdict: "SAME",
+      changeBuckets: [],
+      leftSummary: sameSummary,
+      rightSummary: sameSummary,
+      changes: [],
+    });
+    assert(sameText.includes("EXPLAIN V0: deterministic template (measurement, not verdict)"), "expected explain header");
+    assert(sameText.includes("verdict=SAME"), "expected SAME verdict in explain content");
+    assert(sameText.includes("change buckets=NOT_APPLICABLE"), "expected explicit non-changed bucket token");
+
+    const changedText = renderCompareReportV0({
+      verdict: "CHANGED",
+      changeBuckets: ["DIGEST_CHANGED", "CONTENT_CHANGED"],
+      leftSummary: { ...sameSummary, artifactDigest: "sha256:aaaa", totalBytesBounded: 10 },
+      rightSummary: { ...sameSummary, artifactDigest: "sha256:bbbb", totalBytesBounded: 20 },
+      changes: [],
+    });
+    assert(changedText.includes("verdict=CHANGED"), "expected CHANGED verdict in report");
+    assert(changedText.includes("buckets=DIGEST_CHANGED,CONTENT_CHANGED"), "expected deterministic bucket summary in explain content");
   });
 });
 

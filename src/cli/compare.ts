@@ -70,6 +70,13 @@ const boundedValues = (values: string[], maxItems: number = MAX_DIFF_ITEMS): str
 
 const normalizeList = (values: string[]): string[] => boundedValues(dedupeSort(values));
 
+const explicitToken = (value: unknown, missing: string): string => {
+  if (value === null || value === undefined) return missing;
+  const text = String(value);
+  if (!text || text.trim().length === 0 || text === "-") return missing;
+  return text;
+};
+
 const setDiff = (left: string[], right: string[]) => {
   const lset = new Set(left);
   const rset = new Set(right);
@@ -363,9 +370,31 @@ export const renderCompareReportV0 = (input: {
   changes: CompareChangeV0[];
 }): string => {
   const lines: string[] = [];
+  const verdictToken = explicitToken(input.verdict, "UNKNOWN");
+  const bucketText = input.changeBuckets.join(",") || "-";
+  const bucketToken = verdictToken === "CHANGED" ? explicitToken(bucketText, "CHANGE_BUCKETS_UNSPECIFIED") : "NOT_APPLICABLE";
+  const leftDigestToken = explicitToken(input.leftSummary.artifactDigest, "UNKNOWN");
+  const rightDigestToken = explicitToken(input.rightSummary.artifactDigest, "UNKNOWN");
+  const leftResultToken = explicitToken(input.leftSummary.result, "UNKNOWN");
+  const rightResultToken = explicitToken(input.rightSummary.result, "UNKNOWN");
+  const leftPolicyToken = explicitToken(input.leftSummary.policyDigest, "POLICY_UNKNOWN");
+  const rightPolicyToken = explicitToken(input.rightSummary.policyDigest, "POLICY_UNKNOWN");
+  const leftKindToken = `${explicitToken(input.leftSummary.targetKind, "UNKNOWN")}:${explicitToken(input.leftSummary.artifactKind, "unknown")}`;
+  const rightKindToken = `${explicitToken(input.rightSummary.targetKind, "UNKNOWN")}:${explicitToken(input.rightSummary.artifactKind, "unknown")}`;
+  const leftFilesToken = explicitToken(input.leftSummary.totalFiles, "UNKNOWN");
+  const rightFilesToken = explicitToken(input.rightSummary.totalFiles, "UNKNOWN");
+  const leftBytesToken = explicitToken(input.leftSummary.totalBytesBounded, "UNKNOWN");
+  const rightBytesToken = explicitToken(input.rightSummary.totalBytesBounded, "UNKNOWN");
+  const compareSummaryText =
+    verdictToken === "SAME"
+      ? "WeftEnd measured no compare deltas between left and right summaries (verdict=SAME). This is a measurement result, not a safety verdict."
+      : `WeftEnd measured compare deltas between left and right summaries (verdict=${verdictToken} buckets=${bucketToken}). This is a measurement result, not a safety verdict.`;
+  const observedReadoutText = `Observed compare anchors: artifactDigest ${leftDigestToken} -> ${rightDigestToken}; result ${leftResultToken} -> ${rightResultToken}; policy ${leftPolicyToken} -> ${rightPolicyToken}.`;
+  const inferredReadoutText = `Inferred compare profile: kind ${leftKindToken} -> ${rightKindToken}; content files ${leftFilesToken} -> ${rightFilesToken}; bytes ${leftBytesToken} -> ${rightBytesToken}.`;
+  const policyReadoutText = `Policy/decision layer: compare verdict=${verdictToken}; change buckets=${bucketToken}. Review compare_receipt.json and compare_report.txt details before acting.`;
   lines.push("WEFTEND COMPARE");
   lines.push(`verdict=${input.verdict}`);
-  lines.push(`buckets=${input.changeBuckets.length} (${input.changeBuckets.join(",") || "-"})`);
+  lines.push(`buckets=${input.changeBuckets.length} (${bucketText})`);
   lines.push("EVIDENCE TAGS: [OBS]=observed from receipts [INF]=inferred from OBS [POL]=policy/decision rule [SYS]=runtime/system condition");
   lines.push("evidence.verdict=[POL]");
   lines.push("evidence.buckets=[INF]");
@@ -377,6 +406,12 @@ export const renderCompareReportV0 = (input: {
   lines.push("evidence.externalRefs=[OBS]");
   lines.push("evidence.content=[OBS]");
   lines.push("evidence.hostTruth=[OBS]");
+  lines.push("EXPLAIN V0: deterministic template (measurement, not verdict)");
+  lines.push(`explain.summary=${compareSummaryText}`);
+  lines.push("explain.note=Claims below are deterministic templates linked to evidence tags and source fields.");
+  lines.push(`explain.observed=[OBS] ${observedReadoutText}`);
+  lines.push(`explain.inferred=[INF] ${inferredReadoutText}`);
+  lines.push(`explain.policy=[POL] ${policyReadoutText}`);
   lines.push("");
   lines.push(`artifactDigest=${input.leftSummary.artifactDigest ?? "UNKNOWN"} -> ${input.rightSummary.artifactDigest ?? "UNKNOWN"}`);
   lines.push(`result=${input.leftSummary.result} -> ${input.rightSummary.result}`);

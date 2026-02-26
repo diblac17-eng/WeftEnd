@@ -146,6 +146,11 @@ suite("cli/compare", () => {
     assert(report.includes("evidence.verdict=[POL]"), "compare report must include verdict evidence claim");
     assert(report.includes("evidence.buckets=[INF]"), "compare report must include bucket evidence claim");
     assert(report.includes("evidence.artifactDigest=[OBS]"), "compare report must include artifact digest evidence claim");
+    assert(report.includes("EXPLAIN V0: deterministic template (measurement, not verdict)"), "compare report must include explain block header");
+    assert(report.includes("explain.summary="), "compare report must include explain summary line");
+    assert(report.includes("explain.observed=[OBS]"), "compare report must include observed explain line");
+    assert(report.includes("explain.inferred=[INF]"), "compare report must include inferred explain line");
+    assert(report.includes("explain.policy=[POL]"), "compare report must include policy explain line");
     assert(!/[A-Za-z]:\\/.test(report), "compare report must not include absolute Windows paths");
     assert(!/\/Users\//.test(report), "compare report must not include user paths");
     assert(!/HOME=/.test(report), "compare report must not include env markers");
