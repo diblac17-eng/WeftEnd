@@ -342,6 +342,8 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 ### Library view-state malformed path hardening
 - Library view refresh/update now fails closed with explicit path-kind codes (`LIBRARY_VIEW_DIR_PATH_NOT_DIRECTORY`, `LIBRARY_VIEW_DIR_PATH_PARENT_NOT_DIRECTORY`, `LIBRARY_VIEW_DIR_PATH_INVALID`) when a target's `view` path is malformed (for example, a file exists at `.../view`).
 - Added direct-core regression coverage for both `updateLibraryViewFromRunV0` and `updateLibraryViewForTargetV0` malformed `view` path cases, including no `.stage` residue expectations.
+- Library view refresh/update now also fails closed with explicit file-target path-kind codes for `baseline.txt`, `latest.txt`, `blocked.txt`, and `view_state.json` (for example `LIBRARY_BASELINE_PATH_IS_DIRECTORY`, `LIBRARY_VIEWSTATE_PATH_IS_DIRECTORY`) instead of generic `*_WRITE_FAILED` results when those paths are malformed.
+- Added direct-core regression coverage for malformed library pointer/view-state file-target paths (directory at `baseline.txt` / `view_state.json`) with no `.stage` residue expectations.
 
 ## [Alpha 0.3] - 2026-02-13
 

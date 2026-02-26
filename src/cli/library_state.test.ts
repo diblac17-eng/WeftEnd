@@ -166,6 +166,54 @@ suite("library state view", () => {
       else delete process.env.WEFTEND_LIBRARY_ROOT;
     }
   });
+
+  register("fails closed with explicit code when baseline pointer path is a directory (from run)", () => {
+    const temp = makeTempDir();
+    const libraryRoot = path.join(temp, "Library");
+    const targetKey = "baseline_pointer_dir_target";
+    const targetDir = path.join(libraryRoot, targetKey);
+    const runDir = path.join(targetDir, "run_000001");
+    const viewDir = path.join(targetDir, "view");
+    fs.mkdirSync(runDir, { recursive: true });
+    fs.mkdirSync(viewDir, { recursive: true });
+    fs.mkdirSync(path.join(viewDir, "baseline.txt"), { recursive: true });
+
+    const priorRoot = process.env.WEFTEND_LIBRARY_ROOT;
+    process.env.WEFTEND_LIBRARY_ROOT = libraryRoot;
+    try {
+      const res = updateLibraryViewFromRunV0({ outDir: runDir, privacyVerdict: "PASS" });
+      assertEq(res.ok, false, "expected updateLibraryViewFromRunV0 to fail");
+      assertEq(res.code, "LIBRARY_BASELINE_PATH_IS_DIRECTORY", "expected explicit baseline path-kind code");
+      assertNoStageFiles(viewDir);
+    } finally {
+      if (typeof priorRoot === "string") process.env.WEFTEND_LIBRARY_ROOT = priorRoot;
+      else delete process.env.WEFTEND_LIBRARY_ROOT;
+    }
+  });
+
+  register("fails closed with explicit code when view-state path is a directory (target refresh)", () => {
+    const temp = makeTempDir();
+    const libraryRoot = path.join(temp, "Library");
+    const targetKey = "viewstate_dir_target";
+    const targetDir = path.join(libraryRoot, targetKey);
+    const runDir = path.join(targetDir, "run_000001");
+    const viewDir = path.join(targetDir, "view");
+    fs.mkdirSync(runDir, { recursive: true });
+    fs.mkdirSync(viewDir, { recursive: true });
+    fs.mkdirSync(path.join(viewDir, "view_state.json"), { recursive: true });
+
+    const priorRoot = process.env.WEFTEND_LIBRARY_ROOT;
+    process.env.WEFTEND_LIBRARY_ROOT = libraryRoot;
+    try {
+      const res = updateLibraryViewForTargetV0({ targetKey });
+      assertEq(res.ok, false, "expected updateLibraryViewForTargetV0 to fail");
+      assertEq(res.code, "LIBRARY_VIEWSTATE_PATH_IS_DIRECTORY", "expected explicit view-state path-kind code");
+      assertNoStageFiles(viewDir);
+    } finally {
+      if (typeof priorRoot === "string") process.env.WEFTEND_LIBRARY_ROOT = priorRoot;
+      else delete process.env.WEFTEND_LIBRARY_ROOT;
+    }
+  });
 });
 
 if (!hasBDD) {

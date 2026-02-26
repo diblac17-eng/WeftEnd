@@ -38,6 +38,27 @@ const checkDirPathOrMissing = (dirPath: string, codeBase: string): { ok: true } 
   return { ok: true };
 };
 
+const checkFilePathForAtomicWrite = (filePath: string, codeBase: string): { ok: true } | { ok: false; code: string } => {
+  try {
+    if (fs.existsSync(filePath)) {
+      const stat = fs.statSync(filePath);
+      if (stat.isDirectory()) return { ok: false, code: `${codeBase}_PATH_IS_DIRECTORY` };
+    }
+  } catch {
+    return { ok: false, code: `${codeBase}_PATH_INVALID` };
+  }
+  const parentDir = path.dirname(filePath);
+  if (parentDir && fs.existsSync(parentDir)) {
+    try {
+      const parentStat = fs.statSync(parentDir);
+      if (!parentStat.isDirectory()) return { ok: false, code: `${codeBase}_PATH_PARENT_NOT_DIRECTORY` };
+    } catch {
+      return { ok: false, code: `${codeBase}_PATH_INVALID` };
+    }
+  }
+  return { ok: true };
+};
+
 export type LibraryViewKeyV0 = {
   verdictVsBaseline: "SAME" | "CHANGED";
   buckets: string[];
@@ -280,7 +301,11 @@ export const updateLibraryViewFromRunV0 = (options: {
   if (!runIds.includes(baseline)) {
     baseline = ctx.runId;
   }
+  const baselinePathCheck = checkFilePathForAtomicWrite(baselinePath, "LIBRARY_BASELINE");
+  if (!baselinePathCheck.ok) return { ok: false, code: baselinePathCheck.code };
   if (!writePointer(baselinePath, baseline)) return { ok: false, code: "LIBRARY_BASELINE_WRITE_FAILED" };
+  const latestPathCheck = checkFilePathForAtomicWrite(latestPath, "LIBRARY_LATEST");
+  if (!latestPathCheck.ok) return { ok: false, code: latestPathCheck.code };
   if (!writePointer(latestPath, ctx.runId)) return { ok: false, code: "LIBRARY_LATEST_WRITE_FAILED" };
 
   const existingBlocked = readBlocked(blockedPath);
@@ -294,6 +319,8 @@ export const updateLibraryViewFromRunV0 = (options: {
     }
     const normalized = stableSortUniqueStringsV0(reasons).slice(0, MAX_BLOCKED_REASONS);
     if (normalized.length > 0) {
+      const blockedPathCheck = checkFilePathForAtomicWrite(blockedPath, "LIBRARY_BLOCKED");
+      if (!blockedPathCheck.ok) return { ok: false, code: blockedPathCheck.code };
       if (!writeBlocked(blockedPath, ctx.runId, normalized)) return { ok: false, code: "LIBRARY_BLOCKED_WRITE_FAILED" };
       blocked = { runId: ctx.runId, reasonCodes: normalized };
     }
@@ -313,6 +340,8 @@ export const updateLibraryViewFromRunV0 = (options: {
     blocked,
     lastN,
   });
+  const viewStatePathCheck = checkFilePathForAtomicWrite(path.join(ctx.viewDir, "view_state.json"), "LIBRARY_VIEWSTATE");
+  if (!viewStatePathCheck.ok) return { ok: false, code: viewStatePathCheck.code };
   if (!writeViewState(ctx.viewDir, state)) return { ok: false, code: "LIBRARY_VIEWSTATE_WRITE_FAILED" };
   return { ok: true, viewState: state };
 };
@@ -340,7 +369,11 @@ export const updateLibraryViewForTargetV0 = (options: {
 
   const latest = readPointer(latestPath) ?? runIds[runIds.length - 1];
   if (options.setBaselineToLatest) {
+    const baselinePathCheck = checkFilePathForAtomicWrite(baselinePath, "LIBRARY_BASELINE");
+    if (!baselinePathCheck.ok) return { ok: false, code: baselinePathCheck.code };
     if (!writePointer(baselinePath, latest)) return { ok: false, code: "LIBRARY_BASELINE_WRITE_FAILED" };
+    const blockedPathCheck = checkFilePathForAtomicWrite(blockedPath, "LIBRARY_BLOCKED");
+    if (!blockedPathCheck.ok) return { ok: false, code: blockedPathCheck.code };
     try {
       if (fs.existsSync(blockedPath)) fs.unlinkSync(blockedPath);
     } catch {
@@ -353,11 +386,17 @@ export const updateLibraryViewForTargetV0 = (options: {
       0,
       MAX_BLOCKED_REASONS
     );
+    const blockedPathCheck = checkFilePathForAtomicWrite(blockedPath, "LIBRARY_BLOCKED");
+    if (!blockedPathCheck.ok) return { ok: false, code: blockedPathCheck.code };
     if (!writeBlocked(blockedPath, latest, reasonCodes)) return { ok: false, code: "LIBRARY_BLOCKED_WRITE_FAILED" };
   }
 
   const baseline = ensureBaseline(runIds, latest, readPointer(baselinePath));
+  const baselinePathCheck = checkFilePathForAtomicWrite(baselinePath, "LIBRARY_BASELINE");
+  if (!baselinePathCheck.ok) return { ok: false, code: baselinePathCheck.code };
   if (!writePointer(baselinePath, baseline)) return { ok: false, code: "LIBRARY_BASELINE_WRITE_FAILED" };
+  const latestPathCheck = checkFilePathForAtomicWrite(latestPath, "LIBRARY_LATEST");
+  if (!latestPathCheck.ok) return { ok: false, code: latestPathCheck.code };
   if (!writePointer(latestPath, latest)) return { ok: false, code: "LIBRARY_LATEST_WRITE_FAILED" };
 
   const blocked = readBlocked(blockedPath);
@@ -374,6 +413,8 @@ export const updateLibraryViewForTargetV0 = (options: {
     blocked,
     lastN,
   });
+  const viewStatePathCheck = checkFilePathForAtomicWrite(viewStatePath, "LIBRARY_VIEWSTATE");
+  if (!viewStatePathCheck.ok) return { ok: false, code: viewStatePathCheck.code };
   if (!writeViewState(viewDir, state)) return { ok: false, code: "LIBRARY_VIEWSTATE_WRITE_FAILED" };
   return { ok: true, viewState: state };
 };
