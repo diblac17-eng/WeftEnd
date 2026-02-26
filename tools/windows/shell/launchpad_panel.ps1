@@ -1161,9 +1161,13 @@ function Update-HistoryDetailsBox {
   $targetKey = [string]$row.targetKey
   $latestRun = [string]$row.latestRun
   $status = if ($selected.SubItems.Count -gt 1) { [string]$selected.SubItems[1].Text } else { "UNKNOWN" }
-  $adapterTag = if ($selected.SubItems.Count -gt 2) { [string]$selected.SubItems[2].Text } else { "-" }
-  $baseline = if ($selected.SubItems.Count -gt 3) { [string]$selected.SubItems[3].Text } else { "-" }
-  $buckets = if ($selected.SubItems.Count -gt 5) { [string]$selected.SubItems[5].Text } else { "-" }
+  $adapterTag = if ($selected.SubItems.Count -gt 2) { [string]$selected.SubItems[2].Text } else { "NOT_REPORTED" }
+  $baseline = if ($selected.SubItems.Count -gt 3) { [string]$selected.SubItems[3].Text } else { "NONE" }
+  $buckets = if ($selected.SubItems.Count -gt 5) { [string]$selected.SubItems[5].Text } else { "NONE" }
+  if (-not $adapterTag -or $adapterTag.Trim() -eq "" -or $adapterTag -eq "-") { $adapterTag = "NOT_REPORTED" }
+  if (-not $baseline -or $baseline.Trim() -eq "" -or $baseline -eq "-") { $baseline = "NONE" }
+  if (-not $buckets -or $buckets.Trim() -eq "" -or $buckets -eq "-") { $buckets = "NONE" }
+  if (-not $latestRun -or $latestRun.Trim() -eq "" -or $latestRun -eq "-") { $latestRun = "LATEST_UNAVAILABLE" }
 
   $lines = @(
     "Target: " + $targetKey,
@@ -1202,11 +1206,11 @@ function Update-HistoryDetailsBox {
       $lines += "Capabilities: requested=" + [string]$ev.requested + " granted=" + [string]$ev.granted + " denied=" + [string]$ev.denied
     } else {
       $lines += ""
-      $lines += "Adapter evidence: none for latest run."
+      $lines += "Adapter evidence: NOT_AVAILABLE for latest run."
     }
   } else {
     $lines += ""
-    $lines += "Adapter evidence: latest run not available."
+    $lines += "Adapter evidence: LATEST_UNAVAILABLE."
   }
 
   $lines += ""
