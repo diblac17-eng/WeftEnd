@@ -186,7 +186,7 @@ if ($RepairShortcuts.IsPresent) {
     }
     $psExe = Resolve-PowerShellHostPath
     $launchpadPanel = Join-Path $repairRepoRoot "tools\windows\shell\launchpad_panel.ps1"
-    $downloadScript = Join-Path $repairRepoRoot "tools\windows\weftend_download_and_build.ps1"
+    $downloadScript = Join-Path $repairRepoRoot "tools\windows\open_release_folder.ps1"
     if (-not (Test-Path -LiteralPath $launchpadPanel)) { throw "missing launchpad panel script" }
     if (-not (Test-Path -LiteralPath $downloadScript)) { throw "missing download script" }
     $iconPath = Join-Path $repairRepoRoot "assets\weftend_logo.ico"
@@ -283,11 +283,11 @@ $desktopLaunchpadShortcut = Join-Path $desktopDir "WeftEnd Launchpad.lnk"
 $desktopDownloadShortcut = Join-Path $desktopDir "WeftEnd Download.lnk"
 $expectedPsExe = Resolve-PowerShellHostPath
 $launchpadScriptPath = if ($repoRoot -and $repoRoot.Trim() -ne "") { Join-Path $repoRoot "tools\windows\shell\launchpad_panel.ps1" } else { "" }
-$downloadScriptPath = if ($repoRoot -and $repoRoot.Trim() -ne "") { Join-Path $repoRoot "tools\windows\weftend_download_and_build.ps1" } else { "" }
+$downloadScriptPath = if ($repoRoot -and $repoRoot.Trim() -ne "") { Join-Path $repoRoot "tools\windows\open_release_folder.ps1" } else { "" }
 if (-not (Check-ShortcutLink -Label "STARTMENU_LAUNCHPAD_SHORTCUT" -ShortcutPath $startLaunchpadShortcut -ExpectedTargetPath $expectedPsExe -RequiredArgTokens @("launchpad_panel.ps1", $launchpadScriptPath))) { $allOk = $false }
-if (-not (Check-ShortcutLink -Label "STARTMENU_DOWNLOAD_SHORTCUT" -ShortcutPath $startDownloadShortcut -ExpectedTargetPath $expectedPsExe -RequiredArgTokens @("weftend_download_and_build.ps1", "-BuildIfMissing", $downloadScriptPath))) { $allOk = $false }
+if (-not (Check-ShortcutLink -Label "STARTMENU_DOWNLOAD_SHORTCUT" -ShortcutPath $startDownloadShortcut -ExpectedTargetPath $expectedPsExe -RequiredArgTokens @("open_release_folder.ps1", "-BuildIfMissing", $downloadScriptPath))) { $allOk = $false }
 [void](Check-ShortcutLink -Label "DESKTOP_LAUNCHPAD_SHORTCUT" -ShortcutPath $desktopLaunchpadShortcut -ExpectedTargetPath $expectedPsExe -RequiredArgTokens @("launchpad_panel.ps1", $launchpadScriptPath) -Optional)
-[void](Check-ShortcutLink -Label "DESKTOP_DOWNLOAD_SHORTCUT" -ShortcutPath $desktopDownloadShortcut -ExpectedTargetPath $expectedPsExe -RequiredArgTokens @("weftend_download_and_build.ps1", "-BuildIfMissing", $downloadScriptPath) -Optional)
+[void](Check-ShortcutLink -Label "DESKTOP_DOWNLOAD_SHORTCUT" -ShortcutPath $desktopDownloadShortcut -ExpectedTargetPath $expectedPsExe -RequiredArgTokens @("open_release_folder.ps1", "-BuildIfMissing", $downloadScriptPath) -Optional)
 
 if ($allOk) {
   Write-Host "ShellDoctorStatus: PASS"

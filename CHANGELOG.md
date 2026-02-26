@@ -23,6 +23,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Added Windows shell asset contract coverage to pin this latest-run logic/display separation.
 - Shell doctor now supports `-RepairShortcuts` to deterministically repair Start Menu WeftEnd shortcuts (and update existing desktop WeftEnd shortcuts when present) to the configured repo scripts.
 - Shell doctor now checks Launchpad/Download shortcut wiring (`STARTMENU_*` required, `DESKTOP_*` optional) and fails closed on required shortcut mismatch.
+- Shell doctor shortcut repair/check for `WeftEnd Download` is now aligned with installer behavior (`tools/windows/open_release_folder.ps1 -BuildIfMissing`) to avoid false mismatch/repair failures.
 - Launchpad Doctor tab now includes a `Repair Shortcuts` action wired to shell doctor shortcut repair mode.
 - Added Windows shell asset contract coverage to pin shell doctor shortcut checks/repair switch and Launchpad shortcut-repair action wiring.
 

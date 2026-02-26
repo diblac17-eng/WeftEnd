@@ -20,6 +20,7 @@ Included
 - Launchpad History details now keep latest-run resolution logic separate from display tokens, so `LATEST_UNAVAILABLE` is used only for rendered text and not as an internal run-id input.
 - Shell doctor now supports `-RepairShortcuts` to repair Start Menu WeftEnd shortcuts (and update existing desktop WeftEnd shortcuts when present) to the configured repo script paths.
 - Shell doctor now validates Launchpad/Download shortcut wiring (`STARTMENU_*` required, `DESKTOP_*` optional) and fails closed on required shortcut mismatch.
+- Shell doctor Download shortcut repair/check now matches installer wiring (`tools/windows/open_release_folder.ps1 -BuildIfMissing`) to prevent false mismatch failures.
 - Launchpad Doctor tab now includes a `Repair Shortcuts` action wired to shell doctor shortcut repair mode.
 - Report viewer startup reliability hardening:
 - Windows shell now tracks consecutive report-viewer startup failures via `ReportViewerStartFailCount`.
