@@ -143,6 +143,42 @@ suite("runtime/host runner", () => {
     assertEq(res.receipt.execute.reasonCodes.length, 0, "expected no execute reason codes");
   });
 
+  register("fails closed when outDir is a file or has file parent", async () => {
+    const host = setupHostRoot();
+    const releaseDir = path.join(process.cwd(), "tests", "fixtures", "release_demo_js");
+    const tmp = makeTempDir();
+
+    const outFile = path.join(tmp, "host_run_out_file.txt");
+    fs.writeFileSync(outFile, "x", "utf8");
+    const outFileRes = await runHostStrictV0({
+      releaseDir,
+      outDir: outFile,
+      hostRoot: host.hostRoot,
+      trustRootPath: host.trustRootPath,
+    });
+    assertEq(outFileRes.exitCode, 40, "expected fail-closed out-file exit code");
+    assert(outFileRes.receipt.verify.reasonCodes.includes("HOST_OUT_PATH_NOT_DIRECTORY"), "expected HOST_OUT_PATH_NOT_DIRECTORY");
+    assert(outFileRes.receipt.execute.result !== "ALLOW", "out-file path must not allow execution");
+    assert(!fs.existsSync(path.join(outFile, "host_run_receipt.json")), "must not write receipt under out-file path");
+
+    const outParentFile = path.join(tmp, "host_run_out_parent_file.txt");
+    fs.writeFileSync(outParentFile, "x", "utf8");
+    const outUnderFile = path.join(outParentFile, "receipts");
+    const outParentFileRes = await runHostStrictV0({
+      releaseDir,
+      outDir: outUnderFile,
+      hostRoot: host.hostRoot,
+      trustRootPath: host.trustRootPath,
+    });
+    assertEq(outParentFileRes.exitCode, 40, "expected fail-closed out-parent-file exit code");
+    assert(
+      outParentFileRes.receipt.verify.reasonCodes.includes("HOST_OUT_PATH_PARENT_NOT_DIRECTORY"),
+      "expected HOST_OUT_PATH_PARENT_NOT_DIRECTORY"
+    );
+    assert(outParentFileRes.receipt.execute.result !== "ALLOW", "out-parent-file path must not allow execution");
+    assert(!fs.existsSync(`${path.join(outUnderFile, "host_run_receipt.json")}.stage`), "must not leave receipt stage file");
+  });
+
   register("missing schemaVersion is invalid", async () => {
     const host = setupHostRoot();
     const releaseDir = makeTempDir();

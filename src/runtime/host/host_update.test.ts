@@ -124,6 +124,56 @@ suite("runtime/host update", () => {
     assert(res.receipt.verify.reasonCodes.includes("HOST_ROOT_OVERLAPS_RELEASE_DIR"), "expected verify overlap reason");
     assert(res.receipt.reasonCodes.includes("HOST_ROOT_OVERLAPS_RELEASE_DIR"), "expected decision overlap reason");
   });
+
+  register("fails closed when outDir is a file or has file parent", () => {
+    const hostRoot = makeTempDir();
+    const trustRootPath = path.join(hostRoot, "trust_root.json");
+    const keyId = "host-demo-key";
+    const secret = "host-update-demo";
+    const publicKey = deriveDemoPublicKey(secret);
+    fs.writeFileSync(trustRootPath, JSON.stringify({ keyId, publicKey }), "utf8");
+    const releaseDir = path.join(process.cwd(), "tests", "fixtures", "release_demo_js");
+
+    const outFile = path.join(makeTempDir(), "host_update_out_file.txt");
+    fs.writeFileSync(outFile, "x", "utf8");
+    const outFileRes = installHostUpdateV0({
+      releaseDir,
+      hostRoot,
+      trustRootPath,
+      signingSecret: secret,
+      outDir: outFile,
+    });
+    assertEq(outFileRes.exitCode, 40, "expected fail-closed out-file exit code");
+    assertEq(outFileRes.receipt.decision, "DENY", "expected decision DENY on out-file path");
+    assertEq(outFileRes.receipt.apply.result, "SKIP", "out-file path must not attempt apply");
+    assert(outFileRes.receipt.reasonCodes.includes("HOST_OUT_PATH_NOT_DIRECTORY"), "expected HOST_OUT_PATH_NOT_DIRECTORY");
+    assert(outFileRes.receipt.verify.reasonCodes.includes("HOST_OUT_PATH_NOT_DIRECTORY"), "expected verify HOST_OUT_PATH_NOT_DIRECTORY");
+    assert(!fs.existsSync(path.join(outFile, "host_update_receipt.json")), "must not write receipt under out-file path");
+
+    const tmp = makeTempDir();
+    const outParentFile = path.join(tmp, "host_update_out_parent_file.txt");
+    fs.writeFileSync(outParentFile, "x", "utf8");
+    const outUnderFile = path.join(outParentFile, "receipts");
+    const outParentFileRes = installHostUpdateV0({
+      releaseDir,
+      hostRoot: makeTempDir(),
+      trustRootPath,
+      signingSecret: secret,
+      outDir: outUnderFile,
+    });
+    assertEq(outParentFileRes.exitCode, 40, "expected fail-closed out-parent-file exit code");
+    assertEq(outParentFileRes.receipt.decision, "DENY", "expected decision DENY on out-parent-file path");
+    assertEq(outParentFileRes.receipt.apply.result, "SKIP", "out-parent-file path must not attempt apply");
+    assert(
+      outParentFileRes.receipt.reasonCodes.includes("HOST_OUT_PATH_PARENT_NOT_DIRECTORY"),
+      "expected HOST_OUT_PATH_PARENT_NOT_DIRECTORY"
+    );
+    assert(
+      outParentFileRes.receipt.verify.reasonCodes.includes("HOST_OUT_PATH_PARENT_NOT_DIRECTORY"),
+      "expected verify HOST_OUT_PATH_PARENT_NOT_DIRECTORY"
+    );
+    assert(!fs.existsSync(`${path.join(outUnderFile, "host_update_receipt.json")}.stage`), "must not leave stage file");
+  });
 });
 
 if (!hasBDD) {

@@ -70,6 +70,28 @@ export interface HostRunOptionsV0 {
 
 const isNonEmptyString = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
 
+const validateHostOutDirPath = (outDir: string): { ok: true } | { ok: false; code: string } => {
+  const resolved = path.resolve(process.cwd(), String(outDir || ""));
+  try {
+    if (fs.existsSync(resolved)) {
+      const stat = fs.statSync(resolved);
+      if (!stat.isDirectory()) return { ok: false, code: "HOST_OUT_PATH_NOT_DIRECTORY" };
+    }
+  } catch {
+    return { ok: false, code: "HOST_OUT_PATH_INVALID" };
+  }
+  const parentDir = path.dirname(resolved);
+  if (parentDir && fs.existsSync(parentDir)) {
+    try {
+      const parentStat = fs.statSync(parentDir);
+      if (!parentStat.isDirectory()) return { ok: false, code: "HOST_OUT_PATH_PARENT_NOT_DIRECTORY" };
+    } catch {
+      return { ok: false, code: "HOST_OUT_PATH_INVALID" };
+    }
+  }
+  return { ok: true };
+};
+
 const hasPemPublicKey = (key: string): boolean =>
   typeof key === "string" && key.includes("-----BEGIN") && key.includes("PUBLIC KEY-----");
 
@@ -208,6 +230,8 @@ const findEntrySource = (bundle: RuntimeBundle | null, entryBlock: string | null
 
 export const runHostStrictV0 = async (options: HostRunOptionsV0): Promise<{ receipt: HostRunReceiptV0; exitCode: number }> => {
   const reasons: string[] = [];
+  const outDirPathCheck = validateHostOutDirPath(options.outDir || "");
+  if (!outDirPathCheck.ok) reasons.push(outDirPathCheck.code);
   const releaseDir = path.resolve(process.cwd(), options.releaseDir || "");
   if (!options.releaseDir || !fs.existsSync(releaseDir) || !fs.statSync(releaseDir).isDirectory()) {
     reasons.push("RELEASE_DIR_MISSING");
@@ -515,13 +539,15 @@ export const runHostStrictV0 = async (options: HostRunOptionsV0): Promise<{ rece
     throw new Error(`HOST_RECEIPT_INVALID:${detail}`);
   }
 
-  fs.mkdirSync(options.outDir, { recursive: true });
-  const receiptPath = path.join(options.outDir, RECEIPT_NAME);
-  const stagePath = `${receiptPath}.stage`;
-  const receiptText = `${canonicalJSON(receipt)}\n`;
-  fs.rmSync(stagePath, { recursive: true, force: true });
-  fs.writeFileSync(stagePath, receiptText, "utf8");
-  fs.renameSync(stagePath, receiptPath);
+  if (outDirPathCheck.ok) {
+    fs.mkdirSync(options.outDir, { recursive: true });
+    const receiptPath = path.join(options.outDir, RECEIPT_NAME);
+    const stagePath = `${receiptPath}.stage`;
+    const receiptText = `${canonicalJSON(receipt)}\n`;
+    fs.rmSync(stagePath, { recursive: true, force: true });
+    fs.writeFileSync(stagePath, receiptText, "utf8");
+    fs.renameSync(stagePath, receiptPath);
+  }
 
   const exitCode =
     execute.result === "ALLOW" && executionOk === true

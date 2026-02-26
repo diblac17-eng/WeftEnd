@@ -46,6 +46,28 @@ const pathsOverlap = (aPath: string, bPath: string): boolean => {
   return a.startsWith(bPrefix) || b.startsWith(aPrefix);
 };
 
+const validateHostOutDirPath = (outDir: string): { ok: true } | { ok: false; code: string } => {
+  const resolved = path.resolve(process.cwd(), String(outDir || ""));
+  try {
+    if (fs.existsSync(resolved)) {
+      const stat = fs.statSync(resolved);
+      if (!stat.isDirectory()) return { ok: false, code: "HOST_OUT_PATH_NOT_DIRECTORY" };
+    }
+  } catch {
+    return { ok: false, code: "HOST_OUT_PATH_INVALID" };
+  }
+  const parentDir = path.dirname(resolved);
+  if (parentDir && fs.existsSync(parentDir)) {
+    try {
+      const parentStat = fs.statSync(parentDir);
+      if (!parentStat.isDirectory()) return { ok: false, code: "HOST_OUT_PATH_PARENT_NOT_DIRECTORY" };
+    } catch {
+      return { ok: false, code: "HOST_OUT_PATH_INVALID" };
+    }
+  }
+  return { ok: true };
+};
+
 export interface HostInstallOptionsV0 {
   releaseDir: string;
   hostRoot: string;
@@ -186,6 +208,11 @@ export const installHostUpdateV0 = (options: HostInstallOptionsV0): { receipt: H
   const hostRoot = path.resolve(process.cwd(), options.hostRoot || "");
   const trustRootPath = path.resolve(process.cwd(), options.trustRootPath || "");
   const outDir = options.outDir ? path.resolve(process.cwd(), options.outDir) : path.join(hostRoot, "receipts");
+  const outDirPathCheck = validateHostOutDirPath(outDir);
+  if (!outDirPathCheck.ok) {
+    verifyReasons.push(outDirPathCheck.code);
+    decisionReasons.push(outDirPathCheck.code);
+  }
 
   if (!options.releaseDir || !fs.existsSync(releaseDir)) verifyReasons.push("RELEASE_DIR_MISSING");
   if (!options.hostRoot) decisionReasons.push("HOST_ROOT_MISSING");
@@ -394,12 +421,14 @@ export const installHostUpdateV0 = (options: HostInstallOptionsV0): { receipt: H
     throw new Error("HOST_UPDATE_RECEIPT_INVALID");
   }
 
-  fs.mkdirSync(outDir, { recursive: true });
-  const receiptPath = path.join(outDir, RECEIPT_NAME);
-  const stagePath = `${receiptPath}.stage`;
-  fs.rmSync(stagePath, { recursive: true, force: true });
-  fs.writeFileSync(stagePath, `${canonicalJSON(receipt)}\n`, "utf8");
-  fs.renameSync(stagePath, receiptPath);
+  if (outDirPathCheck.ok) {
+    fs.mkdirSync(outDir, { recursive: true });
+    const receiptPath = path.join(outDir, RECEIPT_NAME);
+    const stagePath = `${receiptPath}.stage`;
+    fs.rmSync(stagePath, { recursive: true, force: true });
+    fs.writeFileSync(stagePath, `${canonicalJSON(receipt)}\n`, "utf8");
+    fs.renameSync(stagePath, receiptPath);
+  }
 
   const exitCode = receipt.decision === "ALLOW" && applyResult === "APPLIED" ? 0 : 40;
   return { receipt, exitCode };
