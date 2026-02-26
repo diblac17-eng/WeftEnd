@@ -386,6 +386,12 @@ Included
 - Host runtime core (`runHostStrictV0`, `installHostUpdateV0`) now also enforces host out-root path-kind guards directly (not only CLI wrapper parsing), returning deterministic deny receipts and skipping execute/apply when out-root is invalid.
 - Host status runtime core (`createHostStatusReceiptV0`, `emitHostStatusReceiptV0`) now also enforces host out-root path-kind guards directly, producing deterministic `UNVERIFIED` status receipts and skipping status receipt writes (no throw) when out-root is invalid.
 - Shared runtime writers `writeOperatorReceiptV0` and `writeReceiptReadmeV0` now fail with explicit out-root path-kind error codes (`*_OUT_ROOT_NOT_DIRECTORY`, `*_OUT_ROOT_PARENT_NOT_DIRECTORY`, `*_OUT_ROOT_INVALID`) instead of raw filesystem exceptions on invalid direct caller paths.
+- Windows shell report cards now include a deterministic explanation layer:
+  - `EXPLAIN V0` block in `report_card.txt`
+  - structured `explanation` object in `report_card_v0.json` (`weftend.reportCardExplanation/0`)
+- Explanation claims are fixed templates (not freeform generation), tagged by evidence class (`OBS`/`INF`/`POL`/`SYS`), and tied to source fields for clearer operator, non-technical, and tooling consumption.
+- Explanation wording explicitly frames SAME/CHANGED/BLOCKED as measurement notifications, not final safety verdicts.
+- Explanation templates use explicit state tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, etc.) instead of silent blanks when values are unavailable.
 - `safe-run`, `run`, and `examine` now fail closed when `--out` equals or overlaps the input path (`*_OUT_CONFLICTS_INPUT`), preventing staged-finalize cleanup from deleting or replacing the source input.
 - `email unpack` and `email safe-run` now also fail closed when `--out` equals or overlaps the input path, preventing staged-finalize cleanup from deleting or replacing source email inputs or normalized email exports.
 - `intake` now also fails closed when `--out` equals or overlaps the input path (`INTAKE_OUT_CONFLICTS_INPUT`), preventing staged-finalize cleanup from deleting or replacing the source input.

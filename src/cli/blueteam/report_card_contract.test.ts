@@ -123,12 +123,20 @@ suite("blueteam/report-card", () => {
     assert(report.includes("evidence.posture=[POL]"), "expected posture evidence mapping in report card");
     assert(report.includes("evidence.privacyLint=[SYS]"), "expected privacy evidence mapping in report card");
     assert(report.includes("evidence.buildDigest=[SYS]"), "expected build evidence mapping in report card");
+    assert(report.includes("EXPLAIN V0: deterministic template (measurement, not verdict)"), "expected explain block header");
+    assert(report.includes("explain.summary="), "expected explain summary line");
+    assert(report.includes("explain.note=Claims below are deterministic templates linked to evidence tags and source fields."), "expected explain note line");
+    assert(report.includes("explain.observed=[OBS]"), "expected explain observed claim");
+    assert(report.includes("explain.posture=[POL]"), "expected explain posture claim");
+    assert(report.includes("explain.system=[SYS]"), "expected explain system claim");
     assert(!/[A-Za-z]:\\/.test(report), "report card must not include absolute Windows paths");
     assert(!/\/Users\//.test(report), "report card must not include user paths");
     assert(!/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/.test(report), "report card must not include wall-clock timestamp strings");
     assert(!/\btimestampMs=/.test(report), "report card must not include runtime timestamp counters");
 
     const reportJson = fs.readFileSync(path.join(latestRun, "report_card_v0.json"), "utf8");
+    assert(/"explanation"\s*:/.test(reportJson), "report card json must include explanation block");
+    assert(/"schema"\s*:\s*"weftend\.reportCardExplanation\/0"/.test(reportJson), "report card json explanation schema missing");
     assert(!/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/.test(reportJson), "report card json must not include wall-clock timestamp strings");
     assert(!/"createdAt"\s*:/.test(reportJson), "report card json must not include createdAt fields");
     assert(!/"updatedAt"\s*:/.test(reportJson), "report card json must not include updatedAt fields");

@@ -333,6 +333,12 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `emitHostStatusReceiptV0` / `createHostStatusReceiptV0` now also enforce host out-root path-kind guards in core runtime, producing deterministic `UNVERIFIED` status receipts and skipping status receipt writes (no throw) when out-root is invalid.
 - Shared runtime writers `writeOperatorReceiptV0` and `writeReceiptReadmeV0` now fail with explicit out-root path-kind error codes (`*_OUT_ROOT_NOT_DIRECTORY`, `*_OUT_ROOT_PARENT_NOT_DIRECTORY`, `*_OUT_ROOT_INVALID`) instead of raw filesystem exceptions on invalid direct caller paths.
 
+### Deterministic report explanation layer
+- Windows shell report cards now include a deterministic explanation block (`EXPLAIN V0`) in `report_card.txt` and a structured `explanation` object in `report_card_v0.json` (`weftend.reportCardExplanation/0`).
+- Explanation claims are template-based (not freeform), evidence-tagged (`OBS`/`INF`/`POL`/`SYS`), and tied to explicit source fields for operator/non-technical/tooling-ready consumption.
+- Explanation wording explicitly frames SAME/CHANGED/BLOCKED as measurement notifications and not final safety verdicts.
+- Explanation templates use explicit state tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, etc.) instead of silent blanks for missing values.
+
 ## [Alpha 0.3] - 2026-02-13
 
 Baseline release for Windows shell + trust hardening bundle.

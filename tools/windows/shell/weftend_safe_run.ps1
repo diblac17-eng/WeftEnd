@@ -515,6 +515,138 @@ function Write-WrapperStderr {
   $line | Set-Content -Path $path -Encoding UTF8
 }
 
+function Get-ExplicitStateToken {
+  param(
+    [object]$Value,
+    [string]$MissingToken = "NOT_AVAILABLE"
+  )
+  if ($null -eq $Value) { return $MissingToken }
+  $text = [string]$Value
+  if (-not $text -or $text.Trim() -eq "" -or $text -eq "-") {
+    return $MissingToken
+  }
+  return $text
+}
+
+function New-ReportCardExplanationV0 {
+  param(
+    [string]$Status,
+    [string]$Baseline,
+    [string]$Latest,
+    [string]$Buckets,
+    [string]$TargetKind,
+    [string]$ArtifactKind,
+    [object]$Files,
+    [object]$Bytes,
+    [object]$HasScripts,
+    [object]$HasNative,
+    [object]$ExternalRefs,
+    [string]$Analysis,
+    [string]$Execution,
+    [string]$Reason,
+    [string]$Meaning,
+    [string]$Next,
+    [string]$PrivacyLint,
+    [string]$BuildDigest
+  )
+  $statusToken = Get-ExplicitStateToken -Value $Status -MissingToken "UNKNOWN"
+  $baselineToken = Get-ExplicitStateToken -Value $Baseline -MissingToken "BASELINE_UNAVAILABLE"
+  $latestToken = Get-ExplicitStateToken -Value $Latest -MissingToken "LATEST_UNAVAILABLE"
+  $bucketToken = if ($statusToken -eq "CHANGED") {
+    Get-ExplicitStateToken -Value $Buckets -MissingToken "CHANGE_BUCKETS_UNSPECIFIED"
+  } else {
+    Get-ExplicitStateToken -Value $Buckets -MissingToken "NOT_APPLICABLE"
+  }
+  if ($bucketToken -eq "-" -and $statusToken -ne "CHANGED") { $bucketToken = "NOT_APPLICABLE" }
+  $targetToken = Get-ExplicitStateToken -Value $TargetKind -MissingToken "unknown"
+  $artifactToken = Get-ExplicitStateToken -Value $ArtifactKind -MissingToken "unknown"
+  $analysisToken = Get-ExplicitStateToken -Value $Analysis -MissingToken "UNKNOWN"
+  $executionToken = Get-ExplicitStateToken -Value $Execution -MissingToken "UNKNOWN"
+  $reasonToken = Get-ExplicitStateToken -Value $Reason -MissingToken "NOT_REPORTED"
+  $meaningToken = Get-ExplicitStateToken -Value $Meaning -MissingToken "See report card and receipts."
+  $nextToken = Get-ExplicitStateToken -Value $Next -MissingToken "REVIEW_REPORT"
+  $privacyToken = Get-ExplicitStateToken -Value $PrivacyLint -MissingToken "UNKNOWN"
+  $buildToken = Get-ExplicitStateToken -Value $BuildDigest -MissingToken "UNKNOWN"
+  $filesToken = Get-ExplicitStateToken -Value $Files -MissingToken "UNKNOWN"
+  $bytesToken = Get-ExplicitStateToken -Value $Bytes -MissingToken "UNKNOWN"
+  $scriptsToken = Get-ExplicitStateToken -Value $HasScripts -MissingToken "UNKNOWN"
+  $nativeToken = Get-ExplicitStateToken -Value $HasNative -MissingToken "UNKNOWN"
+  $refsToken = Get-ExplicitStateToken -Value $ExternalRefs -MissingToken "UNKNOWN"
+
+  $statusSummary = "WeftEnd measured status=$statusToken versus baseline (baseline=$baselineToken latest=$latestToken buckets=$bucketToken)."
+  if ($statusToken -eq "SAME") {
+    $statusSummary = "WeftEnd measured no change versus the accepted baseline (status=SAME baseline=$baselineToken latest=$latestToken)."
+  } elseif ($statusToken -eq "CHANGED") {
+    $statusSummary = "WeftEnd measured changes versus the accepted baseline (status=CHANGED buckets=$bucketToken baseline=$baselineToken latest=$latestToken)."
+  } elseif ($statusToken -eq "BLOCKED") {
+    $statusSummary = "WeftEnd measured a blocked compare state (status=BLOCKED baseline=$baselineToken latest=$latestToken)."
+  }
+  $summaryText = "$statusSummary This is a measurement notification, not a final safety verdict."
+
+  $observedText = "Observed artifact shape: target=$targetToken artifact=$artifactToken files=$filesToken bytes=$bytesToken scripts=$scriptsToken native=$nativeToken externalRefs=$refsToken."
+  $postureText = "Execution posture: analysis=$analysisToken exec=$executionToken reason=$reasonToken."
+  $nextText = "Operator guidance: $meaningToken Next hint=$nextToken."
+  $systemText = "System checks: privacyLint=$privacyToken buildDigest=$buildToken."
+  $noteText = "Claims below are deterministic templates linked to evidence tags and source fields."
+
+  $claims = @(
+    [ordered]@{
+      id = "status_signal"
+      class = "INF"
+      text = $summaryText
+      sourceFields = @("status", "baseline", "latest", "buckets")
+    },
+    [ordered]@{
+      id = "observed_shape"
+      class = "OBS"
+      text = $observedText
+      sourceFields = @("classification", "observed")
+    },
+    [ordered]@{
+      id = "execution_posture"
+      class = "POL"
+      text = $postureText
+      sourceFields = @("posture")
+    },
+    [ordered]@{
+      id = "operator_next"
+      class = "POL"
+      text = $nextText
+      sourceFields = @("meaning", "next")
+    },
+    [ordered]@{
+      id = "system_checks"
+      class = "SYS"
+      text = $systemText
+      sourceFields = @("privacyLint", "buildDigest")
+    }
+  )
+
+  $explainJson = [ordered]@{
+    schema = "weftend.reportCardExplanation/0"
+    v = 0
+    mode = "template_v0"
+    summary = $summaryText
+    note = $noteText
+    claims = $claims
+  }
+
+  $textLines = @(
+    "EXPLAIN V0: deterministic template (measurement, not verdict)",
+    "explain.summary=$summaryText",
+    "explain.note=$noteText",
+    "explain.observed=[OBS] $observedText",
+    "explain.posture=[POL] $postureText",
+    "explain.next=[POL] $nextText",
+    "explain.system=[SYS] $systemText"
+  )
+
+  return @{
+    json = $explainJson
+    textLines = $textLines
+  }
+}
+
 function Write-ReportCard {
   param(
     [string]$RunId,
@@ -755,6 +887,29 @@ function Write-ReportCard {
         $meaning = "Denied by policy or trust gate."
       }
     }
+    $explanation = New-ReportCardExplanationV0 `
+      -Status $status `
+      -Baseline $baselineId `
+      -Latest $latestId `
+      -Buckets $bucketText `
+      -TargetKind $targetKind `
+      -ArtifactKind $artifactKind `
+      -Files $files `
+      -Bytes $bytes `
+      -HasScripts $hasScripts `
+      -HasNative $hasNative `
+      -ExternalRefs $extRefs `
+      -Analysis $analysis `
+      -Execution $execution `
+      -Reason $Reason `
+      -Meaning $meaning `
+      -Next $next `
+      -PrivacyLint $PrivacyLint `
+      -BuildDigest $BuildDigest
+    $explainLines = @()
+    if ($explanation -and $explanation.textLines) {
+      $explainLines = @($explanation.textLines | ForEach-Object { [string]$_ })
+    }
     $adapterLines = @()
     if ($hasAdapterEvidence) {
       $adapterLines += "adapterMeta=class:$adapterClass mode:$adapterMode source:$adapterSourceFormat reasons:$adapterReasons"
@@ -812,9 +967,9 @@ function Write-ReportCard {
       }
     }
     if ($stateLines.Count -gt 0) {
-      $lines = $stateLines + $lines
+      $lines = $stateLines + $explainLines + $lines
     } else {
-      $lines = @("FINGERPRINT: $artifactFingerprint") + $lines
+      $lines = @("FINGERPRINT: $artifactFingerprint") + $explainLines + $lines
     }
     $path = Join-Path $outDir "report_card.txt"
     $lines -join "`n" | Set-Content -Path $path -Encoding UTF8
@@ -851,6 +1006,7 @@ function Write-ReportCard {
           buildDigest = "SYS"
         }
       }
+      explanation = $(if ($explanation -and $explanation.json) { $explanation.json } else { $null })
       meaning = $meaning
       next = $next
       receipt = "safe_run_receipt.json"
@@ -871,7 +1027,7 @@ function Write-ReportCard {
         }
       }
     }
-    ($reportJson | ConvertTo-Json -Depth 6) | Set-Content -Path $reportJsonPath -Encoding UTF8
+    ($reportJson | ConvertTo-Json -Depth 8) | Set-Content -Path $reportJsonPath -Encoding UTF8
   } catch {
     try {
       $errMsg = Redact-SensitiveText -Text ([string]$_)
@@ -926,7 +1082,29 @@ function Write-ReportCard {
       "evidence.posture=[POL]",
       "evidence.privacyLint=[SYS]",
       "evidence.buildDigest=[SYS]",
-      "targets=requested:$requestedLabel scan:$scanLabel",
+      "targets=requested:$requestedLabel scan:$scanLabel"
+    )
+    $fallbackExplanation = New-ReportCardExplanationV0 `
+      -Status $statusFallback `
+      -Baseline $baselineFallback `
+      -Latest $latestFallback `
+      -Buckets $bucketFallback `
+      -TargetKind (Get-ExplicitStateToken -Value $targetKind -MissingToken "unknown") `
+      -ArtifactKind (Get-ExplicitStateToken -Value $artifactKind -MissingToken "unknown") `
+      -Files "UNKNOWN" `
+      -Bytes "UNKNOWN" `
+      -HasScripts "UNKNOWN" `
+      -HasNative "UNKNOWN" `
+      -ExternalRefs "UNKNOWN" `
+      -Analysis "UNKNOWN" `
+      -Execution "UNKNOWN" `
+      -Reason $Reason `
+      -Meaning "Report card generated from fallback state." `
+      -Next "REVIEW_RECEIPTS" `
+      -PrivacyLint $PrivacyLint `
+      -BuildDigest $BuildDigest
+    $fallback += @($fallbackExplanation.textLines | ForEach-Object { [string]$_ })
+    $fallback += @(
       "artifactFingerprint=$artifactFingerprint",
       "artifactDigest=$artifactDigest",
       "fingerprintSource=$artifactFingerprintSource",
@@ -969,9 +1147,10 @@ function Write-ReportCard {
           buildDigest = "SYS"
         }
       }
+      explanation = $(if ($fallbackExplanation -and $fallbackExplanation.json) { $fallbackExplanation.json } else { $null })
       lines = $fallback
     }
-    ($reportJson | ConvertTo-Json -Depth 6) | Set-Content -Path $reportJsonPath -Encoding UTF8
+    ($reportJson | ConvertTo-Json -Depth 8) | Set-Content -Path $reportJsonPath -Encoding UTF8
   }
 }
 
