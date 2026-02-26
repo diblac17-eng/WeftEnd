@@ -879,20 +879,20 @@ function Write-ReportCard {
     if ($Summary.adapterId -and [string]$Summary.adapterId -ne "-") {
       $adapter = [string]$Summary.adapterId
     }
-    $adapterClass = if ($Summary.adapterClass -and [string]$Summary.adapterClass -ne "") { [string]$Summary.adapterClass } else { "-" }
-    if (-not $adapterClass -or $adapterClass -eq "-") {
+    $adapterClass = if ($Summary.adapterClass -and [string]$Summary.adapterClass -ne "") { [string]$Summary.adapterClass } else { "UNKNOWN" }
+    if (-not $adapterClass -or $adapterClass -eq "-" -or $adapterClass -eq "UNKNOWN") {
       $adapterClass = Get-AdapterClassLabel -AdapterIdValue $adapter -ArtifactKindValue $Summary.rawArtifactKind
     }
-    $adapterMode = if ($Summary.adapterMode -and [string]$Summary.adapterMode -ne "") { [string]$Summary.adapterMode } else { "-" }
-    $adapterSourceFormat = if ($Summary.adapterSourceFormat -and [string]$Summary.adapterSourceFormat -ne "") { [string]$Summary.adapterSourceFormat } else { "-" }
-    $adapterReasons = if ($Summary.adapterReasons -and [string]$Summary.adapterReasons -ne "") { [string]$Summary.adapterReasons } else { "-" }
-    $adapterSignalMarkers = if ($Summary.adapterSignalMarkers -and [string]$Summary.adapterSignalMarkers -ne "") { [string]$Summary.adapterSignalMarkers } else { "-" }
+    $adapterMode = if ($Summary.adapterMode -and [string]$Summary.adapterMode -ne "") { [string]$Summary.adapterMode } else { "NOT_REPORTED" }
+    $adapterSourceFormat = if ($Summary.adapterSourceFormat -and [string]$Summary.adapterSourceFormat -ne "") { [string]$Summary.adapterSourceFormat } else { "NOT_REPORTED" }
+    $adapterReasons = if ($Summary.adapterReasons -and [string]$Summary.adapterReasons -ne "") { [string]$Summary.adapterReasons } else { "NOT_APPLICABLE" }
+    $adapterSignalMarkers = if ($Summary.adapterSignalMarkers -and [string]$Summary.adapterSignalMarkers -ne "") { [string]$Summary.adapterSignalMarkers } else { "NOT_APPLICABLE" }
     $capabilityRequested = To-Int64OrZero -Value $Summary.capabilityRequested
     $capabilityGranted = To-Int64OrZero -Value $Summary.capabilityGranted
     $capabilityDenied = To-Int64OrZero -Value $Summary.capabilityDenied
     $hasAdapterEvidence = (
       ($adapter -and $adapter -ne "filesystem_v0") -or
-      ($adapterClass -and $adapterClass -ne "-") -or
+      ($adapterClass -and $adapterClass -ne "-" -and $adapterClass -ne "UNKNOWN") -or
       ($capabilityRequested -gt 0) -or
       ($capabilityGranted -gt 0) -or
       ($capabilityDenied -gt 0)
@@ -952,7 +952,7 @@ function Write-ReportCard {
     $adapterLines = @()
     if ($hasAdapterEvidence) {
       $adapterLines += "adapterMeta=class:$adapterClass mode:$adapterMode source:$adapterSourceFormat reasons:$adapterReasons"
-      if ($adapterSignalMarkers -and $adapterSignalMarkers -ne "-") {
+      if ($adapterSignalMarkers -and $adapterSignalMarkers -ne "-" -and $adapterSignalMarkers -ne "NOT_APPLICABLE") {
         $adapterLines += "adapterSignals=markers:$adapterSignalMarkers"
       }
       $adapterLines += "capabilities=requested:$capabilityRequested granted:$capabilityGranted denied:$capabilityDenied"
