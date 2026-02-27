@@ -21,6 +21,7 @@ Included
 - Explicit unpacked extension analysis in `--adapter extension` now fails closed (`EXTENSION_FORMAT_MISMATCH`) when `manifest.json` evidence is bounded/truncated, preventing strict-route success on partial manifest reads.
 - Explicit native-fallback SCM analysis in `--adapter scm` now treats bounded `packed-refs` reads as partial evidence and fails closed (`SCM_REF_UNRESOLVED`) in strict mode, preventing strict-route success on truncated git reference metadata.
 - Explicit native-fallback SCM analysis in `--adapter scm` now also treats bounded loose-ref (`refs/heads/*`, `refs/tags/*`) reads as partial evidence and fails closed (`SCM_REF_UNRESOLVED`) in strict mode, preventing strict-route success on truncated loose-ref metadata.
+- Explicit native-fallback SCM analysis in `--adapter scm` now also treats bounded `.git` pointer and `HEAD` file reads as partial evidence and fails closed (`SCM_REF_UNRESOLVED`) in strict mode, preventing strict-route success on truncated repository pointer/head metadata.
 - Launchpad History latest-run resync hardening:
 - History actions now re-sync the selected row from library view-state before opening report viewer, run folder, or adapter evidence.
 - This prevents stale report opens when Launchpad stays open while a newer run is created externally (for example via right-click `Run with WeftEnd`).

@@ -3866,6 +3866,40 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const repo = path.join(tmp, "pseudo_repo_bounded_head");
+    const gitData = path.join(repo, ".gitdata");
+    fs.mkdirSync(path.join(gitData, "refs", "heads"), { recursive: true });
+    fs.mkdirSync(repo, { recursive: true });
+    fs.writeFileSync(path.join(repo, ".git"), "gitdir: .gitdata\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "HEAD"), `ref: refs/heads/main${" ".repeat(300_000)}`, "utf8");
+    fs.writeFileSync(path.join(gitData, "refs", "heads", "main"), "0123456789abcdef0123456789abcdef01234567\n", "utf8");
+    fs.writeFileSync(path.join(repo, "a.txt"), "hello", "utf8");
+
+    const capture = captureTreeV0(repo, limits);
+    const res = runArtifactAdapterV1({ selection: "scm", enabledPlugins: [], inputPath: repo, capture });
+    assert(!res.ok, "scm adapter should fail closed for bounded HEAD evidence in explicit native fallback route");
+    assertEq(res.failCode, "SCM_REF_UNRESOLVED", "expected SCM_REF_UNRESOLVED for bounded HEAD evidence");
+  }
+
+  {
+    const tmp = mkTmp();
+    const repo = path.join(tmp, "pseudo_repo_bounded_git_pointer");
+    const gitData = path.join(repo, ".gitdata");
+    fs.mkdirSync(path.join(gitData, "refs", "heads"), { recursive: true });
+    fs.mkdirSync(repo, { recursive: true });
+    fs.writeFileSync(path.join(repo, ".git"), `gitdir: .gitdata${" ".repeat(300_000)}`, "utf8");
+    fs.writeFileSync(path.join(gitData, "HEAD"), "ref: refs/heads/main\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "refs", "heads", "main"), "0123456789abcdef0123456789abcdef01234567\n", "utf8");
+    fs.writeFileSync(path.join(repo, "a.txt"), "hello", "utf8");
+
+    const capture = captureTreeV0(repo, limits);
+    const res = runArtifactAdapterV1({ selection: "scm", enabledPlugins: [], inputPath: repo, capture });
+    assert(!res.ok, "scm adapter should fail closed for bounded .git pointer evidence in explicit native fallback route");
+    assertEq(res.failCode, "SCM_REF_UNRESOLVED", "expected SCM_REF_UNRESOLVED for bounded .git pointer evidence");
+  }
+
+  {
+    const tmp = mkTmp();
     const repo = path.join(tmp, "pseudo_repo_partial");
     const gitData = path.join(repo, ".gitdata");
     fs.mkdirSync(path.join(gitData, "refs", "tags"), { recursive: true });

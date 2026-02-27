@@ -985,25 +985,39 @@ const runCommandLinesRaw = (cmd: string, args: string[]): { ok: boolean; lines: 
 
 const isLikelyGitHashV1 = (value: string): boolean => /^[A-Fa-f0-9]{40}$/.test(value) || /^[A-Fa-f0-9]{64}$/.test(value);
 
-const resolveGitDirV1 = (repoPath: string): string | null => {
+const readTextBoundedEvidenceV1 = (filePath: string, maxBytes: number): { text: string; bounded: boolean } => {
+  const bytes = readBytesBounded(filePath, maxBytes);
+  let fileBytes = 0;
+  try {
+    fileBytes = Math.max(0, Number(fs.statSync(filePath).size || 0));
+  } catch {
+    fileBytes = 0;
+  }
+  return { text: Buffer.from(bytes).toString("utf8"), bounded: fileBytes > bytes.length };
+};
+
+const resolveGitDirV1 = (repoPath: string): { gitDir: string | null; partial: boolean } => {
   const dotGit = path.join(repoPath, ".git");
   try {
-    if (fs.statSync(dotGit).isDirectory()) return dotGit;
+    if (fs.statSync(dotGit).isDirectory()) return { gitDir: dotGit, partial: false };
   } catch {
     // continue
   }
   try {
-    if (!fs.statSync(dotGit).isFile()) return null;
-    const text = readTextBounded(dotGit, 4096);
+    if (!fs.statSync(dotGit).isFile()) return { gitDir: null, partial: true };
+    const pointer = readTextBoundedEvidenceV1(dotGit, 4096);
+    const text = pointer.text;
     const match = /^gitdir:\s*(.+)\s*$/im.exec(text);
-    if (!match) return null;
+    if (!match) return { gitDir: null, partial: true };
     const rel = String(match[1] || "").trim();
-    if (!rel) return null;
+    if (!rel) return { gitDir: null, partial: true };
     const resolved = path.resolve(repoPath, rel);
-    if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) return resolved;
-    return null;
+    if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
+      return { gitDir: resolved, partial: pointer.bounded };
+    }
+    return { gitDir: null, partial: true };
   } catch {
-    return null;
+    return { gitDir: null, partial: true };
   }
 };
 
@@ -1095,8 +1109,9 @@ const readNativeScmFallbackV1 = (repoPath: string): {
   tagRefCount: number;
   partial: boolean;
 } => {
-  const gitDir = resolveGitDirV1(repoPath);
-  if (!gitDir) return { commitResolved: 0, detachedHead: 0, branchRefCount: 0, tagRefCount: 0, partial: true };
+  const resolved = resolveGitDirV1(repoPath);
+  if (!resolved.gitDir) return { commitResolved: 0, detachedHead: 0, branchRefCount: 0, tagRefCount: 0, partial: true };
+  const gitDir = resolved.gitDir;
 
   const packed = parsePackedRefsV1(gitDir);
   const looseHeads = collectLooseRefsV1(path.join(gitDir, "refs", "heads"), "refs/heads");
@@ -1104,8 +1119,10 @@ const readNativeScmFallbackV1 = (repoPath: string): {
   const allHeads = new Set<string>([...Array.from(looseHeads.refs), ...Array.from(packed.branchRefs)]);
   const allTags = new Set<string>([...Array.from(looseTags.refs), ...Array.from(packed.tagRefs)]);
 
-  let partial = packed.partial || looseHeads.partial || looseTags.partial;
-  const headRaw = readTextBounded(path.join(gitDir, "HEAD"), 256).trim();
+  let partial = resolved.partial || packed.partial || looseHeads.partial || looseTags.partial;
+  const head = readTextBoundedEvidenceV1(path.join(gitDir, "HEAD"), 256);
+  if (head.bounded) partial = true;
+  const headRaw = head.text.trim();
   let commitResolved = 0;
   let detachedHead = 0;
   if (!headRaw) {
