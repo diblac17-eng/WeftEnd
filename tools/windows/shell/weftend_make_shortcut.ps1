@@ -9,6 +9,7 @@ param(
   [string]$ShortcutPath,
   [switch]$AllowLaunch,
   [switch]$LaunchpadMode,
+  [switch]$OpenOnChangedOnly,
   [switch]$ResolveShortcut,
   [switch]$UseTargetIcon,
   [switch]$OpenLibrary
@@ -105,6 +106,7 @@ function Normalize-QuotedPath {
 $effectiveTarget = $null
 $shortcutIcon = $null
 $resolvedLaunchArgs = $null
+$launchTargetPath = $null
 
 $normalizedTargetPath = Normalize-TargetPath -Value $TargetPath
 if (-not $normalizedTargetPath) {
@@ -126,6 +128,7 @@ if ($TargetPath) {
 }
 
 if ($isShortcut) {
+  $launchTargetPath = $TargetPath
   try {
     $sc = (New-Object -ComObject WScript.Shell).CreateShortcut($TargetPath)
     if ($sc -and $sc.IconLocation) {
@@ -201,6 +204,8 @@ $args = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$runnerP
 if ($AllowLaunch.IsPresent) { $args += " -AllowLaunch" }
 if ($OpenLibrary.IsPresent) { $args += " -OpenLibrary" }
 if ($LaunchpadMode.IsPresent) { $args += " -LaunchpadMode -Open 0" }
+if ($OpenOnChangedOnly.IsPresent) { $args += " -OpenOnChangedOnly" }
+if ($launchTargetPath -and $launchTargetPath.Trim() -ne "") { $args += " -LaunchTargetPath `"$launchTargetPath`"" }
 if ($resolvedLaunchArgs -and $resolvedLaunchArgs.Trim() -ne "") {
   # Carry shortcut launch args through as encoded data so launchpad can launch
   # targets like VS Code that rely on shortcut arguments.

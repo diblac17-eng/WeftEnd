@@ -87,6 +87,18 @@ function Is-WeftEndShortcutSnapshot {
   return $args -match "weftend_safe_run\.ps1"
 }
 
+function Test-BoundShortcutHasCurrentFlags {
+  param(
+    [object]$Snapshot,
+    [bool]$RequireLaunchTargetPath = $false
+  )
+  if (-not (Is-WeftEndShortcutSnapshot -Snapshot $Snapshot)) { return $false }
+  $args = [string]$Snapshot.arguments
+  if (-not ($args -match "(^|\s)-OpenOnChangedOnly(\s|$)")) { return $false }
+  if ($RequireLaunchTargetPath -and -not ($args -match "(^|\s)-LaunchTargetPath(\s|$)")) { return $false }
+  return $true
+}
+
 function Resolve-BoundShortcutPath {
   param([string]$SourcePath)
   $parent = Split-Path -Parent $SourcePath
@@ -123,6 +135,7 @@ function Invoke-MakeShortcut {
     "-ShortcutPath",
     $ShortcutValue,
     "-AllowLaunch",
+    "-OpenOnChangedOnly",
     "-UseTargetIcon"
   )
   if ($ResolveShortcut) {
@@ -189,8 +202,34 @@ if ($Action -eq "bind") {
     if ($existingMeta -and $existingMode -eq "rewrap_lnk") {
       $currentSnapshot = Read-ShortcutSnapshot -ShortcutPath $targetCanonical
       if (Is-WeftEndShortcutSnapshot -Snapshot $currentSnapshot) {
-        Write-Output "[BIND_ALREADY_BOUND]"
-        exit 0
+        if (Test-BoundShortcutHasCurrentFlags -Snapshot $currentSnapshot -RequireLaunchTargetPath:$true) {
+          Write-Output "[BIND_ALREADY_BOUND]"
+          exit 0
+        }
+        $backupPath = [string](Get-MetaValue -Meta $existingMeta -Name "backupPath")
+        if (-not $backupPath -or $backupPath.Trim() -eq "") {
+          $backupPath = Get-BackupShortcutPath -ShortcutPath $targetCanonical
+        }
+        $originalSnapshot = Get-MetaValue -Meta $existingMeta -Name "original"
+        try {
+          Invoke-MakeShortcut -TargetValue $targetCanonical -ShortcutValue $targetCanonical -ResolveShortcut:$true
+          $after = Read-ShortcutSnapshot -ShortcutPath $targetCanonical
+          $after.description = "WeftEnd Bound Shortcut v1"
+          if ($null -ne $originalSnapshot) {
+            $originalIcon = [string](Get-MetaValue -Meta $originalSnapshot -Name "iconLocation")
+            if ($originalIcon -and $originalIcon -ne "") { $after.iconLocation = $originalIcon }
+          }
+          Write-ShortcutSnapshot -ShortcutPath $targetCanonical -Snapshot $after
+          Write-Output "[BIND_UPGRADED mode=rewrap]"
+          exit 0
+        } catch {
+          Write-Output ("[BIND_ERROR " + [string]$_ + "]")
+          if ($backupPath -and (Test-Path -LiteralPath $backupPath)) {
+            Copy-Item -LiteralPath $backupPath -Destination $targetCanonical -Force
+          }
+          Write-Output "[BIND_FAILED]"
+          exit 40
+        }
       }
       Remove-Item -LiteralPath $metaPath -Force -ErrorAction SilentlyContinue
       $legacyBackupPath = Get-BackupShortcutPath -ShortcutPath $targetCanonical
@@ -243,8 +282,23 @@ if ($Action -eq "bind") {
   if ((Test-Path -LiteralPath $boundShortcutPath) -and (Test-Path -LiteralPath $boundMetaPath)) {
     $boundMeta = Load-BindMeta -MetaPath $boundMetaPath
     if ($boundMeta -and [string]$boundMeta.mode -eq "created_bound_link" -and [string]$boundMeta.sourcePath -eq $targetCanonical) {
-      Write-Output "[BIND_ALREADY_BOUND]"
-      exit 0
+      $boundSnapshot = Read-ShortcutSnapshot -ShortcutPath $boundShortcutPath
+      if (Test-BoundShortcutHasCurrentFlags -Snapshot $boundSnapshot -RequireLaunchTargetPath:$false) {
+        Write-Output "[BIND_ALREADY_BOUND]"
+        exit 0
+      }
+      try {
+        Invoke-MakeShortcut -TargetValue $targetCanonical -ShortcutValue $boundShortcutPath -ResolveShortcut:$false
+        $after = Read-ShortcutSnapshot -ShortcutPath $boundShortcutPath
+        $after.description = "WeftEnd Bound Shortcut v1"
+        Write-ShortcutSnapshot -ShortcutPath $boundShortcutPath -Snapshot $after
+        Write-Output "[BIND_UPGRADED mode=created]"
+        exit 0
+      } catch {
+        Write-Output ("[BIND_ERROR " + [string]$_ + "]")
+        Write-Output "[BIND_FAILED]"
+        exit 40
+      }
     }
   }
   try {

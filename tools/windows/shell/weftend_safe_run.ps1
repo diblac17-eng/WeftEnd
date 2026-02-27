@@ -13,8 +13,10 @@ param(
   [string]$Policy,
   [string]$Open = "1",
   [string]$LaunchArgsB64,
+  [string]$LaunchTargetPath,
   [switch]$OpenLibrary,
   [switch]$AllowLaunch,
+  [switch]$OpenOnChangedOnly,
   [switch]$LaunchpadMode
 )
 
@@ -106,7 +108,8 @@ function Is-LaunchableExecutable {
   if (-not $PathValue) { return $false }
   $ext = [System.IO.Path]::GetExtension($PathValue)
   if (-not $ext) { return $false }
-  return $ext.ToLowerInvariant() -eq ".exe"
+  $normalized = $ext.ToLowerInvariant()
+  return $normalized -eq ".exe" -or $normalized -eq ".lnk"
 }
 
 function Should-LaunchMinimized {
@@ -2044,6 +2047,9 @@ $openFlag = -not ($Open -eq "0" -or $Open -eq "false" -or $Open -eq "False")
 $viewStatusNow = if ($viewStatus) { [string]$viewStatus } else { "UNKNOWN" }
 $isChangedOrBlocked = $viewStatusNow -eq "CHANGED" -or $viewStatusNow -eq "BLOCKED" -or $result -eq "FAIL" -or $result -eq "DENY"
 $shouldHandleUi = $openFlag
+if ($OpenOnChangedOnly.IsPresent) {
+  $shouldHandleUi = $isChangedOrBlocked
+}
 if ($LaunchpadMode.IsPresent -and $isChangedOrBlocked) {
   $shouldHandleUi = $true
 }
@@ -2138,11 +2144,13 @@ if ($shouldHandleUi) {
   }
   $reportViewerOpened = $false
   $shouldOpenReportViewer = $false
-  if ($openFlag -and $reportViewerAutoOpen) {
+  if ($reportViewerAutoOpen) {
     if ($LaunchpadMode.IsPresent) {
-      $shouldOpenReportViewer = $isChangedOrBlocked
+      $shouldOpenReportViewer = $openFlag -and $isChangedOrBlocked
+    } elseif ($OpenOnChangedOnly.IsPresent) {
+      $shouldOpenReportViewer = $openFlag -and $isChangedOrBlocked
     } else {
-      $shouldOpenReportViewer = $true
+      $shouldOpenReportViewer = $openFlag
     }
   }
   if ($shouldOpenReportViewer -and $useReportViewer) {
@@ -2199,7 +2207,9 @@ if ($AllowLaunch.IsPresent) {
   $blockedRun = $false
   if ($viewState -and $viewState.blocked -and $viewState.blocked.runId) { $blockedRun = $true }
   $effectiveBlockedRun = $blockedRun -and -not $baselineAccepted
-  $canLaunch = Is-LaunchableExecutable -PathValue $TargetPath
+  $effectiveLaunchPath = if ($LaunchTargetPath -and $LaunchTargetPath.Trim() -ne "") { [string]$LaunchTargetPath } else { [string]$TargetPath }
+  $launchExt = if ($effectiveLaunchPath) { [string]([System.IO.Path]::GetExtension($effectiveLaunchPath)).ToLowerInvariant() } else { "" }
+  $canLaunch = Is-LaunchableExecutable -PathValue $effectiveLaunchPath
   if ($result -ne "FAIL" -and -not $effectiveBlockedRun -and $canLaunch) {
     $statusNow = if ($viewStatus) { $viewStatus } else { "UNKNOWN" }
     $isBlockedStatus = $statusNow -eq "CHANGED" -or $statusNow -eq "BLOCKED"
@@ -2220,35 +2230,39 @@ if ($AllowLaunch.IsPresent) {
       }
       if ($launchAllowed) {
         try {
-          $workDir = Split-Path -Parent $TargetPath
+          $workDir = Split-Path -Parent $effectiveLaunchPath
           $launchArgs = Decode-LaunchArgs -Value $LaunchArgsB64
-          $launchMinimized = Should-LaunchMinimized -PathValue $TargetPath
+          if ($launchExt -eq ".lnk") {
+            # .lnk files already carry their own arguments.
+            $launchArgs = ""
+          }
+          $launchMinimized = Should-LaunchMinimized -PathValue $effectiveLaunchPath
           if ($workDir -and (Test-Path -LiteralPath $workDir)) {
             if ($launchArgs -and $launchArgs.Trim() -ne "") {
               if ($launchMinimized) {
-                Start-Process -FilePath $TargetPath -ArgumentList $launchArgs -WorkingDirectory $workDir -WindowStyle Minimized | Out-Null
+                Start-Process -FilePath $effectiveLaunchPath -ArgumentList $launchArgs -WorkingDirectory $workDir -WindowStyle Minimized | Out-Null
               } else {
-                Start-Process -FilePath $TargetPath -ArgumentList $launchArgs -WorkingDirectory $workDir | Out-Null
+                Start-Process -FilePath $effectiveLaunchPath -ArgumentList $launchArgs -WorkingDirectory $workDir | Out-Null
               }
             } else {
               if ($launchMinimized) {
-                Start-Process -FilePath $TargetPath -WorkingDirectory $workDir -WindowStyle Minimized | Out-Null
+                Start-Process -FilePath $effectiveLaunchPath -WorkingDirectory $workDir -WindowStyle Minimized | Out-Null
               } else {
-                Start-Process -FilePath $TargetPath -WorkingDirectory $workDir | Out-Null
+                Start-Process -FilePath $effectiveLaunchPath -WorkingDirectory $workDir | Out-Null
               }
             }
           } else {
             if ($launchArgs -and $launchArgs.Trim() -ne "") {
               if ($launchMinimized) {
-                Start-Process -FilePath $TargetPath -ArgumentList $launchArgs -WindowStyle Minimized | Out-Null
+                Start-Process -FilePath $effectiveLaunchPath -ArgumentList $launchArgs -WindowStyle Minimized | Out-Null
               } else {
-                Start-Process -FilePath $TargetPath -ArgumentList $launchArgs | Out-Null
+                Start-Process -FilePath $effectiveLaunchPath -ArgumentList $launchArgs | Out-Null
               }
             } else {
               if ($launchMinimized) {
-                Start-Process -FilePath $TargetPath -WindowStyle Minimized | Out-Null
+                Start-Process -FilePath $effectiveLaunchPath -WindowStyle Minimized | Out-Null
               } else {
-                Start-Process -FilePath $TargetPath | Out-Null
+                Start-Process -FilePath $effectiveLaunchPath | Out-Null
               }
             }
           }

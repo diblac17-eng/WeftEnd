@@ -1072,6 +1072,54 @@ function New-SnapshotReferenceFromHistoryRow {
   return $body
 }
 
+function Ensure-LatestSnapshotReferenceForTarget {
+  param(
+    [string]$TargetDir,
+    [string]$TargetKey,
+    [string]$RunId
+  )
+  $out = [ordered]@{
+    ok = $false
+    wroteLatest = $false
+    wroteRunRef = $false
+    latestPath = ""
+    runPath = ""
+  }
+  if (-not $TargetDir -or -not $TargetKey -or -not $RunId -or $RunId -eq "-") { return $out }
+  if (-not (Test-Path -LiteralPath $TargetDir)) { return $out }
+
+  $snapshot = Read-RunEvidenceSnapshot -TargetDir $TargetDir -RunId $RunId
+  $reference = New-SnapshotReferenceFromHistoryRow -TargetKey $TargetKey -Snapshot $snapshot
+  $text = (($reference | ConvertTo-Json -Depth 10) + "`n")
+  $safeKey = Get-SnapshotTargetToken -TargetKey $TargetKey
+  $bucketDir = Ensure-SnapshotBucketDir -TargetKey $TargetKey
+  $runPath = Join-Path $bucketDir ("snapshot_ref_{0}_{1}.json" -f $safeKey, $RunId)
+  $latestPath = Join-Path $bucketDir "snapshot_ref_latest.json"
+  $out.latestPath = $latestPath
+  $out.runPath = $runPath
+
+  $existingRunText = ""
+  if (Test-Path -LiteralPath $runPath) {
+    try { $existingRunText = [string](Get-Content -LiteralPath $runPath -Raw -Encoding UTF8) } catch { $existingRunText = "" }
+  }
+  if ($existingRunText -ne $text) {
+    Write-TextFileAtomic -PathValue $runPath -TextValue $text
+    $out.wroteRunRef = $true
+  }
+
+  $existingLatestText = ""
+  if (Test-Path -LiteralPath $latestPath) {
+    try { $existingLatestText = [string](Get-Content -LiteralPath $latestPath -Raw -Encoding UTF8) } catch { $existingLatestText = "" }
+  }
+  if ($existingLatestText -ne $text) {
+    Write-TextFileAtomic -PathValue $latestPath -TextValue $text
+    $out.wroteLatest = $true
+  }
+
+  $out.ok = $true
+  return $out
+}
+
 function Format-ReasonPreview {
   param(
     [object]$ReasonCodes,
@@ -1992,6 +2040,9 @@ function Sync-HistoryRowSnapshot {
         $meta.latestRun = if ($s.latest) { [string]$s.latest } else { "-" }
       }
       $out.latestRun = if ($s.latest) { [string]$s.latest } else { "-" }
+      if ($out.latestRun -and $out.latestRun -ne "-" -and $targetKey -and $targetKey.Trim() -ne "") {
+        [void](Ensure-LatestSnapshotReferenceForTarget -TargetDir $targetDir -TargetKey $targetKey -RunId $out.latestRun)
+      }
     }
   } catch {
     # best effort only; keep cached row values
@@ -2447,11 +2498,22 @@ function Import-SnapshotReferencesFromPaths {
     imported = 0
     skipped = 0
     invalid = 0
+    latestUpdated = $false
   }
   if (-not $TargetKey -or $TargetKey.Trim() -eq "") { return $result }
   if (-not $InputPaths -or $InputPaths.Count -le 0) { return $result }
   $bucketDir = Ensure-SnapshotBucketDir -TargetKey $TargetKey
+  $orderedPaths = @()
   foreach ($path in @($InputPaths)) {
+    if ($null -eq $path) { continue }
+    $orderedPaths += [string]$path
+  }
+  if ($orderedPaths.Count -gt 1) {
+    [System.Array]::Sort($orderedPaths, [System.StringComparer]::Ordinal)
+  }
+  $latestPriority = -1
+  $latestText = ""
+  foreach ($path in @($orderedPaths)) {
     if (-not $path -or -not (Test-Path -LiteralPath $path)) { $result.skipped++; continue }
     if ([System.IO.Directory]::Exists($path)) { $result.skipped++; continue }
     if ([string]([System.IO.Path]::GetExtension($path)).ToLowerInvariant() -ne ".json") { $result.skipped++; continue }
@@ -2462,7 +2524,17 @@ function Import-SnapshotReferencesFromPaths {
     $dest = Join-Path $bucketDir $name
     $text = Get-Content -LiteralPath $path -Raw -Encoding UTF8
     Write-TextFileAtomic -PathValue $dest -TextValue $text
+    $priority = if ($name.ToLowerInvariant() -eq "snapshot_ref_latest.json") { 2 } else { 1 }
+    if ($priority -gt $latestPriority) {
+      $latestPriority = $priority
+      $latestText = $text
+    }
     $result.imported++
+  }
+  if ($result.imported -gt 0 -and $latestText -and $latestText.Trim() -ne "") {
+    $latestPath = Join-Path $bucketDir "snapshot_ref_latest.json"
+    Write-TextFileAtomic -PathValue $latestPath -TextValue $latestText
+    $result.latestUpdated = $true
   }
   return $result
 }
@@ -2479,17 +2551,25 @@ function Import-HistorySnapshotReferenceFiles {
   $selected = $ListView.SelectedItems[0]
   $row = Sync-HistoryRowSnapshot -Item $selected
   $targetKey = [string]$row.targetKey
+  $targetDir = [string]$row.targetDir
+  $latestRun = [string]$row.latestRun
   if (-not $targetKey -or $targetKey.Trim() -eq "") {
     Set-StatusLine -StatusLabel $StatusLabel -Message "Target key unavailable." -IsError $true
     return
   }
+  $localSnapshot = Ensure-LatestSnapshotReferenceForTarget -TargetDir $targetDir -TargetKey $targetKey -RunId $latestRun
   $paths = Select-SnapshotImportPaths -TargetKey $targetKey
   if (-not $paths -or $paths.Count -le 0) {
-    Set-StatusLine -StatusLabel $StatusLabel -Message "Snapshot import cancelled." -IsError $true
+    if ($localSnapshot.ok) {
+      Set-StatusLine -StatusLabel $StatusLabel -Message ("Snapshot import: using latest local run (" + $latestRun + ").") -IsError $false
+    } else {
+      Set-StatusLine -StatusLabel $StatusLabel -Message "Snapshot import cancelled." -IsError $true
+    }
     return
   }
   $import = Import-SnapshotReferencesFromPaths -TargetKey $targetKey -InputPaths $paths
-  $msg = "Snapshot import: imported=" + [string]$import.imported + " invalid=" + [string]$import.invalid + " skipped=" + [string]$import.skipped
+  $latestState = if ($import.latestUpdated) { "UPDATED" } else { "UNCHANGED" }
+  $msg = "Snapshot import: imported=" + [string]$import.imported + " invalid=" + [string]$import.invalid + " skipped=" + [string]$import.skipped + " latest=" + $latestState
   if ([int]$import.imported -gt 0) {
     Set-StatusLine -StatusLabel $StatusLabel -Message $msg -IsError $false
   } else {

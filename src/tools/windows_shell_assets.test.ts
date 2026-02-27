@@ -384,7 +384,7 @@ suite("tools/windows shell assets", () => {
     assert(/reportViewerStartupFailures=/.test(text), "expected report viewer startup-failure diagnostics");
     assert(/Start-Process -FilePath \$explorerPath/.test(text), "expected explorer open for output folder");
     assert(/AllowLaunch/.test(text), "expected AllowLaunch gate");
-    assert(/Start-Process -FilePath \$TargetPath/.test(text), "expected launch support");
+    assert(/Start-Process -FilePath \$effectiveLaunchPath/.test(text), "expected launch support");
     assert(!/Invoke-Item/.test(text), "wrapper must not invoke shell open");
     assert(!/&\s*\$Target/.test(text), "wrapper must not execute target path");
     assert(/WITHHELD/.test(text), "expected WITHHELD wrapper result");
@@ -489,12 +489,16 @@ suite("tools/windows shell assets", () => {
     assert(/Compare Buckets:/.test(panelText), "expected compare buckets detail in history pane");
     assert(/Compare Bucket Count:/.test(panelText), "expected compare bucket count detail in history pane");
     assert(/Compare Change Count:/.test(panelText), "expected compare change count detail in history pane");
+    assert(/Ensure-LatestSnapshotReferenceForTarget/.test(panelText), "expected automatic latest snapshot reference helper");
+    assert(/latestUpdated/.test(panelText), "expected snapshot import latest pointer update reporting");
 
     const shortcutPath = path.join(shellDir, "weftend_make_shortcut.ps1");
     const shortcutText = fs.readFileSync(shortcutPath, "utf8");
     assert(/\$iconHostExe -NoProfile -ExecutionPolicy Bypass -File \$iconScript/.test(shortcutText), "expected shortcut icon generation to use resolved powershell executable path");
     assert(/LaunchpadMode/.test(shortcutText), "expected LaunchpadMode flag in shortcut tool");
     assert(/-Open 0/.test(shortcutText), "expected quiet mode for launchpad shortcuts");
+    assert(/OpenOnChangedOnly/.test(shortcutText), "expected shortcut changed-only UI flag support");
+    assert(/LaunchTargetPath/.test(shortcutText), "expected shortcut launch-target override support");
     assert(/WindowStyle = 7/.test(shortcutText), "expected minimized shortcut window style");
     assert(/Description = if \(\$LaunchpadMode\.IsPresent\)/.test(shortcutText), "expected launchpad description marker");
     assert(/WeftEnd Launchpad Shortcut v1/.test(shortcutText), "expected launchpad description text");
@@ -505,6 +509,7 @@ suite("tools/windows shell assets", () => {
     const bindText = fs.readFileSync(bindPath, "utf8");
     assert(!/DateTime\]::UtcNow/.test(bindText), "bind metadata must avoid wall-clock timestamp generation");
     assert(!/createdAtUtc/.test(bindText), "bind metadata must avoid createdAtUtc field drift");
+    assert(/-OpenOnChangedOnly/.test(bindText), "bind flow must only auto-open UI on changed/blocked runs");
   });
 
   register("report viewer includes optional adapter evidence panel", () => {
