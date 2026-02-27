@@ -618,6 +618,17 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    fs.writeFileSync(path.join(tmp, "manifest.json"), JSON.stringify({ manifest_version: 3, name: "demo", version: "1.0.0" }), "utf8");
+    const capture = captureTreeV0(tmp, limits) as any;
+    capture.truncated = true;
+    capture.issues = ["CAPTURE_LIMIT_FILES"];
+    const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: tmp, capture });
+    assert(!res.ok, "extension adapter should fail closed for explicit unpacked extension when capture evidence is truncated/partial");
+    assertEq(res.failCode, "EXTENSION_FORMAT_MISMATCH", "expected EXTENSION_FORMAT_MISMATCH for truncated unpacked extension capture");
+  }
+
+  {
+    const tmp = mkTmp();
     const wfDir = path.join(tmp, ".github", "workflows");
     fs.mkdirSync(wfDir, { recursive: true });
     fs.writeFileSync(
@@ -771,6 +782,34 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "iac", enabledPlugins: [], inputPath: tmp, capture });
     assert(!res.ok, "iac adapter should fail closed for ci workflow content under explicit iac route");
     assertEq(res.failCode, "IAC_UNSUPPORTED_FORMAT", "expected IAC_UNSUPPORTED_FORMAT for ci workflow under iac route");
+  }
+
+  {
+    const tmp = mkTmp();
+    fs.writeFileSync(path.join(tmp, "main.tf"), "resource \"null_resource\" \"x\" {}\n", "utf8");
+    const capture = captureTreeV0(tmp, limits) as any;
+    capture.truncated = true;
+    capture.issues = ["CAPTURE_LIMIT_FILES"];
+    const res = runArtifactAdapterV1({ selection: "iac", enabledPlugins: [], inputPath: tmp, capture });
+    assert(!res.ok, "iac adapter should fail closed for explicit iac route when capture evidence is truncated/partial");
+    assertEq(res.failCode, "IAC_UNSUPPORTED_FORMAT", "expected IAC_UNSUPPORTED_FORMAT for truncated explicit iac capture");
+  }
+
+  {
+    const tmp = mkTmp();
+    const wfDir = path.join(tmp, ".github", "workflows");
+    fs.mkdirSync(wfDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(wfDir, "build.yml"),
+      "name: ci\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hello\n",
+      "utf8"
+    );
+    const capture = captureTreeV0(tmp, limits) as any;
+    capture.truncated = true;
+    capture.issues = ["CAPTURE_LIMIT_FILES"];
+    const res = runArtifactAdapterV1({ selection: "cicd", enabledPlugins: [], inputPath: tmp, capture });
+    assert(!res.ok, "cicd adapter should fail closed for explicit cicd route when capture evidence is truncated/partial");
+    assertEq(res.failCode, "CICD_UNSUPPORTED_FORMAT", "expected CICD_UNSUPPORTED_FORMAT for truncated explicit cicd capture");
   }
 
   {
@@ -3566,6 +3605,25 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "scm", enabledPlugins: [], inputPath: repo, capture });
     assert(!res.ok, "scm adapter should fail closed for explicit scm with case-colliding worktree entry paths");
     assertEq(res.failCode, "SCM_REF_UNRESOLVED", "expected SCM_REF_UNRESOLVED for case-colliding scm worktree entry paths");
+  }
+
+  {
+    const tmp = mkTmp();
+    const repo = path.join(tmp, "pseudo_repo_truncated_capture");
+    const gitData = path.join(repo, ".gitdata");
+    fs.mkdirSync(path.join(gitData, "refs", "heads"), { recursive: true });
+    fs.mkdirSync(repo, { recursive: true });
+    fs.writeFileSync(path.join(repo, ".git"), "gitdir: .gitdata\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "HEAD"), "ref: refs/heads/main\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "refs", "heads", "main"), "0123456789abcdef0123456789abcdef01234567\n", "utf8");
+    fs.writeFileSync(path.join(repo, "a.txt"), "hello", "utf8");
+
+    const capture = captureTreeV0(repo, limits) as any;
+    capture.truncated = true;
+    capture.issues = ["CAPTURE_LIMIT_FILES"];
+    const res = runArtifactAdapterV1({ selection: "scm", enabledPlugins: [], inputPath: repo, capture });
+    assert(!res.ok, "scm adapter should fail closed for explicit scm route when capture evidence is truncated/partial");
+    assertEq(res.failCode, "SCM_REF_UNRESOLVED", "expected SCM_REF_UNRESOLVED for truncated explicit scm capture");
   }
 };
 

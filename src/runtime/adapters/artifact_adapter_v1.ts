@@ -2286,6 +2286,14 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
 
   if (isDir) {
     if (strictRoute) {
+      if (ctx.capture.truncated || (Array.isArray(ctx.capture.issues) && ctx.capture.issues.length > 0)) {
+        return {
+          ok: false,
+          failCode: "EXTENSION_FORMAT_MISMATCH",
+          failMessage: "extension adapter expected complete non-truncated capture evidence for explicit extension analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_FORMAT_MISMATCH"]),
+        };
+      }
       const extensionEntryPaths = ctx.capture.entries
         .map((entry) => String(entry.path || "").replace(/\\/g, "/"))
         .filter((p) => p.length > 0);
@@ -2468,6 +2476,14 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd", strictRou
     const uniquePaths = stableSortUniqueStringsV0(entryPaths);
     const mismatchCode = forcedClass === "cicd" ? "CICD_UNSUPPORTED_FORMAT" : "IAC_UNSUPPORTED_FORMAT";
     const mismatchReason = forcedClass === "cicd" ? "CICD_ADAPTER_V1" : "IAC_ADAPTER_V1";
+    if (ctx.capture.truncated || (Array.isArray(ctx.capture.issues) && ctx.capture.issues.length > 0)) {
+      return {
+        ok: false,
+        failCode: mismatchCode,
+        failMessage: `${forcedClass} adapter expected complete non-truncated capture evidence for explicit ${forcedClass} analysis.`,
+        reasonCodes: stableSortUniqueReasonsV0([mismatchReason, mismatchCode]),
+      };
+    }
     if (uniquePaths.length < entryPaths.length) {
       return {
         ok: false,
@@ -3781,6 +3797,14 @@ const analyzeScm = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
     .map((entry) => String(entry.path || "").replace(/\\/g, "/"))
     .filter((p) => p.length > 0 && !p.startsWith(".git/"));
   if (strictRoute) {
+    if (ctx.capture.truncated || (Array.isArray(ctx.capture.issues) && ctx.capture.issues.length > 0)) {
+      return {
+        ok: false,
+        failCode: "SCM_REF_UNRESOLVED",
+        failMessage: "scm adapter expected complete non-truncated capture evidence for explicit scm analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["SCM_ADAPTER_V1", "SCM_REF_UNRESOLVED"]),
+      };
+    }
     const uniquePaths = stableSortUniqueStringsV0(workingTreePaths);
     if (uniquePaths.length < workingTreePaths.length) {
       return {
