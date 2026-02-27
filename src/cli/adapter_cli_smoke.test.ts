@@ -2206,6 +2206,19 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const traversalVsix = path.join(tmp, "traversal_entries.vsix");
+    writeStoredZip(traversalVsix, [
+      { name: "manifest.json", text: JSON.stringify({ manifest_version: 3, name: "demo", version: "1.0.0" }) },
+      { name: "../spoof.js", text: "console.log('x');" },
+    ]);
+    const res = await runCliCapture(["safe-run", traversalVsix, "--out", outDir, "--adapter", "extension"]);
+    assertEq(res.status, 40, "safe-run should fail closed when extension ZIP metadata includes traversal-style entry paths");
+    assert(res.stderr.includes("EXTENSION_FORMAT_MISMATCH"), "expected EXTENSION_FORMAT_MISMATCH on stderr for extension ZIP traversal-style entry path");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badIso = path.join(tmp, "bad.iso");
     fs.writeFileSync(badIso, "not-an-iso", "utf8");
     const badRes = await runCliCapture(["safe-run", badIso, "--out", outDir, "--adapter", "image"]);

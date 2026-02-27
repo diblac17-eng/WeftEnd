@@ -861,6 +861,19 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const traversalVsix = path.join(tmp, "traversal_entries.vsix");
+    writeStoredZip(traversalVsix, [
+      { name: "manifest.json", text: JSON.stringify({ manifest_version: 3, name: "demo", version: "1.0.0" }) },
+      { name: "../spoof.js", text: "console.log('x');" },
+    ]);
+    const capture = captureTreeV0(traversalVsix, limits);
+    const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: traversalVsix, capture });
+    assert(!res.ok, "extension adapter should fail closed when ZIP metadata includes traversal-style entry paths");
+    assertEq(res.failCode, "EXTENSION_FORMAT_MISMATCH", "expected EXTENSION_FORMAT_MISMATCH for extension ZIP traversal-style entry path");
+  }
+
+  {
+    const tmp = mkTmp();
     const zipPath = path.join(tmp, "payload.zip");
     const crx = path.join(tmp, "demo.crx");
     writeStoredZip(zipPath, [

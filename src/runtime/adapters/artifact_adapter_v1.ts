@@ -315,6 +315,17 @@ type ZipCatalogEntryV1 = {
 };
 
 const normalizeZipEntryPathV1 = (value: string): string => String(value || "").replace(/\\/g, "/").replace(/^\.\/+/, "");
+const isArchivePathInvalidV0 = (value: string): boolean => {
+  const normalized = String(value || "").replace(/\\/g, "/");
+  if (normalized.length === 0) return true;
+  if (normalized.includes("\0")) return true;
+  if (normalized.startsWith("/")) return true;
+  if (normalized === "." || normalized === "..") return true;
+  if (normalized.startsWith("../")) return true;
+  if (normalized.includes("/../")) return true;
+  if (normalized.endsWith("/..")) return true;
+  return false;
+};
 
 const parseZipCatalogFromBuffer = (
   buffer: Uint8Array,
@@ -388,6 +399,11 @@ const parseZipCatalogFromBuffer = (
       break;
     }
     const name = normalizeZipEntryPathV1(view.slice(nameStart, nameEnd).toString("utf8"));
+    if (isArchivePathInvalidV0(name)) {
+      markers.push("ARCHIVE_METADATA_PARTIAL");
+      offset = nameStart + nameLen + extraLen + commentLen;
+      continue;
+    }
     let localOffset = localOffsetRaw;
     if (localOffset + 4 > view.length || view.readUInt32LE(localOffset) !== sigLFH) {
       const alt = firstLocalOffset + localOffsetRaw;
@@ -661,17 +677,7 @@ const readZipTextEntriesByFilter = (
 };
 
 const isRegularTarTypeflagV0 = (typeFlag: number): boolean => typeFlag === 0 || typeFlag === 0x30 || typeFlag === 0x37;
-const isTarPathInvalidV0 = (value: string): boolean => {
-  const normalized = String(value || "").replace(/\\/g, "/");
-  if (normalized.length === 0) return true;
-  if (normalized.includes("\0")) return true;
-  if (normalized.startsWith("/")) return true;
-  if (normalized === "." || normalized === "..") return true;
-  if (normalized.startsWith("../")) return true;
-  if (normalized.includes("/../")) return true;
-  if (normalized.endsWith("/..")) return true;
-  return false;
-};
+const isTarPathInvalidV0 = (value: string): boolean => isArchivePathInvalidV0(value);
 
 const readTarEntries = (inputPath: string, options?: { dedupe?: boolean }): { entries: string[]; markers: string[] } => {
   const parseTarOctal = (raw: string): number | null => {
