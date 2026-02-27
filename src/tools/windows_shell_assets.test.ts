@@ -429,6 +429,10 @@ suite("tools/windows shell assets", () => {
     assert(/Copy-HistoryDigestText/.test(panelText), "expected history digest copy helper");
     assert(/Set-ItemProperty -Path \$configPath -Name "ReportViewerAutoOpen" -Value "1"/.test(panelText), "expected launchpad viewer auto-open reset on successful open");
     assert(/Set-ItemProperty -Path \$configPath -Name "ReportViewerStartFailCount" -Value "0"/.test(panelText), "expected launchpad viewer failure counter reset on successful open");
+    assert(/if \(\$runDir -and \(Test-Path -LiteralPath \$runDir\)\)\s*\{[\s\S]*?\$args \+= @\("-RunDir", \$runDir\)/.test(panelText), "expected history report open to prefer latest run directory when available");
+    assert(/\$args \+= @\("-TargetDir", \$targetDir\)/.test(panelText), "expected history report open fallback to target directory when run directory unavailable");
+    assert(/if \(\$latestRun -and \$latestRun -ne "-"\)\s*\{[\s\S]*?\$args \+= @\("-RunId", \$latestRun\)/.test(panelText), "expected history report open fallback to pass latest run id when present");
+    assert(/Start-Process -FilePath \$powershellExe -ArgumentList \$args -WindowStyle Hidden/.test(panelText), "expected history report viewer host to launch hidden");
     assert(/Open Evidence/.test(panelText), "expected launchpad history Open Evidence action");
     assert(/Copy Details/.test(panelText), "expected launchpad history Copy Details action");
     assert(/Copy Digests/.test(panelText), "expected launchpad history Copy Digests action");
@@ -488,6 +492,12 @@ suite("tools/windows shell assets", () => {
     assert(!/safeReceipt\.adapter\./.test(viewerText), "report viewer must not strict-access missing adapter object");
     assert(/Show Adapter Evidence/.test(viewerText), "expected adapter evidence toggle label");
     assert(/Hide Adapter Evidence/.test(viewerText), "expected adapter evidence hide label");
+    assert(/\$btnToggleEvidence\.Tag = \$false/.test(viewerText), "expected adapter evidence toggle initial collapsed state");
+    assert(/\$adapterPanel\.Visible = \$true/.test(viewerText), "expected adapter evidence toggle expand behavior");
+    assert(/\$adapterPanel\.Visible = \$false/.test(viewerText), "expected adapter evidence toggle collapse behavior");
+    assert(/\$detailsLayout\.RowStyles\[1\]\.SizeType = \[System\.Windows\.Forms\.SizeType\]::AutoSize/.test(viewerText), "expected adapter evidence expand row-style update");
+    assert(/\$detailsLayout\.RowStyles\[1\]\.SizeType = \[System\.Windows\.Forms\.SizeType\]::Absolute/.test(viewerText), "expected adapter evidence collapse row-style update");
+    assert(/\$detailsLayout\.RowStyles\[1\]\.Height = 0/.test(viewerText), "expected adapter evidence collapse row height reset");
     assert(/Compute-FileSha256Digest/.test(viewerText), "expected report viewer digest helper");
     assert(/Build-SummaryClipboardText/.test(viewerText), "expected report viewer summary clipboard builder");
     assert(/Build-DigestClipboardText/.test(viewerText), "expected report viewer digest clipboard builder");

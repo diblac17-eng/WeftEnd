@@ -11,6 +11,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Launchpad History details preview now uses explicit placeholder tokens (`NOT_REPORTED`, `NONE`, `LATEST_UNAVAILABLE`, `NOT_AVAILABLE`) instead of ambiguous `-` placeholders for missing/unavailable values.
 - Launchpad History evidence/detail lines now also normalize missing compare/artifact/adapter fields to explicit tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, `NONE`) instead of raw `-` placeholders.
 - Added Windows shell asset contract coverage to pin the Launchpad History row resync helper and action usage.
+- Added shell asset regression coverage to pin history report-open argument routing (`-RunDir` preferred, `-TargetDir/-RunId` fallback) so latest-run report opens remain deterministic.
 
 ### Launchpad Doctor tab layout fit
 - Launchpad Doctor action-button row is now horizontally scrollable (single-row strip) so the rightmost buttons remain reachable at narrow Launchpad widths.
@@ -35,6 +36,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Report viewer `Copy Summary` and `Copy Digests` clipboard outputs now normalize missing/unavailable values to explicit tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, `LATEST_UNAVAILABLE`, `NOT_REPORTED`) instead of raw internal `-` placeholders.
 - Report viewer header subtitle/status display now also routes through display-state normalization for consistent placeholder semantics across on-screen and copied outputs.
 - Added Windows shell asset contract coverage to pin report viewer clipboard/subtitle placeholder normalization usage.
+- Added shell asset regression coverage to pin adapter-evidence show/hide toggle state transitions (panel visibility + row-style collapse/expand wiring).
 
 ### Report Viewer Startup Resilience
 - Windows shell report viewer startup now tracks consecutive startup failures in registry (`ReportViewerStartFailCount`).

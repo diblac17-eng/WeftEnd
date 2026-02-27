@@ -11,8 +11,10 @@ Included
 - History details pane now uses explicit placeholder tokens (`NOT_REPORTED`, `NONE`, `LATEST_UNAVAILABLE`, `NOT_AVAILABLE`) instead of ambiguous `-` placeholders when data is missing/unavailable.
 - History evidence/detail lines (artifact digests, compare fields, adapter summary fields) now also normalize missing values to explicit tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, `NONE`) instead of raw `-`.
 - Windows shell contract tests now pin this resync helper/action usage.
+- Windows shell contract tests now also pin history report-open argument routing (`-RunDir` preferred, `-TargetDir/-RunId` fallback) so latest-run viewer opens stay deterministic.
 - Report viewer clipboard outputs (`Copy Summary`, `Copy Digests`) now normalize missing/unavailable fields to explicit tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, `LATEST_UNAVAILABLE`, `NOT_REPORTED`) instead of raw `-`.
 - Report viewer subtitle/status display now also uses the same display-state normalization path for consistent on-screen vs copied placeholder semantics.
+- Windows shell contract tests now pin adapter-evidence show/hide toggle transitions (panel visibility and row-style collapse/expand wiring) to prevent UI regressions in the evidence panel.
 - Launchpad Doctor tab action buttons now sit in a horizontally scrollable single-row strip, so the far-right buttons remain reachable at narrow Launchpad widths.
 - Doctor action row height was increased to avoid clipping when the horizontal scrollbar is shown.
 - Launchpad main action row (`Open Targets`, `Sync`, `Refresh`) now also uses a horizontally scrollable single-row strip to prevent clipping at narrow widths or higher DPI scaling.
