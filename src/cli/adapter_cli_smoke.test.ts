@@ -2722,6 +2722,32 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const largeDescriptorVmdk = path.join(tmp, "large_bounded_descriptor.vmdk");
+    fs.writeFileSync(
+      largeDescriptorVmdk,
+      [
+        "# Disk DescriptorFile",
+        "version=1",
+        "CID=fffffffe",
+        "parentCID=ffffffff",
+        "createType=\"monolithicSparse\"",
+        "RW 204800 SPARSE \"disk-s001.vmdk\"",
+        "ddb.virtualHWVersion = \"19\"",
+        "ddb.toolsInstallType = \"4\"",
+      ].join("\n") + "\n" + "X".repeat(300_000),
+      "utf8"
+    );
+    const res = await runCliCapture(["safe-run", largeDescriptorVmdk, "--out", outDir, "--adapter", "image"]);
+    assertEq(res.status, 40, "safe-run should fail closed for descriptor-only vmdk when descriptor evidence is bounded");
+    assert(
+      res.stderr.includes("IMAGE_FORMAT_MISMATCH"),
+      "expected IMAGE_FORMAT_MISMATCH on stderr for bounded descriptor-only vmdk evidence"
+    );
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const textMarkerOnlyAppImage = path.join(tmp, "text_marker_only.appimage");
     const bytes = Buffer.alloc(1024, 0);
     bytes[0] = 0x7f;

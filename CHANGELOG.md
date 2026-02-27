@@ -28,6 +28,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Explicit native-fallback `scm` route now also treats bounded `.git` pointer and `HEAD` file reads as partial evidence and fails closed in strict mode, preventing strict-route success on truncated repository pointer/head metadata.
 - Explicit native-fallback `scm` route now also treats duplicate packed-ref metadata and case-colliding merged loose/packed ref sets as partial evidence and fails closed in strict mode, preventing strict-route success on ambiguous git reference metadata.
 - Explicit text-centric `document` strict routes (`.pdf/.rtf/.chm`) now fail closed when raw text evidence is bounded/truncated, preventing strict-route success on partial text evidence.
+- Explicit descriptor-only `.vmdk` strict route now fails closed when descriptor evidence is bounded by header-window limits, preventing strict-route success on partial descriptor evidence.
 
 ### Commit truth gate
 - Added `npm run gate:truth` (`scripts/commit_truth_gate.js`) as a single reusable-commit no-skip gate.

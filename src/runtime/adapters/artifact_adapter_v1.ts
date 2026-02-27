@@ -3847,6 +3847,7 @@ const analyzeImage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
   const markers: string[] = [];
   const { head, tail } = readFileHeadTailBounded(ctx.inputPath, 64 * 1024, 1024);
   const headerBytesRead = head.length + tail.length;
+  const headerWindowBounded = fileBytes > headerBytesRead;
   if (headerBytesRead === 0 && fileBytes > 0) markers.push("IMAGE_HEADER_PARTIAL");
 
   let isoPvdPresent = 0;
@@ -3917,6 +3918,9 @@ const analyzeImage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
     const sparseMagic = Buffer.from("KDMV", "ascii");
     vmdkSparseMagicCount = countBufferPatternV1(head, sparseMagic);
     if (vmdkDescriptorStructuralPresent === 0 && vmdkSparseMagicCount === 0 && fileBytes > 0) markers.push("IMAGE_HEADER_PARTIAL");
+    if (vmdkDescriptorStructuralPresent > 0 && vmdkSparseMagicCount === 0 && headerWindowBounded) {
+      markers.push("IMAGE_DESCRIPTOR_BOUNDED");
+    }
   }
 
   const headerMatchCount =
@@ -3970,6 +3974,20 @@ const analyzeImage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
       ok: false,
       failCode: "IMAGE_FORMAT_MISMATCH",
       failMessage: "image adapter requires ISO primary descriptor and terminator evidence for explicit image analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["IMAGE_ADAPTER_V1", "IMAGE_FORMAT_MISMATCH"]),
+    };
+  }
+  if (
+    strictRoute &&
+    ctx.ext === ".vmdk" &&
+    vmdkDescriptorStructuralPresent > 0 &&
+    vmdkSparseMagicCount === 0 &&
+    headerWindowBounded
+  ) {
+    return {
+      ok: false,
+      failCode: "IMAGE_FORMAT_MISMATCH",
+      failMessage: "image adapter requires complete unbounded vmdk descriptor evidence for explicit image analysis.",
       reasonCodes: stableSortUniqueReasonsV0(["IMAGE_ADAPTER_V1", "IMAGE_FORMAT_MISMATCH"]),
     };
   }

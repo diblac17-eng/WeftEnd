@@ -3529,6 +3529,29 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const largeDescriptorVmdk = path.join(tmp, "large_bounded_descriptor.vmdk");
+    fs.writeFileSync(
+      largeDescriptorVmdk,
+      [
+        "# Disk DescriptorFile",
+        "version=1",
+        "CID=fffffffe",
+        "parentCID=ffffffff",
+        "createType=\"monolithicSparse\"",
+        "RW 204800 SPARSE \"disk-s001.vmdk\"",
+        "ddb.virtualHWVersion = \"19\"",
+        "ddb.toolsInstallType = \"4\"",
+      ].join("\n") + "\n" + "X".repeat(300_000),
+      "utf8"
+    );
+    const capture = captureTreeV0(largeDescriptorVmdk, limits);
+    const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: largeDescriptorVmdk, capture });
+    assert(!res.ok, "image adapter should fail closed for descriptor-only vmdk when descriptor evidence is bounded");
+    assertEq(res.failCode, "IMAGE_FORMAT_MISMATCH", "expected IMAGE_FORMAT_MISMATCH for bounded descriptor-only vmdk evidence");
+  }
+
+  {
+    const tmp = mkTmp();
     const vmdk = path.join(tmp, "weak_hints.vmdk");
     fs.writeFileSync(vmdk, "createType=\"monolithicSparse\"\n", "utf8");
     const capture = captureTreeV0(vmdk, limits);
