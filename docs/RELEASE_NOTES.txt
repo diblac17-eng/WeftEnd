@@ -27,6 +27,7 @@ Included
 - Explicit descriptor-only image analysis in `--adapter image` (`.vmdk` descriptor path without sparse magic) now fails closed (`IMAGE_FORMAT_MISMATCH`) when descriptor evidence is bounded by header-window limits, preventing strict-route success on partial descriptor evidence.
 - Added reusable commit truth gate command `npm run gate:truth` (runs `npm test`, `npm run verify:360:release:managed`, and `npm run proofcheck:release` in sequence; fail-closed on first gate failure).
 - Green Team docs-release contract now enforces `gate:truth` wiring (`package.json` script contract + `docs/RELEASE_CHECKLIST_ALPHA.md` reference) so truth-gate coverage cannot silently drift.
+- Added `docs/WEB_RUNTIME_INVENTORY_V0.md`: concrete deterministic schema + compare policy for runtime web-script inventory artifacts (design contract, implementation pending).
 - Launchpad History latest-run resync hardening:
 - History actions now re-sync the selected row from library view-state before opening report viewer, run folder, or adapter evidence.
 - This prevents stale report opens when Launchpad stays open while a newer run is created externally (for example via right-click `Run with WeftEnd`).

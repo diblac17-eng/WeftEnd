@@ -35,6 +35,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Gate runs `npm test`, `npm run verify:360:release:managed`, and `npm run proofcheck:release` in sequence, failing closed on first failure.
 - Updated `docs/RELEASE_CHECKLIST_ALPHA.md` to include the same truth-gate path.
 - Green Team docs-release contract now enforces `gate:truth` wiring in both `package.json` and `docs/RELEASE_CHECKLIST_ALPHA.md`.
+- Added `docs/WEB_RUNTIME_INVENTORY_V0.md` (design contract): deterministic `webRuntimeInventory/0` schema, privacy bounds, and baseline/compare policy for runtime script inventory evidence.
 
 ### Release packaging fix
 - Fixed root `weftend_release_zip.ps1` zip staging to use a valid temporary `.zip` filename (`__stage_release_*.zip`) so `Compress-Archive` runs successfully before final atomic move.
