@@ -152,6 +152,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `operator_receipt.json` now carries additive digest links for `weftend/README.txt` and run sub-receipts (`analysis/*`, `host/*`) for stronger evidence-chain traceability.
 - `safe-run` now writes `analysis/capability_ledger_v0.json` for raw-input adapter lanes, recording deterministic requested/granted/denied adapter and plugin capability decisions.
 - `container scan` now writes the same deterministic `analysis/capability_ledger_v0.json` artifact in success and fail-closed paths for consistent container capability evidence.
+- Explicit OCI layout/tar strict container routes now require unique manifest digest references, failing closed on duplicate digest aliasing in OCI index manifests.
 - Windows report viewer now renders adapter evidence as an optional collapsed section (only when adapter/capability artifacts are present) with quick-open artifact actions.
 - Report viewer summary now includes report-card/safe/operator plus compare receipt/report digests and provides `Copy Digests` for digest-only share/export text.
 - Report viewer now supports keyboard copy shortcuts: `Ctrl+C` (summary) and `Ctrl+Shift+C` (digest-only).

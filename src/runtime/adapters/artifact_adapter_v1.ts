@@ -2974,6 +2974,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let ociManifestDigestRefCount = 0;
   let ociManifestDigestResolvedCount = 0;
   let ociManifestDigestAmbiguousCount = 0;
+  let ociManifestDigestDuplicateCount = 0;
 
   if (isOciLayout) {
     const capturePathSet = new Set<string>(
@@ -3032,6 +3033,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       .map((entry) => String(entry.path || "").replace(/\\/g, "/").toLowerCase())
       .filter((name) => name.startsWith("blobs/sha256/"))
       .length;
+    const ociManifestDigestSeen = new Set<string>();
     indexManifests.forEach((manifest) => {
       if (!manifest || typeof manifest !== "object") return;
       const digestRaw = typeof (manifest as any).digest === "string" ? String((manifest as any).digest || "") : "";
@@ -3040,6 +3042,8 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       const digestHex = digestMatch[1].toLowerCase();
       ociManifestDigestRefCount += 1;
       if (capturePathSet.has(`blobs/sha256/${digestHex}`)) ociManifestDigestResolvedCount += 1;
+      if (ociManifestDigestSeen.has(digestHex)) ociManifestDigestDuplicateCount += 1;
+      else ociManifestDigestSeen.add(digestHex);
     });
     if (strictRoute && ociManifestCount > 0 && ociBlobCount === 0) {
       return {
@@ -3062,6 +3066,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
         ok: false,
         failCode: "CONTAINER_LAYOUT_INVALID",
         failMessage: "container adapter requires OCI manifest digest references to resolve to blob entries for explicit OCI layout analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_LAYOUT_INVALID"]),
+      };
+    }
+    if (strictRoute && ociManifestDigestDuplicateCount > 0) {
+      return {
+        ok: false,
+        failCode: "CONTAINER_LAYOUT_INVALID",
+        failMessage: "container adapter requires unique OCI manifest digest references for explicit OCI layout analysis.",
         reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_LAYOUT_INVALID"]),
       };
     }
@@ -3105,6 +3117,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
           if (parsed && typeof parsed === "object" && Array.isArray((parsed as any).manifests)) {
             const manifests = (parsed as any).manifests as unknown[];
             ociManifestCount = manifests.length;
+            const ociTarManifestDigestSeen = new Set<string>();
             manifests.forEach((manifest) => {
               if (!manifest || typeof manifest !== "object") return;
               const digestRaw = typeof (manifest as any).digest === "string" ? String((manifest as any).digest || "") : "";
@@ -3112,6 +3125,8 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
               if (!digestMatch) return;
               const digestHex = digestMatch[1].toLowerCase();
               ociManifestDigestRefCount += 1;
+              if (ociTarManifestDigestSeen.has(digestHex)) ociManifestDigestDuplicateCount += 1;
+              else ociTarManifestDigestSeen.add(digestHex);
               const blobRef = `blobs/sha256/${digestHex}`;
               const blobRefCount = tarNameCountMap.get(blobRef) ?? 0;
               if (blobRefCount === 1) ociManifestDigestResolvedCount += 1;
@@ -3143,6 +3158,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
           ok: false,
           failCode: "CONTAINER_FORMAT_MISMATCH",
           failMessage: "container adapter expected digest references for all OCI manifests in explicit OCI tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
+      if (strictRoute && ociManifestDigestDuplicateCount > 0) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected unique OCI manifest digest references for explicit OCI tar analysis.",
           reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
         };
       }
