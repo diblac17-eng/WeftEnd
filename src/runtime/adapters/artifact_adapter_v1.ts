@@ -661,6 +661,17 @@ const readZipTextEntriesByFilter = (
 };
 
 const isRegularTarTypeflagV0 = (typeFlag: number): boolean => typeFlag === 0 || typeFlag === 0x30 || typeFlag === 0x37;
+const isTarPathInvalidV0 = (value: string): boolean => {
+  const normalized = String(value || "").replace(/\\/g, "/");
+  if (normalized.length === 0) return true;
+  if (normalized.includes("\0")) return true;
+  if (normalized.startsWith("/")) return true;
+  if (normalized === "." || normalized === "..") return true;
+  if (normalized.startsWith("../")) return true;
+  if (normalized.includes("/../")) return true;
+  if (normalized.endsWith("/..")) return true;
+  return false;
+};
 
 const readTarEntries = (inputPath: string, options?: { dedupe?: boolean }): { entries: string[]; markers: string[] } => {
   const parseTarOctal = (raw: string): number | null => {
@@ -710,15 +721,20 @@ const readTarEntries = (inputPath: string, options?: { dedupe?: boolean }): { en
       markers.push("ARCHIVE_METADATA_PARTIAL");
       break;
     }
-    const fullName = `${prefixRaw ? `${prefixRaw}/` : ""}${nameRaw}`.replace(/\\/g, "/").replace(/^\.\/+/, "");
-    const typeFlag = block[156] ?? 0;
-    if (fullName && !fullName.endsWith("/") && isRegularTarTypeflagV0(typeFlag)) entries.push(fullName);
     const dataSize = size > 0 ? size : 0;
     const advance = 512 + Math.ceil(dataSize / 512) * 512;
     if (!Number.isFinite(advance) || advance <= 0 || offset + advance > buf.length) {
       markers.push("ARCHIVE_METADATA_PARTIAL");
       break;
     }
+    const fullName = `${prefixRaw ? `${prefixRaw}/` : ""}${nameRaw}`.replace(/\\/g, "/").replace(/^\.\/+/, "");
+    if (isTarPathInvalidV0(fullName)) {
+      markers.push("ARCHIVE_METADATA_PARTIAL");
+      offset += advance;
+      continue;
+    }
+    const typeFlag = block[156] ?? 0;
+    if (fullName && !fullName.endsWith("/") && isRegularTarTypeflagV0(typeFlag)) entries.push(fullName);
     offset += advance;
   }
   if (offset < buf.length && !markers.includes("ARCHIVE_TRUNCATED")) {
@@ -775,8 +791,6 @@ const readTarTextEntriesByBaseName = (inputPath: string, baseNames: string[]): {
       markers.push("ARCHIVE_METADATA_PARTIAL");
       break;
     }
-    const fullName = `${prefixRaw ? `${prefixRaw}/` : ""}${nameRaw}`.replace(/\\/g, "/").replace(/^\.\/+/, "");
-    const typeFlag = block[156] ?? 0;
     const dataSize = size > 0 ? size : 0;
     const dataStart = offset + 512;
     const dataEnd = dataStart + dataSize;
@@ -785,6 +799,13 @@ const readTarTextEntriesByBaseName = (inputPath: string, baseNames: string[]): {
       markers.push("ARCHIVE_METADATA_PARTIAL");
       break;
     }
+    const fullName = `${prefixRaw ? `${prefixRaw}/` : ""}${nameRaw}`.replace(/\\/g, "/").replace(/^\.\/+/, "");
+    if (isTarPathInvalidV0(fullName)) {
+      markers.push("ARCHIVE_METADATA_PARTIAL");
+      offset += advance;
+      continue;
+    }
+    const typeFlag = block[156] ?? 0;
     if (fullName && !fullName.endsWith("/") && isRegularTarTypeflagV0(typeFlag) && wanted.has(path.basename(fullName).toLowerCase())) {
       const bounded = Buffer.from(buf.subarray(dataStart, Math.min(dataEnd, dataStart + MAX_TEXT_BYTES)));
       if (dataSize > MAX_TEXT_BYTES) markers.push("ARCHIVE_TRUNCATED");
@@ -849,8 +870,6 @@ const readTarTextEntriesByExactPath = (
       markers.push("ARCHIVE_METADATA_PARTIAL");
       break;
     }
-    const fullName = `${prefixRaw ? `${prefixRaw}/` : ""}${nameRaw}`.replace(/\\/g, "/").replace(/^\.\/+/, "");
-    const typeFlag = block[156] ?? 0;
     const dataSize = size > 0 ? size : 0;
     const dataStart = offset + 512;
     const dataEnd = dataStart + dataSize;
@@ -859,6 +878,13 @@ const readTarTextEntriesByExactPath = (
       markers.push("ARCHIVE_METADATA_PARTIAL");
       break;
     }
+    const fullName = `${prefixRaw ? `${prefixRaw}/` : ""}${nameRaw}`.replace(/\\/g, "/").replace(/^\.\/+/, "");
+    if (isTarPathInvalidV0(fullName)) {
+      markers.push("ARCHIVE_METADATA_PARTIAL");
+      offset += advance;
+      continue;
+    }
+    const typeFlag = block[156] ?? 0;
     const normalized = fullName.toLowerCase();
     if (fullName && !fullName.endsWith("/") && isRegularTarTypeflagV0(typeFlag) && wanted.has(normalized)) {
       const bounded = Buffer.from(buf.subarray(dataStart, Math.min(dataEnd, dataStart + MAX_TEXT_BYTES)));

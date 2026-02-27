@@ -2575,6 +2575,24 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tarPath = path.join(tmp, "oci_layout_path_traversal_marker.tar");
+    writeSimpleTar(tarPath, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      {
+        name: "index.json",
+        text: "{\"schemaVersion\":2,\"manifests\":[{\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}]}\n",
+      },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+      { name: "blobs/sha256/../spoof", text: "y" },
+    ]);
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit OCI tar with traversal-style entry path");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for OCI tar traversal-style entry path");
+  }
+
+  {
+    const tmp = mkTmp();
     const tarPath = path.join(tmp, "oci_layout_bad_layout_payload.tar");
     writeSimpleTar(tarPath, [
       { name: "oci-layout", text: "{ invalid-json" },

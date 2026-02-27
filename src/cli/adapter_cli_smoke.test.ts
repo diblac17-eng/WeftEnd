@@ -2572,6 +2572,24 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const ociTarTraversalMarker = path.join(tmp, "oci_layout_path_traversal_marker.tar");
+    writeSimpleTar(ociTarTraversalMarker, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      {
+        name: "index.json",
+        text: "{\"schemaVersion\":2,\"manifests\":[{\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}]}\n",
+      },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+      { name: "blobs/sha256/../spoof", text: "y" },
+    ]);
+    const res = await runCliCapture(["safe-run", ociTarTraversalMarker, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI tar with traversal-style tar entry path");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar traversal-style entry path");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const ociTarBadLayoutPayload = path.join(tmp, "oci_layout_bad_layout_payload.tar");
     writeSimpleTar(ociTarBadLayoutPayload, [
       { name: "oci-layout", text: "{ invalid-json" },

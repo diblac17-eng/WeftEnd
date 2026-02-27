@@ -318,6 +318,7 @@ Included
 - Explicit OCI tar strict route now requires valid `oci-layout` payload with non-empty `imageLayoutVersion`, preventing invalid/placeholder OCI layout shells from passing strict tar routing.
 - Explicit OCI tar strict route now requires canonical root marker paths (`oci-layout`, `index.json`), preventing nested lookalike marker paths from satisfying strict OCI tar routing.
 - Explicit OCI tar strict route now treats OCI marker evidence as regular-file entries only (not non-file tar headers), preventing directory/link marker name spoofing from satisfying strict container tar classification.
+- Tar metadata parsing now marks traversal-style tar entry paths as partial metadata (`ARCHIVE_METADATA_PARTIAL`), and explicit strict tar routes fail closed when such entries are present, even if canonical marker entries also exist.
 - Added regression coverage for OCI layout/tar strict paths in adapter and CLI smoke suites, including digest-required flows plus OCI index payload/shape/non-empty-manifests validation.
 - Explicit compose route now fails closed when service placeholders exist without valid indented service entries or without `image`/`build` evidence, while still allowing build-only compose service definitions.
 - Explicit compose route now requires `image`/`build` evidence to be inside a service block, preventing out-of-service image placeholders from passing strict compose routing.
