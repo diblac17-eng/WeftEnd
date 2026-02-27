@@ -51,6 +51,7 @@ suite("greenteam/docs-release-contract", () => {
     const releaseChecklist = readText("docs/RELEASE_CHECKLIST_ALPHA.md");
     const releaseChecklistLegacy = readText("docs/RELEASE_CHECKLIST.md");
     const releaseAnnouncement = readText("docs/RELEASE_ANNOUNCEMENT.txt");
+    const install = readText("docs/INSTALL.md");
     const troubleshooting = readText("docs/TROUBLESHOOTING.md");
     const supportOnboarding = readText("docs/SUPPORT_ONBOARDING.md");
 
@@ -64,6 +65,11 @@ suite("greenteam/docs-release-contract", () => {
     );
     assert(readme.includes("docs/GITHUB_ACTIONS.md"), "README missing GitHub Actions guide reference");
     assert(readme.includes("docs/RELEASE_HISTORY.md"), "README missing release history reference");
+    assert(
+      readme.includes("WeftEnd Launchpad") && readme.includes("WeftEnd Download"),
+      "README must reference current Launchpad/Download shortcuts"
+    );
+    assert(!readme.includes("WeftEnd Library"), "README must not reference removed WeftEnd Library shortcut");
 
     assert(
       quickstart.includes(".github/workflows/weftend_artifact_meter.yml"),
@@ -80,6 +86,23 @@ suite("greenteam/docs-release-contract", () => {
     assert(
       quickstart.includes("npm run proofcheck:release"),
       "QUICKSTART missing strict proofcheck release command reference"
+    );
+    assert(
+      quickstart.includes("WeftEnd Launchpad") && quickstart.includes("WeftEnd Download"),
+      "QUICKSTART must reference current Launchpad/Download shortcuts"
+    );
+    assert(
+      !quickstart.includes("WeftEnd Library"),
+      "QUICKSTART must not reference removed WeftEnd Library shortcut"
+    );
+
+    assert(
+      install.includes("WeftEnd Launchpad") && install.includes("WeftEnd Download"),
+      "INSTALL must reference current Launchpad/Download shortcuts"
+    );
+    assert(
+      !install.includes("WeftEnd Library"),
+      "INSTALL must not reference removed WeftEnd Library shortcut"
     );
 
     assert(
