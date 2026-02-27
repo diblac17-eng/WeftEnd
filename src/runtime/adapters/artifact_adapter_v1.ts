@@ -3085,6 +3085,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let composeServiceWithImageOrBuildCount = 0;
   let composeBuildHintCount = 0;
   let composeServicesBlockCount = 0;
+  let composeBoundedFileCount = 0;
   let sbomPackageCount = 0;
   let ociManifestDigestRefCount = 0;
   let ociManifestDigestResolvedCount = 0;
@@ -3512,9 +3513,21 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     }
   }
   if (isCompose) {
+    const readComposeTextEvidenceV1 = (filePath: string): { text: string; bounded: boolean } => {
+      const bytes = readBytesBounded(filePath, MAX_TEXT_BYTES);
+      let fileBytes = 0;
+      try {
+        fileBytes = Math.max(0, Number(fs.statSync(filePath).size || 0));
+      } catch {
+        fileBytes = 0;
+      }
+      return { text: Buffer.from(bytes).toString("utf8"), bounded: fileBytes > bytes.length };
+    };
     const composeTexts: string[] = [];
     if (ctx.capture.kind === "file") {
-      composeTexts.push(readTextBounded(ctx.inputPath));
+      const evidence = readComposeTextEvidenceV1(ctx.inputPath);
+      if (evidence.bounded) composeBoundedFileCount += 1;
+      composeTexts.push(evidence.text);
     } else {
       const composeFiles = ctx.capture.entries
         .map((entry) => entry.path)
@@ -3523,7 +3536,11 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
           return base === "docker-compose.yml" || base === "docker-compose.yaml" || base === "compose.yml" || base === "compose.yaml";
         })
         .slice(0, 8);
-      composeFiles.forEach((relPath) => composeTexts.push(readTextBounded(path.join(ctx.inputPath, relPath))));
+      composeFiles.forEach((relPath) => {
+        const evidence = readComposeTextEvidenceV1(path.join(ctx.inputPath, relPath));
+        if (evidence.bounded) composeBoundedFileCount += 1;
+        composeTexts.push(evidence.text);
+      });
     }
     composeTexts.forEach((text) => {
       const hints = analyzeComposeHintsV1(text);
@@ -3534,6 +3551,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       composeBuildHintCount += hints.buildHintCount;
       composeServicesBlockCount += hints.servicesBlockCount;
     });
+    if (strictRoute && composeBoundedFileCount > 0) {
+      return {
+        ok: false,
+        failCode: "CONTAINER_FORMAT_MISMATCH",
+        failMessage: "container adapter expected complete unbounded compose text evidence for explicit compose analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+      };
+    }
     if (
       strictRoute &&
       (composeServicesBlockCount === 0 || composeServiceHintCount === 0 || composeServiceWithImageOrBuildCount === 0)
@@ -3639,6 +3664,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       composeServiceWithImageOrBuildCount,
       composeBuildHintCount,
       composeServicesBlockCount,
+      composeBoundedFileCount,
       sbomPackageCount,
     },
     markers: stableSortUniqueStringsV0(markers),

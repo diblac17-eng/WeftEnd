@@ -17,6 +17,9 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 ### IaC/CI strict-route hardening
 - Explicit `iac` / `cicd` adapter routing now fails closed when analysis requires bounded text reads (`IAC_UNSUPPORTED_FORMAT` / `CICD_UNSUPPORTED_FORMAT`), preventing strict-route success on partial text evidence for oversized configs.
 
+### Container compose strict-route hardening
+- Explicit compose analysis under `container` route now fails closed when compose text evidence is bounded/truncated, preventing strict-route success on partial compose-file reads.
+
 ### Release packaging fix
 - Fixed root `weftend_release_zip.ps1` zip staging to use a valid temporary `.zip` filename (`__stage_release_*.zip`) so `Compress-Archive` runs successfully before final atomic move.
 - Release residue checks now also fail on leftover `__stage_release_*` files (not only directories/`*.stage`) to prevent stale staged zip artifacts from being mistaken for clean release output.

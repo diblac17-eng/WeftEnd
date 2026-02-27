@@ -3262,6 +3262,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const boundedCompose = path.join(tmp, "compose.yaml");
+    fs.writeFileSync(
+      boundedCompose,
+      `services:\n  web:\n    image: nginx:latest\n${"a".repeat(300_000)}\n`,
+      "utf8"
+    );
+    const res = await runCliCapture(["safe-run", boundedCompose, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for bounded compose text evidence");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for bounded compose text evidence");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const buildCompose = path.join(tmp, "compose.yaml");
     fs.writeFileSync(buildCompose, "services:\n  web:\n    build: .\n", "utf8");
     const res = await runCliCapture(["safe-run", buildCompose, "--out", outDir, "--adapter", "container"]);

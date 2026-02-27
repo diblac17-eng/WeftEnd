@@ -3099,6 +3099,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const boundedComposePath = path.join(tmp, "compose.yaml");
+    fs.writeFileSync(
+      boundedComposePath,
+      `services:\n  web:\n    image: nginx:latest\n${"a".repeat(300_000)}\n`,
+      "utf8"
+    );
+    const capture = captureTreeV0(boundedComposePath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: boundedComposePath, capture });
+    assert(!res.ok, "container adapter should fail closed for bounded compose text evidence in explicit compose route");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for bounded compose text evidence");
+  }
+
+  {
+    const tmp = mkTmp();
     const buildComposePath = path.join(tmp, "compose.yaml");
     fs.writeFileSync(buildComposePath, "services:\n  web:\n    build: .\n", "utf8");
     const capture = captureTreeV0(buildComposePath, limits);
