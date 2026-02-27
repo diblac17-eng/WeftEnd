@@ -11,6 +11,7 @@ import type {
   StrictMode,
   MessagePortLike,
 } from "./types";
+import { cmpStrV0 } from "../../core/order";
 
 declare const require: (id: string) => any;
 declare const process: any;
@@ -113,7 +114,8 @@ let testKeepGlobal: string | undefined;
 let compartment: { evaluate: (source: string) => unknown } | null = null;
 let exportsObj: Record<string, unknown> | null = null;
 
-const sortReasonCodes = (codes: string[]): string[] => Array.from(new Set(codes)).sort();
+const sortReasonCodes = (codes: string[]): string[] =>
+  Array.from(new Set(codes)).sort((a, b) => cmpStrV0(a, b));
 
 const safeGlobal = (key: string): unknown => {
   try {

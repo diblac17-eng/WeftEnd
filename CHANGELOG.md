@@ -5,6 +5,10 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 
 ## [Unreleased]
 
+### Deterministic ordering hardening
+- Replaced remaining implicit production `.sort()` usages with explicit comparator wiring (`cmpStrV0`) across canonical JSON key normalization, CLI flag/plugin duplicate reporting, config key validation, strict/secret-zone reason-code ordering, and privacy-lint summary code rendering.
+- This pins string ordering semantics directly in code and removes reliance on engine default sort behavior in trust-surface outputs.
+
 ### Launchpad History latest-run resync
 - Launchpad History actions now re-sync the selected row from library view-state before opening reports/run folders/adapter evidence, so an already-open Launchpad window does not open stale runs after an external right-click `Run with WeftEnd` scan updates the library.
 - Launchpad History details preview and action-button enablement now use the same row re-sync path, keeping the visible status/baseline/latest/buckets fields aligned with the current latest run on disk.

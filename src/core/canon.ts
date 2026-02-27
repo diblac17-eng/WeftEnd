@@ -28,7 +28,7 @@ export function canonicalJSON(obj: unknown): string {
       seen.add(v);
 
       const out: Record<string, any> = {};
-      for (const k of Object.keys(v).sort()) out[k] = normalize(v[k]);
+      for (const k of Object.keys(v).sort((a, b) => cmpStrV0(a, b))) out[k] = normalize(v[k]);
       return out;
     }
 

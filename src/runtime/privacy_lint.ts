@@ -149,7 +149,7 @@ const buildReport = (weftendBuild: WeftendBuildV0, violations: PrivacyLintViolat
 
 export const formatPrivacyLintSummary = (report: PrivacyLintReportV0): string => {
   if (report.verdict === "PASS") return "privacy_lint: PASS";
-  const codes = Array.from(new Set(report.violations.map((v) => v.code))).sort();
+  const codes = Array.from(new Set(report.violations.map((v) => v.code))).sort((a, b) => cmpStrV0(a, b));
   return `privacy_lint: FAIL codes=${codes.join(",")}`;
 };
 

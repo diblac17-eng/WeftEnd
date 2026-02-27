@@ -11,10 +11,12 @@ import type {
   SecretZoneMode,
 } from "./types";
 import type { ConsentClaimV0 } from "../../core/types";
+import { cmpStrV0 } from "../../core/order";
 import { createBoundChannel } from "../boundary/channel";
 import { newNonce, safeEqual, validateNonce } from "../boundary/nonce";
 
-const sortReasonCodes = (codes: string[]): string[] => Array.from(new Set(codes)).sort();
+const sortReasonCodes = (codes: string[]): string[] =>
+  Array.from(new Set(codes)).sort((a, b) => cmpStrV0(a, b));
 
 type SecretZoneResultPayload =
   | { kind: "result"; reqId: string; ok: true; value?: unknown }

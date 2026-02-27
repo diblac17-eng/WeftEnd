@@ -4,6 +4,9 @@ Scope: Deterministic artifact intake, baseline/compare workflows, operator-facin
 Liability scope: WeftEnd is an evidence and change-tracking engine, not a malware oracle or compliance guarantee.
 
 Included
+- Deterministic ordering hardening:
+- Replaced remaining production implicit `.sort()` call sites with explicit `cmpStrV0` comparators in canonical JSON key normalization, CLI duplicate-flag/plugin reporting, config key validation, strict/secret-zone reason ordering, and privacy-lint summary rendering.
+- This removes reliance on engine default sort behavior for trust-surface output ordering.
 - Launchpad History latest-run resync hardening:
 - History actions now re-sync the selected row from library view-state before opening report viewer, run folder, or adapter evidence.
 - This prevents stale report opens when Launchpad stays open while a newer run is created externally (for example via right-click `Run with WeftEnd`).

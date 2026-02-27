@@ -23,6 +23,7 @@ import { runContainerCli } from "./container_scan";
 import { runAdapterCli } from "./adapter";
 import { runShadowAuditCli } from "./shadow_audit";
 import { canonicalJSON } from "../core/canon";
+import { cmpStrV0 } from "../core/order";
 import { canonicalizeWeftEndPolicyV1 } from "../core/intake_policy_v1";
 import { validateMintPackageV1, validateWeftEndPolicyV1 } from "../core/validate";
 import { examineArtifactV1 } from "../runtime/examiner/examine";
@@ -418,7 +419,7 @@ const runSafeRunCli = async (args: string[]): Promise<number> => {
   ]);
   const unknownFlags = Object.keys(flags)
     .filter((key) => !allowedFlags.has(key))
-    .sort();
+    .sort((a, b) => cmpStrV0(a, b));
   if (unknownFlags.length > 0) {
     console.error(`[INPUT_INVALID] unsupported flag(s): ${unknownFlags.join(", ")}`);
     return 40;
@@ -428,7 +429,7 @@ const runSafeRunCli = async (args: string[]): Promise<number> => {
   const duplicateSingletons = singletonFlags
     .filter((name) => countFlag(name) > 1)
     .map((name) => `--${name}`)
-    .sort();
+    .sort((a, b) => cmpStrV0(a, b));
   if (duplicateSingletons.length > 0) {
     console.error(`[INPUT_INVALID] duplicate flag(s) are not allowed: ${duplicateSingletons.join(", ")}`);
     return 40;
@@ -500,7 +501,7 @@ const runSafeRunCli = async (args: string[]): Promise<number> => {
   )
     .filter(([, count]) => count > 1)
     .map(([name]) => name)
-    .sort();
+    .sort((a, b) => cmpStrV0(a, b));
   if (duplicatePlugins.length > 0) {
     console.error(
       `[INPUT_INVALID] duplicate --enable-plugin value(s) are not allowed: ${duplicatePlugins.join(", ")}`

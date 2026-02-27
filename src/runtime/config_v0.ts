@@ -1,6 +1,8 @@
 /* src/runtime/config_v0.ts */
 // Deterministic .weftend/config.json parsing (bounded, strict).
 
+import { cmpStrV0 } from "../core/order";
+
 declare const require: any;
 
 const fs = require("fs");
@@ -47,7 +49,7 @@ const parseAutoScan = (raw: unknown, reasons: string[]): AutoScanConfigV0 => {
     reasons.push("CONFIG_INVALID");
     return { ...DEFAULT_AUTO_SCAN };
   }
-  const keys = Object.keys(raw).sort();
+  const keys = Object.keys(raw).sort((a, b) => cmpStrV0(a, b));
   const allowed = new Set<string>(["enabled", "debounceMs", "pollIntervalMs"]);
   if (keys.some((k) => !allowed.has(k))) reasons.push("CONFIG_INVALID");
   const enabled =
@@ -75,7 +77,7 @@ const parseGateMode = (raw: unknown, reasons: string[]): GateModeConfigV0 => {
     reasons.push("CONFIG_INVALID");
     return { ...DEFAULT_GATE_MODE };
   }
-  const keys = Object.keys(raw).sort();
+  const keys = Object.keys(raw).sort((a, b) => cmpStrV0(a, b));
   const allowed = new Set<string>(["hostRun"]);
   if (keys.some((k) => !allowed.has(k))) reasons.push("CONFIG_INVALID");
   const hostRun = raw.hostRun === "enforced" ? "enforced" : "off";
@@ -124,7 +126,7 @@ export const loadWeftendConfigV0 = (rootDir: string): {
       reasonCodes: ["CONFIG_INVALID"],
     };
   }
-  const keys = Object.keys(raw).sort();
+  const keys = Object.keys(raw).sort((a, b) => cmpStrV0(a, b));
   const allowed = new Set<string>(["autoScan", "gateMode"]);
   const reasons: string[] = [];
   if (keys.some((k) => !allowed.has(k))) reasons.push("CONFIG_INVALID");
@@ -139,4 +141,3 @@ export const loadWeftendConfigV0 = (rootDir: string): {
     reasonCodes: ok ? [] : ["CONFIG_INVALID"],
   };
 };
-

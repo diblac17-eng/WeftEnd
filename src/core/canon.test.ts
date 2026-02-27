@@ -78,6 +78,11 @@ suite("core/canon", () => {
     assertEq(s, '{"a":2,"b":1}', "object key order must be sorted");
   });
 
+  register("canonicalJSON key ordering is deterministic for non-ASCII keys", () => {
+    const s = canonicalJSON({ "ä": 2, z: 3, a: 1 });
+    assertEq(s, '{"a":1,"z":3,"ä":2}', "non-ASCII key ordering must remain deterministic");
+  });
+
   register("canonicalJSON normalizes undefined and null to null", () => {
     const s1 = canonicalJSON({ a: undefined, b: null });
     assertEq(s1, '{"a":null,"b":null}', "undefined and null normalize to null");
