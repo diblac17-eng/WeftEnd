@@ -159,7 +159,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - OCI tar strict routes now also fail closed when `oci-layout` is invalid JSON or has empty/missing `imageLayoutVersion`.
 - Added CLI smoke coverage for explicit OCI layout directory fail-closed behavior on invalid/shape-mismatch/empty-manifests `index.json` payloads.
 - Image strict route now fails closed when no header evidence is present, preventing empty/zero-byte image placeholders from passing explicit image analysis.
-- Image strict route now accepts valid ISO descriptor chains where the descriptor-set terminator appears after supplementary descriptors (bounded descriptor scan), avoiding false strict-route denials on valid multi-descriptor layouts.
+- Image strict route now scans bounded ISO descriptor chains for both PVD and descriptor-set terminator evidence (not fixed to only sectors 16/17), allowing valid boot/supplementary descriptor layouts while preserving strict fail-closed checks.
 - Added adapter + CLI smoke coverage for explicit image-route no-header-evidence denial.
 - Windows report viewer now renders adapter evidence as an optional collapsed section (only when adapter/capability artifacts are present) with quick-open artifact actions.
 - Report viewer summary now includes report-card/safe/operator plus compare receipt/report digests and provides `Copy Digests` for digest-only share/export text.

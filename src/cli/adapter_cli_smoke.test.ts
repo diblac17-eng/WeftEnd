@@ -2256,6 +2256,25 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const iso = path.join(tmp, "boot_then_pvd.iso");
+    const bytes = Buffer.alloc(20 * 2048, 0);
+    bytes[16 * 2048] = 0;
+    Buffer.from("CD001", "ascii").copy(bytes, 16 * 2048 + 1);
+    bytes[16 * 2048 + 6] = 1;
+    bytes[17 * 2048] = 1;
+    Buffer.from("CD001", "ascii").copy(bytes, 17 * 2048 + 1);
+    bytes[17 * 2048 + 6] = 1;
+    bytes[18 * 2048] = 255;
+    Buffer.from("CD001", "ascii").copy(bytes, 18 * 2048 + 1);
+    bytes[18 * 2048 + 6] = 1;
+    fs.writeFileSync(iso, bytes);
+    const res = await runCliCapture(["safe-run", iso, "--out", outDir, "--adapter", "image"]);
+    assertEq(res.status, 0, "safe-run should accept explicit iso chains with boot descriptor before pvd");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const iso = path.join(tmp, "no_terminator.iso");
     const bytes = Buffer.alloc(18 * 2048, 0);
     bytes[16 * 2048] = 1;

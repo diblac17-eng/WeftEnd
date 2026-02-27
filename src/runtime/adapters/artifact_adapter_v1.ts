@@ -3567,11 +3567,6 @@ const analyzeImage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
   if (ctx.ext === ".iso") {
     const pvdOffset = 16 * 2048;
     if (head.length >= pvdOffset + 7) {
-      const sig = head.subarray(pvdOffset + 1, pvdOffset + 6).toString("ascii");
-      const type = head[pvdOffset];
-      const version = head[pvdOffset + 6];
-      if (version === 1) isoPvdVersionPresent = 1;
-      if (sig === "CD001" && (type === 1 || type === 2) && version === 1) isoPvdPresent = 1;
       const maxDescriptorCount = Math.floor((head.length - pvdOffset) / 2048);
       const scanCount = Math.max(0, Math.min(maxDescriptorCount, 64));
       for (let descriptorIdx = 0; descriptorIdx < scanCount; descriptorIdx += 1) {
@@ -3580,6 +3575,11 @@ const analyzeImage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
         const descriptorSig = head.subarray(descriptorOffset + 1, descriptorOffset + 6).toString("ascii");
         const descriptorType = head[descriptorOffset];
         const descriptorVersion = head[descriptorOffset + 6];
+        if (descriptorSig !== "CD001") continue;
+        if ((descriptorType === 1 || descriptorType === 2) && descriptorVersion === 1) {
+          isoPvdPresent = 1;
+          isoPvdVersionPresent = 1;
+        }
         if (descriptorSig === "CD001" && descriptorType === 255 && descriptorVersion === 1) {
           isoTerminatorPresent = 1;
           break;
