@@ -8,6 +8,40 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Invoke-NativeCommandCapture {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$FilePath,
+    [Parameter(Mandatory = $true)]
+    [string[]]$Arguments
+  )
+  $tmpOut = [System.IO.Path]::GetTempFileName()
+  $tmpErr = [System.IO.Path]::GetTempFileName()
+  try {
+    $proc = Start-Process -FilePath $FilePath -ArgumentList $Arguments -NoNewWindow -PassThru -Wait -RedirectStandardOutput $tmpOut -RedirectStandardError $tmpErr
+    $stdout = ""
+    $stderr = ""
+    if (Test-Path -LiteralPath $tmpOut) {
+      $stdout = [string](Get-Content -LiteralPath $tmpOut -Raw -Encoding UTF8)
+    }
+    if (Test-Path -LiteralPath $tmpErr) {
+      $stderr = [string](Get-Content -LiteralPath $tmpErr -Raw -Encoding UTF8)
+    }
+    $combined = @()
+    if ($stdout -and $stdout.Trim() -ne "") { $combined += $stdout.TrimEnd() }
+    if ($stderr -and $stderr.Trim() -ne "") { $combined += $stderr.TrimEnd() }
+    return [ordered]@{
+      exitCode = [int]$proc.ExitCode
+      stdout = $stdout
+      stderr = $stderr
+      output = if ($combined.Count -gt 0) { $combined -join [Environment]::NewLine } else { "" }
+    }
+  } finally {
+    Remove-Item -LiteralPath $tmpOut -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $tmpErr -Force -ErrorAction SilentlyContinue
+  }
+}
+
 function Read-RegistryValue {
   param([string]$Path, [string]$Name)
   try {
@@ -367,10 +401,10 @@ function Invoke-AdapterDoctorText {
     if ($Strict.IsPresent) {
       $args += "--strict"
     }
-    $outputRaw = & $nodePath @args 2>&1
-    $outputText = [string]($outputRaw | Out-String)
+    $captured = Invoke-NativeCommandCapture -FilePath $nodePath -Arguments $args
+    $outputText = [string](Get-ObjectProperty -ObjectValue $captured -Name "output")
     if (-not $outputText) { $outputText = "" }
-    $exitCode = [int]$LASTEXITCODE
+    $exitCode = [int](Get-ObjectProperty -ObjectValue $captured -Name "exitCode")
     $ok = ($exitCode -eq 0)
     $code = "OK"
     if (-not $ok) {
