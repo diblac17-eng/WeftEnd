@@ -1,5 +1,5 @@
 WeftEnd
-
+Is still in open testing
 WeftEnd is a deterministic evidence, change-tracking, and change-control tool for operators.
 It analyzes artifacts, produces privacy-clean receipts, and lets you compare what changed without executing unknown code.
 
@@ -79,6 +79,34 @@ Operator workflow (Windows)
 4) Compare baseline status and signals
 5) Accept or decline baseline when prompted
 6) Optionally create ticket pack
+
+Zero install GitHub Actions
+
+You can run WeftEnd in GitHub Actions with no local install.
+- No workstation setup required.
+- Deterministic receipts and compare outputs as CI artifacts.
+- No cloud backend dependency from WeftEnd itself.
+
+Trust boundry 
+- WeftEnd does not phone home.
+- WeftEnd does not send telemetry.
+- WeftEnd does not auto-upload your artifacts.
+- In Actions mode, outputs stay in your workflow workspace and uploaded artifacts for your repo run.
+
+Run in under 2 minutes
+1. Open your repository Actions tab.
+2. Run workflow: `weftend_artifact_meter` (manual `workflow_dispatch`).
+3. Set `target_path` and `adapter` inputs.
+4. Download run artifacts from `out/ci_meter`.
+
+Strict release verification (optional)
+- Run workflow: `weftend_verify360` (manual `workflow_dispatch`).
+- This executes the managed strict release gate and uploads `out/verify_360_release_managed`.
+
+Notes
+- This scans repository-accessible content in the workflow run, not arbitrary files on a user’s local disk.
+- WeftEnd remains analysis-first and deterministic in CI, same as local philosophy.
+
 
 Useful commands
 - npm run weftend -- compare <oldOut> <newOut> --out <diffOut>
