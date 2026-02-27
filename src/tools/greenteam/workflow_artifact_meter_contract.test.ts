@@ -50,6 +50,14 @@ suite("greenteam/workflow-artifact-meter-contract", () => {
     assert(text.includes("--withhold-exec"), "workflow must enforce analysis-only safe-run");
     assert(text.includes("actions/upload-artifact@v4"), "workflow must upload deterministic outputs");
     assert(text.includes("out/ci_meter"), "workflow artifact path must be out/ci_meter");
+    assert(
+      text.includes("scanner_network:") && text.includes("no phone-home"),
+      "workflow summary must state no-phone-home scanner posture"
+    );
+    assert(
+      text.includes("execution_mode:") && text.includes("analysis-only (--withhold-exec)"),
+      "workflow summary must state analysis-only execution mode"
+    );
     assert(!/\bdocker\s+pull\b/i.test(text), "workflow must not perform docker pull");
     assert(!/\bdocker\s+login\b/i.test(text), "workflow must not perform docker login");
   });

@@ -134,6 +134,10 @@ suite("greenteam/docs-release-contract", () => {
       actionsGuide.includes("WEFTEND_ALLOW_SKIP_RELEASE=\"\""),
       "GITHUB_ACTIONS guide missing skip-override clear env reference"
     );
+    assert(
+      actionsGuide.toLowerCase().includes("do not phone home"),
+      "GITHUB_ACTIONS guide missing explicit no-phone-home scanner statement"
+    );
 
     assert(
       releaseChecklist.includes(".github/workflows/weftend_artifact_meter.yml"),
