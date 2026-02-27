@@ -3566,18 +3566,24 @@ const analyzeImage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
 
   if (ctx.ext === ".iso") {
     const pvdOffset = 16 * 2048;
-    const vdstOffset = 17 * 2048;
     if (head.length >= pvdOffset + 7) {
       const sig = head.subarray(pvdOffset + 1, pvdOffset + 6).toString("ascii");
       const type = head[pvdOffset];
       const version = head[pvdOffset + 6];
       if (version === 1) isoPvdVersionPresent = 1;
       if (sig === "CD001" && (type === 1 || type === 2) && version === 1) isoPvdPresent = 1;
-      if (head.length >= vdstOffset + 7) {
-        const termSig = head.subarray(vdstOffset + 1, vdstOffset + 6).toString("ascii");
-        const termType = head[vdstOffset];
-        const termVersion = head[vdstOffset + 6];
-        if (termSig === "CD001" && termType === 255 && termVersion === 1) isoTerminatorPresent = 1;
+      const maxDescriptorCount = Math.floor((head.length - pvdOffset) / 2048);
+      const scanCount = Math.max(0, Math.min(maxDescriptorCount, 64));
+      for (let descriptorIdx = 0; descriptorIdx < scanCount; descriptorIdx += 1) {
+        const descriptorOffset = pvdOffset + descriptorIdx * 2048;
+        if (head.length < descriptorOffset + 7) break;
+        const descriptorSig = head.subarray(descriptorOffset + 1, descriptorOffset + 6).toString("ascii");
+        const descriptorType = head[descriptorOffset];
+        const descriptorVersion = head[descriptorOffset + 6];
+        if (descriptorSig === "CD001" && descriptorType === 255 && descriptorVersion === 1) {
+          isoTerminatorPresent = 1;
+          break;
+        }
       }
     } else {
       markers.push("IMAGE_HEADER_PARTIAL");

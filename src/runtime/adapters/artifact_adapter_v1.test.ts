@@ -2935,6 +2935,27 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const iso = path.join(tmp, "descriptor_chain.iso");
+    const bytes = Buffer.alloc(20 * 2048, 0);
+    bytes[16 * 2048] = 1; // primary volume descriptor
+    Buffer.from("CD001", "ascii").copy(bytes, 16 * 2048 + 1);
+    bytes[16 * 2048 + 6] = 1; // descriptor version
+    bytes[17 * 2048] = 2; // supplementary volume descriptor
+    Buffer.from("CD001", "ascii").copy(bytes, 17 * 2048 + 1);
+    bytes[17 * 2048 + 6] = 1;
+    bytes[18 * 2048] = 255; // descriptor set terminator
+    Buffer.from("CD001", "ascii").copy(bytes, 18 * 2048 + 1);
+    bytes[18 * 2048 + 6] = 1;
+    fs.writeFileSync(iso, bytes);
+    const capture = captureTreeV0(iso, limits);
+    const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: iso, capture });
+    assert(res.ok, "image adapter should accept iso descriptor chains that terminate after supplementary descriptors");
+    assertEq(res.summary?.counts.isoPvdPresent, 1, "iso pvd should be detected for descriptor chains");
+    assertEq(res.summary?.counts.isoTerminatorPresent, 1, "iso terminator should be detected for descriptor chains");
+  }
+
+  {
+    const tmp = mkTmp();
     const iso = path.join(tmp, "no_terminator.iso");
     const bytes = Buffer.alloc(18 * 2048, 0);
     bytes[16 * 2048] = 1; // primary volume descriptor
