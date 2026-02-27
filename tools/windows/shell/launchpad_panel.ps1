@@ -1464,6 +1464,8 @@ function Update-HistoryDetailsBox {
   if (-not $buckets -or $buckets.Trim() -eq "" -or $buckets -eq "-") { $buckets = "NONE" }
   if (-not $kind -or $kind.Trim() -eq "" -or $kind -eq "-") { $kind = "NOT_REPORTED" }
   if (-not $latestRunDisplay -or $latestRunDisplay.Trim() -eq "" -or $latestRunDisplay -eq "-") { $latestRunDisplay = "LATEST_UNAVAILABLE" }
+  $snapshotBindingState = "NONE"
+  if (Test-SnapshotBindingForTarget -TargetKey $targetKey) { $snapshotBindingState = "PRESENT" }
 
   $lines = @(
     "Target: " + $targetKey,
@@ -1474,7 +1476,7 @@ function Update-HistoryDetailsBox {
     "Latest: " + $latestRunDisplay,
     "Buckets: " + $buckets,
     "Auto Refresh: " + $autoRefreshState,
-    "Snapshot Binding: " + (if (Test-SnapshotBindingForTarget -TargetKey $targetKey) { "PRESENT" } else { "NONE" })
+    "Snapshot Binding: " + $snapshotBindingState
   )
 
   if ($targetDir -and $latestRun -and $latestRun -ne "-") {
