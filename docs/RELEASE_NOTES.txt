@@ -266,6 +266,7 @@ Included
 - Explicit `.zip` and `.tar` strict archive routes now require non-ambiguous entry paths, preventing duplicate or case-colliding entry-path ambiguity from passing strict archive routing.
 - Strict plugin archive routes (`.tgz/.tar.gz/.txz/.tar.xz/.7z`) now enforce non-ambiguous entry-path sets from plugin listing output, preventing duplicate or case-colliding path ambiguity from passing explicit plugin-backed archive routing.
 - Strict plugin archive routes now also reject traversal/absolute plugin-listed paths as partial metadata (`ARCHIVE_METADATA_PARTIAL`), preventing path-invalid plugin listings from passing explicit strict archive analysis.
+- Strict archive-derived explicit routes now also fail closed on bounded archive metadata truncation markers (`ARCHIVE_TRUNCATED`), preventing entry-bound-truncated strict archive evidence from passing.
 - macOS installer coverage added to package adapter:
 - `.pkg` now captures deterministic XAR header and script/permission hint counters.
 - `.dmg` now captures deterministic trailer marker hints (`koly`) without mounting.

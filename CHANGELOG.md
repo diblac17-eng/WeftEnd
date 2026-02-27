@@ -382,6 +382,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Strict `.zip` and `.tar` archive routes now require non-ambiguous entry paths (duplicate or case-colliding entry paths fail strict routing).
 - Strict plugin archive routes (`.tgz/.tar.gz/.txz/.tar.xz/.7z`) now also require non-ambiguous entry-path sets from plugin listing output (duplicate or case-colliding entry paths fail strict routing).
 - Strict plugin archive routes now also reject traversal/absolute plugin-listed paths as partial metadata (`ARCHIVE_METADATA_PARTIAL`), failing closed for explicit strict archive analysis.
+- Strict archive-derived explicit routes now also fail closed on bounded archive metadata truncation markers (`ARCHIVE_TRUNCATED`) instead of accepting partial/truncated strict evidence.
 
 ### Validation status for this unreleased batch
 - `npm run compile --silent`: pass

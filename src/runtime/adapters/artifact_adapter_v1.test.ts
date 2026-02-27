@@ -391,6 +391,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const oversizedZip = path.join(tmp, "oversized_entries.zip");
+    const files: Array<{ name: string; text: string }> = [];
+    for (let i = 0; i <= 20000; i += 1) {
+      files.push({ name: `f${String(i).padStart(5, "0")}.txt`, text: "x" });
+    }
+    writeStoredZip(oversizedZip, files);
+    const capture = captureTreeV0(oversizedZip, limits);
+    const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: [], inputPath: oversizedZip, capture });
+    assert(!res.ok, "archive adapter should fail closed when strict ZIP metadata is truncated by entry bounds");
+    assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for strict ZIP entry-bound truncation");
+  }
+
+  {
+    const tmp = mkTmp();
     const txz = path.join(tmp, "sample.txz");
     fs.writeFileSync(txz, "not-a-real-txz", "utf8");
     const capture = captureTreeV0(txz, limits);

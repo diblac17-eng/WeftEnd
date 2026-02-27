@@ -1559,7 +1559,7 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_UNSUPPORTED_FORMAT"]),
     };
   }
-  if (strictRoute && ext === ".zip" && markers.includes("ARCHIVE_METADATA_PARTIAL")) {
+  if (strictRoute && ext === ".zip" && (markers.includes("ARCHIVE_METADATA_PARTIAL") || markers.includes("ARCHIVE_TRUNCATED"))) {
     return {
       ok: false,
       failCode: "ARCHIVE_FORMAT_MISMATCH",
@@ -1567,7 +1567,7 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_FORMAT_MISMATCH"]),
     };
   }
-  if (strictRoute && ext === ".tar" && markers.includes("ARCHIVE_METADATA_PARTIAL")) {
+  if (strictRoute && ext === ".tar" && (markers.includes("ARCHIVE_METADATA_PARTIAL") || markers.includes("ARCHIVE_TRUNCATED"))) {
     return {
       ok: false,
       failCode: "ARCHIVE_FORMAT_MISMATCH",
@@ -1575,7 +1575,7 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_FORMAT_MISMATCH"]),
     };
   }
-  if (strictRoute && markers.includes("ARCHIVE_METADATA_PARTIAL")) {
+  if (strictRoute && (markers.includes("ARCHIVE_METADATA_PARTIAL") || markers.includes("ARCHIVE_TRUNCATED"))) {
     return {
       ok: false,
       failCode: "ARCHIVE_FORMAT_MISMATCH",
@@ -2123,7 +2123,7 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
     }
     signingParsePartial = 1;
   }
-  if (strictRoute && (markers.includes("ARCHIVE_METADATA_PARTIAL") || markers.includes("PACKAGE_METADATA_PARTIAL"))) {
+  if (strictRoute && (markers.includes("ARCHIVE_METADATA_PARTIAL") || markers.includes("ARCHIVE_TRUNCATED") || markers.includes("PACKAGE_METADATA_PARTIAL"))) {
     return {
       ok: false,
       failCode: "PACKAGE_FORMAT_MISMATCH",
@@ -2383,7 +2383,7 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     const manifestRootCount = normalizedZipEntries.filter((entry) => entry.toLowerCase() === "manifest.json").length;
     manifestFound = manifestRootCount > 0;
     markers.push(...zipEntries.markers);
-    if (strictRoute && zipEntries.markers.includes("ARCHIVE_METADATA_PARTIAL")) {
+    if (strictRoute && (zipEntries.markers.includes("ARCHIVE_METADATA_PARTIAL") || zipEntries.markers.includes("ARCHIVE_TRUNCATED"))) {
       return {
         ok: false,
         failCode: "EXTENSION_FORMAT_MISMATCH",
@@ -2457,6 +2457,14 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       failCode: "EXTENSION_MANIFEST_INVALID",
       failMessage: "extension adapter requires manifest core fields (manifest_version/name/version) for explicit extension analysis.",
       reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_MANIFEST_INVALID"]),
+    };
+  }
+  if (strictRoute && markers.includes("ARCHIVE_TRUNCATED")) {
+    return {
+      ok: false,
+      failCode: "EXTENSION_FORMAT_MISMATCH",
+      failMessage: "extension adapter expected complete extension metadata for explicit route analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_FORMAT_MISMATCH"]),
     };
   }
   if (updateDomains.length > 0) reasonCodes.push("EXTENSION_EXTERNAL_REF_PRESENT");
@@ -2889,7 +2897,7 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
       const rel = String(entry.text || "");
       if (/TargetMode\s*=\s*["']External["']/i.test(rel) || /https?:\/\//i.test(rel)) externalLink += 1;
     });
-    if (strictRoute && markers.includes("ARCHIVE_METADATA_PARTIAL")) {
+    if (strictRoute && (markers.includes("ARCHIVE_METADATA_PARTIAL") || markers.includes("ARCHIVE_TRUNCATED"))) {
       return {
         ok: false,
         failCode: "DOC_FORMAT_MISMATCH",
@@ -3450,7 +3458,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
         };
       }
     }
-    if (strictRoute && tarEntries.markers.includes("ARCHIVE_METADATA_PARTIAL")) {
+    if (strictRoute && (tarEntries.markers.includes("ARCHIVE_METADATA_PARTIAL") || tarEntries.markers.includes("ARCHIVE_TRUNCATED"))) {
       return {
         ok: false,
         failCode: "CONTAINER_FORMAT_MISMATCH",
