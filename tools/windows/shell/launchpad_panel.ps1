@@ -693,6 +693,16 @@ function Ensure-SnapshotBucketDir {
   return $dir
 }
 
+function Get-SnapshotLatestReferencePath {
+  param([string]$TargetKey)
+  if (-not $TargetKey -or $TargetKey.Trim() -eq "") { return $null }
+  $bucketDir = Get-SnapshotBucketDir -TargetKey $TargetKey
+  if (-not (Test-Path -LiteralPath $bucketDir)) { return $null }
+  $path = Join-Path $bucketDir "snapshot_ref_latest.json"
+  if (Test-Path -LiteralPath $path) { return $path }
+  return $null
+}
+
 function Get-SnapshotActionsDir {
   return (Join-Path (Get-SnapshotTrustRoot) "actions")
 }
@@ -2015,10 +2025,16 @@ function Invoke-HistorySnapshotCompareCore {
     Set-StatusLine -StatusLabel $StatusLabel -Message "No latest run available for snapshot compare." -IsError $true
     return $null
   }
-  $refPath = Select-SnapshotReferencePath -TargetKey $targetKey
-  if (-not $refPath) {
-    Set-StatusLine -StatusLabel $StatusLabel -Message "Snapshot compare cancelled." -IsError $true
-    return $null
+  $refSource = "picker"
+  $refPath = Get-SnapshotLatestReferencePath -TargetKey $targetKey
+  if ($refPath) {
+    $refSource = "bucket_latest"
+  } else {
+    $refPath = Select-SnapshotReferencePath -TargetKey $targetKey
+    if (-not $refPath) {
+      Set-StatusLine -StatusLabel $StatusLabel -Message "Snapshot compare cancelled." -IsError $true
+      return $null
+    }
   }
   $reference = Read-SnapshotReferenceFile -PathValue $refPath
   if (-not $reference) {
@@ -2028,7 +2044,7 @@ function Invoke-HistorySnapshotCompareCore {
   $snapshot = Read-RunEvidenceSnapshot -TargetDir $targetDir -RunId $latestRun
   $compare = Compare-SnapshotReference -LocalSnapshot $snapshot -Reference $reference
   Write-SnapshotActionRecord -ActionType "compare" -TargetKey $targetKey -RunId $latestRun -CompareResult $compare -Reference $reference
-  $msg = ("Snapshot compare: " + $targetKey + " / " + $latestRun + " => " + [string]$compare.verdict)
+  $msg = ("Snapshot compare(" + $refSource + "): " + $targetKey + " / " + $latestRun + " => " + [string]$compare.verdict)
   if ($compare.verdict -eq "SAME") {
     Set-StatusLine -StatusLabel $StatusLabel -Message $msg -IsError $false
   } else {
@@ -2038,6 +2054,8 @@ function Invoke-HistorySnapshotCompareCore {
     targetDir = $targetDir
     targetKey = $targetKey
     latestRun = $latestRun
+    referenceSource = $refSource
+    referencePath = $refPath
     local = $snapshot
     reference = $reference
     compare = $compare
