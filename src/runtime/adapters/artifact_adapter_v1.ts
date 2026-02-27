@@ -1037,8 +1037,9 @@ const parsePackedRefsV1 = (gitDir: string): { map: Map<string, string>; branchRe
   return { map, branchRefs, tagRefs, partial };
 };
 
-const collectLooseRefsV1 = (rootPath: string, prefixRef: string): Set<string> => {
+const collectLooseRefsV1 = (rootPath: string, prefixRef: string): { refs: Set<string>; partial: boolean } => {
   const out = new Set<string>();
+  let partial = false;
   const walk = (dirPath: string, refPrefix: string) => {
     let entries: Array<{ name: string; isDirectory: () => boolean }> = [];
     try {
@@ -1056,19 +1057,35 @@ const collectLooseRefsV1 = (rootPath: string, prefixRef: string): Set<string> =>
         walk(full, ref);
         return;
       }
-      const value = readTextBounded(full, 256).trim();
+      const bytes = readBytesBounded(full, 256);
+      let fileBytes = 0;
+      try {
+        fileBytes = Math.max(0, Number(fs.statSync(full).size || 0));
+      } catch {
+        fileBytes = 0;
+      }
+      if (fileBytes > bytes.length) partial = true;
+      const value = Buffer.from(bytes).toString("utf8").trim();
       if (!isLikelyGitHashV1(value)) return;
       out.add(ref);
     });
   };
   walk(rootPath, prefixRef);
-  return out;
+  return { refs: out, partial };
 };
 
-const readLooseRefHashV1 = (gitDir: string, refName: string): string | null => {
+const readLooseRefHashV1 = (gitDir: string, refName: string): { hash: string | null; partial: boolean } => {
   const refPath = path.join(gitDir, ...refName.split("/"));
-  const value = readTextBounded(refPath, 256).trim();
-  return isLikelyGitHashV1(value) ? value.toLowerCase() : null;
+  const bytes = readBytesBounded(refPath, 256);
+  let fileBytes = 0;
+  try {
+    fileBytes = Math.max(0, Number(fs.statSync(refPath).size || 0));
+  } catch {
+    fileBytes = 0;
+  }
+  const partial = fileBytes > bytes.length;
+  const value = Buffer.from(bytes).toString("utf8").trim();
+  return { hash: isLikelyGitHashV1(value) ? value.toLowerCase() : null, partial };
 };
 
 const readNativeScmFallbackV1 = (repoPath: string): {
@@ -1084,10 +1101,10 @@ const readNativeScmFallbackV1 = (repoPath: string): {
   const packed = parsePackedRefsV1(gitDir);
   const looseHeads = collectLooseRefsV1(path.join(gitDir, "refs", "heads"), "refs/heads");
   const looseTags = collectLooseRefsV1(path.join(gitDir, "refs", "tags"), "refs/tags");
-  const allHeads = new Set<string>([...Array.from(looseHeads), ...Array.from(packed.branchRefs)]);
-  const allTags = new Set<string>([...Array.from(looseTags), ...Array.from(packed.tagRefs)]);
+  const allHeads = new Set<string>([...Array.from(looseHeads.refs), ...Array.from(packed.branchRefs)]);
+  const allTags = new Set<string>([...Array.from(looseTags.refs), ...Array.from(packed.tagRefs)]);
 
-  let partial = packed.partial;
+  let partial = packed.partial || looseHeads.partial || looseTags.partial;
   const headRaw = readTextBounded(path.join(gitDir, "HEAD"), 256).trim();
   let commitResolved = 0;
   let detachedHead = 0;
@@ -1096,8 +1113,9 @@ const readNativeScmFallbackV1 = (repoPath: string): {
   } else if (/^ref:\s+/i.test(headRaw)) {
     const refName = headRaw.replace(/^ref:\s+/i, "").trim();
     const loose = readLooseRefHashV1(gitDir, refName);
+    if (loose.partial) partial = true;
     const packedHash = packed.map.get(refName) ?? null;
-    if (loose || packedHash) commitResolved = 1;
+    if (loose.hash || packedHash) commitResolved = 1;
     else partial = true;
   } else if (isLikelyGitHashV1(headRaw)) {
     commitResolved = 1;

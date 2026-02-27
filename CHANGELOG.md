@@ -24,6 +24,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Explicit OCI layout/index and SBOM file analysis under `container` route now fails closed when JSON evidence is bounded/truncated, preventing strict-route success on partial JSON metadata reads.
 - Explicit unpacked `extension` route now fails closed when `manifest.json` evidence is bounded/truncated, preventing strict-route success on partial manifest reads.
 - Explicit native-fallback `scm` route now treats bounded `packed-refs` reads as partial evidence and fails closed in strict mode, preventing strict-route success on truncated git reference metadata.
+- Explicit native-fallback `scm` route now also treats bounded loose-ref (`refs/heads/*`, `refs/tags/*`) reads as partial evidence and fails closed in strict mode, preventing strict-route success on truncated loose-ref metadata.
 
 ### Release packaging fix
 - Fixed root `weftend_release_zip.ps1` zip staging to use a valid temporary `.zip` filename (`__stage_release_*.zip`) so `Compress-Archive` runs successfully before final atomic move.
