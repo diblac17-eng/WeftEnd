@@ -537,6 +537,12 @@ Included
 - Structured report artifacts available for UI and automation:
 - report_card_v0.json
 - report_card.txt
+- Launchpad History snapshot workflow now uses per-target local snapshot buckets (`Library/SnapshotTrust/buckets/<target>`):
+- `Export Snapshot` writes deterministic references directly into the selected target bucket and refreshes `snapshot_ref_latest.json`.
+- `Compare Snapshot` opens from that target bucket by default for low-friction local trust checks.
+- New `Open Bucket` History action opens the selected target's snapshot bucket directly.
+- History detail panel supports drag/drop import of snapshot `.json` references into the selected target bucket (local-only, schema-validated before import).
+- History detail panel now surfaces snapshot context (`Snapshot Binding` and `Snapshot Bucket` file count) alongside Auto Refresh state.
 
 Validation
 - npm run compile --silent: pass

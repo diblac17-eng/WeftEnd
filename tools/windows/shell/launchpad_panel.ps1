@@ -669,14 +669,40 @@ function Get-SnapshotBindingsPath {
   return (Join-Path (Get-SnapshotTrustRoot) "bindings_v0.json")
 }
 
+function Get-SnapshotBucketsRoot {
+  return (Join-Path (Get-SnapshotTrustRoot) "buckets")
+}
+
+function Get-SnapshotTargetToken {
+  param([string]$TargetKey)
+  $token = if ($TargetKey) { ([string]$TargetKey -replace "[^A-Za-z0-9_]+", "_").Trim("_") } else { "target" }
+  if (-not $token -or $token -eq "") { $token = "target" }
+  return $token
+}
+
+function Get-SnapshotBucketDir {
+  param([string]$TargetKey)
+  $token = Get-SnapshotTargetToken -TargetKey $TargetKey
+  return (Join-Path (Get-SnapshotBucketsRoot) $token)
+}
+
+function Ensure-SnapshotBucketDir {
+  param([string]$TargetKey)
+  $dir = Get-SnapshotBucketDir -TargetKey $TargetKey
+  New-Item -ItemType Directory -Force -Path $dir | Out-Null
+  return $dir
+}
+
 function Get-SnapshotActionsDir {
   return (Join-Path (Get-SnapshotTrustRoot) "actions")
 }
 
 function Ensure-SnapshotTrustStore {
   $root = Get-SnapshotTrustRoot
+  $buckets = Get-SnapshotBucketsRoot
   $actions = Get-SnapshotActionsDir
   New-Item -ItemType Directory -Force -Path $root | Out-Null
+  New-Item -ItemType Directory -Force -Path $buckets | Out-Null
   New-Item -ItemType Directory -Force -Path $actions | Out-Null
 }
 
@@ -1445,7 +1471,7 @@ function Update-HistoryDetailsBox {
   if (-not $DetailBox) { return }
   $autoRefreshState = Get-AutoRefreshStateToken
   if (-not $ListView -or $ListView.SelectedItems.Count -lt 1) {
-    $DetailBox.Text = ("Select a history row to view adapter evidence and capability summary." + [Environment]::NewLine + "Auto Refresh: " + $autoRefreshState)
+    $DetailBox.Text = ("Select a history row to view adapter evidence and capability summary." + [Environment]::NewLine + "Auto Refresh: " + $autoRefreshState + [Environment]::NewLine + "Tip: Drag snapshot .json files here to import into a target bucket.")
     return
   }
   $selected = $ListView.SelectedItems[0]
@@ -1466,6 +1492,15 @@ function Update-HistoryDetailsBox {
   if (-not $latestRunDisplay -or $latestRunDisplay.Trim() -eq "" -or $latestRunDisplay -eq "-") { $latestRunDisplay = "LATEST_UNAVAILABLE" }
   $snapshotBindingState = "NONE"
   if (Test-SnapshotBindingForTarget -TargetKey $targetKey) { $snapshotBindingState = "PRESENT" }
+  $snapshotBucketCount = 0
+  if ($targetKey -and $targetKey.Trim() -ne "") {
+    $bucketDir = Get-SnapshotBucketDir -TargetKey $targetKey
+    if (Test-Path -LiteralPath $bucketDir) {
+      $snapshotBucketCount = @(
+        Get-ChildItem -LiteralPath $bucketDir -Filter *.json -File -ErrorAction SilentlyContinue
+      ).Count
+    }
+  }
 
   $lines = @(
     "Target: " + $targetKey,
@@ -1476,7 +1511,8 @@ function Update-HistoryDetailsBox {
     "Latest: " + $latestRunDisplay,
     "Buckets: " + $buckets,
     "Auto Refresh: " + $autoRefreshState,
-    "Snapshot Binding: " + $snapshotBindingState
+    "Snapshot Binding: " + $snapshotBindingState,
+    "Snapshot Bucket: " + [string]$snapshotBucketCount + " file(s)"
   )
 
   if ($targetDir -and $latestRun -and $latestRun -ne "-") {
@@ -1528,7 +1564,8 @@ function Update-HistoryActionButtons {
     [System.Windows.Forms.Button]$SnapshotCompareButton,
     [System.Windows.Forms.Button]$SnapshotTrustButton,
     [System.Windows.Forms.Button]$SnapshotOpenBindingButton,
-    [System.Windows.Forms.Button]$SnapshotRemoveBindingButton
+    [System.Windows.Forms.Button]$SnapshotRemoveBindingButton,
+    [System.Windows.Forms.Button]$SnapshotBucketButton
   )
   if ($RunButton) { $RunButton.Enabled = $false }
   if ($EvidenceButton) { $EvidenceButton.Enabled = $false }
@@ -1537,6 +1574,7 @@ function Update-HistoryActionButtons {
   if ($SnapshotTrustButton) { $SnapshotTrustButton.Enabled = $false }
   if ($SnapshotOpenBindingButton) { $SnapshotOpenBindingButton.Enabled = $false }
   if ($SnapshotRemoveBindingButton) { $SnapshotRemoveBindingButton.Enabled = $false }
+  if ($SnapshotBucketButton) { $SnapshotBucketButton.Enabled = $false }
   if (-not $ListView -or $ListView.SelectedItems.Count -lt 1) { return }
   $selected = $ListView.SelectedItems[0]
   $row = Sync-HistoryRowSnapshot -Item $selected
@@ -1556,6 +1594,7 @@ function Update-HistoryActionButtons {
     if ($SnapshotExportButton) { $SnapshotExportButton.Enabled = $true }
     if ($SnapshotCompareButton) { $SnapshotCompareButton.Enabled = $true }
     if ($SnapshotTrustButton) { $SnapshotTrustButton.Enabled = $true }
+    if ($SnapshotBucketButton) { $SnapshotBucketButton.Enabled = $true }
   }
   $targetKey = [string]$row.targetKey
   $hasBinding = Test-SnapshotBindingForTarget -TargetKey $targetKey
@@ -1904,11 +1943,22 @@ function Write-SnapshotActionRecord {
 }
 
 function Select-SnapshotReferencePath {
+  param([string]$TargetKey)
   $dialog = New-Object System.Windows.Forms.OpenFileDialog
   $dialog.Title = "Select Snapshot Reference"
   $dialog.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*"
   $dialog.CheckFileExists = $true
   $dialog.Multiselect = $false
+  if ($TargetKey -and $TargetKey.Trim() -ne "") {
+    $bucketDir = Ensure-SnapshotBucketDir -TargetKey $TargetKey
+    if ($bucketDir -and (Test-Path -LiteralPath $bucketDir)) {
+      $dialog.InitialDirectory = $bucketDir
+      $latestRef = Join-Path $bucketDir "snapshot_ref_latest.json"
+      if (Test-Path -LiteralPath $latestRef) {
+        $dialog.FileName = "snapshot_ref_latest.json"
+      }
+    }
+  }
   $res = $dialog.ShowDialog()
   if ($res -ne [System.Windows.Forms.DialogResult]::OK) { return $null }
   return [string]$dialog.FileName
@@ -1934,22 +1984,15 @@ function Export-HistorySnapshotReference {
   }
   $snapshot = Read-RunEvidenceSnapshot -TargetDir $targetDir -RunId $latestRun
   $reference = New-SnapshotReferenceFromHistoryRow -TargetKey $targetKey -Snapshot $snapshot
-  $dialog = New-Object System.Windows.Forms.SaveFileDialog
-  $dialog.Title = "Export Snapshot Reference"
-  $dialog.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*"
-  $dialog.AddExtension = $true
-  $dialog.DefaultExt = "json"
-  $safeKey = if ($targetKey) { ([string]$targetKey -replace "[^A-Za-z0-9_]+", "_").Trim("_") } else { "target" }
-  if (-not $safeKey -or $safeKey -eq "") { $safeKey = "target" }
-  $dialog.FileName = ("snapshot_ref_{0}_{1}.json" -f $safeKey, $latestRun)
-  $res = $dialog.ShowDialog()
-  if ($res -ne [System.Windows.Forms.DialogResult]::OK) {
-    Set-StatusLine -StatusLabel $StatusLabel -Message "Snapshot export cancelled." -IsError $true
-    return
-  }
+  $safeKey = Get-SnapshotTargetToken -TargetKey $targetKey
+  $bucketDir = Ensure-SnapshotBucketDir -TargetKey $targetKey
+  $outPath = Join-Path $bucketDir ("snapshot_ref_{0}_{1}.json" -f $safeKey, $latestRun)
+  $latestPath = Join-Path $bucketDir "snapshot_ref_latest.json"
   try {
-    Write-TextFileAtomic -PathValue ([string]$dialog.FileName) -TextValue (($reference | ConvertTo-Json -Depth 10) + "`n")
-    Set-StatusLine -StatusLabel $StatusLabel -Message ("Exported snapshot reference: " + [System.IO.Path]::GetFileName([string]$dialog.FileName)) -IsError $false
+    $text = (($reference | ConvertTo-Json -Depth 10) + "`n")
+    Write-TextFileAtomic -PathValue $outPath -TextValue $text
+    Write-TextFileAtomic -PathValue $latestPath -TextValue $text
+    Set-StatusLine -StatusLabel $StatusLabel -Message ("Snapshot exported to bucket: " + [System.IO.Path]::GetFileName($outPath)) -IsError $false
   } catch {
     Set-StatusLine -StatusLabel $StatusLabel -Message "Snapshot export failed." -IsError $true
   }
@@ -1973,7 +2016,7 @@ function Invoke-HistorySnapshotCompareCore {
     Set-StatusLine -StatusLabel $StatusLabel -Message "No latest run available for snapshot compare." -IsError $true
     return $null
   }
-  $refPath = Select-SnapshotReferencePath
+  $refPath = Select-SnapshotReferencePath -TargetKey $targetKey
   if (-not $refPath) {
     Set-StatusLine -StatusLabel $StatusLabel -Message "Snapshot compare cancelled." -IsError $true
     return $null
@@ -2136,6 +2179,58 @@ function Open-HistorySnapshotBinding {
   } | ConvertTo-Json -Depth 10) + "`n")
   Start-Process -FilePath $bindingPath | Out-Null
   Set-StatusLine -StatusLabel $StatusLabel -Message ("Opened snapshot binding: " + $targetKey) -IsError $false
+}
+
+function Open-HistorySnapshotBucket {
+  param(
+    [System.Windows.Forms.ListView]$ListView,
+    [System.Windows.Forms.Label]$StatusLabel
+  )
+  if (-not $ListView -or $ListView.SelectedItems.Count -lt 1) {
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Select a history row first." -IsError $true
+    return
+  }
+  $selected = $ListView.SelectedItems[0]
+  $row = Sync-HistoryRowSnapshot -Item $selected
+  $targetKey = [string]$row.targetKey
+  if (-not $targetKey -or $targetKey.Trim() -eq "") {
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Target key unavailable." -IsError $true
+    return
+  }
+  $bucketDir = Ensure-SnapshotBucketDir -TargetKey $targetKey
+  $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+  if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
+  Start-Process -FilePath $explorerPath -ArgumentList $bucketDir | Out-Null
+  Set-StatusLine -StatusLabel $StatusLabel -Message ("Opened snapshot bucket: " + $targetKey) -IsError $false
+}
+
+function Import-SnapshotReferencesFromPaths {
+  param(
+    [string]$TargetKey,
+    [string[]]$InputPaths
+  )
+  $result = [ordered]@{
+    imported = 0
+    skipped = 0
+    invalid = 0
+  }
+  if (-not $TargetKey -or $TargetKey.Trim() -eq "") { return $result }
+  if (-not $InputPaths -or $InputPaths.Count -le 0) { return $result }
+  $bucketDir = Ensure-SnapshotBucketDir -TargetKey $TargetKey
+  foreach ($path in @($InputPaths)) {
+    if (-not $path -or -not (Test-Path -LiteralPath $path)) { $result.skipped++; continue }
+    if ([System.IO.Directory]::Exists($path)) { $result.skipped++; continue }
+    if ([string]([System.IO.Path]::GetExtension($path)).ToLowerInvariant() -ne ".json") { $result.skipped++; continue }
+    $ref = Read-SnapshotReferenceFile -PathValue $path
+    if (-not $ref) { $result.invalid++; continue }
+    $name = [System.IO.Path]::GetFileName($path)
+    if (-not $name -or $name.Trim() -eq "") { $name = ("snapshot_ref_import_{0}.json" -f $result.imported) }
+    $dest = Join-Path $bucketDir $name
+    $text = Get-Content -LiteralPath $path -Raw -Encoding UTF8
+    Write-TextFileAtomic -PathValue $dest -TextValue $text
+    $result.imported++
+  }
+  return $result
 }
 
 $form = New-Object System.Windows.Forms.Form
@@ -2412,6 +2507,14 @@ $btnHistorySnapshotRemove.Enabled = $false
 Style-Button -Button $btnHistorySnapshotRemove -Primary:$false
 $historyActions.Controls.Add($btnHistorySnapshotRemove) | Out-Null
 
+$btnHistorySnapshotBucket = New-Object System.Windows.Forms.Button
+$btnHistorySnapshotBucket.Text = "Open Bucket"
+$btnHistorySnapshotBucket.Width = 94
+$btnHistorySnapshotBucket.Height = 30
+$btnHistorySnapshotBucket.Enabled = $false
+Style-Button -Button $btnHistorySnapshotBucket -Primary:$false
+$historyActions.Controls.Add($btnHistorySnapshotBucket) | Out-Null
+
 $btnHistoryCopy = New-Object System.Windows.Forms.Button
 $btnHistoryCopy.Text = "Copy Details"
 $btnHistoryCopy.Width = 98
@@ -2448,10 +2551,11 @@ $historyDetail.Dock = "Fill"
 $historyDetail.Multiline = $true
 $historyDetail.ScrollBars = "Vertical"
 $historyDetail.ReadOnly = $true
+$historyDetail.AllowDrop = $true
 $historyDetail.BackColor = $colorPanel
 $historyDetail.ForeColor = $colorText
 $historyDetail.Font = $fontSmall
-$historyDetail.Text = "Select a history row to view adapter evidence and capability summary."
+$historyDetail.Text = "Select a history row to view adapter evidence and capability summary." + [Environment]::NewLine + "Tip: Drag snapshot .json files here to import into the selected target bucket."
 
 $historyLayout.Controls.Add($historyActions, 0, 0)
 $historyLayout.Controls.Add($historyList, 0, 1)
@@ -2594,7 +2698,7 @@ $syncNow = {
   $count = Load-Shortcuts -Panel $listPanel
   $tracked = Load-HistoryRows -ListView $historyList
   Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
-  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove
+  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket
   if ($sync.ok) {
     if (-not $Silent.IsPresent) {
       $msg = "Synced. targets=" + $sync.scanned + " added=" + $sync.added + " removed=" + $sync.removed + " failed=" + $sync.failed + " visible=" + $count + " tracked=" + $tracked
@@ -2612,7 +2716,7 @@ $btnRefresh.Add_Click({ & $syncNow -Silent })
 $btnHistoryRefresh.Add_Click({
   $tracked = Load-HistoryRows -ListView $historyList
   Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
-  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove
+  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket
   Set-StatusLine -StatusLabel $statusLabel -Message ("History refreshed. tracked=" + $tracked) -IsError $false
 })
 $btnHistoryView.Add_Click({
@@ -2626,21 +2730,24 @@ $btnHistoryEvidence.Add_Click({
 })
 $btnHistorySnapshotExport.Add_Click({
   Export-HistorySnapshotReference -ListView $historyList -StatusLabel $statusLabel
-  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove
+  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket
 })
 $btnHistorySnapshotCompare.Add_Click({
   Compare-HistorySnapshotReference -ListView $historyList -StatusLabel $statusLabel
 })
 $btnHistorySnapshotTrust.Add_Click({
   CompareAndTrust-HistorySnapshotReference -ListView $historyList -StatusLabel $statusLabel
-  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove
+  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket
 })
 $btnHistorySnapshotOpen.Add_Click({
   Open-HistorySnapshotBinding -ListView $historyList -StatusLabel $statusLabel
 })
 $btnHistorySnapshotRemove.Add_Click({
   Remove-HistorySnapshotBinding -ListView $historyList -StatusLabel $statusLabel
-  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove
+  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket
+})
+$btnHistorySnapshotBucket.Add_Click({
+  Open-HistorySnapshotBucket -ListView $historyList -StatusLabel $statusLabel
 })
 $btnHistoryCopy.Add_Click({
   Copy-HistoryDetailsText -DetailBox $historyDetail -StatusLabel $statusLabel
@@ -2678,9 +2785,45 @@ $historyDetail.Add_KeyDown({
     }
   }
 })
+$historyDetail.Add_DragEnter({
+  param($sender, $e)
+  if ($e.Data.GetDataPresent([System.Windows.Forms.DataFormats]::FileDrop)) {
+    $e.Effect = [System.Windows.Forms.DragDropEffects]::Copy
+  } else {
+    $e.Effect = [System.Windows.Forms.DragDropEffects]::None
+  }
+})
+$historyDetail.Add_DragDrop({
+  param($sender, $e)
+  try {
+    if (-not $e.Data.GetDataPresent([System.Windows.Forms.DataFormats]::FileDrop)) {
+      Set-StatusLine -StatusLabel $statusLabel -Message "Drop rejected: no files detected." -IsError $true
+      return
+    }
+    if (-not $historyList -or $historyList.SelectedItems.Count -lt 1) {
+      Set-StatusLine -StatusLabel $statusLabel -Message "Select a history row before importing snapshots." -IsError $true
+      return
+    }
+    $selected = $historyList.SelectedItems[0]
+    $row = Sync-HistoryRowSnapshot -Item $selected
+    $targetKey = [string]$row.targetKey
+    $paths = @($e.Data.GetData([System.Windows.Forms.DataFormats]::FileDrop))
+    $import = Import-SnapshotReferencesFromPaths -TargetKey $targetKey -InputPaths $paths
+    Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
+    Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket
+    $msg = "Snapshot import: imported=" + [string]$import.imported + " invalid=" + [string]$import.invalid + " skipped=" + [string]$import.skipped
+    if ([int]$import.imported -gt 0) {
+      Set-StatusLine -StatusLabel $statusLabel -Message $msg -IsError $false
+    } else {
+      Set-StatusLine -StatusLabel $statusLabel -Message $msg -IsError $true
+    }
+  } catch {
+    Set-StatusLine -StatusLabel $statusLabel -Message "Snapshot import failed." -IsError $true
+  }
+})
 $historyList.Add_SelectedIndexChanged({
   Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
-  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove
+  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket
 })
 $chkAuto.Add_CheckedChanged({
   Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
@@ -2794,7 +2937,7 @@ $doctorText.Add_KeyDown({
 $initialCount = Load-Shortcuts -Panel $listPanel
 $initialTracked = Load-HistoryRows -ListView $historyList
 Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
-Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove
+Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket
 Set-StatusLine -StatusLabel $statusLabel -Message ("Ready. visible=" + $initialCount + " tracked=" + $initialTracked) -IsError $false
 
 $timer = New-Object System.Windows.Forms.Timer
@@ -2810,3 +2953,4 @@ $form.Controls.Add($tabs)
 $form.Controls.Add($statusBar)
 $form.Controls.Add($header)
 [void]$form.ShowDialog()
+
