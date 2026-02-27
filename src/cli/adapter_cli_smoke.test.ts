@@ -577,6 +577,21 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const input = path.join(tmp, "drive_path_plugin.tgz");
+    writeSimpleTgz(input, [
+      { name: "C:/spoof.txt", text: "spoof" },
+      { name: "ok.txt", text: "ok" },
+    ]);
+    if (tarAvailable()) {
+      const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive", "--enable-plugin", "tar"]);
+      assertEq(res.status, 40, "safe-run archive should fail closed for strict plugin route with drive-style absolute entry paths");
+      assert(res.stderr.includes("ARCHIVE_FORMAT_MISMATCH"), "expected ARCHIVE_FORMAT_MISMATCH on stderr for drive-style plugin archive entries");
+    }
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const input = path.join(tmp, "bad.tar");
     fs.writeFileSync(input, "not-a-tar", "utf8");
     const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"]);
@@ -1584,6 +1599,21 @@ const run = async (): Promise<void> => {
       const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "package", "--enable-plugin", "tar"]);
       assertEq(res.status, 40, "safe-run should fail closed for strict package plugin route with traversal-style entry paths");
       assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for traversal-style package plugin entries");
+    }
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "drive_path_package.tgz");
+    writeSimpleTgz(input, [
+      { name: "C:/spoof.txt", text: "spoof" },
+      { name: "pkg/install.sh", text: "echo ok" },
+    ]);
+    if (tarAvailable()) {
+      const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "package", "--enable-plugin", "tar"]);
+      assertEq(res.status, 40, "safe-run should fail closed for strict package plugin route with drive-style absolute entry paths");
+      assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for drive-style package plugin entries");
     }
   }
 

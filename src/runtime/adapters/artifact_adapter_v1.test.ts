@@ -278,6 +278,22 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tgz = path.join(tmp, "drive_path_plugin.tgz");
+    writeSimpleTgz(tgz, [
+      { name: "C:/spoof.txt", text: "spoof" },
+      { name: "ok.txt", text: "ok" },
+    ]);
+    const capture = captureTreeV0(tgz, limits);
+    const tarAvailable = runCmd("tar", ["--help"]).ok;
+    if (tarAvailable) {
+      const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: ["tar"], inputPath: tgz, capture });
+      assert(!res.ok, "archive adapter should fail closed for strict plugin route with drive-style absolute entry paths");
+      assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for drive-style plugin archive entry paths");
+    }
+  }
+
+  {
+    const tmp = mkTmp();
     const badTar = path.join(tmp, "bad.tar");
     fs.writeFileSync(badTar, "not-a-tar", "utf8");
     const capture = captureTreeV0(badTar, limits);
@@ -1095,6 +1111,22 @@ const run = (): void => {
       const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: ["tar"], inputPath: tgz, capture });
       assert(!res.ok, "package adapter should fail closed for strict package plugin route with traversal-style entry paths");
       assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for traversal-style package plugin entry paths");
+    }
+  }
+
+  {
+    const tmp = mkTmp();
+    const tgz = path.join(tmp, "drive_path_package.tgz");
+    writeSimpleTgz(tgz, [
+      { name: "C:/spoof.txt", text: "spoof" },
+      { name: "pkg/install.sh", text: "echo ok" },
+    ]);
+    const capture = captureTreeV0(tgz, limits);
+    const tarAvailable = runCmd("tar", ["--help"]).ok;
+    if (tarAvailable) {
+      const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: ["tar"], inputPath: tgz, capture });
+      assert(!res.ok, "package adapter should fail closed for strict package plugin route with drive-style absolute entry paths");
+      assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for drive-style package plugin entry paths");
     }
   }
 
