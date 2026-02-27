@@ -2274,6 +2274,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const largeRtf = path.join(tmp, "large_bounded.rtf");
+    fs.writeFileSync(
+      largeRtf,
+      `{\\rtf1\\ansi\\deff0 ${"sample ".repeat(120_000)}}`,
+      "utf8"
+    );
+    const capture = captureTreeV0(largeRtf, limits);
+    const res = runArtifactAdapterV1({ selection: "document", enabledPlugins: [], inputPath: largeRtf, capture });
+    assert(!res.ok, "document adapter should fail closed for explicit RTF when text evidence is bounded");
+    assertEq(res.failCode, "DOC_FORMAT_MISMATCH", "expected DOC_FORMAT_MISMATCH for bounded explicit RTF text evidence");
+  }
+
+  {
+    const tmp = mkTmp();
     const tinyRtf = path.join(tmp, "tiny.rtf");
     fs.writeFileSync(tinyRtf, "{\\rtf1}", "utf8");
     const capture = captureTreeV0(tinyRtf, limits);

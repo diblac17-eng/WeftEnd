@@ -1200,6 +1200,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const largeRtf = path.join(tmp, "large_bounded.rtf");
+    fs.writeFileSync(
+      largeRtf,
+      `{\\rtf1\\ansi\\deff0 ${"sample ".repeat(120_000)}}`,
+      "utf8"
+    );
+    const res = await runCliCapture(["safe-run", largeRtf, "--out", outDir, "--adapter", "document"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit RTF when text evidence is bounded");
+    assert(res.stderr.includes("DOC_FORMAT_MISMATCH"), "expected DOC_FORMAT_MISMATCH on stderr for bounded explicit RTF text evidence");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const tinyRtf = path.join(tmp, "tiny.rtf");
     fs.writeFileSync(tinyRtf, "{\\rtf1}", "utf8");
     const res = await runCliCapture(["safe-run", tinyRtf, "--out", outDir, "--adapter", "document"]);

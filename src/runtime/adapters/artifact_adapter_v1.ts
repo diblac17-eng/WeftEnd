@@ -27,6 +27,7 @@ const PACKAGE_EXTS = new Set([".msi", ".msix", ".exe", ".nupkg", ".whl", ".jar",
 const EXTENSION_EXTS = new Set([".crx", ".vsix", ".xpi"]);
 const IAC_EXTS = new Set([".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep", ".template"]);
 const DOCUMENT_EXTS = new Set([".pdf", ".docm", ".xlsm", ".rtf", ".chm"]);
+const DOCUMENT_TEXT_STRICT_EXTS = new Set([".pdf", ".rtf", ".chm"]);
 const IMAGE_EXTS = new Set([".iso", ".vhd", ".vhdx", ".vmdk", ".qcow2"]);
 const SIGNATURE_EXTS = new Set([".cer", ".crt", ".pem", ".p7b", ".sig"]);
 
@@ -2913,9 +2914,19 @@ const analyzeDocument = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =
       }
     }
   }
-  const text = readTextBounded(ctx.inputPath);
+  const textEvidence = readTextBoundedEvidenceV1(ctx.inputPath, MAX_TEXT_BYTES);
+  if (strictRoute && DOCUMENT_TEXT_STRICT_EXTS.has(ctx.ext) && textEvidence.bounded) {
+    return {
+      ok: false,
+      failCode: "DOC_FORMAT_MISMATCH",
+      failMessage: "document adapter expected complete unbounded text evidence for explicit document analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["DOC_ADAPTER_V1", "DOC_FORMAT_MISMATCH"]),
+    };
+  }
+  const text = textEvidence.text;
   const reasons = ["DOC_ADAPTER_V1"];
   const markers: string[] = [];
+  if (textEvidence.bounded) markers.push("DOC_TEXT_BOUNDED");
   const findings: string[] = [];
   let activeContent = 0;
   let embeddedObject = 0;
