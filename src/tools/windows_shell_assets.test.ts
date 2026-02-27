@@ -423,6 +423,11 @@ suite("tools/windows shell assets", () => {
     assert(/Compute-FileSha256Digest/.test(panelText), "expected history file digest helper");
     assert(/Get-LatestRunIdForTargetDir/.test(panelText), "expected history latest-run fallback helper");
     assert(/Read-ReportCardSummaryForRun/.test(panelText), "expected history report-card fallback helper");
+    assert(/selectedTargetKey/.test(panelText), "expected history selection key preservation variable");
+    assert(/if \(\$selectedTargetKey -and \$selectedTargetKey\.Trim\(\) -ne ""\)/.test(panelText), "expected history selection reapply guard");
+    assert(/\$candidate\.Selected = \$true/.test(panelText), "expected history selection to be restored after refresh");
+    assert(/\$candidate\.Focused = \$true/.test(panelText), "expected history focus to be restored after refresh");
+    assert(/\$candidate\.EnsureVisible\(\)/.test(panelText), "expected history restored selection to be visible");
     assert(/targetKind/.test(panelText) && /artifactKind/.test(panelText), "expected report-card kind metadata extraction");
     assert(/ReportViewerStartFailCount/.test(panelText), "expected launchpad viewer startup counter reset support");
     assert(/Invoke-AdapterDoctorText/.test(panelText), "expected adapter doctor helper");

@@ -1403,6 +1403,16 @@ function Copy-DoctorOutputText {
 function Load-HistoryRows {
   param([System.Windows.Forms.ListView]$ListView)
   if (-not $ListView) { return 0 }
+  $selectedTargetKey = ""
+  if ($ListView.SelectedItems.Count -gt 0) {
+    $selectedItem = $ListView.SelectedItems[0]
+    $selectedTag = $selectedItem.Tag
+    if ($selectedTag -and $selectedTag.targetKey) {
+      $selectedTargetKey = [string]$selectedTag.targetKey
+    } else {
+      $selectedTargetKey = [string]$selectedItem.Text
+    }
+  }
   $ListView.BeginUpdate()
   $ListView.Items.Clear()
 
@@ -1426,6 +1436,21 @@ function Load-HistoryRows {
       latestRun = $s.latest
     }
     [void]$ListView.Items.Add($item)
+  }
+
+  if ($selectedTargetKey -and $selectedTargetKey.Trim() -ne "") {
+    foreach ($candidateObj in @($ListView.Items)) {
+      $candidate = [System.Windows.Forms.ListViewItem]$candidateObj
+      if (-not $candidate) { continue }
+      $candidateTag = $candidate.Tag
+      $candidateKey = if ($candidateTag -and $candidateTag.targetKey) { [string]$candidateTag.targetKey } else { [string]$candidate.Text }
+      if ($candidateKey -and $candidateKey -eq $selectedTargetKey) {
+        $candidate.Selected = $true
+        $candidate.Focused = $true
+        $candidate.EnsureVisible()
+        break
+      }
+    }
   }
 
   $ListView.EndUpdate()

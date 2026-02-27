@@ -14,6 +14,7 @@ Included
 - Launchpad History includes an additive `Kind` column derived from latest report-card metadata (`targetKind`/`artifactKind`) so operators can identify target class quickly.
 - Launchpad History details now include `Auto Refresh: ON|OFF` in both selected-row and no-selection states, and refresh immediately when the auto-refresh checkbox is toggled.
 - Support docs now align with current shortcut model (Launchpad + Download only) and no longer direct operators to removed `WeftEnd Library` shortcuts.
+- Launchpad History refresh now preserves selected-row focus by target key across auto/manual refresh cycles, reducing read-flow jumps while details are open.
 - History details pane now uses explicit placeholder tokens (`NOT_REPORTED`, `NONE`, `LATEST_UNAVAILABLE`, `NOT_AVAILABLE`) instead of ambiguous `-` placeholders when data is missing/unavailable.
 - History evidence/detail lines (artifact digests, compare fields, adapter summary fields) now also normalize missing values to explicit tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, `NONE`) instead of raw `-`.
 - Windows shell contract tests now pin this resync helper/action usage.
