@@ -702,11 +702,10 @@ function Update-DoctorOverallLamp {
     [System.Windows.Forms.Label]$AdapterLamp,
     [System.Windows.Forms.Label]$AdapterStrictLamp
   )
-  $states = @(
-    if ($ShellLamp) { [string]$ShellLamp.Tag } else { "UNKNOWN" },
-    if ($AdapterLamp) { [string]$AdapterLamp.Tag } else { "UNKNOWN" },
-    if ($AdapterStrictLamp) { [string]$AdapterStrictLamp.Tag } else { "UNKNOWN" }
-  )
+  $shellState = if ($ShellLamp) { [string]$ShellLamp.Tag } else { "UNKNOWN" }
+  $adapterState = if ($AdapterLamp) { [string]$AdapterLamp.Tag } else { "UNKNOWN" }
+  $adapterStrictState = if ($AdapterStrictLamp) { [string]$AdapterStrictLamp.Tag } else { "UNKNOWN" }
+  $states = @($shellState, $adapterState, $adapterStrictState)
   $overall = "UNKNOWN"
   $detail = ""
   if ($states -contains "FAIL") {
