@@ -2553,6 +2553,48 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tarPath = path.join(tmp, "oci_layout_bad_index.tar");
+    writeSimpleTar(tarPath, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      { name: "index.json", text: "{ invalid-json" },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+    ]);
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit OCI tar invalid index payload");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for OCI tar invalid index payload");
+  }
+
+  {
+    const tmp = mkTmp();
+    const tarPath = path.join(tmp, "oci_layout_bad_index_shape.tar");
+    writeSimpleTar(tarPath, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      { name: "index.json", text: "{\"schemaVersion\":2,\"manifests\":{}}\n" },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+    ]);
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit OCI tar index manifests shape mismatch");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for OCI tar index manifests shape mismatch");
+  }
+
+  {
+    const tmp = mkTmp();
+    const tarPath = path.join(tmp, "oci_layout_empty_manifests.tar");
+    writeSimpleTar(tarPath, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      { name: "index.json", text: "{\"schemaVersion\":2,\"manifests\":[]}\n" },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+    ]);
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit OCI tar empty manifests");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for OCI tar empty manifests");
+  }
+
+  {
+    const tmp = mkTmp();
     const tarPath = path.join(tmp, "oci_layout_missing_blobs.tar");
     writeSimpleTar(tarPath, [
       { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },

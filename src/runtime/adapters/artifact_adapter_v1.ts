@@ -3111,10 +3111,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       const ociIndexEntry = ociTexts.entries.find(
         (entry) => String(entry.name || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase() === "index.json"
       );
+      let ociIndexParsed = false;
+      let ociIndexManifestsArray = false;
       if (ociIndexEntry) {
         try {
           const parsed = JSON.parse(String(ociIndexEntry.text || ""));
+          ociIndexParsed = parsed && typeof parsed === "object";
           if (parsed && typeof parsed === "object" && Array.isArray((parsed as any).manifests)) {
+            ociIndexManifestsArray = true;
             const manifests = (parsed as any).manifests as unknown[];
             ociManifestCount = manifests.length;
             const ociTarManifestDigestSeen = new Set<string>();
@@ -3136,6 +3140,38 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
         } catch {
           // strict route handles invalid/partial OCI tar payload below
         }
+      }
+      if (strictRoute && !ociIndexEntry) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected index.json entry for explicit OCI tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
+      if (strictRoute && !ociIndexParsed) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected valid OCI index.json payload for explicit OCI tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
+      if (strictRoute && !ociIndexManifestsArray) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected OCI index manifests array for explicit OCI tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
+      if (strictRoute && ociManifestCount === 0) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected non-empty OCI index manifests for explicit OCI tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
       }
       if (strictRoute && ociManifestDigestRefCount > 0 && ociManifestDigestResolvedCount < ociManifestDigestRefCount) {
         return {

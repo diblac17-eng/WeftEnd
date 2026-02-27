@@ -2460,6 +2460,48 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const ociTarBadIndex = path.join(tmp, "oci_layout_bad_index.tar");
+    writeSimpleTar(ociTarBadIndex, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      { name: "index.json", text: "{ invalid-json" },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+    ]);
+    const res = await runCliCapture(["safe-run", ociTarBadIndex, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI tar invalid index payload");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar invalid index payload");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const ociTarBadIndexShape = path.join(tmp, "oci_layout_bad_index_shape.tar");
+    writeSimpleTar(ociTarBadIndexShape, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      { name: "index.json", text: "{\"schemaVersion\":2,\"manifests\":{}}\n" },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+    ]);
+    const res = await runCliCapture(["safe-run", ociTarBadIndexShape, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI tar index manifests shape mismatch");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar index manifests shape mismatch");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const ociTarEmptyManifests = path.join(tmp, "oci_layout_empty_manifests.tar");
+    writeSimpleTar(ociTarEmptyManifests, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      { name: "index.json", text: "{\"schemaVersion\":2,\"manifests\":[]}\n" },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+    ]);
+    const res = await runCliCapture(["safe-run", ociTarEmptyManifests, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI tar empty manifests");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar empty manifests");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const ociTarMissingBlobs = path.join(tmp, "oci_layout_missing_blobs.tar");
     writeSimpleTar(ociTarMissingBlobs, [
       { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
