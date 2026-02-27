@@ -12,6 +12,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 ### Signature strict-route hardening
 - Explicit `signature` adapter routing now fails closed (`SIGNATURE_FORMAT_MISMATCH`) when malformed PEM envelopes are present, even if other valid envelope evidence exists.
 - This closes mixed valid/corrupt envelope acceptance in strict mode and enforces complete envelope evidence before route success.
+- Explicit `signature` adapter routing now also fails closed when only bounded/truncated signature bytes are available (`SIGNATURE_BOUNDED`), preventing strict-route success on partial signature input reads.
 
 ### Release packaging fix
 - Fixed root `weftend_release_zip.ps1` zip staging to use a valid temporary `.zip` filename (`__stage_release_*.zip`) so `Compress-Archive` runs successfully before final atomic move.

@@ -3513,6 +3513,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const boundedSig = path.join(tmp, "bounded.sig");
+    fs.writeFileSync(
+      boundedSig,
+      ["-----BEGIN SIGNATURE-----", "MAMCAQ==", "-----END SIGNATURE-----", "A".repeat(300_000)].join("\n"),
+      "utf8"
+    );
+    const capture = captureTreeV0(boundedSig, limits);
+    const res = runArtifactAdapterV1({ selection: "signature", enabledPlugins: [], inputPath: boundedSig, capture });
+    assert(!res.ok, "explicit signature adapter should fail closed when signature evidence is bounded/truncated");
+    assertEq(res.failCode, "SIGNATURE_FORMAT_MISMATCH", "expected SIGNATURE_FORMAT_MISMATCH for bounded signature evidence");
+  }
+
+  {
+    const tmp = mkTmp();
     const sigWithCertEnvelope = path.join(tmp, "sig_with_cert_envelope.sig");
     fs.writeFileSync(
       sigWithCertEnvelope,

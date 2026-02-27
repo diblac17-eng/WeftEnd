@@ -1363,6 +1363,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const boundedSig = path.join(tmp, "bounded.sig");
+    fs.writeFileSync(
+      boundedSig,
+      ["-----BEGIN SIGNATURE-----", "MAMCAQ==", "-----END SIGNATURE-----", "A".repeat(300_000)].join("\n"),
+      "utf8"
+    );
+    const res = await runCliCapture(["safe-run", boundedSig, "--out", outDir, "--adapter", "signature"]);
+    assertEq(res.status, 40, "safe-run should fail closed for bounded/truncated signature evidence");
+    assert(res.stderr.includes("SIGNATURE_FORMAT_MISMATCH"), "expected SIGNATURE_FORMAT_MISMATCH on stderr for bounded signature evidence");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const sigWithCertEnvelope = path.join(tmp, "sig_with_cert_envelope.sig");
     fs.writeFileSync(
       sigWithCertEnvelope,

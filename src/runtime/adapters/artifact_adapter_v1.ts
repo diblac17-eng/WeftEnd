@@ -3978,8 +3978,15 @@ const analyzeSignature = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       reasonCodes: stableSortUniqueReasonsV0(["SIGNATURE_ADAPTER_V1", "SIGNATURE_UNSUPPORTED_FORMAT"]),
     };
   }
+  let signatureFileBytes = 0;
+  try {
+    signatureFileBytes = Math.max(0, Number(fs.statSync(ctx.inputPath).size || 0));
+  } catch {
+    signatureFileBytes = 0;
+  }
   const text = readTextBounded(ctx.inputPath);
   const bytes = readBytesBounded(ctx.inputPath);
+  const signatureBounded = signatureFileBytes > bytes.length;
   const pemCertificateEnvelope = pemEnvelopeEvidenceV1(text, "CERTIFICATE");
   const pemPkcs7Envelope = pemEnvelopeEvidenceV1(text, "PKCS7");
   const pemSignatureEnvelope = pemEnvelopeEvidenceV1(text, "SIGNATURE");
@@ -4039,10 +4046,18 @@ const analyzeSignature = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
         reasonCodes: stableSortUniqueReasonsV0(["SIGNATURE_ADAPTER_V1", "SIGNATURE_FORMAT_MISMATCH"]),
       };
     }
+    if (signatureBounded) {
+      return {
+        ok: false,
+        failCode: "SIGNATURE_FORMAT_MISMATCH",
+        failMessage: "signature adapter expected complete unbounded signature bytes for explicit route.",
+        reasonCodes: stableSortUniqueReasonsV0(["SIGNATURE_ADAPTER_V1", "SIGNATURE_FORMAT_MISMATCH"]),
+      };
+    }
   }
   const reasons = ["SIGNATURE_EVIDENCE_V1"];
   const markers: string[] = [];
-  if (bytes.length >= MAX_TEXT_BYTES) markers.push("SIGNATURE_BOUNDED");
+  if (signatureBounded) markers.push("SIGNATURE_BOUNDED");
   if (pemEnvelopeInvalidCount > 0) markers.push("SIGNATURE_ENVELOPE_PARTIAL");
   if (!signerPresent && text.length === 0 && bytes.length > 0) markers.push("SIGNATURE_PARSE_PARTIAL");
   if (signerPresent) reasons.push("SIGNER_PRESENT");
