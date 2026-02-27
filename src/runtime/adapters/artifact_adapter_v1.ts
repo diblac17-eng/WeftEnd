@@ -2232,6 +2232,7 @@ const analyzeExtensionDir = (inputPath: string): {
   updateDomains: string[];
   manifestInvalid: boolean;
   manifestCoreValid: boolean;
+  manifestBounded: boolean;
 } => {
   const manifestPath = path.join(inputPath, "manifest.json");
   if (!fs.existsSync(manifestPath)) {
@@ -2243,12 +2244,11 @@ const analyzeExtensionDir = (inputPath: string): {
       updateDomains: [],
       manifestInvalid: false,
       manifestCoreValid: false,
+      manifestBounded: false,
     };
   }
-  let parsed: any = null;
-  try {
-    parsed = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-  } catch {
+  const manifestRead = readJsonBounded(manifestPath);
+  if (!manifestRead.value || typeof manifestRead.value !== "object") {
     return {
       manifestFound: true,
       manifestInvalid: true,
@@ -2257,8 +2257,10 @@ const analyzeExtensionDir = (inputPath: string): {
       hostMatchCount: 0,
       updateDomains: [],
       manifestCoreValid: false,
+      manifestBounded: manifestRead.bounded,
     };
   }
+  const parsed: any = manifestRead.value;
   const manifestVersion = Number(parsed?.manifest_version ?? 0);
   const hasManifestVersion = Number.isInteger(manifestVersion) && manifestVersion >= 2 && manifestVersion <= 3;
   const hasName = typeof parsed?.name === "string" && parsed.name.trim().length > 0;
@@ -2279,6 +2281,7 @@ const analyzeExtensionDir = (inputPath: string): {
     hostMatchCount: hostPermissions.filter((value: unknown) => typeof value === "string").length + matchCount,
     updateDomains: updateDomain ? [updateDomain] : [],
     manifestCoreValid,
+    manifestBounded: manifestRead.bounded,
   };
 };
 
@@ -2305,6 +2308,7 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let hostMatchCount = 0;
   let updateDomains: string[] = [];
   let manifestCoreValid = false;
+  let manifestBounded = false;
 
   if (isDir) {
     if (strictRoute) {
@@ -2346,6 +2350,7 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     hostMatchCount = dir.hostMatchCount;
     updateDomains = dir.updateDomains;
     manifestCoreValid = dir.manifestCoreValid;
+    manifestBounded = dir.manifestBounded;
   } else {
     const isCrx = ext === ".crx";
     const zipEntries = isCrx ? { entries: [] as string[], markers: [] as string[] } : readZipEntriesRaw(ctx.inputPath);
@@ -2467,6 +2472,15 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_MANIFEST_INVALID"]),
     };
   }
+  if (strictRoute && manifestBounded) {
+    return {
+      ok: false,
+      failCode: "EXTENSION_FORMAT_MISMATCH",
+      failMessage: "extension adapter requires complete unbounded manifest evidence for explicit extension analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["EXTENSION_ADAPTER_V1", "EXTENSION_FORMAT_MISMATCH"]),
+    };
+  }
+  if (manifestBounded) markers.push("EXTENSION_MANIFEST_PARTIAL");
   if (strictRoute && markers.includes("ARCHIVE_TRUNCATED")) {
     return {
       ok: false,
@@ -2488,6 +2502,7 @@ const analyzeExtension = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     adapterId: "extension_adapter_v1",
     counts: {
       manifestFound: manifestFound ? 1 : 0,
+      manifestBounded: manifestBounded ? 1 : 0,
       permissionCount,
       contentScriptCount,
       hostMatchCount,

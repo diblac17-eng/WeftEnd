@@ -2236,6 +2236,19 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    fs.writeFileSync(
+      path.join(tmp, "manifest.json"),
+      `${JSON.stringify({ manifest_version: 3, name: "demo", version: "1.0.0" })}${" ".repeat(300_000)}`,
+      "utf8"
+    );
+    const res = await runCliCapture(["safe-run", tmp, "--out", outDir, "--adapter", "extension"]);
+    assertEq(res.status, 40, "safe-run should fail closed for unpacked extension manifest evidence that is bounded/truncated");
+    assert(res.stderr.includes("EXTENSION_FORMAT_MISMATCH"), "expected EXTENSION_FORMAT_MISMATCH on stderr for bounded unpacked extension manifest evidence");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const emptyManifestVsix = path.join(tmp, "empty_manifest.vsix");
     writeStoredZip(emptyManifestVsix, [{ name: "manifest.json", text: "{}" }]);
     const res = await runCliCapture(["safe-run", emptyManifestVsix, "--out", outDir, "--adapter", "extension"]);

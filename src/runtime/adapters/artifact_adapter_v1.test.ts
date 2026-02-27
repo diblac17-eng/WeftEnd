@@ -651,6 +651,19 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    fs.writeFileSync(
+      path.join(tmp, "manifest.json"),
+      `${JSON.stringify({ manifest_version: 3, name: "demo", version: "1.0.0" })}${" ".repeat(300_000)}`,
+      "utf8"
+    );
+    const capture = captureTreeV0(tmp, limits);
+    const res = runArtifactAdapterV1({ selection: "extension", enabledPlugins: [], inputPath: tmp, capture });
+    assert(!res.ok, "extension adapter should fail closed for unpacked manifest evidence that is bounded/truncated");
+    assertEq(res.failCode, "EXTENSION_FORMAT_MISMATCH", "expected EXTENSION_FORMAT_MISMATCH for bounded unpacked extension manifest evidence");
+  }
+
+  {
+    const tmp = mkTmp();
     fs.writeFileSync(path.join(tmp, "manifest.json"), JSON.stringify({ manifest_version: 3, name: "demo", version: "1.0.0" }), "utf8");
     const capture = captureTreeV0(tmp, limits) as any;
     capture.entries = capture.entries.concat([
