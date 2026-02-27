@@ -4,7 +4,9 @@ Operator onboarding checklist (5-10 minutes).
 
 1) Install (Windows)
 - Install the context menu tools.
-- Confirm the "WeftEnd Library" shortcut exists.
+- Confirm Start Menu shortcuts exist:
+  - "WeftEnd Launchpad"
+  - "WeftEnd Download"
 - Run shell doctor (must show OK for all bindings).
 
 2) First run

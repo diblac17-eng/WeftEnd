@@ -77,7 +77,7 @@ delta=... on CHANGED
   - Wrapper did not find receipts; check out root / registry / shell doctor.
 
 - OPEN_EXTERNAL_FAILED
-  - OS open failed; use the Start Menu "WeftEnd Library" shortcut.
+  - OS open failed; use Start Menu "WeftEnd Launchpad" and open library from there.
 
 - SCAN_TRIGGERED
   - Auto-scan (watch) fired; receipts still require operator review.
@@ -101,6 +101,6 @@ delta=... on CHANGED
 
 - If WITHHELD: expected for native binaries; use compare for changes.
 - If WEFTEND_NO_RECEIPT: run shell doctor; verify OutRoot + RepoRoot.
-- If OPEN_EXTERNAL_FAILED: open the Start Menu "WeftEnd Library" shortcut.
+- If OPEN_EXTERNAL_FAILED: open Start Menu "WeftEnd Launchpad", then use "Open Library Root".
 - If ZIP_EOCD_MISSING: re-download or re-create the zip.
 - If HOST_STARTUP_UNVERIFIED: do not execute; verify host status first.
