@@ -2045,8 +2045,10 @@ $syncNow = {
   Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
   Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence
   if ($sync.ok) {
-    $msg = "Synced. targets=" + $sync.scanned + " added=" + $sync.added + " removed=" + $sync.removed + " failed=" + $sync.failed + " visible=" + $count + " tracked=" + $tracked
-    Set-StatusLine -StatusLabel $statusLabel -Message $msg -IsError $false
+    if (-not $Silent.IsPresent) {
+      $msg = "Synced. targets=" + $sync.scanned + " added=" + $sync.added + " removed=" + $sync.removed + " failed=" + $sync.failed + " visible=" + $count + " tracked=" + $tracked
+      Set-StatusLine -StatusLabel $statusLabel -Message $msg -IsError $false
+    }
   } else {
     $label = if ($Silent.IsPresent) { "Refresh warning: " } else { "Sync error: " }
     Set-StatusLine -StatusLabel $statusLabel -Message ($label + $sync.code) -IsError $true

@@ -407,6 +407,8 @@ suite("tools/windows shell assets", () => {
     assert(!/--open-library"\)/.test(panelText), "launchpad sync must not force --open-library");
     assert(/\* \(WeftEnd\)\.lnk/.test(panelText), "expected launchpad to list only WeftEnd shortcuts");
     assert(/Invoke-LaunchpadSync -Silent/.test(panelText), "expected launchpad refresh/auto-refresh silent sync");
+    assert(/if \(-not \$Silent\.IsPresent\)\s*\{[\s\S]*?Set-StatusLine -StatusLabel \$statusLabel -Message \$msg -IsError \$false/.test(panelText), "expected silent sync success path to keep status-line quiet");
+    assert(/\$label = if \(\$Silent\.IsPresent\) \{ "Refresh warning: " \} else \{ "Sync error: " \}/.test(panelText), "expected silent refresh failures to use explicit warning label");
     assert(/function Get-StableSortKey/.test(panelText), "expected deterministic launchpad sort-key helper");
     assert(/Get-StableSortKey -Value \$_.Name/.test(panelText), "expected launchpad name sorting to use stable sort key");
     assert(!/Sort-Object Name/.test(panelText), "launchpad must avoid locale-sensitive Sort-Object Name");
