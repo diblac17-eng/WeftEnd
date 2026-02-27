@@ -40,6 +40,8 @@ Dispatch inputs
 Operator notes
 - This workflow is analysis-first and uses `--withhold-exec`.
 - It does not add implicit network scans, malware scoring, or auto-execution behavior.
+- WeftEnd scanner commands in this workflow do not phone home.
+- Network activity in this workflow is limited to normal GitHub Actions runner steps (`checkout`, `setup-node`, `npm ci`) unless you add additional networked steps.
 - Any fail-closed precondition still preserves deterministic evidence outputs when available.
 
 Example usage

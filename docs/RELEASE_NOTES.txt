@@ -97,6 +97,7 @@ Included
 - GitHub Actions integration added for deterministic CI artifact-meter runs:
 - Added workflow: `.github/workflows/weftend_artifact_meter.yml`
 - Workflow runs `safe-run` (analysis-only, `--withhold-exec`) with optional compare and uploads `out/ci_meter` artifacts.
+- Workflow summary now explicitly states scanner network posture (`none/no phone-home`) and analysis-only execution mode.
 - Added workflow: `.github/workflows/weftend_verify360.yml`
 - Workflow runs strict managed verify gate (`npm run verify:360:release:managed`) and uploads `out/verify_360_release_managed` artifacts.
 - Verify workflow now pins strict release fixture smoke input (`WEFTEND_RELEASE_DIR=tests/fixtures/release_demo`) and clears skip override (`WEFTEND_ALLOW_SKIP_RELEASE=""`).

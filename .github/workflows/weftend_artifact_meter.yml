@@ -71,6 +71,8 @@ jobs:
             echo ""
             echo "- target_path: \`${{ inputs.target_path }}\`"
             echo "- adapter: \`${{ inputs.adapter }}\`"
+            echo "- scanner_network: \`none (no phone-home)\`"
+            echo "- execution_mode: \`analysis-only (--withhold-exec)\`"
             if [ -n "${{ inputs.baseline_path }}" ]; then
               echo "- baseline_path: \`${{ inputs.baseline_path }}\`"
             fi
