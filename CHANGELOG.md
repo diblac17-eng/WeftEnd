@@ -9,6 +9,14 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Replaced remaining implicit production `.sort()` usages with explicit comparator wiring (`cmpStrV0`) across canonical JSON key normalization, CLI flag/plugin duplicate reporting, config key validation, strict/secret-zone reason-code ordering, and privacy-lint summary code rendering.
 - This pins string ordering semantics directly in code and removes reliance on engine default sort behavior in trust-surface outputs.
 
+### Web runtime capture lane
+- Added CLI lane: `weftend web-runtime capture <input> --out <dir> [--mode strict_replay|live_observe]`.
+- Added deterministic runtime artifacts:
+  - `web_runtime_inventory_v0.json`
+  - `web_runtime_summary.txt`
+- Runtime capture is analysis-only and local-only; it does not execute scripts, does not fetch remote content, and does not persist raw script source or raw URLs.
+- Unsupported inputs still emit deterministic runtime artifacts with explicit reason codes (`WEB_RUNTIME_CAPTURE_UNSUPPORTED`) before fail-closed exit.
+
 ### Signature strict-route hardening
 - Explicit `signature` adapter routing now fails closed (`SIGNATURE_FORMAT_MISMATCH`) when malformed PEM envelopes are present, even if other valid envelope evidence exists.
 - This closes mixed valid/corrupt envelope acceptance in strict mode and enforces complete envelope evidence before route success.

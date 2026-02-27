@@ -123,6 +123,7 @@ Useful commands
 - Note: `--include-missing-plugins` requires `--write-policy`.
 - npm run weftend -- safe-run <input> --out <dir> --adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature
 - npm run weftend -- safe-run <input> --out <dir> --adapter archive --enable-plugin tar
+- npm run weftend -- web-runtime capture <input> --out <dir> [--mode strict_replay|live_observe]
 - npm run proofcheck:release
 - npm run verify:360:release:managed
 - See docs/GITHUB_ACTIONS.md for CI usage with .github/workflows/weftend_artifact_meter.yml

@@ -27,7 +27,16 @@ Included
 - Explicit descriptor-only image analysis in `--adapter image` (`.vmdk` descriptor path without sparse magic) now fails closed (`IMAGE_FORMAT_MISMATCH`) when descriptor evidence is bounded by header-window limits, preventing strict-route success on partial descriptor evidence.
 - Added reusable commit truth gate command `npm run gate:truth` (runs `npm test`, `npm run verify:360:release:managed`, and `npm run proofcheck:release` in sequence; fail-closed on first gate failure).
 - Green Team docs-release contract now enforces `gate:truth` wiring (`package.json` script contract + `docs/RELEASE_CHECKLIST_ALPHA.md` reference) so truth-gate coverage cannot silently drift.
-- Added `docs/WEB_RUNTIME_INVENTORY_V0.md`: concrete deterministic schema + compare policy for runtime web-script inventory artifacts (design contract, implementation pending).
+- Added `docs/WEB_RUNTIME_INVENTORY_V0.md`: deterministic schema + compare policy for runtime web-script inventory artifacts, now aligned with shipped CLI capture lane.
+- Added CLI lane: `weftend web-runtime capture <input> --out <dir> [--mode strict_replay|live_observe]`.
+- Added deterministic runtime artifacts:
+  - `web_runtime_inventory_v0.json`
+  - `web_runtime_summary.txt`
+- Web runtime capture lane remains analysis-only and local-only:
+  - no script execution
+  - no remote fetch/phone-home behavior
+  - no raw source text or raw URL output persistence
+- Unsupported inputs now still emit deterministic runtime artifacts with explicit reason codes (`WEB_RUNTIME_CAPTURE_UNSUPPORTED`) before fail-closed exit.
 - Launchpad History latest-run resync hardening:
 - History actions now re-sync the selected row from library view-state before opening report viewer, run folder, or adapter evidence.
 - This prevents stale report opens when Launchpad stays open while a newer run is created externally (for example via right-click `Run with WeftEnd`).

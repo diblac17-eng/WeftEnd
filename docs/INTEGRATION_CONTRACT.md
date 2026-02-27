@@ -190,6 +190,7 @@ Current adapter commands:
 - `weftend email unpack ...`
 - `weftend email safe-run ...`
 - `weftend safe-run ... --adapter auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature [--enable-plugin <name>]`
+- `weftend web-runtime capture <input> --out <dir> [--mode strict_replay|live_observe]`
 - `weftend adapter list`
 - `weftend adapter doctor`
 - `weftend adapter doctor --write-policy <path> [--include-missing-plugins]`

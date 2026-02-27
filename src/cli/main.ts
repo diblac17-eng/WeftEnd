@@ -22,6 +22,7 @@ import { runExportJsonCli, runSummarizeCli } from "./summarize";
 import { runContainerCli } from "./container_scan";
 import { runAdapterCli } from "./adapter";
 import { runShadowAuditCli } from "./shadow_audit";
+import { runWebRuntimeCli } from "./web_runtime";
 import { canonicalJSON } from "../core/canon";
 import { cmpStrV0 } from "../core/order";
 import { canonicalizeWeftEndPolicyV1 } from "../core/intake_policy_v1";
@@ -42,6 +43,7 @@ const printUsage = () => {
   console.log("  weftend email unpack <input.eml|input.mbox|input.msg> --out <dir> [--index <n>] [--message-id <id>]");
   console.log("  weftend email safe-run <input.eml|input.mbox|input.msg|email_export_dir> --out <dir> [--policy <policy.json>] [--index <n>] [--message-id <id>]");
   console.log("  weftend container scan <image@sha256:...|sha256:...> --out <dir> [--policy <policy.json>]");
+  console.log("  weftend web-runtime capture <input> --out <dir> [--mode strict_replay|live_observe]");
   console.log("  weftend adapter list");
   console.log("  weftend adapter doctor [--text] [--strict] [--write-policy <path>] [--include-missing-plugins]");
   console.log("  weftend shadow-audit <request.json>");
@@ -656,6 +658,9 @@ export const runCli = async (args: string[], _ports: CliPorts): Promise<number> 
   }
   if (args[0] === "container") {
     return await runContainerCli(args.slice(1));
+  }
+  if (args[0] === "web-runtime") {
+    return await runWebRuntimeCli(args.slice(1));
   }
   if (args[0] === "adapter") {
     return runAdapterCli(args.slice(1));

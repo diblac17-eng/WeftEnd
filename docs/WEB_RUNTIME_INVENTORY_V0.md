@@ -1,5 +1,5 @@
 # WEB_RUNTIME_INVENTORY_V0.md
-Status: design contract for implementation. Not yet wired to a shipped CLI lane.
+Status: implemented for CLI capture lane (`weftend web-runtime capture`) in analysis-only mode.
 
 This document defines a deterministic runtime-script inventory artifact that can be
 baselined and compared by WeftEnd to detect runtime drift (including polymorphic
@@ -203,17 +203,22 @@ Baseline transitions remain operator-mediated; never auto-accept.
 
 ---
 
-## 10) Implementation Notes (planned)
+## 10) Implementation Notes
 
-Planned CLI surface (not yet shipped):
+Shipped CLI surface:
 - `weftend web-runtime capture <input> --out <dir> [--mode strict_replay|live_observe]`
 
-Planned output files:
+Shipped output files:
 - `web_runtime_inventory_v0.json`
 - `web_runtime_summary.txt`
 
-Integration target:
-- WeftEnd baseline/compare receipts and report card lanes, reusing existing deterministic compare semantics.
+Current implementation scope:
+- analysis-only local capture; no execution broadening
+- deterministic script inventory derived from local html/js surfaces
+- no raw source or raw URL persistence in output artifacts
+
+Future integration target:
+- baseline/compare/report-card integration for runtime inventory artifacts
 
 ---
 

@@ -100,7 +100,17 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   analysis/capability_ledger_v0.json
   analysis/adapter_summary_v0.json
   analysis/adapter_findings_v0.json
-- Receipts include bounded counts/flags only (no timestamps or raw env values).
+ - Receipts include bounded counts/flags only (no timestamps or raw env values).
+
+3.2b) Web runtime inventory capture (CLI, analysis-only)
+- Capture deterministic runtime-script inventory artifacts from local web surfaces:
+  npm run weftend -- web-runtime capture <input> --out <dir> [--mode strict_replay|live_observe]
+- Output artifacts:
+  web_runtime_inventory_v0.json
+  web_runtime_summary.txt
+- `strict_replay` is the default mode.
+- This lane is local-only, analysis-only, and does not execute scripts or fetch remote URLs.
+- Unsupported inputs still emit deterministic artifacts with explicit reason codes.
 
 3.3) Shadow audit (CLI, proof-only)
 - Run explicit shadow audit lane:
