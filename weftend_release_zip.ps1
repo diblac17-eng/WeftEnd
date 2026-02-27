@@ -79,7 +79,7 @@ function New-ZipAndHash {
     [string]$ZipName
   )
   $zipPath = Join-Path $OutDirPath $ZipName
-  $zipStagePath = "${zipPath}.stage"
+  $zipStagePath = Join-Path $OutDirPath ("__stage_release_" + $ZipName)
   if (Test-Path -LiteralPath $zipPath) {
     Remove-Item -Force -LiteralPath $zipPath
   }
@@ -159,16 +159,22 @@ function Assert-NoReleaseStageResidue {
   $stageFiles = @(
     Get-ChildItem -Path $OutDirPath -Recurse -File -Filter "*.stage" -ErrorAction SilentlyContinue
   )
+  $stageReleaseFiles = @(
+    Get-ChildItem -Path $OutDirPath -File -Filter "__stage_release_*" -ErrorAction SilentlyContinue
+  )
   $stageDirs = @(
     Get-ChildItem -Path $OutDirPath -Directory -Filter "__stage_release*" -ErrorAction SilentlyContinue
   )
-  if ($stageFiles.Count -eq 0 -and $stageDirs.Count -eq 0) {
+  if ($stageFiles.Count -eq 0 -and $stageReleaseFiles.Count -eq 0 -and $stageDirs.Count -eq 0) {
     return
   }
 
   $samples = New-Object System.Collections.Generic.List[string]
   foreach ($stageFile in ($stageFiles | Select-Object -First 3)) {
     $samples.Add($stageFile.Name) | Out-Null
+  }
+  foreach ($stageReleaseFile in ($stageReleaseFiles | Select-Object -First 3)) {
+    $samples.Add($stageReleaseFile.Name) | Out-Null
   }
   foreach ($stageDir in ($stageDirs | Select-Object -First 3)) {
     $samples.Add($stageDir.Name) | Out-Null

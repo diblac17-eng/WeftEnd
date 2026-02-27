@@ -177,6 +177,14 @@ suite("tools/windows shell assets", () => {
     });
   });
 
+  register("install wrapper repairs shortcuts before strict shell doctor", () => {
+    const installCmd = fs.readFileSync(path.join(windowsDir, "INSTALL_WINDOWS.cmd"), "utf8");
+    assert(/weftend_shell_doctor\.ps1" -RepairShortcuts/i.test(installCmd), "INSTALL_WINDOWS.cmd must run shell doctor shortcut repair");
+    const repairIdx = installCmd.search(/weftend_shell_doctor\.ps1"\s+-RepairShortcuts/i);
+    const strictIdx = installCmd.search(/weftend_shell_doctor\.ps1"\s*[\r\n]/i);
+    assert(repairIdx >= 0 && strictIdx > repairIdx, "INSTALL_WINDOWS.cmd must run shortcut repair before strict shell doctor check");
+  });
+
   register("release ops script uses deterministic candidate sorting", () => {
     const releaseOpsPath = path.join(repoRoot, "scripts", "weftend_release_ops.ps1");
     const text = fs.readFileSync(releaseOpsPath, "utf8");

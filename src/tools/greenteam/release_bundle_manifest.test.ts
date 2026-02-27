@@ -58,7 +58,7 @@ suite("greenteam/release-bundle", () => {
   register("release zip script keeps immutable change-log sidecar contract", () => {
     const script = readText("weftend_release_zip.ps1");
     assert(script.includes("Set-StrictMode -Version Latest"), "release zip script must enforce strict mode");
-    assert(script.includes("${zipPath}.stage"), "release zip output must stage/finalize zip path");
+    assert(script.includes("__stage_release_"), "release zip output must use staged zip path pattern");
     assert(script.includes("${shaPath}.stage"), "release zip output must stage/finalize sha sidecar path");
     assert(script.includes("function Copy-SidecarFileAtomic"), "release zip script must provide atomic sidecar copy helper");
     assert(
@@ -94,6 +94,10 @@ suite("greenteam/release-bundle", () => {
     assert(
       script.includes("-Recurse -File -Filter \"*.stage\""),
       "release zip script must scan release output for staged file residue"
+    );
+    assert(
+      script.includes("-File -Filter \"__stage_release_*\""),
+      "release zip script must scan release output for staged zip residue"
     );
     assert(
       script.includes("-Directory -Filter \"__stage_release*\""),

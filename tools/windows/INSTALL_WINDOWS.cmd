@@ -5,6 +5,8 @@ set "PS_EXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
 if not exist "%PS_EXE%" set "PS_EXE=powershell.exe"
 "%PS_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%shell\install_weftend_context_menu.ps1"
 if errorlevel 1 exit /b %ERRORLEVEL%
+"%PS_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%shell\weftend_shell_doctor.ps1" -RepairShortcuts
+if errorlevel 1 exit /b %ERRORLEVEL%
 "%PS_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%shell\weftend_shell_doctor.ps1"
 if errorlevel 1 exit /b %ERRORLEVEL%
 echo INSTALL_OK

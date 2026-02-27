@@ -9,6 +9,11 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Replaced remaining implicit production `.sort()` usages with explicit comparator wiring (`cmpStrV0`) across canonical JSON key normalization, CLI flag/plugin duplicate reporting, config key validation, strict/secret-zone reason-code ordering, and privacy-lint summary code rendering.
 - This pins string ordering semantics directly in code and removes reliance on engine default sort behavior in trust-surface outputs.
 
+### Release packaging fix
+- Fixed root `weftend_release_zip.ps1` zip staging to use a valid temporary `.zip` filename (`__stage_release_*.zip`) so `Compress-Archive` runs successfully before final atomic move.
+- Release residue checks now also fail on leftover `__stage_release_*` files (not only directories/`*.stage`) to prevent stale staged zip artifacts from being mistaken for clean release output.
+- `tools/windows/INSTALL_WINDOWS.cmd` now runs `weftend_shell_doctor.ps1 -RepairShortcuts` before strict shell doctor validation, so clean installs self-heal stale Launchpad/Download shortcut wiring before fail-closed checks.
+
 ### Launchpad History latest-run resync
 - Launchpad History actions now re-sync the selected row from library view-state before opening reports/run folders/adapter evidence, so an already-open Launchpad window does not open stale runs after an external right-click `Run with WeftEnd` scan updates the library.
 - Launchpad History details preview and action-button enablement now use the same row re-sync path, keeping the visible status/baseline/latest/buckets fields aligned with the current latest run on disk.
@@ -127,7 +132,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Updated release packaging to include `RELEASE_HISTORY.md` in copied release-sidecar artifacts.
 - Root release packaging script (`weftend_release_zip.ps1`) now enforces `Set-StrictMode -Version Latest`.
 - Release sidecar doc copies (`RELEASE_NOTES`, announcement, quickstart, checklist, history, changelog) now use per-file stage/finalize in `weftend_release_zip.ps1` (`<name>.stage -> <name>`).
-- Release zip and `.sha256` outputs now also stage/finalize in `weftend_release_zip.ps1` (`.zip.stage` / `.sha256.stage` -> final), reducing partial-release artifact exposure on write interruption.
+- Release zip and `.sha256` outputs now also stage/finalize in `weftend_release_zip.ps1` with atomic temp-write paths before final move, reducing partial-release artifact exposure on write interruption.
 - Release packaging stage-finalize helpers now best-effort clean leftover `.stage` files on move/write failure to reduce ambiguous release-folder residue.
 - Updated `verify:360` docs-sync and etiquette targets to include `CHANGELOG.md`, release notes, release announcement, and release history references.
 - Updated `docs/GIT_POSTING_ETIQUETTE.md` to match verify etiquette target set (includes `CHANGELOG.md` and `docs/RELEASE_HISTORY.md`).

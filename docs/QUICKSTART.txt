@@ -9,6 +9,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 1) Install (Windows, per-user)
 - Run tools\windows\INSTALL_WINDOWS.cmd
 - This installs right-click entries and runs shell doctor checks.
+- Installer now runs `weftend_shell_doctor.ps1 -RepairShortcuts` before strict shell doctor validation to self-heal stale shortcut wiring during clean install.
 - Start Menu shortcuts installed by default:
   - WeftEnd Launchpad
   - WeftEnd Download

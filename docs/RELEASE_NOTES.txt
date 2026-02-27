@@ -27,6 +27,7 @@ Included
 - History action row height was increased to avoid clipping when the horizontal scrollbar is shown.
 - Launchpad History details now keep latest-run resolution logic separate from display tokens, so `LATEST_UNAVAILABLE` is used only for rendered text and not as an internal run-id input.
 - Shell doctor now supports `-RepairShortcuts` to repair Start Menu WeftEnd shortcuts (and update existing desktop WeftEnd shortcuts when present) to the configured repo script paths.
+- `tools/windows/INSTALL_WINDOWS.cmd` now runs `weftend_shell_doctor.ps1 -RepairShortcuts` before strict shell doctor validation so clean installs self-heal stale shortcut wiring before fail-closed checks.
 - Shell doctor now validates Launchpad/Download shortcut wiring (`STARTMENU_*` required, `DESKTOP_*` optional) and fails closed on required shortcut mismatch.
 - Shell doctor Download shortcut repair/check now matches installer wiring (`tools/windows/open_release_folder.ps1 -BuildIfMissing`) to prevent false mismatch failures.
 - Shell doctor shortcut validation now requires exact target host-path match (no bare `powershell.exe` acceptance when full path is expected), tightening stale-shortcut drift detection.
@@ -107,8 +108,10 @@ Included
 - Release bundle sidecar set now includes `RELEASE_HISTORY.md`.
 - Root release packaging script (`weftend_release_zip.ps1`) now enforces `Set-StrictMode -Version Latest`.
 - Release sidecar doc copies (`RELEASE_NOTES`, release announcement, quickstart, checklist, history, changelog) now use per-file stage/finalize in `weftend_release_zip.ps1` (`<name>.stage -> <name>`).
-- Release zip and `.sha256` outputs now also stage/finalize in `weftend_release_zip.ps1` (`.zip.stage` / `.sha256.stage` -> final) to reduce partial-release artifact exposure.
+- Release zip and `.sha256` outputs now also stage/finalize in `weftend_release_zip.ps1` with atomic temp-write paths before final move to reduce partial-release artifact exposure.
 - Release packaging stage-finalize helpers now best-effort clean leftover `.stage` files on move/write failure to reduce ambiguous release-folder residue.
+- Root release zip staging now uses a valid temporary `.zip` filename pattern (`__stage_release_*.zip`) so `Compress-Archive` can produce staged zip outputs before atomic move.
+- Release residue checks now also fail on leftover `__stage_release_*` files (not just directories/`*.stage`) to prevent stale staged zip artifacts from being treated as finalized release output.
 - `verify:360` docs-sync/etiquette coverage now includes `CHANGELOG.md`, release notes, release announcement, and release history references.
 - `docs/GIT_POSTING_ETIQUETTE.md` now matches verify etiquette target set (includes `CHANGELOG.md` and `docs/RELEASE_HISTORY.md`).
 - 360 commit gate added:
