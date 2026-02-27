@@ -3492,6 +3492,27 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const mixedPemPayload = path.join(tmp, "mixed_payload.pem");
+    fs.writeFileSync(
+      mixedPemPayload,
+      [
+        "-----BEGIN CERTIFICATE-----",
+        "MAMCAQ==",
+        "-----END CERTIFICATE-----",
+        "-----BEGIN CERTIFICATE-----",
+        "%%%%",
+        "-----END CERTIFICATE-----",
+      ].join("\n"),
+      "utf8"
+    );
+    const capture = captureTreeV0(mixedPemPayload, limits);
+    const res = runArtifactAdapterV1({ selection: "signature", enabledPlugins: [], inputPath: mixedPemPayload, capture });
+    assert(!res.ok, "explicit signature adapter should fail closed for mixed valid and malformed PEM envelope payload");
+    assertEq(res.failCode, "SIGNATURE_FORMAT_MISMATCH", "expected SIGNATURE_FORMAT_MISMATCH for mixed PEM envelope payload");
+  }
+
+  {
+    const tmp = mkTmp();
     const sigWithCertEnvelope = path.join(tmp, "sig_with_cert_envelope.sig");
     fs.writeFileSync(
       sigWithCertEnvelope,

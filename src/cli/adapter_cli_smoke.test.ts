@@ -1342,6 +1342,27 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const mixedPemPayload = path.join(tmp, "mixed_payload.pem");
+    fs.writeFileSync(
+      mixedPemPayload,
+      [
+        "-----BEGIN CERTIFICATE-----",
+        "MAMCAQ==",
+        "-----END CERTIFICATE-----",
+        "-----BEGIN CERTIFICATE-----",
+        "%%%%",
+        "-----END CERTIFICATE-----",
+      ].join("\n"),
+      "utf8"
+    );
+    const res = await runCliCapture(["safe-run", mixedPemPayload, "--out", outDir, "--adapter", "signature"]);
+    assertEq(res.status, 40, "safe-run should fail closed for mixed valid and malformed PEM envelope payload");
+    assert(res.stderr.includes("SIGNATURE_FORMAT_MISMATCH"), "expected SIGNATURE_FORMAT_MISMATCH on stderr for mixed PEM payload");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const sigWithCertEnvelope = path.join(tmp, "sig_with_cert_envelope.sig");
     fs.writeFileSync(
       sigWithCertEnvelope,

@@ -7,6 +7,9 @@ Included
 - Deterministic ordering hardening:
 - Replaced remaining production implicit `.sort()` call sites with explicit `cmpStrV0` comparators in canonical JSON key normalization, CLI duplicate-flag/plugin reporting, config key validation, strict/secret-zone reason ordering, and privacy-lint summary rendering.
 - This removes reliance on engine default sort behavior for trust-surface output ordering.
+- Signature strict-route hardening:
+- Explicit `signature` adapter route now fails closed (`SIGNATURE_FORMAT_MISMATCH`) when malformed PEM envelope blocks are present, even when other valid envelope evidence exists in the same input.
+- This prevents mixed valid/corrupt signature-envelope inputs from passing strict explicit signature analysis.
 - Launchpad History latest-run resync hardening:
 - History actions now re-sync the selected row from library view-state before opening report viewer, run folder, or adapter evidence.
 - This prevents stale report opens when Launchpad stays open while a newer run is created externally (for example via right-click `Run with WeftEnd`).

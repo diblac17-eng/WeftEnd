@@ -4031,6 +4031,14 @@ const analyzeSignature = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
         reasonCodes: stableSortUniqueReasonsV0(["SIGNATURE_ADAPTER_V1", "SIGNATURE_FORMAT_MISMATCH"]),
       };
     }
+    if (pemEnvelopeInvalidCount > 0) {
+      return {
+        ok: false,
+        failCode: "SIGNATURE_FORMAT_MISMATCH",
+        failMessage: "signature adapter expected complete non-malformed PEM envelope evidence for explicit route.",
+        reasonCodes: stableSortUniqueReasonsV0(["SIGNATURE_ADAPTER_V1", "SIGNATURE_FORMAT_MISMATCH"]),
+      };
+    }
   }
   const reasons = ["SIGNATURE_EVIDENCE_V1"];
   const markers: string[] = [];

@@ -9,6 +9,10 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Replaced remaining implicit production `.sort()` usages with explicit comparator wiring (`cmpStrV0`) across canonical JSON key normalization, CLI flag/plugin duplicate reporting, config key validation, strict/secret-zone reason-code ordering, and privacy-lint summary code rendering.
 - This pins string ordering semantics directly in code and removes reliance on engine default sort behavior in trust-surface outputs.
 
+### Signature strict-route hardening
+- Explicit `signature` adapter routing now fails closed (`SIGNATURE_FORMAT_MISMATCH`) when malformed PEM envelopes are present, even if other valid envelope evidence exists.
+- This closes mixed valid/corrupt envelope acceptance in strict mode and enforces complete envelope evidence before route success.
+
 ### Release packaging fix
 - Fixed root `weftend_release_zip.ps1` zip staging to use a valid temporary `.zip` filename (`__stage_release_*.zip`) so `Compress-Archive` runs successfully before final atomic move.
 - Release residue checks now also fail on leftover `__stage_release_*` files (not only directories/`*.stage`) to prevent stale staged zip artifacts from being mistaken for clean release output.
