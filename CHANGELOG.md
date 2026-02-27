@@ -29,6 +29,11 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Explicit native-fallback `scm` route now also treats duplicate packed-ref metadata and case-colliding merged loose/packed ref sets as partial evidence and fails closed in strict mode, preventing strict-route success on ambiguous git reference metadata.
 - Explicit text-centric `document` strict routes (`.pdf/.rtf/.chm`) now fail closed when raw text evidence is bounded/truncated, preventing strict-route success on partial text evidence.
 
+### Commit truth gate
+- Added `npm run gate:truth` (`scripts/commit_truth_gate.js`) as a single reusable-commit no-skip gate.
+- Gate runs `npm test`, `npm run verify:360:release:managed`, and `npm run proofcheck:release` in sequence, failing closed on first failure.
+- Updated `docs/RELEASE_CHECKLIST_ALPHA.md` to include the same truth-gate path.
+
 ### Release packaging fix
 - Fixed root `weftend_release_zip.ps1` zip staging to use a valid temporary `.zip` filename (`__stage_release_*.zip`) so `Compress-Archive` runs successfully before final atomic move.
 - Release residue checks now also fail on leftover `__stage_release_*` files (not only directories/`*.stage`) to prevent stale staged zip artifacts from being mistaken for clean release output.

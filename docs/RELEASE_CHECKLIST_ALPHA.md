@@ -12,6 +12,10 @@ Short, strict release checklist (alpha).
 - Confirm release announcement text matches the same scope (if used).
 
 2) Full validation loop (no skips)
+- Recommended reusable-commit truth gate:
+  - npm run gate:truth
+  - Runs `npm test`, `npm run verify:360:release:managed`, and `npm run proofcheck:release` in sequence.
+  - Fails closed on the first gate failure.
 - Preferred (single full-spin gate):
   - npm run verify:360
   - Optional stricter adapter maintenance gate:
