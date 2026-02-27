@@ -322,6 +322,14 @@ suite("tools/windows shell assets", () => {
     assert(/\$historyActions\.AutoScroll = \$true/.test(text), "history actions row must enable horizontal scrolling");
   });
 
+  register("launchpad main actions row is horizontally scrollable", () => {
+    const launchpadPath = path.join(shellDir, "launchpad_panel.ps1");
+    const text = fs.readFileSync(launchpadPath, "utf8");
+    assert(/\$launchLayout\.RowStyles\.Add\(\(New-Object System\.Windows\.Forms\.RowStyle\(\[System\.Windows\.Forms\.SizeType\]::Absolute, 56\)\)\)/.test(text), "launch actions row must reserve height for horizontal scrollbar");
+    assert(/\$launchActions\.WrapContents = \$false/.test(text), "launch actions row must stay single-line scroll strip");
+    assert(/\$launchActions\.AutoScroll = \$true/.test(text), "launch actions row must enable horizontal scrolling");
+  });
+
   register("launchpad history details keep latest-run logic separate from display token", () => {
     const launchpadPath = path.join(shellDir, "launchpad_panel.ps1");
     const text = fs.readFileSync(launchpadPath, "utf8");

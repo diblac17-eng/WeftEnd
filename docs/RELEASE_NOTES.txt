@@ -15,6 +15,8 @@ Included
 - Report viewer subtitle/status display now also uses the same display-state normalization path for consistent on-screen vs copied placeholder semantics.
 - Launchpad Doctor tab action buttons now sit in a horizontally scrollable single-row strip, so the far-right buttons remain reachable at narrow Launchpad widths.
 - Doctor action row height was increased to avoid clipping when the horizontal scrollbar is shown.
+- Launchpad main action row (`Open Targets`, `Sync`, `Refresh`) now also uses a horizontally scrollable single-row strip to prevent clipping at narrow widths or higher DPI scaling.
+- Main action row height was increased to avoid clipping when the horizontal scrollbar is shown.
 - Launchpad History action buttons now also use a horizontally scrollable single-row strip to prevent right-side button clipping at narrow Launchpad widths.
 - History action row height was increased to avoid clipping when the horizontal scrollbar is shown.
 - Launchpad History details now keep latest-run resolution logic separate from display tokens, so `LATEST_UNAVAILABLE` is used only for rendered text and not as an internal run-id input.

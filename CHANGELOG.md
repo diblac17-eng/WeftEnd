@@ -16,6 +16,9 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Launchpad Doctor action-button row is now horizontally scrollable (single-row strip) so the rightmost buttons remain reachable at narrow Launchpad widths.
 - Doctor action row height increased to reserve space for the horizontal scrollbar without clipping button text.
 - Added Windows shell asset contract coverage to pin Doctor action-strip scroll behavior.
+- Launchpad main action-button row now uses the same horizontally scrollable single-row strip pattern, preventing Open Targets / Sync / Refresh clipping at narrow widths or higher DPI scaling.
+- Main action row height increased to reserve space for the horizontal scrollbar without clipping button text.
+- Added Windows shell asset contract coverage to pin main action-strip scroll behavior.
 - Launchpad History action-button row now uses the same horizontally scrollable single-row strip pattern to prevent right-side action clipping at narrow Launchpad widths.
 - History action row height increased to reserve space for the horizontal scrollbar without clipping button text.
 - Added Windows shell asset contract coverage to pin History action-strip scroll behavior.

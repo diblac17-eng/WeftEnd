@@ -1602,7 +1602,7 @@ $launchLayout.Dock = "Fill"
 $launchLayout.ColumnCount = 1
 $launchLayout.RowCount = 3
 $launchLayout.Padding = New-Object System.Windows.Forms.Padding(6, 8, 6, 8)
-$launchLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 42)))
+$launchLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 56)))
 $launchLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 34)))
 $launchLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
 $tabLaunch.Controls.Add($launchLayout)
@@ -1611,7 +1611,9 @@ $launchActions = New-Object System.Windows.Forms.FlowLayoutPanel
 $launchActions.Dock = "Fill"
 $launchActions.FlowDirection = "LeftToRight"
 $launchActions.WrapContents = $false
+$launchActions.AutoScroll = $true
 $launchActions.BackColor = $colorBg
+$launchActions.Padding = New-Object System.Windows.Forms.Padding(0, 0, 6, 0)
 
 $btnTargets = New-Object System.Windows.Forms.Button
 $btnTargets.Text = "Open Targets"
