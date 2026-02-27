@@ -51,6 +51,8 @@ suite("greenteam/docs-release-contract", () => {
     const releaseChecklist = readText("docs/RELEASE_CHECKLIST_ALPHA.md");
     const releaseChecklistLegacy = readText("docs/RELEASE_CHECKLIST.md");
     const releaseAnnouncement = readText("docs/RELEASE_ANNOUNCEMENT.txt");
+    const packageJson = readText("package.json");
+    const truthGateScript = readText("scripts/commit_truth_gate.js");
     const install = readText("docs/INSTALL.md");
     const troubleshooting = readText("docs/TROUBLESHOOTING.md");
     const supportOnboarding = readText("docs/SUPPORT_ONBOARDING.md");
@@ -164,6 +166,10 @@ suite("greenteam/docs-release-contract", () => {
       "RELEASE_CHECKLIST_ALPHA missing strict proofcheck release command reference"
     );
     assert(
+      releaseChecklist.includes("npm run gate:truth"),
+      "RELEASE_CHECKLIST_ALPHA missing reusable commit truth-gate command reference"
+    );
+    assert(
       releaseChecklistLegacy.includes("docs/RELEASE_CHECKLIST_ALPHA.md"),
       "RELEASE_CHECKLIST legacy doc must point to active alpha checklist"
     );
@@ -209,6 +215,16 @@ suite("greenteam/docs-release-contract", () => {
     assert(
       supportOnboarding.includes("\"WeftEnd Launchpad\"") && supportOnboarding.includes("\"WeftEnd Download\""),
       "SUPPORT_ONBOARDING must reference current Launchpad/Download shortcuts"
+    );
+    assert(
+      packageJson.includes("\"gate:truth\": \"node scripts/commit_truth_gate.js\""),
+      "package.json missing gate:truth script contract"
+    );
+    assert(
+      truthGateScript.includes("run([\"test\"]") &&
+        truthGateScript.includes("run([\"run\", \"verify:360:release:managed\"]") &&
+        truthGateScript.includes("run([\"run\", \"proofcheck:release\"]"),
+      "commit truth gate script must run test + managed verify + strict proofcheck"
     );
   });
 });

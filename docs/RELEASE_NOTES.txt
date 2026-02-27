@@ -25,6 +25,7 @@ Included
 - Explicit native-fallback SCM analysis in `--adapter scm` now also treats duplicate packed-ref metadata and case-colliding merged loose/packed ref sets as partial evidence and fails closed (`SCM_REF_UNRESOLVED`) in strict mode, preventing strict-route success on ambiguous git reference metadata.
 - Explicit text-centric document analysis in `--adapter document` (`.pdf/.rtf/.chm`) now fails closed (`DOC_FORMAT_MISMATCH`) when raw text evidence is bounded/truncated, preventing strict-route success on partial text evidence.
 - Added reusable commit truth gate command `npm run gate:truth` (runs `npm test`, `npm run verify:360:release:managed`, and `npm run proofcheck:release` in sequence; fail-closed on first gate failure).
+- Green Team docs-release contract now enforces `gate:truth` wiring (`package.json` script contract + `docs/RELEASE_CHECKLIST_ALPHA.md` reference) so truth-gate coverage cannot silently drift.
 - Launchpad History latest-run resync hardening:
 - History actions now re-sync the selected row from library view-state before opening report viewer, run folder, or adapter evidence.
 - This prevents stale report opens when Launchpad stays open while a newer run is created externally (for example via right-click `Run with WeftEnd`).
