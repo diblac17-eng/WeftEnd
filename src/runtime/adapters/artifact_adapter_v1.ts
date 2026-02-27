@@ -3589,6 +3589,14 @@ const analyzeImage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult => {
       reasonCodes: stableSortUniqueReasonsV0(["IMAGE_ADAPTER_V1", "IMAGE_FORMAT_MISMATCH"]),
     };
   }
+  if (strictRoute && headerMatchCount === 0) {
+    return {
+      ok: false,
+      failCode: "IMAGE_FORMAT_MISMATCH",
+      failMessage: "image adapter requires explicit header evidence for strict image analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["IMAGE_ADAPTER_V1", "IMAGE_FORMAT_MISMATCH"]),
+    };
+  }
   if (strictRoute && ctx.ext === ".qcow2" && qcowMagicPresent > 0 && qcowVersionSupported > 0 && fileBytes < 72) {
     return {
       ok: false,

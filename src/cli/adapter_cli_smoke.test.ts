@@ -2211,6 +2211,16 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const emptyQcow = path.join(tmp, "empty.qcow2");
+    fs.writeFileSync(emptyQcow, Buffer.alloc(0));
+    const res = await runCliCapture(["safe-run", emptyQcow, "--out", outDir, "--adapter", "image"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit image route with no header evidence");
+    assert(res.stderr.includes("IMAGE_FORMAT_MISMATCH"), "expected IMAGE_FORMAT_MISMATCH on stderr for explicit image route with no header evidence");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const iso = path.join(tmp, "sample.iso");
     const bytes = Buffer.alloc(18 * 2048, 0);
     bytes[16 * 2048] = 1;

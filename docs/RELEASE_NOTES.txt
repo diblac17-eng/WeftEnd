@@ -343,6 +343,7 @@ Included
 - Explicit image route now requires minimum structural byte-size evidence for `qcow2` and `vhdx` beyond magic/signature bytes, preventing tiny signature-only files from passing strict image analysis.
 - Explicit image route now requires minimum structural byte-size evidence for `vhd` beyond footer marker bytes, preventing tiny footer-only files from passing strict image analysis.
 - Explicit image route now requires minimum descriptor size for descriptor-only `vmdk` analysis, preventing tiny placeholder descriptors from passing strict image routing.
+- Explicit image route now requires header-evidence presence in strict mode for all supported image types, preventing empty/zero-byte image placeholders from passing strict image analysis.
 - Package/installer signing evidence deepened:
 - Deterministic local signing hints now include PE cert-table presence for `.exe` and signature-entry hints for `.msix/.nupkg/.whl/.jar`.
 - New package reason code support: `PACKAGE_SIGNING_INFO_PRESENT` alongside existing unavailable paths.

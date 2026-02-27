@@ -2870,6 +2870,16 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const emptyQcow = path.join(tmp, "empty.qcow2");
+    fs.writeFileSync(emptyQcow, Buffer.alloc(0));
+    const capture = captureTreeV0(emptyQcow, limits);
+    const res = runArtifactAdapterV1({ selection: "image", enabledPlugins: [], inputPath: emptyQcow, capture });
+    assert(!res.ok, "image adapter should fail closed for explicit strict image route when no header evidence is present");
+    assertEq(res.failCode, "IMAGE_FORMAT_MISMATCH", "expected IMAGE_FORMAT_MISMATCH for explicit image route without header evidence");
+  }
+
+  {
+    const tmp = mkTmp();
     const iso = path.join(tmp, "sample.iso");
     const bytes = Buffer.alloc(18 * 2048, 0);
     bytes[16 * 2048] = 1; // primary volume descriptor
