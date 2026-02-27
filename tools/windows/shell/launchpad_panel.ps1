@@ -211,6 +211,9 @@ $colorAccentHover = [System.Drawing.Color]::FromArgb(66, 108, 235)
 $colorRowHover = [System.Drawing.Color]::FromArgb(42, 44, 50)
 $colorButtonAlt = [System.Drawing.Color]::FromArgb(42, 44, 50)
 $colorButtonAltHover = [System.Drawing.Color]::FromArgb(52, 55, 64)
+$colorPass = [System.Drawing.Color]::FromArgb(120, 210, 150)
+$colorWarn = [System.Drawing.Color]::FromArgb(242, 194, 96)
+$colorFail = [System.Drawing.Color]::FromArgb(242, 118, 118)
 $fontMain = New-Object System.Drawing.Font "Segoe UI", 9
 $fontTitle = New-Object System.Drawing.Font "Segoe UI Semibold", 10
 $fontSmall = New-Object System.Drawing.Font "Segoe UI", 8
@@ -657,6 +660,103 @@ function Compute-FileSha256Digest {
   } catch {
     return "-"
   }
+}
+
+function New-DoctorLampLabel {
+  param([string]$Name)
+  $label = New-Object System.Windows.Forms.Label
+  $label.AutoSize = $true
+  $label.Margin = New-Object System.Windows.Forms.Padding(0, 6, 12, 6)
+  $label.Font = $fontSmall
+  $label.ForeColor = $colorMuted
+  $label.Tag = "UNKNOWN"
+  $label.Text = ("[UNKNOWN] " + $Name)
+  return $label
+}
+
+function Set-DoctorLampState {
+  param(
+    [System.Windows.Forms.Label]$Label,
+    [string]$Name,
+    [string]$State,
+    [string]$Detail
+  )
+  if (-not $Label) { return }
+  $stateToken = if ($State) { $State.Trim().ToUpperInvariant() } else { "UNKNOWN" }
+  if (-not $stateToken) { $stateToken = "UNKNOWN" }
+  $Label.Tag = $stateToken
+  $Label.ForeColor = switch ($stateToken) {
+    "PASS" { $colorPass; break }
+    "WARN" { $colorWarn; break }
+    "FAIL" { $colorFail; break }
+    default { $colorMuted }
+  }
+  $suffix = if ($Detail -and $Detail.Trim() -ne "") { " (" + $Detail.Trim() + ")" } else { "" }
+  $Label.Text = ("[" + $stateToken + "] " + $Name + $suffix)
+}
+
+function Update-DoctorOverallLamp {
+  param(
+    [System.Windows.Forms.Label]$OverallLamp,
+    [System.Windows.Forms.Label]$ShellLamp,
+    [System.Windows.Forms.Label]$AdapterLamp,
+    [System.Windows.Forms.Label]$AdapterStrictLamp
+  )
+  $states = @(
+    if ($ShellLamp) { [string]$ShellLamp.Tag } else { "UNKNOWN" },
+    if ($AdapterLamp) { [string]$AdapterLamp.Tag } else { "UNKNOWN" },
+    if ($AdapterStrictLamp) { [string]$AdapterStrictLamp.Tag } else { "UNKNOWN" }
+  )
+  $overall = "UNKNOWN"
+  $detail = ""
+  if ($states -contains "FAIL") {
+    $overall = "FAIL"
+    $detail = "action needed"
+  } elseif ($states -contains "WARN") {
+    $overall = "WARN"
+    $detail = "review warnings"
+  } elseif ($states -contains "PASS") {
+    $allPass = $true
+    foreach ($s in $states) {
+      if ($s -ne "PASS" -and $s -ne "UNKNOWN") { $allPass = $false; break }
+    }
+    if ($allPass) {
+      $overall = "PASS"
+      $detail = "healthy"
+    }
+  }
+  Set-DoctorLampState -Label $OverallLamp -Name "Overall" -State $overall -Detail $detail
+}
+
+function Get-AdapterDoctorLampState {
+  param(
+    [hashtable]$Result,
+    [switch]$Strict
+  )
+  $out = [ordered]@{
+    state = "UNKNOWN"
+    detail = ""
+  }
+  if (-not $Result) { return $out }
+  if (-not [bool](Get-ObjectProperty -ObjectValue $Result -Name "ok")) {
+    $out.state = "FAIL"
+    $out.detail = [string](Get-ObjectProperty -ObjectValue $Result -Name "code")
+    return $out
+  }
+  $text = [string](Get-ObjectProperty -ObjectValue $Result -Name "output")
+  if ($Strict.IsPresent) {
+    $out.state = "PASS"
+    $out.detail = "strict"
+    return $out
+  }
+  if ($text -match "(?m)plugins=.*:missing") {
+    $out.state = "WARN"
+    $out.detail = "missing plugin"
+    return $out
+  }
+  $out.state = "PASS"
+  $out.detail = "ok"
+  return $out
 }
 
 function Compute-TextSha256Digest {
@@ -2793,6 +2893,31 @@ $btnDoctorCopy.Height = 30
 Style-Button -Button $btnDoctorCopy -Primary:$false
 $doctorActions.Controls.Add($btnDoctorCopy) | Out-Null
 
+$doctorBody = New-Object System.Windows.Forms.TableLayoutPanel
+$doctorBody.Dock = "Fill"
+$doctorBody.ColumnCount = 1
+$doctorBody.RowCount = 2
+$doctorBody.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 54)))
+$doctorBody.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+
+$doctorSummary = New-Object System.Windows.Forms.FlowLayoutPanel
+$doctorSummary.Dock = "Fill"
+$doctorSummary.FlowDirection = "LeftToRight"
+$doctorSummary.WrapContents = $true
+$doctorSummary.AutoScroll = $false
+$doctorSummary.BackColor = $colorPanel
+$doctorSummary.Padding = New-Object System.Windows.Forms.Padding(4, 2, 4, 2)
+
+$doctorLampOverall = New-DoctorLampLabel -Name "Overall"
+$doctorLampShell = New-DoctorLampLabel -Name "Shell"
+$doctorLampAdapter = New-DoctorLampLabel -Name "Adapter"
+$doctorLampAdapterStrict = New-DoctorLampLabel -Name "Adapter Strict"
+
+$doctorSummary.Controls.Add($doctorLampOverall) | Out-Null
+$doctorSummary.Controls.Add($doctorLampShell) | Out-Null
+$doctorSummary.Controls.Add($doctorLampAdapter) | Out-Null
+$doctorSummary.Controls.Add($doctorLampAdapterStrict) | Out-Null
+
 $doctorText = New-Object System.Windows.Forms.TextBox
 $doctorText.Dock = "Fill"
 $doctorText.Multiline = $true
@@ -2804,7 +2929,9 @@ $doctorText.Font = $fontSmall
 $doctorText.Text = "Doctor output appears here."
 
 $doctorLayout.Controls.Add($doctorActions, 0, 0)
-$doctorLayout.Controls.Add($doctorText, 0, 1)
+$doctorBody.Controls.Add($doctorSummary, 0, 0)
+$doctorBody.Controls.Add($doctorText, 0, 1)
+$doctorLayout.Controls.Add($doctorBody, 0, 1)
 
 $settingsLayout = New-Object System.Windows.Forms.TableLayoutPanel
 $settingsLayout.Dock = "Fill"
@@ -3021,8 +3148,12 @@ $btnDoctorRun.Add_Click({
   }
   $doctorText.Text = (($header + @("", $body)) -join [Environment]::NewLine)
   if ($result.ok) {
+    Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "PASS" -Detail "ok"
+    Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
     Set-StatusLine -StatusLabel $statusLabel -Message "Shell doctor completed." -IsError $false
   } else {
+    Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "FAIL" -Detail ([string]$result.code)
+    Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
     Set-StatusLine -StatusLabel $statusLabel -Message ("Shell doctor failed (" + [string]$result.code + ").") -IsError $true
   }
 })
@@ -3040,8 +3171,12 @@ $btnDoctorRepairViewer.Add_Click({
   }
   $doctorText.Text = (($header + @("", $body)) -join [Environment]::NewLine)
   if ($result.ok) {
+    Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "PASS" -Detail "viewer repair"
+    Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
     Set-StatusLine -StatusLabel $statusLabel -Message "Viewer repair completed." -IsError $false
   } else {
+    Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "FAIL" -Detail ([string]$result.code)
+    Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
     Set-StatusLine -StatusLabel $statusLabel -Message ("Viewer repair failed (" + [string]$result.code + ").") -IsError $true
   }
 })
@@ -3059,8 +3194,12 @@ $btnDoctorRepairShortcuts.Add_Click({
   }
   $doctorText.Text = (($header + @("", $body)) -join [Environment]::NewLine)
   if ($result.ok) {
+    Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "PASS" -Detail "shortcut repair"
+    Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
     Set-StatusLine -StatusLabel $statusLabel -Message "Shortcut repair completed." -IsError $false
   } else {
+    Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "FAIL" -Detail ([string]$result.code)
+    Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
     Set-StatusLine -StatusLabel $statusLabel -Message ("Shortcut repair failed (" + [string]$result.code + ").") -IsError $true
   }
 })
@@ -3076,6 +3215,9 @@ $btnAdapterDoctorRun.Add_Click({
     "(no adapter doctor output)"
   }
   $doctorText.Text = (($header + @("", $body)) -join [Environment]::NewLine)
+  $adapterLamp = Get-AdapterDoctorLampState -Result $result
+  Set-DoctorLampState -Label $doctorLampAdapter -Name "Adapter" -State ([string]$adapterLamp.state) -Detail ([string]$adapterLamp.detail)
+  Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
   if ($result.ok) {
     Set-StatusLine -StatusLabel $statusLabel -Message "Adapter doctor completed." -IsError $false
   } else {
@@ -3095,6 +3237,9 @@ $btnAdapterDoctorStrictRun.Add_Click({
     "(no adapter doctor output)"
   }
   $doctorText.Text = (($header + @("", $body)) -join [Environment]::NewLine)
+  $adapterStrictLamp = Get-AdapterDoctorLampState -Result $result -Strict
+  Set-DoctorLampState -Label $doctorLampAdapterStrict -Name "Adapter Strict" -State ([string]$adapterStrictLamp.state) -Detail ([string]$adapterStrictLamp.detail)
+  Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
   if ($result.ok) {
     Set-StatusLine -StatusLabel $statusLabel -Message "Adapter doctor strict check passed." -IsError $false
   } else {
@@ -3116,6 +3261,7 @@ $initialCount = Load-Shortcuts -Panel $listPanel
 $initialTracked = Load-HistoryRows -ListView $historyList
 Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
 Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket -SnapshotImportButton $btnHistorySnapshotImport
+Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
 Set-StatusLine -StatusLabel $statusLabel -Message ("Ready. visible=" + $initialCount + " tracked=" + $initialTracked) -IsError $false
 
 $timer = New-Object System.Windows.Forms.Timer

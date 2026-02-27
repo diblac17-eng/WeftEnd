@@ -545,6 +545,7 @@ Included
 - History detail panel supports drag/drop import of snapshot `.json` references into the selected target bucket (local-only, schema-validated before import).
 - History detail panel now surfaces snapshot context (`Snapshot Binding` and `Snapshot Bucket` file count) alongside Auto Refresh state.
 - History detail panel now also surfaces deterministic snapshot gate state (`UNBOUND`, `BOUND_MATCH`, `BOUND_DRIFT`, `BOUND_INCOMPLETE`) and match counts for the selected latest run against the current local trusted binding.
+- Launchpad Doctor tab now includes readable status lamps (`Overall`, `Shell`, `Adapter`, `Adapter Strict`) with PASS/WARN/FAIL indicators, while keeping full raw doctor output below for audit detail.
 
 Validation
 - npm run compile --silent: pass
