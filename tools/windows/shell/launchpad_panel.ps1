@@ -1510,7 +1510,6 @@ function Update-HistoryDetailsBox {
     "Baseline: " + $baseline,
     "Latest: " + $latestRunDisplay,
     "Buckets: " + $buckets,
-    "Auto Refresh: " + $autoRefreshState,
     "Snapshot Binding: " + $snapshotBindingState,
     "Snapshot Bucket: " + [string]$snapshotBucketCount + " file(s)"
   )
