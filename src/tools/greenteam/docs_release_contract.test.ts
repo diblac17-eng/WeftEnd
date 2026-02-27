@@ -51,6 +51,8 @@ suite("greenteam/docs-release-contract", () => {
     const releaseChecklist = readText("docs/RELEASE_CHECKLIST_ALPHA.md");
     const releaseChecklistLegacy = readText("docs/RELEASE_CHECKLIST.md");
     const releaseAnnouncement = readText("docs/RELEASE_ANNOUNCEMENT.txt");
+    const troubleshooting = readText("docs/TROUBLESHOOTING.md");
+    const supportOnboarding = readText("docs/SUPPORT_ONBOARDING.md");
 
     assert(
       readme.includes(".github/workflows/weftend_artifact_meter.yml"),
@@ -167,6 +169,19 @@ suite("greenteam/docs-release-contract", () => {
     assert(
       releaseAnnouncement.includes("docs/RELEASE_HISTORY.md"),
       "RELEASE_ANNOUNCEMENT missing release-history reference"
+    );
+
+    assert(
+      !troubleshooting.includes("\"WeftEnd Library\""),
+      "TROUBLESHOOTING must not reference removed WeftEnd Library shortcut"
+    );
+    assert(
+      !supportOnboarding.includes("\"WeftEnd Library\""),
+      "SUPPORT_ONBOARDING must not reference removed WeftEnd Library shortcut"
+    );
+    assert(
+      supportOnboarding.includes("\"WeftEnd Launchpad\"") && supportOnboarding.includes("\"WeftEnd Download\""),
+      "SUPPORT_ONBOARDING must reference current Launchpad/Download shortcuts"
     );
   });
 });
