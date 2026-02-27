@@ -1508,9 +1508,11 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
     const normalizedTarLines = tarList.lines
       .map((line) => line.replace(/\\/g, "/").replace(/^\.\/+/, ""))
       .filter((line) => line.length > 0 && !line.endsWith("/"));
+    if (normalizedTarLines.some((line) => isArchivePathInvalidV0(line))) markers.push("ARCHIVE_METADATA_PARTIAL");
+    const validTarLines = normalizedTarLines.filter((line) => !isArchivePathInvalidV0(line));
     entries = strictRoute
-      ? normalizedTarLines.slice().sort((a, b) => cmpStrV0(a, b))
-      : stableSortUniqueStringsV0(normalizedTarLines);
+      ? validTarLines.slice().sort((a, b) => cmpStrV0(a, b))
+      : stableSortUniqueStringsV0(validTarLines);
     reasonCodes.push("ARCHIVE_PLUGIN_USED");
   } else if (ext === ".7z") {
     if (!ctx.enabledPlugins.has("7z")) {
@@ -1543,9 +1545,11 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       .filter((line) => line.startsWith("Path = "))
       .map((line) => line.slice("Path = ".length).trim())
       .filter((line) => line.length > 0 && !line.endsWith("/"));
+    if (normalized7zLines.some((line) => isArchivePathInvalidV0(line))) markers.push("ARCHIVE_METADATA_PARTIAL");
+    const valid7zLines = normalized7zLines.filter((line) => !isArchivePathInvalidV0(line));
     entries = strictRoute
-      ? normalized7zLines.slice().sort((a, b) => cmpStrV0(a, b))
-      : stableSortUniqueStringsV0(normalized7zLines);
+      ? valid7zLines.slice().sort((a, b) => cmpStrV0(a, b))
+      : stableSortUniqueStringsV0(valid7zLines);
     reasonCodes.push("ARCHIVE_PLUGIN_USED");
   } else {
     return {
@@ -1568,6 +1572,14 @@ const analyzeArchive = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
       ok: false,
       failCode: "ARCHIVE_FORMAT_MISMATCH",
       failMessage: "archive adapter expected a valid archive structure for explicit route analysis.",
+      reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_FORMAT_MISMATCH"]),
+    };
+  }
+  if (strictRoute && markers.includes("ARCHIVE_METADATA_PARTIAL")) {
+    return {
+      ok: false,
+      failCode: "ARCHIVE_FORMAT_MISMATCH",
+      failMessage: "archive adapter expected complete archive metadata for explicit route analysis.",
       reasonCodes: stableSortUniqueReasonsV0(["ARCHIVE_ADAPTER_V1", "ARCHIVE_FORMAT_MISMATCH"]),
     };
   }
@@ -1783,9 +1795,11 @@ const analyzePackage = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult =>
         const normalizedTarLines = tarList.lines
           .map((line) => String(line || "").replace(/\\/g, "/").replace(/^\.\/+/, ""))
           .filter((line) => line.length > 0 && !line.endsWith("/"));
+        if (normalizedTarLines.some((line) => isArchivePathInvalidV0(line))) markers.push("PACKAGE_METADATA_PARTIAL");
+        const validTarLines = normalizedTarLines.filter((line) => !isArchivePathInvalidV0(line));
         entryNames = strictRoute
-          ? normalizedTarLines.slice().sort((a, b) => cmpStrV0(a, b))
-          : stableSortUniqueStringsV0(normalizedTarLines);
+          ? validTarLines.slice().sort((a, b) => cmpStrV0(a, b))
+          : stableSortUniqueStringsV0(validTarLines);
       } else {
         if (strictRoute) {
           return {

@@ -562,6 +562,21 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const input = path.join(tmp, "traversal_plugin.tgz");
+    writeSimpleTgz(input, [
+      { name: "../spoof.txt", text: "spoof" },
+      { name: "ok.txt", text: "ok" },
+    ]);
+    if (tarAvailable()) {
+      const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive", "--enable-plugin", "tar"]);
+      assertEq(res.status, 40, "safe-run archive should fail closed for strict plugin route with traversal-style entry paths");
+      assert(res.stderr.includes("ARCHIVE_FORMAT_MISMATCH"), "expected ARCHIVE_FORMAT_MISMATCH on stderr for traversal-style plugin archive entries");
+    }
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const input = path.join(tmp, "bad.tar");
     fs.writeFileSync(input, "not-a-tar", "utf8");
     const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive"]);
@@ -1554,6 +1569,21 @@ const run = async (): Promise<void> => {
       const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "package", "--enable-plugin", "tar"]);
       assertEq(res.status, 40, "safe-run should fail closed for strict package plugin route with case-colliding entry paths");
       assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for case-colliding package plugin entries");
+    }
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "traversal_package.tgz");
+    writeSimpleTgz(input, [
+      { name: "../spoof.txt", text: "spoof" },
+      { name: "pkg/install.sh", text: "echo ok" },
+    ]);
+    if (tarAvailable()) {
+      const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "package", "--enable-plugin", "tar"]);
+      assertEq(res.status, 40, "safe-run should fail closed for strict package plugin route with traversal-style entry paths");
+      assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for traversal-style package plugin entries");
     }
   }
 

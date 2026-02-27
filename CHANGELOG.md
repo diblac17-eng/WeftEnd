@@ -371,6 +371,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Strict package entry-path sets now require non-ambiguous paths (duplicate or case-colliding package entry paths fail strict routing).
 - Strict `.deb` structure checks now require non-ambiguous required-entry cardinality (duplicate required structure entries fail strict routing).
 - Strict compressed package-tar plugin route now requires non-ambiguous entry-path sets from plugin listing output (duplicate or case-colliding entry paths fail strict routing).
+- Strict compressed package-tar plugin route now also rejects traversal/absolute plugin-listed paths as partial metadata (`PACKAGE_METADATA_PARTIAL`), failing closed for explicit strict package analysis.
 - Archive/package compressed tar coverage now includes `.tar.bz2` (and `.tbz2/.tbz` aliases) under the same explicit tar-plugin fail-closed policy as other compressed tar formats.
 - `weftend adapter list` now explicitly includes `.tbz2/.tbz` alias formats for archive/package lanes.
 - Strict `.appimage` package routing now requires valid ELF ident fields (class/data/version) in addition to ELF magic/runtime markers.
@@ -380,6 +381,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 ### Archive strict-route hardening
 - Strict `.zip` and `.tar` archive routes now require non-ambiguous entry paths (duplicate or case-colliding entry paths fail strict routing).
 - Strict plugin archive routes (`.tgz/.tar.gz/.txz/.tar.xz/.7z`) now also require non-ambiguous entry-path sets from plugin listing output (duplicate or case-colliding entry paths fail strict routing).
+- Strict plugin archive routes now also reject traversal/absolute plugin-listed paths as partial metadata (`ARCHIVE_METADATA_PARTIAL`), failing closed for explicit strict archive analysis.
 
 ### Validation status for this unreleased batch
 - `npm run compile --silent`: pass
