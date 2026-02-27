@@ -3106,6 +3106,47 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
           reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
         };
       }
+      const ociLayoutEntry = markerTexts.entries.find(
+        (entry) => String(entry.name || "").replace(/\\/g, "/").replace(/^\.\/+/, "").toLowerCase() === "oci-layout"
+      );
+      let ociLayoutParsed = false;
+      let ociLayoutVersionValid = false;
+      if (ociLayoutEntry) {
+        try {
+          const parsed = JSON.parse(String(ociLayoutEntry.text || ""));
+          if (parsed && typeof parsed === "object") {
+            ociLayoutParsed = true;
+            const layoutVersion = typeof (parsed as any).imageLayoutVersion === "string" ? String((parsed as any).imageLayoutVersion || "") : "";
+            if (layoutVersion.trim().length > 0) ociLayoutVersionValid = true;
+          }
+        } catch {
+          // strict route handles invalid/partial OCI tar payload below
+        }
+      }
+      if (strictRoute && !ociLayoutEntry) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected oci-layout entry for explicit OCI tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
+      if (strictRoute && !ociLayoutParsed) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected valid oci-layout payload for explicit OCI tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
+      if (strictRoute && !ociLayoutVersionValid) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected non-empty imageLayoutVersion in oci-layout for explicit OCI tar analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
       const ociTexts = readTarTextEntriesByExactPath(ctx.inputPath, ["index.json"]);
       markers.push(...ociTexts.markers);
       const ociIndexEntry = ociTexts.entries.find(

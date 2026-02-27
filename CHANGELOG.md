@@ -156,6 +156,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Explicit OCI layout/tar strict container routes now require unique manifest digest references, failing closed on duplicate digest aliasing in OCI index manifests.
 - Added adapter CLI smoke coverage for the same duplicate-manifest-digest OCI strict-path denials (layout directory + OCI tar).
 - OCI tar strict routes now fail closed when `index.json` is invalid, has non-array manifests shape, or has empty manifests.
+- OCI tar strict routes now also fail closed when `oci-layout` is invalid JSON or has empty/missing `imageLayoutVersion`.
 - Added CLI smoke coverage for explicit OCI layout directory fail-closed behavior on invalid/shape-mismatch/empty-manifests `index.json` payloads.
 - Image strict route now fails closed when no header evidence is present, preventing empty/zero-byte image placeholders from passing explicit image analysis.
 - Added adapter + CLI smoke coverage for explicit image-route no-header-evidence denial.

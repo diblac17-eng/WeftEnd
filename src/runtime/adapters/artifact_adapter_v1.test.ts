@@ -2553,6 +2553,40 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const tarPath = path.join(tmp, "oci_layout_bad_layout_payload.tar");
+    writeSimpleTar(tarPath, [
+      { name: "oci-layout", text: "{ invalid-json" },
+      {
+        name: "index.json",
+        text: "{\"schemaVersion\":2,\"manifests\":[{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"size\":1}]}\n",
+      },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+    ]);
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit OCI tar invalid oci-layout payload");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for OCI tar invalid oci-layout payload");
+  }
+
+  {
+    const tmp = mkTmp();
+    const tarPath = path.join(tmp, "oci_layout_missing_version.tar");
+    writeSimpleTar(tarPath, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"\"}\n" },
+      {
+        name: "index.json",
+        text: "{\"schemaVersion\":2,\"manifests\":[{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"size\":1}]}\n",
+      },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+    ]);
+    const capture = captureTreeV0(tarPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tarPath, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit OCI tar missing imageLayoutVersion evidence");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for OCI tar missing imageLayoutVersion evidence");
+  }
+
+  {
+    const tmp = mkTmp();
     const tarPath = path.join(tmp, "oci_layout_bad_index.tar");
     writeSimpleTar(tarPath, [
       { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },

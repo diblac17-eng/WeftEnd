@@ -2512,6 +2512,43 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const ociTarBadLayoutPayload = path.join(tmp, "oci_layout_bad_layout_payload.tar");
+    writeSimpleTar(ociTarBadLayoutPayload, [
+      { name: "oci-layout", text: "{ invalid-json" },
+      {
+        name: "index.json",
+        text: "{\"schemaVersion\":2,\"manifests\":[{\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}]}\n",
+      },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+    ]);
+    const res = await runCliCapture(["safe-run", ociTarBadLayoutPayload, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI tar invalid oci-layout payload");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar invalid oci-layout payload");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const ociTarMissingLayoutVersion = path.join(tmp, "oci_layout_missing_version.tar");
+    writeSimpleTar(ociTarMissingLayoutVersion, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"\"}\n" },
+      {
+        name: "index.json",
+        text: "{\"schemaVersion\":2,\"manifests\":[{\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}]}\n",
+      },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+    ]);
+    const res = await runCliCapture(["safe-run", ociTarMissingLayoutVersion, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI tar missing imageLayoutVersion evidence");
+    assert(
+      res.stderr.includes("CONTAINER_FORMAT_MISMATCH"),
+      "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar missing imageLayoutVersion evidence"
+    );
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const ociTarBadIndex = path.join(tmp, "oci_layout_bad_index.tar");
     writeSimpleTar(ociTarBadIndex, [
       { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
