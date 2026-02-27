@@ -1645,6 +1645,48 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const repo = path.join(tmp, "repo_duplicate_packed_ref");
+    const gitData = path.join(repo, ".gitdata");
+    fs.mkdirSync(path.join(gitData, "refs", "heads"), { recursive: true });
+    fs.mkdirSync(repo, { recursive: true });
+    fs.writeFileSync(path.join(repo, ".git"), "gitdir: .gitdata\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "HEAD"), "ref: refs/heads/main\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "refs", "heads", "main"), "0123456789abcdef0123456789abcdef01234567\n", "utf8");
+    fs.writeFileSync(
+      path.join(gitData, "packed-refs"),
+      "# pack-refs with: peeled fully-peeled sorted\n0123456789abcdef0123456789abcdef01234567 refs/heads/main\n89abcdef0123456789abcdef0123456789abcdef refs/heads/main\n",
+      "utf8"
+    );
+    fs.writeFileSync(path.join(repo, "file.txt"), "x", "utf8");
+    const res = await runCliCapture(["safe-run", repo, "--out", outDir, "--adapter", "scm"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit scm duplicate packed-refs metadata");
+    assert(res.stderr.includes("SCM_REF_UNRESOLVED"), "expected SCM_REF_UNRESOLVED on stderr for duplicate packed-refs metadata");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const repo = path.join(tmp, "repo_case_colliding_packed_ref");
+    const gitData = path.join(repo, ".gitdata");
+    fs.mkdirSync(path.join(gitData, "refs", "heads"), { recursive: true });
+    fs.mkdirSync(repo, { recursive: true });
+    fs.writeFileSync(path.join(repo, ".git"), "gitdir: .gitdata\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "HEAD"), "ref: refs/heads/main\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "refs", "heads", "main"), "0123456789abcdef0123456789abcdef01234567\n", "utf8");
+    fs.writeFileSync(
+      path.join(gitData, "packed-refs"),
+      "# pack-refs with: peeled fully-peeled sorted\n0123456789abcdef0123456789abcdef01234567 refs/heads/main\n89abcdef0123456789abcdef0123456789abcdef refs/heads/Main\n",
+      "utf8"
+    );
+    fs.writeFileSync(path.join(repo, "file.txt"), "x", "utf8");
+    const res = await runCliCapture(["safe-run", repo, "--out", outDir, "--adapter", "scm"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit scm case-colliding packed-refs metadata");
+    assert(res.stderr.includes("SCM_REF_UNRESOLVED"), "expected SCM_REF_UNRESOLVED on stderr for case-colliding packed-refs metadata");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badExe = path.join(tmp, "bad.exe");
     fs.writeFileSync(badExe, "not-a-pe", "utf8");
     const res = await runCliCapture(["safe-run", badExe, "--out", outDir, "--adapter", "package"]);

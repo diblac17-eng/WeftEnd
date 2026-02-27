@@ -1033,7 +1033,9 @@ const parsePackedRefsV1 = (gitDir: string): { map: Map<string, string>; branchRe
   } catch {
     fileBytes = 0;
   }
-  const partial = fileBytes > bytes.length;
+  let partial = fileBytes > bytes.length;
+  const seenRefs = new Set<string>();
+  const seenRefsFolded = new Set<string>();
   const text = Buffer.from(bytes).toString("utf8");
   if (!text) return { map, branchRefs, tagRefs, partial };
   text.split(/\r?\n/).forEach((line: string) => {
@@ -1044,6 +1046,10 @@ const parsePackedRefsV1 = (gitDir: string): { map: Map<string, string>; branchRe
     const hash = String(parts[0] || "").trim();
     const ref = String(parts[1] || "").trim();
     if (!isLikelyGitHashV1(hash) || !ref.startsWith("refs/")) return;
+    const refFolded = ref.toLowerCase();
+    if (seenRefs.has(ref) || seenRefsFolded.has(refFolded)) partial = true;
+    seenRefs.add(ref);
+    seenRefsFolded.add(refFolded);
     map.set(ref, hash.toLowerCase());
     if (ref.startsWith("refs/heads/")) branchRefs.add(ref);
     if (ref.startsWith("refs/tags/")) tagRefs.add(ref);
@@ -1053,6 +1059,7 @@ const parsePackedRefsV1 = (gitDir: string): { map: Map<string, string>; branchRe
 
 const collectLooseRefsV1 = (rootPath: string, prefixRef: string): { refs: Set<string>; partial: boolean } => {
   const out = new Set<string>();
+  const outFolded = new Set<string>();
   let partial = false;
   const walk = (dirPath: string, refPrefix: string) => {
     let entries: Array<{ name: string; isDirectory: () => boolean }> = [];
@@ -1081,7 +1088,10 @@ const collectLooseRefsV1 = (rootPath: string, prefixRef: string): { refs: Set<st
       if (fileBytes > bytes.length) partial = true;
       const value = Buffer.from(bytes).toString("utf8").trim();
       if (!isLikelyGitHashV1(value)) return;
+      const refFolded = ref.toLowerCase();
+      if (out.has(ref) || outFolded.has(refFolded)) partial = true;
       out.add(ref);
+      outFolded.add(refFolded);
     });
   };
   walk(rootPath, prefixRef);
@@ -1118,8 +1128,16 @@ const readNativeScmFallbackV1 = (repoPath: string): {
   const looseTags = collectLooseRefsV1(path.join(gitDir, "refs", "tags"), "refs/tags");
   const allHeads = new Set<string>([...Array.from(looseHeads.refs), ...Array.from(packed.branchRefs)]);
   const allTags = new Set<string>([...Array.from(looseTags.refs), ...Array.from(packed.tagRefs)]);
+  const allHeadsFolded = new Set<string>(Array.from(allHeads).map((ref) => ref.toLowerCase()));
+  const allTagsFolded = new Set<string>(Array.from(allTags).map((ref) => ref.toLowerCase()));
 
-  let partial = resolved.partial || packed.partial || looseHeads.partial || looseTags.partial;
+  let partial =
+    resolved.partial ||
+    packed.partial ||
+    looseHeads.partial ||
+    looseTags.partial ||
+    allHeadsFolded.size < allHeads.size ||
+    allTagsFolded.size < allTags.size;
   const head = readTextBoundedEvidenceV1(path.join(gitDir, "HEAD"), 256);
   if (head.bounded) partial = true;
   const headRaw = head.text.trim();
