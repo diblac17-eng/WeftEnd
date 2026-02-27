@@ -319,7 +319,9 @@ const isArchivePathInvalidV0 = (value: string): boolean => {
   const normalized = String(value || "").replace(/\\/g, "/");
   if (normalized.length === 0) return true;
   if (normalized.includes("\0")) return true;
+  if (normalized.startsWith("//")) return true;
   if (normalized.startsWith("/")) return true;
+  if (/^[a-zA-Z]:/.test(normalized)) return true;
   if (normalized === "." || normalized === "..") return true;
   if (normalized.startsWith("../")) return true;
   if (normalized.includes("/../")) return true;

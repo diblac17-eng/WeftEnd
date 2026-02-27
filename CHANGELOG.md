@@ -158,6 +158,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - OCI tar marker parsing now treats marker evidence as regular-file entries only, so non-file tar headers (for example directory/link marker names) cannot satisfy strict container tar classification.
 - Tar metadata parsing now flags traversal-style entry paths as partial metadata (`ARCHIVE_METADATA_PARTIAL`), so explicit strict tar routes fail closed even when canonical marker entries are also present.
 - ZIP metadata parsing now flags traversal-style entry paths as partial metadata (`ARCHIVE_METADATA_PARTIAL`), so strict ZIP-based explicit routes (extension/package/document) fail closed when such entries are present.
+- Archive metadata path validation now also flags drive-style / UNC-style absolute entry paths as partial metadata (`ARCHIVE_METADATA_PARTIAL`), so strict archive-derived routes fail closed on those path classes.
 - Added adapter CLI smoke coverage for the same duplicate-manifest-digest OCI strict-path denials (layout directory + OCI tar).
 - OCI tar strict routes now fail closed when `index.json` is invalid, has non-array manifests shape, or has empty manifests.
 - OCI tar strict routes now also fail closed when `oci-layout` is invalid JSON or has empty/missing `imageLayoutVersion`.

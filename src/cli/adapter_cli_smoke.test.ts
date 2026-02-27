@@ -2219,6 +2219,19 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const drivePathVsix = path.join(tmp, "drive_path_entries.vsix");
+    writeStoredZip(drivePathVsix, [
+      { name: "manifest.json", text: JSON.stringify({ manifest_version: 3, name: "demo", version: "1.0.0" }) },
+      { name: "C:/spoof.js", text: "console.log('x');" },
+    ]);
+    const res = await runCliCapture(["safe-run", drivePathVsix, "--out", outDir, "--adapter", "extension"]);
+    assertEq(res.status, 40, "safe-run should fail closed when extension ZIP metadata includes drive-style absolute entry paths");
+    assert(res.stderr.includes("EXTENSION_FORMAT_MISMATCH"), "expected EXTENSION_FORMAT_MISMATCH on stderr for extension ZIP drive-style absolute entry path");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badIso = path.join(tmp, "bad.iso");
     fs.writeFileSync(badIso, "not-an-iso", "utf8");
     const badRes = await runCliCapture(["safe-run", badIso, "--out", outDir, "--adapter", "image"]);
@@ -2598,6 +2611,24 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", ociTarTraversalMarker, "--out", outDir, "--adapter", "container"]);
     assertEq(res.status, 40, "safe-run should fail closed for explicit OCI tar with traversal-style tar entry path");
     assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar traversal-style entry path");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const ociTarDrivePathMarker = path.join(tmp, "oci_layout_drive_path_marker.tar");
+    writeSimpleTar(ociTarDrivePathMarker, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      {
+        name: "index.json",
+        text: "{\"schemaVersion\":2,\"manifests\":[{\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}]}\n",
+      },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+      { name: "C:/spoof", text: "y" },
+    ]);
+    const res = await runCliCapture(["safe-run", ociTarDrivePathMarker, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI tar with drive-style absolute tar entry path");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar drive-style absolute entry path");
   }
 
   {

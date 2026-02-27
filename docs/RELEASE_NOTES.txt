@@ -226,6 +226,7 @@ Included
 - `.crx` strict route now validates CRX wrapper header and embedded ZIP payload before manifest analysis, failing closed on malformed CRX payloads.
 - Extension strict route now fails closed on partial ZIP metadata even when `manifest.json` is present, preventing mixed valid/corrupt extension package acceptance.
 - ZIP metadata parsing now marks traversal-style entry paths as partial metadata (`ARCHIVE_METADATA_PARTIAL`), and strict ZIP-based routes (for example extension/package/document explicit lanes) fail closed when such entries are present.
+- Archive metadata path validation now also treats drive-style and UNC-style absolute entry paths as partial metadata (`ARCHIVE_METADATA_PARTIAL`), so strict archive-derived routes fail closed on those path classes.
 - Extension strict route now requires baseline manifest core fields (`manifest_version`, `name`, `version`) for explicit extension analysis, preventing empty/placeholder manifests from passing.
 - Extension strict route now requires canonical root-path `manifest.json` presence and fails closed on nested-only manifest paths or duplicate root `manifest.json` entries.
 - Extension strict route now requires non-ambiguous extension package entry-path sets, preventing duplicate or case-colliding package paths from passing explicit extension analysis.
