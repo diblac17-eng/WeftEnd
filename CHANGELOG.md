@@ -156,6 +156,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Explicit OCI layout/tar strict container routes now require unique manifest digest references, failing closed on duplicate digest aliasing in OCI index manifests.
 - Added adapter CLI smoke coverage for the same duplicate-manifest-digest OCI strict-path denials (layout directory + OCI tar).
 - OCI tar strict routes now fail closed when `index.json` is invalid, has non-array manifests shape, or has empty manifests.
+- Added CLI smoke coverage for explicit OCI layout directory fail-closed behavior on invalid/shape-mismatch/empty-manifests `index.json` payloads.
 - Windows report viewer now renders adapter evidence as an optional collapsed section (only when adapter/capability artifacts are present) with quick-open artifact actions.
 - Report viewer summary now includes report-card/safe/operator plus compare receipt/report digests and provides `Copy Digests` for digest-only share/export text.
 - Report viewer now supports keyboard copy shortcuts: `Ctrl+C` (summary) and `Ctrl+Shift+C` (digest-only).
