@@ -859,6 +859,30 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const input = path.join(tmp, "bounded.tf");
+    fs.writeFileSync(input, `resource "null_resource" "x" {}\n${"a".repeat(300_000)}\n`, "utf8");
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "iac"]);
+    assertEq(res.status, 40, "safe-run should fail closed for bounded explicit iac text evidence");
+    assert(res.stderr.includes("IAC_UNSUPPORTED_FORMAT"), "expected IAC_UNSUPPORTED_FORMAT on stderr for bounded explicit iac text evidence");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const input = path.join(tmp, "bounded_cicd.yml");
+    fs.writeFileSync(
+      input,
+      `name: ci\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@main\n${"a".repeat(300_000)}\n`,
+      "utf8"
+    );
+    const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "cicd"]);
+    assertEq(res.status, 40, "safe-run should fail closed for bounded explicit cicd text evidence");
+    assert(res.stderr.includes("CICD_UNSUPPORTED_FORMAT"), "expected CICD_UNSUPPORTED_FORMAT on stderr for bounded explicit cicd text evidence");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const wfDir = path.join(tmp, ".github", "workflows");
     fs.mkdirSync(wfDir, { recursive: true });
     fs.writeFileSync(

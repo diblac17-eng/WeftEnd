@@ -11,6 +11,8 @@ Included
 - Explicit `signature` adapter route now fails closed (`SIGNATURE_FORMAT_MISMATCH`) when malformed PEM envelope blocks are present, even when other valid envelope evidence exists in the same input.
 - This prevents mixed valid/corrupt signature-envelope inputs from passing strict explicit signature analysis.
 - Explicit `signature` adapter route now also fails closed when only bounded/truncated signature bytes are available (`SIGNATURE_BOUNDED` marker path), preventing strict-route success on partial signature reads.
+- IaC/CI strict-route hardening:
+- Explicit `iac` / `cicd` adapter routes now fail closed (`IAC_UNSUPPORTED_FORMAT` / `CICD_UNSUPPORTED_FORMAT`) when only bounded/truncated text evidence is available from oversized config files, preventing strict-route success on partial text reads.
 - Launchpad History latest-run resync hardening:
 - History actions now re-sync the selected row from library view-state before opening report viewer, run folder, or adapter evidence.
 - This prevents stale report opens when Launchpad stays open while a newer run is created externally (for example via right-click `Run with WeftEnd`).

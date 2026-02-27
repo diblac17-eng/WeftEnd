@@ -2546,7 +2546,19 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd", strictRou
   let unpinnedActionRefs = 0;
   let cicdSecretUsage = 0;
   let externalRunnerRefs = 0;
+  let boundedTextFileCount = 0;
   const externalDomains = new Set<string>();
+
+  const readTextEvidenceV1 = (filePath: string): { text: string; bounded: boolean } => {
+    const bytes = readBytesBounded(filePath, MAX_TEXT_BYTES);
+    let fileBytes = 0;
+    try {
+      fileBytes = Math.max(0, Number(fs.statSync(filePath).size || 0));
+    } catch {
+      fileBytes = 0;
+    }
+    return { text: Buffer.from(bytes).toString("utf8"), bounded: fileBytes > bytes.length };
+  };
 
   const scanText = (text: string) => {
     iacStructuralPatterns += countMatchesV1(text, /^\s*(terraform|provider|resource|module|variable|output)\b/mgi);
@@ -2582,9 +2594,26 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd", strictRou
 
   const filesScanned = ctx.capture.kind === "file" ? 1 : files.length;
   if (ctx.capture.kind === "file") {
-    scanText(readTextBounded(ctx.inputPath));
+    const evidence = readTextEvidenceV1(ctx.inputPath);
+    if (evidence.bounded) boundedTextFileCount += 1;
+    scanText(evidence.text);
   } else {
-    files.forEach((filePath) => scanText(readTextBounded(filePath)));
+    files.forEach((filePath) => {
+      const evidence = readTextEvidenceV1(filePath);
+      if (evidence.bounded) boundedTextFileCount += 1;
+      scanText(evidence.text);
+    });
+  }
+
+  if (strictRoute && forcedClass && boundedTextFileCount > 0) {
+    const mismatchCode = forcedClass === "cicd" ? "CICD_UNSUPPORTED_FORMAT" : "IAC_UNSUPPORTED_FORMAT";
+    const mismatchReason = forcedClass === "cicd" ? "CICD_ADAPTER_V1" : "IAC_ADAPTER_V1";
+    return {
+      ok: false,
+      failCode: mismatchCode,
+      failMessage: `${forcedClass} adapter expected complete unbounded text evidence for explicit ${forcedClass} analysis.`,
+      reasonCodes: stableSortUniqueReasonsV0([mismatchReason, mismatchCode]),
+    };
   }
 
   if (privileged > 0) {
@@ -2661,6 +2690,7 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd", strictRou
       cicdUnpinnedActionCount: unpinnedActionRefs,
       cicdSecretUsageCount: cicdSecretUsage,
       cicdExternalRunnerCount: externalRunnerRefs,
+      boundedTextFileCount,
       externalDomainCount: externalDomains.size,
     },
     markers: [],

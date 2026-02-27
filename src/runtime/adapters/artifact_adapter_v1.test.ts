@@ -860,6 +860,30 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const iac = path.join(tmp, "bounded.tf");
+    fs.writeFileSync(iac, `resource "null_resource" "x" {}\n${"a".repeat(300_000)}\n`, "utf8");
+    const capture = captureTreeV0(iac, limits);
+    const res = runArtifactAdapterV1({ selection: "iac", enabledPlugins: [], inputPath: iac, capture });
+    assert(!res.ok, "iac adapter should fail closed for explicit iac route when text evidence is bounded");
+    assertEq(res.failCode, "IAC_UNSUPPORTED_FORMAT", "expected IAC_UNSUPPORTED_FORMAT for bounded explicit iac evidence");
+  }
+
+  {
+    const tmp = mkTmp();
+    const cicd = path.join(tmp, "bounded_cicd.yml");
+    fs.writeFileSync(
+      cicd,
+      `name: ci\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@main\n${"a".repeat(300_000)}\n`,
+      "utf8"
+    );
+    const capture = captureTreeV0(cicd, limits);
+    const res = runArtifactAdapterV1({ selection: "cicd", enabledPlugins: [], inputPath: cicd, capture });
+    assert(!res.ok, "cicd adapter should fail closed for explicit cicd route when text evidence is bounded");
+    assertEq(res.failCode, "CICD_UNSUPPORTED_FORMAT", "expected CICD_UNSUPPORTED_FORMAT for bounded explicit cicd evidence");
+  }
+
+  {
+    const tmp = mkTmp();
     const tf = path.join(tmp, "main.tf");
     fs.writeFileSync(
       tf,
