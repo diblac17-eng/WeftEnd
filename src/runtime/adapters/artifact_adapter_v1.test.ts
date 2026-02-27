@@ -3113,6 +3113,19 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    for (let i = 0; i < 9; i += 1) {
+      const dir = path.join(tmp, `svc_${i}`);
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, "compose.yaml"), "services:\n  web:\n    image: nginx:latest\n", "utf8");
+    }
+    const capture = captureTreeV0(tmp, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: tmp, capture });
+    assert(!res.ok, "container adapter should fail closed when compose file-set is bounded in explicit compose route");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for bounded compose file-set");
+  }
+
+  {
+    const tmp = mkTmp();
     const buildComposePath = path.join(tmp, "compose.yaml");
     fs.writeFileSync(buildComposePath, "services:\n  web:\n    build: .\n", "utf8");
     const capture = captureTreeV0(buildComposePath, limits);

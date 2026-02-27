@@ -3276,6 +3276,19 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    for (let i = 0; i < 9; i += 1) {
+      const dir = path.join(tmp, `svc_${i}`);
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, "compose.yaml"), "services:\n  web:\n    image: nginx:latest\n", "utf8");
+    }
+    const res = await runCliCapture(["safe-run", tmp, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed when compose file-set is bounded in explicit compose route");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for bounded compose file-set");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const buildCompose = path.join(tmp, "compose.yaml");
     fs.writeFileSync(buildCompose, "services:\n  web:\n    build: .\n", "utf8");
     const res = await runCliCapture(["safe-run", buildCompose, "--out", outDir, "--adapter", "container"]);

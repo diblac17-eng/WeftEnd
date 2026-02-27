@@ -3086,6 +3086,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   let composeBuildHintCount = 0;
   let composeServicesBlockCount = 0;
   let composeBoundedFileCount = 0;
+  let composeFileCountScanned = 0;
   let sbomPackageCount = 0;
   let ociManifestDigestRefCount = 0;
   let ociManifestDigestResolvedCount = 0;
@@ -3528,14 +3529,24 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       const evidence = readComposeTextEvidenceV1(ctx.inputPath);
       if (evidence.bounded) composeBoundedFileCount += 1;
       composeTexts.push(evidence.text);
+      composeFileCountScanned = 1;
     } else {
-      const composeFiles = ctx.capture.entries
+      const allComposeFiles = ctx.capture.entries
         .map((entry) => entry.path)
         .filter((p) => {
           const base = path.basename(String(p || "")).toLowerCase();
           return base === "docker-compose.yml" || base === "docker-compose.yaml" || base === "compose.yml" || base === "compose.yaml";
-        })
-        .slice(0, 8);
+        });
+      if (strictRoute && allComposeFiles.length > 8) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_FORMAT_MISMATCH",
+          failMessage: "container adapter expected complete compose file-set evidence for explicit compose analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+        };
+      }
+      const composeFiles = allComposeFiles.slice(0, 8);
+      composeFileCountScanned = composeFiles.length;
       composeFiles.forEach((relPath) => {
         const evidence = readComposeTextEvidenceV1(path.join(ctx.inputPath, relPath));
         if (evidence.bounded) composeBoundedFileCount += 1;
@@ -3665,6 +3676,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       composeBuildHintCount,
       composeServicesBlockCount,
       composeBoundedFileCount,
+      composeFileCountScanned,
       sbomPackageCount,
     },
     markers: stableSortUniqueStringsV0(markers),
