@@ -728,14 +728,73 @@ function Read-SnapshotBindings {
   }
 }
 
-function Test-SnapshotBindingForTarget {
+function Get-SnapshotBindingForTarget {
   param([string]$TargetKey)
-  if (-not $TargetKey -or $TargetKey.Trim() -eq "") { return $false }
+  if (-not $TargetKey -or $TargetKey.Trim() -eq "") { return $null }
   foreach ($b in @(Read-SnapshotBindings)) {
     $key = [string](Get-ObjectProperty -ObjectValue $b -Name "targetKey")
-    if ($key -and $key -eq $TargetKey) { return $true }
+    if ($key -and $key -eq $TargetKey) { return $b }
   }
-  return $false
+  return $null
+}
+
+function Test-SnapshotBindingForTarget {
+  param([string]$TargetKey)
+  return ($null -ne (Get-SnapshotBindingForTarget -TargetKey $TargetKey))
+}
+
+function Get-SnapshotGateStateForRun {
+  param(
+    [string]$TargetKey,
+    [hashtable]$Snapshot
+  )
+  $out = [ordered]@{
+    state = "UNBOUND"
+    reason = "SNAPSHOT_BINDING_NONE"
+    matchCount = 0
+    checkedCount = 0
+    mismatchCount = 0
+    missingCount = 0
+  }
+  $binding = Get-SnapshotBindingForTarget -TargetKey $TargetKey
+  if (-not $binding) { return $out }
+  $fields = @(
+    "artifactFingerprint",
+    "artifactDigest",
+    "safeReceiptDigest",
+    "reportCardDigest"
+  )
+  foreach ($field in $fields) {
+    $expected = [string](Get-ObjectProperty -ObjectValue $binding -Name $field)
+    if (-not $expected -or $expected -eq "-") {
+      $out.missingCount++
+      continue
+    }
+    $out.checkedCount++
+    $actual = [string](Get-ObjectProperty -ObjectValue $Snapshot -Name $field)
+    if (-not $actual -or $actual -eq "-") {
+      $out.mismatchCount++
+      continue
+    }
+    if ($actual -eq $expected) {
+      $out.matchCount++
+    } else {
+      $out.mismatchCount++
+    }
+  }
+  if ($out.checkedCount -le 0) {
+    $out.state = "BOUND_INCOMPLETE"
+    $out.reason = "SNAPSHOT_BINDING_INCOMPLETE"
+    return $out
+  }
+  if ($out.mismatchCount -gt 0) {
+    $out.state = "BOUND_DRIFT"
+    $out.reason = "SNAPSHOT_BINDING_MISMATCH"
+  } else {
+    $out.state = "BOUND_MATCH"
+    $out.reason = "SNAPSHOT_BINDING_MATCH"
+  }
+  return $out
 }
 
 function Write-SnapshotBindings {
@@ -1526,6 +1585,7 @@ function Update-HistoryDetailsBox {
 
   if ($targetDir -and $latestRun -and $latestRun -ne "-") {
     $snapshot = Read-RunEvidenceSnapshot -TargetDir $targetDir -RunId $latestRun
+    $snapshotGate = Get-SnapshotGateStateForRun -TargetKey $targetKey -Snapshot $snapshot
     $lines += ""
     $lines += "RunId: " + (Get-HistoryDetailToken -Value $snapshot.runId -MissingToken "LATEST_UNAVAILABLE")
     $lines += "Artifact Fingerprint: " + (Get-HistoryDetailToken -Value $snapshot.artifactFingerprint -MissingToken "NOT_REPORTED")
@@ -1540,6 +1600,8 @@ function Update-HistoryDetailsBox {
     $lines += "Compare Buckets: " + (Get-HistoryDetailToken -Value $snapshot.compareBuckets -MissingToken "NONE")
     $lines += "Compare Bucket Count: " + (Get-HistoryDetailToken -Value $snapshot.compareBucketCount -MissingToken "NOT_APPLICABLE")
     $lines += "Compare Change Count: " + (Get-HistoryDetailToken -Value $snapshot.compareChangeCount -MissingToken "NOT_APPLICABLE")
+    $lines += "Snapshot Gate: " + [string](Get-ObjectProperty -ObjectValue $snapshotGate -Name "state") + " (" + [string](Get-ObjectProperty -ObjectValue $snapshotGate -Name "reason") + ")"
+    $lines += "Snapshot Gate Match: " + [string](Get-ObjectProperty -ObjectValue $snapshotGate -Name "matchCount") + "/" + [string](Get-ObjectProperty -ObjectValue $snapshotGate -Name "checkedCount")
 
     $ev = Read-AdapterEvidenceForRun -TargetDir $targetDir -RunId $latestRun
     if ($ev.available) {
@@ -1556,6 +1618,7 @@ function Update-HistoryDetailsBox {
     }
   } else {
     $lines += ""
+    $lines += "Snapshot Gate: UNCHECKED (LATEST_UNAVAILABLE)."
     $lines += "Adapter evidence: LATEST_UNAVAILABLE."
   }
 

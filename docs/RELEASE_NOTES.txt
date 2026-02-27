@@ -544,6 +544,7 @@ Included
 - New `Import Snapshot` History action opens a multi-select picker and imports selected snapshot `.json` references into the selected target bucket.
 - History detail panel supports drag/drop import of snapshot `.json` references into the selected target bucket (local-only, schema-validated before import).
 - History detail panel now surfaces snapshot context (`Snapshot Binding` and `Snapshot Bucket` file count) alongside Auto Refresh state.
+- History detail panel now also surfaces deterministic snapshot gate state (`UNBOUND`, `BOUND_MATCH`, `BOUND_DRIFT`, `BOUND_INCOMPLETE`) and match counts for the selected latest run against the current local trusted binding.
 
 Validation
 - npm run compile --silent: pass
