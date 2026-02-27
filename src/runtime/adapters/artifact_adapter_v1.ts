@@ -2906,6 +2906,14 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
   const isCompose = isComposeBaseNameV1(lower) || hasComposePathHintV1(ctx.capture);
   const isSbom = /sbom|spdx|cyclonedx|bom/i.test(lower);
   if (strictRoute && ctx.capture.kind !== "file") {
+    if (ctx.capture.truncated || (Array.isArray(ctx.capture.issues) && ctx.capture.issues.length > 0)) {
+      return {
+        ok: false,
+        failCode: "CONTAINER_FORMAT_MISMATCH",
+        failMessage: "container adapter expected complete non-truncated capture evidence for explicit container analysis.",
+        reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_FORMAT_MISMATCH"]),
+      };
+    }
     const entryPaths = ctx.capture.entries
       .map((entry) => String(entry.path || "").replace(/\\/g, "/"))
       .filter((p) => p.length > 0);

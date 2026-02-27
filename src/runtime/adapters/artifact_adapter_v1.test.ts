@@ -2175,6 +2175,28 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const ociDir = path.join(tmp, "oci_layout_capture_partial");
+    fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
+    fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
+    fs.writeFileSync(
+      path.join(ociDir, "index.json"),
+      JSON.stringify({
+        schemaVersion: 2,
+        manifests: [{ mediaType: "x", digest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+      }),
+      "utf8"
+    );
+    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), "x", "utf8");
+    const capture = captureTreeV0(ociDir, limits) as any;
+    capture.truncated = true;
+    capture.issues = ["CAPTURE_LIMIT_FILES"];
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: ociDir, capture });
+    assert(!res.ok, "container adapter should fail closed for explicit container directory when capture evidence is truncated/partial");
+    assertEq(res.failCode, "CONTAINER_FORMAT_MISMATCH", "expected CONTAINER_FORMAT_MISMATCH for partial capture evidence");
+  }
+
+  {
+    const tmp = mkTmp();
     const ociDir = path.join(tmp, "oci_layout_case_collision");
     fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
     fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
