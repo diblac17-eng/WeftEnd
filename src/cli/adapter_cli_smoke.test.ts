@@ -2439,6 +2439,23 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const ociDir = path.join(tmp, "oci_short_digest_ref");
+    fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
+    fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
+    fs.writeFileSync(
+      path.join(ociDir, "index.json"),
+      "{\"schemaVersion\":2,\"manifests\":[{\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}]}\n",
+      "utf8"
+    );
+    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), "x", "utf8");
+    const res = await runCliCapture(["safe-run", ociDir, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI layout non-canonical digest length");
+    assert(res.stderr.includes("CONTAINER_LAYOUT_INVALID"), "expected CONTAINER_LAYOUT_INVALID on stderr for OCI non-canonical digest length");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const ociDir = path.join(tmp, "oci_missing_digest_refs");
     fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
     fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
@@ -2654,6 +2671,23 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", ociTarDigestMismatch, "--out", outDir, "--adapter", "container"]);
     assertEq(res.status, 40, "safe-run should fail closed for explicit OCI tar digest mismatch");
     assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar digest mismatch");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const ociTarShortDigestRef = path.join(tmp, "oci_layout_short_digest_ref.tar");
+    writeSimpleTar(ociTarShortDigestRef, [
+      { name: "oci-layout", text: "{\"imageLayoutVersion\":\"1.0.0\"}\n" },
+      {
+        name: "index.json",
+        text: "{\"schemaVersion\":2,\"manifests\":[{\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}]}\n",
+      },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text: "x" },
+    ]);
+    const res = await runCliCapture(["safe-run", ociTarShortDigestRef, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit OCI tar non-canonical digest length");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar non-canonical digest length");
   }
 
   {

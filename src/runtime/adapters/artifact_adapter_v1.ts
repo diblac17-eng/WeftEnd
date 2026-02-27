@@ -3037,7 +3037,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     indexManifests.forEach((manifest) => {
       if (!manifest || typeof manifest !== "object") return;
       const digestRaw = typeof (manifest as any).digest === "string" ? String((manifest as any).digest || "") : "";
-      const digestMatch = /^sha256:([a-f0-9]{6,128})$/i.exec(digestRaw.trim());
+      const digestMatch = /^sha256:([a-f0-9]{64})$/i.exec(digestRaw.trim());
       if (!digestMatch) return;
       const digestHex = digestMatch[1].toLowerCase();
       ociManifestDigestRefCount += 1;
@@ -3166,7 +3166,7 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
             manifests.forEach((manifest) => {
               if (!manifest || typeof manifest !== "object") return;
               const digestRaw = typeof (manifest as any).digest === "string" ? String((manifest as any).digest || "") : "";
-              const digestMatch = /^sha256:([a-f0-9]{6,128})$/i.exec(digestRaw.trim());
+              const digestMatch = /^sha256:([a-f0-9]{64})$/i.exec(digestRaw.trim());
               if (!digestMatch) return;
               const digestHex = digestMatch[1].toLowerCase();
               ociManifestDigestRefCount += 1;

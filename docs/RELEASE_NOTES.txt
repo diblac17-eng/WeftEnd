@@ -312,6 +312,7 @@ Included
 - Explicit OCI tar strict route now requires manifest digest references to resolve to blob entries, preventing unrelated blob padding from satisfying strict OCI tar evidence.
 - Explicit OCI tar strict route now requires non-ambiguous digest resolution to blob paths, preventing duplicate referenced blob paths from passing strict OCI tar routing.
 - Explicit OCI tar strict route now requires digest references for every manifest entry when manifests are present, preventing partial/digestless OCI tar manifest shells from passing strict routing.
+- Explicit OCI layout/tar strict routes now require canonical manifest digest format (`sha256:<64hex>`), preventing non-canonical digest-length references from passing strict container identity checks even when matching blob filenames exist.
 - Explicit OCI layout/tar strict routes now require unique manifest digest references, preventing duplicate digest aliasing from passing strict container identity routing.
 - Explicit OCI tar strict route now requires valid `index.json` payload shape with non-empty `manifests` array, preventing invalid/empty OCI index shells from passing strict tar routing.
 - Explicit OCI tar strict route now requires valid `oci-layout` payload with non-empty `imageLayoutVersion`, preventing invalid/placeholder OCI layout shells from passing strict tar routing.
