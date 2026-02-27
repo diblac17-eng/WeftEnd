@@ -26,7 +26,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Explicit native-fallback `scm` route now treats bounded `packed-refs` reads as partial evidence and fails closed in strict mode, preventing strict-route success on truncated git reference metadata.
 - Explicit native-fallback `scm` route now also treats bounded loose-ref (`refs/heads/*`, `refs/tags/*`) reads as partial evidence and fails closed in strict mode, preventing strict-route success on truncated loose-ref metadata.
 - Explicit native-fallback `scm` route now also treats bounded `.git` pointer and `HEAD` file reads as partial evidence and fails closed in strict mode, preventing strict-route success on truncated repository pointer/head metadata.
-- Explicit native-fallback `scm` route now also treats duplicate and case-colliding packed-ref metadata as partial evidence and fails closed in strict mode, preventing strict-route success on ambiguous git reference metadata.
+- Explicit native-fallback `scm` route now also treats duplicate packed-ref metadata and case-colliding merged loose/packed ref sets as partial evidence and fails closed in strict mode, preventing strict-route success on ambiguous git reference metadata.
 
 ### Release packaging fix
 - Fixed root `weftend_release_zip.ps1` zip staging to use a valid temporary `.zip` filename (`__stage_release_*.zip`) so `Compress-Archive` runs successfully before final atomic move.

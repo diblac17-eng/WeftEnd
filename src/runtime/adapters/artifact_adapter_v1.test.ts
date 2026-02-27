@@ -3944,6 +3944,31 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const repo = path.join(tmp, "pseudo_repo_case_colliding_loose_vs_packed_ref");
+    const gitData = path.join(repo, ".gitdata");
+    fs.mkdirSync(path.join(gitData, "refs", "heads"), { recursive: true });
+    fs.mkdirSync(repo, { recursive: true });
+    fs.writeFileSync(path.join(repo, ".git"), "gitdir: .gitdata\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "HEAD"), "ref: refs/heads/main\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "refs", "heads", "main"), "0123456789abcdef0123456789abcdef01234567\n", "utf8");
+    fs.writeFileSync(
+      path.join(gitData, "packed-refs"),
+      "# pack-refs with: peeled fully-peeled sorted\n89abcdef0123456789abcdef0123456789abcdef refs/heads/Main\n",
+      "utf8"
+    );
+    fs.writeFileSync(path.join(repo, "a.txt"), "hello", "utf8");
+
+    const capture = captureTreeV0(repo, limits);
+    const res = runArtifactAdapterV1({ selection: "scm", enabledPlugins: [], inputPath: repo, capture });
+    assert(
+      !res.ok,
+      "scm adapter should fail closed for case-colliding merged loose/packed ref metadata in explicit native fallback route"
+    );
+    assertEq(res.failCode, "SCM_REF_UNRESOLVED", "expected SCM_REF_UNRESOLVED for case-colliding merged loose/packed ref metadata");
+  }
+
+  {
+    const tmp = mkTmp();
     const repo = path.join(tmp, "pseudo_repo_partial");
     const gitData = path.join(repo, ".gitdata");
     fs.mkdirSync(path.join(gitData, "refs", "tags"), { recursive: true });
