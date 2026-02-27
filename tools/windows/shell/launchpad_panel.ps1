@@ -1207,14 +1207,26 @@ function Get-HistoryDetailToken {
   return $s
 }
 
+function Get-AutoRefreshStateToken {
+  $chk = $null
+  try {
+    $chk = Get-Variable -Name chkAuto -Scope Script -ValueOnly -ErrorAction Stop
+  } catch {
+    return "UNKNOWN"
+  }
+  if ($chk -and $chk.Checked) { return "ON" }
+  return "OFF"
+}
+
 function Update-HistoryDetailsBox {
   param(
     [System.Windows.Forms.ListView]$ListView,
     [System.Windows.Forms.TextBox]$DetailBox
   )
   if (-not $DetailBox) { return }
+  $autoRefreshState = Get-AutoRefreshStateToken
   if (-not $ListView -or $ListView.SelectedItems.Count -lt 1) {
-    $DetailBox.Text = "Select a history row to view adapter evidence and capability summary."
+    $DetailBox.Text = ("Select a history row to view adapter evidence and capability summary." + [Environment]::NewLine + "Auto Refresh: " + $autoRefreshState)
     return
   }
   $selected = $ListView.SelectedItems[0]
@@ -1241,7 +1253,8 @@ function Update-HistoryDetailsBox {
     "Adapter Tag: " + $adapterTag,
     "Baseline: " + $baseline,
     "Latest: " + $latestRunDisplay,
-    "Buckets: " + $buckets
+    "Buckets: " + $buckets,
+    "Auto Refresh: " + $autoRefreshState
   )
 
   if ($targetDir -and $latestRun -and $latestRun -ne "-") {
@@ -2071,6 +2084,11 @@ $historyDetail.Add_KeyDown({
 $historyList.Add_SelectedIndexChanged({
   Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
   Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence
+})
+$chkAuto.Add_CheckedChanged({
+  Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
+  $state = if ($chkAuto.Checked) { "ON" } else { "OFF" }
+  Set-StatusLine -StatusLabel $statusLabel -Message ("Auto refresh " + $state + ".") -IsError $false
 })
 $btnDoctorRun.Add_Click({
   $result = Invoke-ShellDoctorText

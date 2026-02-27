@@ -431,7 +431,10 @@ suite("tools/windows shell assets", () => {
     assert(/& \$powershellExe @args/.test(panelText), "expected shell doctor invocation to use resolved powershell executable path");
     assert(/Copy-DoctorOutputText/.test(panelText), "expected doctor output copy helper");
     assert(/Update-HistoryDetailsBox/.test(panelText), "expected history details update helper");
+    assert(/function Get-AutoRefreshStateToken/.test(panelText), "expected auto-refresh state token helper");
+    assert(/Auto Refresh: /.test(panelText), "expected auto-refresh state line in history details");
     assert(/SelectedIndexChanged/.test(panelText), "expected history selection details wiring");
+    assert(/\$chkAuto\.Add_CheckedChanged\(\{[\s\S]*?Update-HistoryDetailsBox -ListView \$historyList -DetailBox \$historyDetail/.test(panelText), "expected auto-refresh toggle to refresh history details text");
     assert(/Open-HistoryRunFolder/.test(panelText), "expected history open-run helper");
     assert(/Open-HistoryAdapterEvidenceFolder/.test(panelText), "expected history evidence-folder helper");
     assert(/Update-HistoryActionButtons/.test(panelText), "expected history action-button state helper");
