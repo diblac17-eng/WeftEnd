@@ -1572,6 +1572,27 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const repo = path.join(tmp, "repo_bounded_packed_refs");
+    const gitData = path.join(repo, ".gitdata");
+    fs.mkdirSync(path.join(gitData, "refs", "heads"), { recursive: true });
+    fs.mkdirSync(repo, { recursive: true });
+    fs.writeFileSync(path.join(repo, ".git"), "gitdir: .gitdata\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "HEAD"), "ref: refs/heads/main\n", "utf8");
+    fs.writeFileSync(path.join(gitData, "refs", "heads", "main"), "0123456789abcdef0123456789abcdef01234567\n", "utf8");
+    fs.writeFileSync(
+      path.join(gitData, "packed-refs"),
+      `# pack-refs with: peeled fully-peeled sorted\n${" ".repeat(300_000)}`,
+      "utf8"
+    );
+    fs.writeFileSync(path.join(repo, "file.txt"), "x", "utf8");
+    const res = await runCliCapture(["safe-run", repo, "--out", outDir, "--adapter", "scm"]);
+    assertEq(res.status, 40, "safe-run should fail closed for explicit scm bounded packed-refs native fallback evidence");
+    assert(res.stderr.includes("SCM_REF_UNRESOLVED"), "expected SCM_REF_UNRESOLVED on stderr for bounded packed-refs evidence");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const badExe = path.join(tmp, "bad.exe");
     fs.writeFileSync(badExe, "not-a-pe", "utf8");
     const res = await runCliCapture(["safe-run", badExe, "--out", outDir, "--adapter", "package"]);

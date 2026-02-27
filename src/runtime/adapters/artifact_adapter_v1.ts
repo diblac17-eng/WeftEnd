@@ -1007,14 +1007,22 @@ const resolveGitDirV1 = (repoPath: string): string | null => {
   }
 };
 
-const parsePackedRefsV1 = (gitDir: string): { map: Map<string, string>; branchRefs: Set<string>; tagRefs: Set<string> } => {
+const parsePackedRefsV1 = (gitDir: string): { map: Map<string, string>; branchRefs: Set<string>; tagRefs: Set<string>; partial: boolean } => {
   const map = new Map<string, string>();
   const branchRefs = new Set<string>();
   const tagRefs = new Set<string>();
   const packedPath = path.join(gitDir, "packed-refs");
-  const text = readTextBounded(packedPath, MAX_TEXT_BYTES);
-  if (!text) return { map, branchRefs, tagRefs };
-  text.split(/\r?\n/).forEach((line) => {
+  const bytes = readBytesBounded(packedPath, MAX_TEXT_BYTES);
+  let fileBytes = 0;
+  try {
+    fileBytes = Math.max(0, Number(fs.statSync(packedPath).size || 0));
+  } catch {
+    fileBytes = 0;
+  }
+  const partial = fileBytes > bytes.length;
+  const text = Buffer.from(bytes).toString("utf8");
+  if (!text) return { map, branchRefs, tagRefs, partial };
+  text.split(/\r?\n/).forEach((line: string) => {
     const trimmed = String(line || "").trim();
     if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("^")) return;
     const parts = trimmed.split(/\s+/);
@@ -1026,7 +1034,7 @@ const parsePackedRefsV1 = (gitDir: string): { map: Map<string, string>; branchRe
     if (ref.startsWith("refs/heads/")) branchRefs.add(ref);
     if (ref.startsWith("refs/tags/")) tagRefs.add(ref);
   });
-  return { map, branchRefs, tagRefs };
+  return { map, branchRefs, tagRefs, partial };
 };
 
 const collectLooseRefsV1 = (rootPath: string, prefixRef: string): Set<string> => {
@@ -1079,7 +1087,7 @@ const readNativeScmFallbackV1 = (repoPath: string): {
   const allHeads = new Set<string>([...Array.from(looseHeads), ...Array.from(packed.branchRefs)]);
   const allTags = new Set<string>([...Array.from(looseTags), ...Array.from(packed.tagRefs)]);
 
-  let partial = false;
+  let partial = packed.partial;
   const headRaw = readTextBounded(path.join(gitDir, "HEAD"), 256).trim();
   let commitResolved = 0;
   let detachedHead = 0;
