@@ -16,6 +16,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 
 ### IaC/CI strict-route hardening
 - Explicit `iac` / `cicd` adapter routing now fails closed when analysis requires bounded text reads (`IAC_UNSUPPORTED_FORMAT` / `CICD_UNSUPPORTED_FORMAT`), preventing strict-route success on partial text evidence for oversized configs.
+- Explicit `iac` / `cicd` adapter routing now also fails closed when text file discovery is bounded by scan caps (more than 256 candidate text files), preventing strict-route success on partial file-set evidence.
 
 ### Container compose strict-route hardening
 - Explicit compose analysis under `container` route now fails closed when compose text evidence is bounded/truncated, preventing strict-route success on partial compose-file reads.

@@ -884,6 +884,36 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    for (let i = 0; i < 257; i += 1) {
+      const filePath = path.join(tmp, `m${String(i).padStart(3, "0")}.tf`);
+      fs.writeFileSync(filePath, "resource \"null_resource\" \"x\" {}\n", "utf8");
+    }
+    const capture = captureTreeV0(tmp, limits);
+    const res = runArtifactAdapterV1({ selection: "iac", enabledPlugins: [], inputPath: tmp, capture });
+    assert(!res.ok, "iac adapter should fail closed when explicit iac text file-set evidence is bounded");
+    assertEq(res.failCode, "IAC_UNSUPPORTED_FORMAT", "expected IAC_UNSUPPORTED_FORMAT for bounded explicit iac text file-set evidence");
+  }
+
+  {
+    const tmp = mkTmp();
+    const wfDir = path.join(tmp, ".github", "workflows");
+    fs.mkdirSync(wfDir, { recursive: true });
+    for (let i = 0; i < 257; i += 1) {
+      const filePath = path.join(wfDir, `wf_${String(i).padStart(3, "0")}.yml`);
+      fs.writeFileSync(
+        filePath,
+        "name: ci\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hello\n",
+        "utf8"
+      );
+    }
+    const capture = captureTreeV0(tmp, limits);
+    const res = runArtifactAdapterV1({ selection: "cicd", enabledPlugins: [], inputPath: tmp, capture });
+    assert(!res.ok, "cicd adapter should fail closed when explicit cicd text file-set evidence is bounded");
+    assertEq(res.failCode, "CICD_UNSUPPORTED_FORMAT", "expected CICD_UNSUPPORTED_FORMAT for bounded explicit cicd text file-set evidence");
+  }
+
+  {
+    const tmp = mkTmp();
     const tf = path.join(tmp, "main.tf");
     fs.writeFileSync(
       tf,

@@ -1160,8 +1160,8 @@ const hasCicdPathHintV1 = (capture: CaptureTreeV0): boolean =>
     return /(^|\/)\.github\/workflows\/[^/]+\.(?:yml|yaml)$/.test(relPath);
   });
 
-const collectTextFiles = (inputPath: string, capture: CaptureTreeV0, exts: Set<string>): string[] => {
-  if (capture.kind !== "dir") return [];
+const collectTextFiles = (inputPath: string, capture: CaptureTreeV0, exts: Set<string>): { files: string[]; bounded: boolean } => {
+  if (capture.kind !== "dir") return { files: [], bounded: false };
   const out: string[] = [];
   capture.entries.forEach((entry) => {
     const ext = normalizeExtV1(entry.path);
@@ -1169,7 +1169,7 @@ const collectTextFiles = (inputPath: string, capture: CaptureTreeV0, exts: Set<s
     out.push(path.join(inputPath, entry.path));
   });
   out.sort((a, b) => cmpStrV0(a, b));
-  return out.slice(0, 256);
+  return { files: out.slice(0, 256), bounded: out.length > 256 };
 };
 
 const readJsonBounded = (filePath: string): unknown | null => {
@@ -2525,7 +2525,9 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd", strictRou
     }
   }
   const textExts = new Set([".tf", ".tfvars", ".hcl", ".yaml", ".yml", ".json", ".bicep", ".template"]);
-  const files = collectTextFiles(ctx.inputPath, ctx.capture, textExts);
+  const collectedFiles = collectTextFiles(ctx.inputPath, ctx.capture, textExts);
+  const files = collectedFiles.files;
+  const boundedTextFileSetCount = collectedFiles.bounded ? 1 : 0;
   const inputLooksIac = IAC_EXTS.has(ctx.ext) || hasCicdPathHintV1(ctx.capture) || hasComposePathHintV1(ctx.capture);
   if (!inputLooksIac && files.length === 0) {
     return {
@@ -2615,6 +2617,16 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd", strictRou
       reasonCodes: stableSortUniqueReasonsV0([mismatchReason, mismatchCode]),
     };
   }
+  if (strictRoute && forcedClass && boundedTextFileSetCount > 0) {
+    const mismatchCode = forcedClass === "cicd" ? "CICD_UNSUPPORTED_FORMAT" : "IAC_UNSUPPORTED_FORMAT";
+    const mismatchReason = forcedClass === "cicd" ? "CICD_ADAPTER_V1" : "IAC_ADAPTER_V1";
+    return {
+      ok: false,
+      failCode: mismatchCode,
+      failMessage: `${forcedClass} adapter expected complete text file-set evidence for explicit ${forcedClass} analysis.`,
+      reasonCodes: stableSortUniqueReasonsV0([mismatchReason, mismatchCode]),
+    };
+  }
 
   if (privileged > 0) {
     reasons.push("IAC_PRIVILEGED_PATTERN");
@@ -2691,6 +2703,7 @@ const analyzeIacCicd = (ctx: AnalyzeCtx, forcedClass?: "iac" | "cicd", strictRou
       cicdSecretUsageCount: cicdSecretUsage,
       cicdExternalRunnerCount: externalRunnerRefs,
       boundedTextFileCount,
+      boundedTextFileSetCount,
       externalDomainCount: externalDomains.size,
     },
     markers: [],

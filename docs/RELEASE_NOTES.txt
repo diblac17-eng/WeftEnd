@@ -13,6 +13,7 @@ Included
 - Explicit `signature` adapter route now also fails closed when only bounded/truncated signature bytes are available (`SIGNATURE_BOUNDED` marker path), preventing strict-route success on partial signature reads.
 - IaC/CI strict-route hardening:
 - Explicit `iac` / `cicd` adapter routes now fail closed (`IAC_UNSUPPORTED_FORMAT` / `CICD_UNSUPPORTED_FORMAT`) when only bounded/truncated text evidence is available from oversized config files, preventing strict-route success on partial text reads.
+- Explicit `iac` / `cicd` adapter routes now also fail closed when candidate text-file discovery exceeds bounded scan limits (more than 256 text files), preventing strict-route success on partial text file-set evidence.
 - Container compose strict-route hardening:
 - Explicit compose analysis in `--adapter container` now fails closed (`CONTAINER_FORMAT_MISMATCH`) when compose text evidence is bounded/truncated, preventing strict-route success on partial compose-file reads.
 - Explicit compose analysis in `--adapter container` now also fails closed when compose file discovery exceeds bounded compose-file scan limits (more than eight compose files), preventing strict-route success on partial compose file-set evidence.
