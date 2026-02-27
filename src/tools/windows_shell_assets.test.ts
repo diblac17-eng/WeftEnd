@@ -472,6 +472,7 @@ suite("tools/windows shell assets", () => {
     assert(/if \(\$e\.Shift\)\s*\{\s*Copy-HistoryDigestText/.test(panelText), "expected history Ctrl+Shift+C digest copy binding");
     assert(/Columns\.Add\("Adapter"/.test(panelText), "expected launchpad history Adapter column");
     assert(/Columns\.Add\("Kind"/.test(panelText), "expected launchpad history Kind column");
+    assert(/\$historyList\.MultiSelect = \$false/.test(panelText), "expected launchpad history single-row selection mode");
     assert(/\+plugin/.test(panelText), "expected launchpad adapter plugin marker");
     assert(/capability_ledger_v0\.json/.test(panelText), "expected launchpad adapter tag capability ledger lookup");
     assert(/Adapter Class:/.test(panelText), "expected adapter detail text in history pane");

@@ -1879,6 +1879,7 @@ $historyList = New-Object System.Windows.Forms.ListView
 $historyList.Dock = "Fill"
 $historyList.View = [System.Windows.Forms.View]::Details
 $historyList.FullRowSelect = $true
+$historyList.MultiSelect = $false
 $historyList.GridLines = $true
 $historyList.HideSelection = $false
 $historyList.BackColor = $colorPanel

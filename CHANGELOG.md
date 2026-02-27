@@ -21,6 +21,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Launchpad History details now show `Auto Refresh: ON|OFF` in both selected-row and no-selection views, and the details pane updates immediately when the auto-refresh checkbox is toggled.
 - Support docs now align with current shortcut model (Launchpad + Download only) and no longer instruct operators to use the removed `WeftEnd Library` shortcut.
 - Launchpad History refresh now preserves the selected row by target key across manual and auto-refresh cycles, so details review stays anchored while list data updates.
+- Launchpad History list is now single-select (`MultiSelect=false`) to keep View/Open/Copy actions bound to one deterministic row.
 - Launchpad History details preview now uses explicit placeholder tokens (`NOT_REPORTED`, `NONE`, `LATEST_UNAVAILABLE`, `NOT_AVAILABLE`) instead of ambiguous `-` placeholders for missing/unavailable values.
 - Launchpad History evidence/detail lines now also normalize missing compare/artifact/adapter fields to explicit tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, `NONE`) instead of raw `-` placeholders.
 - Added Windows shell asset contract coverage to pin the Launchpad History row resync helper and action usage.
