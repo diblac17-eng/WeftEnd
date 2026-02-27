@@ -541,6 +541,7 @@ Included
 - `Export Snapshot` writes deterministic references directly into the selected target bucket and refreshes `snapshot_ref_latest.json`.
 - `Compare Snapshot` now auto-uses `snapshot_ref_latest.json` when present (no picker), and falls back to a target-scoped picker when no latest reference exists.
 - New `Open Bucket` History action opens the selected target's snapshot bucket directly.
+- New `Import Snapshot` History action opens a multi-select picker and imports selected snapshot `.json` references into the selected target bucket.
 - History detail panel supports drag/drop import of snapshot `.json` references into the selected target bucket (local-only, schema-validated before import).
 - History detail panel now surfaces snapshot context (`Snapshot Binding` and `Snapshot Bucket` file count) alongside Auto Refresh state.
 
