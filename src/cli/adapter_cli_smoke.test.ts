@@ -117,9 +117,9 @@ const writeSimpleAr = (outPath: string, files: Array<{ name: string; bytes: any 
   fs.writeFileSync(outPath, Buffer.concat(parts));
 };
 
-const writeSimpleTar = (outPath: string, files: Array<{ name: string; text: string }>): void => {
+const writeSimpleTar = (outPath: string, files: Array<{ name: string; text?: string; typeFlag?: string }>): void => {
   const blocks: any[] = [];
-  const pushHeader = (name: string, size: number) => {
+  const pushHeader = (name: string, size: number, typeFlag: string) => {
     const header = Buffer.alloc(512, 0);
     const nameBuf = Buffer.from(name, "utf8");
     nameBuf.copy(header, 0, 0, Math.min(nameBuf.length, 100));
@@ -130,7 +130,7 @@ const writeSimpleTar = (outPath: string, files: Array<{ name: string; text: stri
     Buffer.from(`${sizeOct}\0`, "ascii").copy(header, 124);
     Buffer.from("00000000000\0", "ascii").copy(header, 136);
     for (let i = 148; i < 156; i += 1) header[i] = 0x20;
-    header[156] = "0".charCodeAt(0);
+    header[156] = (typeFlag && typeFlag.length > 0 ? typeFlag : "0").charCodeAt(0);
     Buffer.from("ustar\0", "ascii").copy(header, 257);
     Buffer.from("00", "ascii").copy(header, 263);
     let sum = 0;
@@ -140,11 +140,16 @@ const writeSimpleTar = (outPath: string, files: Array<{ name: string; text: stri
     blocks.push(header);
   };
   files.forEach((file) => {
-    const data = Buffer.from(file.text, "utf8");
-    pushHeader(file.name.replace(/\\/g, "/"), data.length);
-    blocks.push(data);
-    const pad = (512 - (data.length % 512)) % 512;
-    if (pad > 0) blocks.push(Buffer.alloc(pad, 0));
+    const typeFlag = String(file.typeFlag || "0");
+    const isRegular = typeFlag === "0" || typeFlag === "7" || typeFlag === "\0";
+    const data = Buffer.from(file.text || "", "utf8");
+    const dataSize = isRegular ? data.length : 0;
+    pushHeader(file.name.replace(/\\/g, "/"), dataSize, typeFlag);
+    if (isRegular) {
+      blocks.push(data);
+      const pad = (512 - (data.length % 512)) % 512;
+      if (pad > 0) blocks.push(Buffer.alloc(pad, 0));
+    }
   });
   blocks.push(Buffer.alloc(1024, 0));
   fs.writeFileSync(outPath, Buffer.concat(blocks));
@@ -2771,6 +2776,21 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", ociTarNestedMarkers, "--out", outDir, "--adapter", "container"]);
     assertEq(res.status, 40, "safe-run should fail closed for explicit OCI tar nested marker paths");
     assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI tar nested marker paths");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const ociTarDirectoryMarkers = path.join(tmp, "oci_layout_directory_markers.tar");
+    writeSimpleTar(ociTarDirectoryMarkers, [
+      { name: "oci-layout", typeFlag: "5" },
+      { name: "index.json", typeFlag: "5" },
+      { name: "blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", typeFlag: "5" },
+      { name: "notes.txt", text: "non-marker payload" },
+    ]);
+    const res = await runCliCapture(["safe-run", ociTarDirectoryMarkers, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed when OCI marker names exist only as non-file tar entries");
+    assert(res.stderr.includes("CONTAINER_FORMAT_MISMATCH"), "expected CONTAINER_FORMAT_MISMATCH on stderr for OCI non-file marker entries");
   }
 
   {
