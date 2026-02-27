@@ -409,11 +409,13 @@ suite("tools/windows shell assets", () => {
     assert(/-Open\\s\+0/.test(panelText), "expected launchpad shortcut args to require Open 0");
     assert(/-OpenLibrary/.test(panelText), "expected launchpad shortcut args to reject OpenLibrary");
     assert(/Read-AdapterTagForRun/.test(panelText), "expected history adapter-tag helper");
+    assert(/Get-HistoryKindLabel/.test(panelText), "expected history kind-label helper");
     assert(/Read-AdapterEvidenceForRun/.test(panelText), "expected history adapter-evidence helper");
     assert(/Read-RunEvidenceSnapshot/.test(panelText), "expected history evidence snapshot helper");
     assert(/Compute-FileSha256Digest/.test(panelText), "expected history file digest helper");
     assert(/Get-LatestRunIdForTargetDir/.test(panelText), "expected history latest-run fallback helper");
     assert(/Read-ReportCardSummaryForRun/.test(panelText), "expected history report-card fallback helper");
+    assert(/targetKind/.test(panelText) && /artifactKind/.test(panelText), "expected report-card kind metadata extraction");
     assert(/ReportViewerStartFailCount/.test(panelText), "expected launchpad viewer startup counter reset support");
     assert(/Invoke-AdapterDoctorText/.test(panelText), "expected adapter doctor helper");
     assert(/Invoke-ShellDoctorText/.test(panelText), "expected shell doctor helper");
@@ -453,9 +455,11 @@ suite("tools/windows shell assets", () => {
     assert(/Control -and \$e\.KeyCode -eq \[System\.Windows\.Forms\.Keys\]::C/.test(panelText), "expected history Ctrl+C copy binding");
     assert(/if \(\$e\.Shift\)\s*\{\s*Copy-HistoryDigestText/.test(panelText), "expected history Ctrl+Shift+C digest copy binding");
     assert(/Columns\.Add\("Adapter"/.test(panelText), "expected launchpad history Adapter column");
+    assert(/Columns\.Add\("Kind"/.test(panelText), "expected launchpad history Kind column");
     assert(/\+plugin/.test(panelText), "expected launchpad adapter plugin marker");
     assert(/capability_ledger_v0\.json/.test(panelText), "expected launchpad adapter tag capability ledger lookup");
     assert(/Adapter Class:/.test(panelText), "expected adapter detail text in history pane");
+    assert(/Kind:/.test(panelText), "expected kind detail text in history pane");
     assert(/Safe Receipt Digest:/.test(panelText), "expected safe receipt digest detail in history pane");
     assert(/Privacy Lint Digest:/.test(panelText), "expected privacy lint digest detail in history pane");
     assert(/Operator Receipt Digest:/.test(panelText), "expected operator receipt digest detail in history pane");

@@ -11,6 +11,7 @@ Included
 - History actions now re-sync the selected row from library view-state before opening report viewer, run folder, or adapter evidence.
 - This prevents stale report opens when Launchpad stays open while a newer run is created externally (for example via right-click `Run with WeftEnd`).
 - History details pane and action-button enablement now use the same re-sync path so row metadata stays aligned with current on-disk latest run.
+- Launchpad History includes an additive `Kind` column derived from latest report-card metadata (`targetKind`/`artifactKind`) so operators can identify target class quickly.
 - History details pane now uses explicit placeholder tokens (`NOT_REPORTED`, `NONE`, `LATEST_UNAVAILABLE`, `NOT_AVAILABLE`) instead of ambiguous `-` placeholders when data is missing/unavailable.
 - History evidence/detail lines (artifact digests, compare fields, adapter summary fields) now also normalize missing values to explicit tokens (`NOT_AVAILABLE`, `NOT_APPLICABLE`, `NONE`) instead of raw `-`.
 - Windows shell contract tests now pin this resync helper/action usage.

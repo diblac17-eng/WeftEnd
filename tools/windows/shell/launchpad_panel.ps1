@@ -1009,6 +1009,26 @@ function Get-LatestRunIdForTargetDir {
   }
 }
 
+function Get-HistoryKindLabel {
+  param(
+    [string]$TargetKind,
+    [string]$ArtifactKind
+  )
+  $target = if ($TargetKind) { [string]$TargetKind } else { "" }
+  $artifact = if ($ArtifactKind) { [string]$ArtifactKind } else { "" }
+  $targetNorm = $target.ToLowerInvariant()
+  $artifactNorm = $artifact.ToLowerInvariant()
+
+  if ($targetNorm -eq "directory") { return "folder" }
+  if ($targetNorm -eq "nativebinary") { return "native" }
+  if ($targetNorm -eq "shortcut") { return "shortcut" }
+  if ($targetNorm -eq "emailartifact") { return "email" }
+  if ($artifactNorm -eq "webbundle") { return "web" }
+  if ($artifactNorm -and $artifactNorm -ne "unknown") { return $artifact }
+  if ($targetNorm -and $targetNorm -ne "unknown") { return $target }
+  return "-"
+}
+
 function Read-ReportCardSummaryForRun {
   param(
     [string]$TargetDir,
@@ -1018,6 +1038,9 @@ function Read-ReportCardSummaryForRun {
     status = "UNKNOWN"
     baseline = "-"
     buckets = "-"
+    kind = "-"
+    targetKind = "-"
+    artifactKind = "-"
   }
   if (-not $TargetDir -or -not $RunId -or $RunId -eq "-") { return $out }
   $runDir = Join-Path $TargetDir $RunId
@@ -1030,9 +1053,14 @@ function Read-ReportCardSummaryForRun {
       $status = [string](Get-ObjectProperty -ObjectValue $obj -Name "status")
       $baseline = [string](Get-ObjectProperty -ObjectValue $obj -Name "baseline")
       $buckets = [string](Get-ObjectProperty -ObjectValue $obj -Name "buckets")
+      $targetKind = [string](Get-ObjectProperty -ObjectValue $obj -Name "targetKind")
+      $artifactKind = [string](Get-ObjectProperty -ObjectValue $obj -Name "artifactKind")
       if ($status -and $status.Trim() -ne "") { $out.status = $status }
       if ($baseline -and $baseline.Trim() -ne "") { $out.baseline = $baseline }
       if ($buckets -and $buckets.Trim() -ne "") { $out.buckets = $buckets }
+      if ($targetKind -and $targetKind.Trim() -ne "") { $out.targetKind = $targetKind }
+      if ($artifactKind -and $artifactKind.Trim() -ne "") { $out.artifactKind = $artifactKind }
+      $out.kind = Get-HistoryKindLabel -TargetKind $out.targetKind -ArtifactKind $out.artifactKind
       return $out
     } catch {
       # best effort only
@@ -1054,12 +1082,21 @@ function Read-ReportCardSummaryForRun {
         } elseif ($line.StartsWith("BUCKETS:")) {
           $value = $line.Substring("BUCKETS:".Length).Trim()
           if ($value -ne "") { $out.buckets = $value }
+        } elseif ($line.StartsWith("classification=target:")) {
+          $m = [System.Text.RegularExpressions.Regex]::Match($line, "classification=target:([^\s]+)\s+artifact:([^\s]+)")
+          if ($m.Success -and $m.Groups.Count -gt 2) {
+            $targetValue = [string]$m.Groups[1].Value
+            $artifactValue = [string]$m.Groups[2].Value
+            if ($targetValue -and $targetValue.Trim() -ne "") { $out.targetKind = $targetValue }
+            if ($artifactValue -and $artifactValue.Trim() -ne "") { $out.artifactKind = $artifactValue }
+          }
         }
       }
     } catch {
       # best effort only
     }
   }
+  $out.kind = Get-HistoryKindLabel -TargetKind $out.targetKind -ArtifactKind $out.artifactKind
   return $out
 }
 
@@ -1075,6 +1112,7 @@ function Read-ViewStateSummary {
       latest = $latestFallback
       buckets = $reportFallback.buckets
       adapter = (Read-AdapterTagForRun -TargetDir $TargetDir -RunId $latestFallback)
+      kind = $reportFallback.kind
     }
   }
   try {
@@ -1131,12 +1169,18 @@ function Read-ViewStateSummary {
         $buckets = [string]$reportFallback.buckets
       }
     }
+    $kind = "-"
+    if ($latest -and $latest -ne "-") {
+      $reportKind = Read-ReportCardSummaryForRun -TargetDir $TargetDir -RunId $latest
+      if ($reportKind -and $reportKind.kind) { $kind = [string]$reportKind.kind }
+    }
     return @{
       status = $status
       baseline = $baseline
       latest = $latest
       buckets = $buckets
       adapter = (Read-AdapterTagForRun -TargetDir $TargetDir -RunId $latest)
+      kind = $kind
     }
   } catch {
     $latestFallback = Get-LatestRunIdForTargetDir -TargetDir $TargetDir
@@ -1147,6 +1191,7 @@ function Read-ViewStateSummary {
       latest = $latestFallback
       buckets = $reportFallback.buckets
       adapter = (Read-AdapterTagForRun -TargetDir $TargetDir -RunId $latestFallback)
+      kind = $reportFallback.kind
     }
   }
 }
@@ -1182,14 +1227,17 @@ function Update-HistoryDetailsBox {
   $adapterTag = if ($selected.SubItems.Count -gt 2) { [string]$selected.SubItems[2].Text } else { "NOT_REPORTED" }
   $baseline = if ($selected.SubItems.Count -gt 3) { [string]$selected.SubItems[3].Text } else { "NONE" }
   $buckets = if ($selected.SubItems.Count -gt 5) { [string]$selected.SubItems[5].Text } else { "NONE" }
+  $kind = if ($selected.SubItems.Count -gt 6) { [string]$selected.SubItems[6].Text } else { "NOT_REPORTED" }
   if (-not $adapterTag -or $adapterTag.Trim() -eq "" -or $adapterTag -eq "-") { $adapterTag = "NOT_REPORTED" }
   if (-not $baseline -or $baseline.Trim() -eq "" -or $baseline -eq "-") { $baseline = "NONE" }
   if (-not $buckets -or $buckets.Trim() -eq "" -or $buckets -eq "-") { $buckets = "NONE" }
+  if (-not $kind -or $kind.Trim() -eq "" -or $kind -eq "-") { $kind = "NOT_REPORTED" }
   if (-not $latestRunDisplay -or $latestRunDisplay.Trim() -eq "" -or $latestRunDisplay -eq "-") { $latestRunDisplay = "LATEST_UNAVAILABLE" }
 
   $lines = @(
     "Target: " + $targetKey,
     "Status: " + $status,
+    "Kind: " + $kind,
     "Adapter Tag: " + $adapterTag,
     "Baseline: " + $baseline,
     "Latest: " + $latestRunDisplay,
@@ -1358,6 +1406,7 @@ function Load-HistoryRows {
     [void]$item.SubItems.Add($s.baseline)
     [void]$item.SubItems.Add($s.latest)
     [void]$item.SubItems.Add($s.buckets)
+    [void]$item.SubItems.Add($s.kind)
     $item.Tag = [PSCustomObject]@{
       targetDir = $dir.FullName
       targetKey = $dir.Name
@@ -1401,6 +1450,7 @@ function Sync-HistoryRowSnapshot {
       if ($Item.SubItems.Count -gt 3) { $Item.SubItems[3].Text = [string]$s.baseline }
       if ($Item.SubItems.Count -gt 4) { $Item.SubItems[4].Text = [string]$s.latest }
       if ($Item.SubItems.Count -gt 5) { $Item.SubItems[5].Text = [string]$s.buckets }
+      if ($Item.SubItems.Count -gt 6) { $Item.SubItems[6].Text = [string]$s.kind }
       if (-not $meta) {
         $meta = [PSCustomObject]@{
           targetDir = $targetDir
@@ -1801,6 +1851,7 @@ $historyList.ForeColor = $colorText
 [void]$historyList.Columns.Add("Baseline", 66)
 [void]$historyList.Columns.Add("Latest", 66)
 [void]$historyList.Columns.Add("Buckets", 76)
+[void]$historyList.Columns.Add("Kind", 72)
 
 $historyDetail = New-Object System.Windows.Forms.TextBox
 $historyDetail.Dock = "Fill"
