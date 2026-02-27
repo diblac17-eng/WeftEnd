@@ -21,6 +21,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 ### Container compose strict-route hardening
 - Explicit compose analysis under `container` route now fails closed when compose text evidence is bounded/truncated, preventing strict-route success on partial compose-file reads.
 - Explicit compose analysis under `container` route now also fails closed when compose file discovery is bounded by the scan cap (more than eight compose files), preventing strict-route success on partial compose file-set evidence.
+- Explicit OCI layout/index and SBOM file analysis under `container` route now fails closed when JSON evidence is bounded/truncated, preventing strict-route success on partial JSON metadata reads.
 
 ### Release packaging fix
 - Fixed root `weftend_release_zip.ps1` zip staging to use a valid temporary `.zip` filename (`__stage_release_*.zip`) so `Compress-Archive` runs successfully before final atomic move.

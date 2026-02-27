@@ -2502,6 +2502,20 @@ const run = (): void => {
 
   {
     const tmp = mkTmp();
+    const ociDir = path.join(tmp, "oci_layout_bounded_layout");
+    fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
+    const digest = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    fs.writeFileSync(path.join(ociDir, "oci-layout"), `{"imageLayoutVersion":"1.0.0"}${" ".repeat(300_000)}`, "utf8");
+    fs.writeFileSync(path.join(ociDir, "index.json"), JSON.stringify({ schemaVersion: 2, manifests: [{ digest: `sha256:${digest}` }] }), "utf8");
+    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", digest), "x", "utf8");
+    const capture = captureTreeV0(ociDir, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: ociDir, capture });
+    assert(!res.ok, "container adapter should fail closed when explicit oci-layout metadata is bounded/truncated");
+    assertEq(res.failCode, "CONTAINER_LAYOUT_INVALID", "expected CONTAINER_LAYOUT_INVALID for bounded oci-layout metadata");
+  }
+
+  {
+    const tmp = mkTmp();
     const ociDir = path.join(tmp, "oci_layout_bad_index");
     fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
     fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
@@ -2511,6 +2525,24 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: ociDir, capture });
     assert(!res.ok, "container adapter should fail closed for invalid explicit OCI index.json");
     assertEq(res.failCode, "CONTAINER_INDEX_INVALID", "expected CONTAINER_INDEX_INVALID for invalid OCI index");
+  }
+
+  {
+    const tmp = mkTmp();
+    const ociDir = path.join(tmp, "oci_layout_bounded_index");
+    fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
+    const digest = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
+    fs.writeFileSync(
+      path.join(ociDir, "index.json"),
+      `${JSON.stringify({ schemaVersion: 2, manifests: [{ digest: `sha256:${digest}` }] })}${" ".repeat(300_000)}`,
+      "utf8"
+    );
+    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", digest), "x", "utf8");
+    const capture = captureTreeV0(ociDir, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: ociDir, capture });
+    assert(!res.ok, "container adapter should fail closed when explicit OCI index metadata is bounded/truncated");
+    assertEq(res.failCode, "CONTAINER_INDEX_INVALID", "expected CONTAINER_INDEX_INVALID for bounded OCI index metadata");
   }
 
   {
@@ -3208,6 +3240,20 @@ const run = (): void => {
     const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: sbomPath, capture });
     assert(!res.ok, "container adapter should fail closed for explicit empty sbom package evidence");
     assertEq(res.failCode, "CONTAINER_SBOM_INVALID", "expected CONTAINER_SBOM_INVALID for empty sbom evidence");
+  }
+
+  {
+    const tmp = mkTmp();
+    const sbomPath = path.join(tmp, "bounded_sbom.spdx.json");
+    fs.writeFileSync(
+      sbomPath,
+      `${JSON.stringify({ SPDXID: "SPDXRef-DOCUMENT", packages: [{ name: "a" }] })}${" ".repeat(300_000)}`,
+      "utf8"
+    );
+    const capture = captureTreeV0(sbomPath, limits);
+    const res = runArtifactAdapterV1({ selection: "container", enabledPlugins: [], inputPath: sbomPath, capture });
+    assert(!res.ok, "container adapter should fail closed when explicit sbom JSON evidence is bounded/truncated");
+    assertEq(res.failCode, "CONTAINER_SBOM_INVALID", "expected CONTAINER_SBOM_INVALID for bounded sbom JSON evidence");
   }
 
   {

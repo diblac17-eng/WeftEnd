@@ -3341,6 +3341,20 @@ const run = async (): Promise<void> => {
   {
     const outDir = mkTmp();
     const tmp = mkTmp();
+    const ociDir = path.join(tmp, "oci_bounded_layout");
+    fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
+    const digest = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    fs.writeFileSync(path.join(ociDir, "oci-layout"), `{"imageLayoutVersion":"1.0.0"}${" ".repeat(300_000)}`, "utf8");
+    fs.writeFileSync(path.join(ociDir, "index.json"), JSON.stringify({ schemaVersion: 2, manifests: [{ digest: `sha256:${digest}` }] }), "utf8");
+    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", digest), "x", "utf8");
+    const res = await runCliCapture(["safe-run", ociDir, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for bounded explicit oci-layout metadata");
+    assert(res.stderr.includes("CONTAINER_LAYOUT_INVALID"), "expected CONTAINER_LAYOUT_INVALID on stderr for bounded oci-layout metadata");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
     const ociDir = path.join(tmp, "oci_bad_index");
     fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
     fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
@@ -3349,6 +3363,24 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", ociDir, "--out", outDir, "--adapter", "container"]);
     assertEq(res.status, 40, "safe-run should fail closed for explicit OCI index parse invalidity");
     assert(res.stderr.includes("CONTAINER_INDEX_INVALID"), "expected CONTAINER_INDEX_INVALID on stderr");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const ociDir = path.join(tmp, "oci_bounded_index");
+    fs.mkdirSync(path.join(ociDir, "blobs", "sha256"), { recursive: true });
+    const digest = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    fs.writeFileSync(path.join(ociDir, "oci-layout"), "{\"imageLayoutVersion\":\"1.0.0\"}\n", "utf8");
+    fs.writeFileSync(
+      path.join(ociDir, "index.json"),
+      `${JSON.stringify({ schemaVersion: 2, manifests: [{ digest: `sha256:${digest}` }] })}${" ".repeat(300_000)}`,
+      "utf8"
+    );
+    fs.writeFileSync(path.join(ociDir, "blobs", "sha256", digest), "x", "utf8");
+    const res = await runCliCapture(["safe-run", ociDir, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for bounded explicit OCI index metadata");
+    assert(res.stderr.includes("CONTAINER_INDEX_INVALID"), "expected CONTAINER_INDEX_INVALID on stderr for bounded OCI index metadata");
   }
 
   {
@@ -3394,6 +3426,20 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["safe-run", emptySbom, "--out", outDir, "--adapter", "container"]);
     assertEq(res.status, 40, "safe-run should fail closed for explicit empty sbom package evidence");
     assert(res.stderr.includes("CONTAINER_SBOM_INVALID"), "expected CONTAINER_SBOM_INVALID on stderr for empty sbom evidence");
+  }
+
+  {
+    const outDir = mkTmp();
+    const tmp = mkTmp();
+    const boundedSbom = path.join(tmp, "bounded_sbom.spdx.json");
+    fs.writeFileSync(
+      boundedSbom,
+      `${JSON.stringify({ SPDXID: "SPDXRef-DOCUMENT", packages: [{ name: "a" }] })}${" ".repeat(300_000)}`,
+      "utf8"
+    );
+    const res = await runCliCapture(["safe-run", boundedSbom, "--out", outDir, "--adapter", "container"]);
+    assertEq(res.status, 40, "safe-run should fail closed for bounded explicit sbom JSON evidence");
+    assert(res.stderr.includes("CONTAINER_SBOM_INVALID"), "expected CONTAINER_SBOM_INVALID on stderr for bounded sbom JSON evidence");
   }
 
   {

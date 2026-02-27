@@ -1172,13 +1172,21 @@ const collectTextFiles = (inputPath: string, capture: CaptureTreeV0, exts: Set<s
   return { files: out.slice(0, 256), bounded: out.length > 256 };
 };
 
-const readJsonBounded = (filePath: string): unknown | null => {
-  const text = readTextBounded(filePath, MAX_TEXT_BYTES);
-  if (!text) return null;
+const readJsonBounded = (filePath: string): { value: unknown | null; bounded: boolean } => {
+  const bytes = readBytesBounded(filePath, MAX_TEXT_BYTES);
+  let fileBytes = 0;
   try {
-    return JSON.parse(text);
+    fileBytes = Math.max(0, Number(fs.statSync(filePath).size || 0));
   } catch {
-    return null;
+    fileBytes = 0;
+  }
+  const bounded = fileBytes > bytes.length;
+  const text = Buffer.from(bytes).toString("utf8");
+  if (!text) return { value: null, bounded };
+  try {
+    return { value: JSON.parse(text), bounded };
+  } catch {
+    return { value: null, bounded };
   }
 };
 
@@ -3110,8 +3118,20 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     const capturePathSet = new Set<string>(
       ctx.capture.entries.map((entry) => String(entry.path || "").replace(/\\/g, "/").toLowerCase())
     );
-    const layout = readJsonBounded(path.join(ctx.inputPath, "oci-layout"));
+    const layoutRead = readJsonBounded(path.join(ctx.inputPath, "oci-layout"));
+    const layout = layoutRead.value;
     const layoutOk = layout && typeof layout === "object" && typeof (layout as any).imageLayoutVersion === "string";
+    if (layoutRead.bounded) {
+      if (strictRoute) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_LAYOUT_INVALID",
+          failMessage: "container adapter requires complete unbounded oci-layout metadata for explicit OCI layout analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_LAYOUT_INVALID"]),
+        };
+      }
+      markers.push("CONTAINER_LAYOUT_PARTIAL");
+    }
     if (!layoutOk) {
       if (strictRoute) {
         return {
@@ -3123,7 +3143,19 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
       }
       markers.push("CONTAINER_LAYOUT_PARTIAL");
     }
-    const index = readJsonBounded(path.join(ctx.inputPath, "index.json"));
+    const indexRead = readJsonBounded(path.join(ctx.inputPath, "index.json"));
+    const index = indexRead.value;
+    if (indexRead.bounded) {
+      if (strictRoute) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_INDEX_INVALID",
+          failMessage: "container adapter requires complete unbounded OCI index metadata for explicit OCI layout analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_INDEX_INVALID"]),
+        };
+      }
+      markers.push("CONTAINER_INDEX_PARTIAL");
+    }
     let indexManifests: unknown[] = [];
     if (index && typeof index === "object") {
       if (Array.isArray((index as any).manifests)) {
@@ -3596,7 +3628,19 @@ const analyzeContainer = (ctx: AnalyzeCtx, strictRoute: boolean): AnalyzeResult 
     }
   }
   if (isSbom) {
-    const sbom = readJsonBounded(ctx.inputPath);
+    const sbomRead = readJsonBounded(ctx.inputPath);
+    const sbom = sbomRead.value;
+    if (sbomRead.bounded) {
+      if (strictRoute) {
+        return {
+          ok: false,
+          failCode: "CONTAINER_SBOM_INVALID",
+          failMessage: "container adapter requires complete unbounded JSON for explicit SBOM analysis.",
+          reasonCodes: stableSortUniqueReasonsV0(["CONTAINER_ADAPTER_V1", "CONTAINER_SBOM_INVALID"]),
+        };
+      }
+      markers.push("CONTAINER_SBOM_PARTIAL");
+    }
     if (sbom && typeof sbom === "object") {
       const meaningfulEvidenceCount = (arr: unknown[]): number => {
         let n = 0;
