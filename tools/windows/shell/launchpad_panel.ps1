@@ -3564,6 +3564,7 @@ $historyDetail.Add_DragDrop({
       Set-StatusLine -StatusLabel $statusLabel -Message $msg -IsError $true
     }
   } catch {
+    Write-LaunchpadUiError -Code "HISTORY_SNAPSHOT_DRAGDROP_FAILED"
     Set-StatusLine -StatusLabel $statusLabel -Message "Snapshot import failed." -IsError $true
   }
 })

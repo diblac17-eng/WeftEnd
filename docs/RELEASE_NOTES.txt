@@ -147,6 +147,7 @@ Included
 - Bind compatibility checks now require `-AllowLaunch` in shortcut arguments before treating a bound shortcut as current, so legacy shortcuts missing launch permission are upgraded instead of silently preserving non-launch behavior.
 - Launchpad history/report/open auto-refresh UI handlers now run through a safe error boundary and write `Launchpad/ui_last_error.txt` on handler failure, preventing unhandled WinForms event exceptions from crashing the panel.
 - Extended Launchpad UI safe-guard coverage to sync/history/doctor/topmost button handlers, with explicit fail codes (for example `SYNC_NOW_FAILED`, `HISTORY_REFRESH_FAILED`, `DOCTOR_SHELL_RUN_FAILED`) recorded to `Launchpad/ui_last_error.txt`.
+- Snapshot drag/drop import failures now record `HISTORY_SNAPSHOT_DRAGDROP_FAILED` in `Launchpad/ui_last_error.txt` before surfacing status errors, improving post-failure operator diagnosis.
 - Added `windows_bind_smoke` runtime coverage to `npm test`, validating bind/rebind/unbind behavior for `.lnk` targets and enforcing restoration of `-AllowLaunch` when legacy bound shortcuts are missing it.
 - Launchpad Doctor text output now includes a compact `doctor.lights` section (`GREEN`/`YELLOW`/`RED`/`GRAY`) for fast pass/warn/fail scanning without parsing raw diagnostic lines.
 - `email unpack` export text artifacts and attachment file writes now use per-file stage/finalize writes.
