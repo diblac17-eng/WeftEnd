@@ -313,7 +313,9 @@ suite("tools/windows shell assets", () => {
     assert(/function Open-ReportViewerFromHistory[\s\S]*?Write-LaunchpadUiError -Code "HISTORY_OPEN_REPORT_FAILED"/.test(text), "report viewer history action must write stable UI failure code");
     assert(/function Open-ReportViewerFromHistory[\s\S]*?Write-LaunchpadUiError -Code "HISTORY_REPORT_VIEWER_SCRIPT_MISSING"/.test(text), "report viewer history action must log missing-script failure code");
     assert(/function Open-ReportViewerFromHistory[\s\S]*?Write-LaunchpadUiError -Code "HISTORY_REPORT_VIEWER_START_NONZERO"/.test(text), "report viewer history action must log nonzero-start failure code");
-    assert(/function Open-ReportViewerFromHistory[\s\S]*?Failed to open report viewer\. Opened fallback folder\./.test(text), "report viewer history action must provide fallback-folder status message");
+    assert(/function Open-ReportViewerFromHistory[\s\S]*?Viewer missing\. Opened target history folder\. \(HISTORY_REPORT_VIEWER_SCRIPT_MISSING\)/.test(text), "report viewer history action must include missing-script status code");
+    assert(/function Open-ReportViewerFromHistory[\s\S]*?Viewer failed to start\. Opened target history folder\. \(HISTORY_REPORT_VIEWER_START_NONZERO\)/.test(text), "report viewer history action must include nonzero-start status code");
+    assert(/function Open-ReportViewerFromHistory[\s\S]*?Failed to open report viewer\. Opened fallback folder\. \(HISTORY_OPEN_REPORT_FAILED\)/.test(text), "report viewer history action must provide coded fallback-folder status message");
     assert(/function Open-HistoryRunFolder[\s\S]*?Sync-HistoryRowSnapshot -Item \$selected/.test(text), "run-folder history action must resync selected row");
     assert(/function Open-HistoryAdapterEvidenceFolder[\s\S]*?Sync-HistoryRowSnapshot -Item \$selected/.test(text), "adapter-evidence history action must resync selected row");
   });

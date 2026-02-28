@@ -2382,7 +2382,7 @@ function Open-ReportViewerFromHistory {
     $explorerPath = Join-Path $env:WINDIR "explorer.exe"
     if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
     Start-Process -FilePath $explorerPath -ArgumentList $targetDir | Out-Null
-    Set-StatusLine -StatusLabel $StatusLabel -Message "Viewer missing. Opened target history folder." -IsError $true
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Viewer missing. Opened target history folder. (HISTORY_REPORT_VIEWER_SCRIPT_MISSING)" -IsError $true
     return
   }
   $runDir = if ($latestRun -and $latestRun -ne "-") { Join-Path $targetDir $latestRun } else { "" }
@@ -2407,7 +2407,7 @@ function Open-ReportViewerFromHistory {
       $explorerPath = Join-Path $env:WINDIR "explorer.exe"
       if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
       Start-Process -FilePath $explorerPath -ArgumentList $targetDir | Out-Null
-      Set-StatusLine -StatusLabel $StatusLabel -Message "Viewer failed to start. Opened target history folder." -IsError $true
+      Set-StatusLine -StatusLabel $StatusLabel -Message "Viewer failed to start. Opened target history folder. (HISTORY_REPORT_VIEWER_START_NONZERO)" -IsError $true
       return
     }
     try {
@@ -2425,7 +2425,7 @@ function Open-ReportViewerFromHistory {
     $explorerPath = Join-Path $env:WINDIR "explorer.exe"
     if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
     Start-Process -FilePath $explorerPath -ArgumentList $fallbackPath | Out-Null
-    Set-StatusLine -StatusLabel $StatusLabel -Message "Failed to open report viewer. Opened fallback folder." -IsError $true
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Failed to open report viewer. Opened fallback folder. (HISTORY_OPEN_REPORT_FAILED)" -IsError $true
   }
 }
 
