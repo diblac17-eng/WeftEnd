@@ -94,6 +94,7 @@ function Test-BoundShortcutHasCurrentFlags {
   )
   if (-not (Is-WeftEndShortcutSnapshot -Snapshot $Snapshot)) { return $false }
   $args = [string]$Snapshot.arguments
+  if (-not ($args -match "(^|\s)-AllowLaunch(\s|$)")) { return $false }
   if (-not ($args -match "(^|\s)-OpenOnChangedOnly(\s|$)")) { return $false }
   if ($RequireLaunchTargetPath -and -not ($args -match "(^|\s)-LaunchTargetPath(\s|$)")) { return $false }
   return $true
@@ -163,7 +164,27 @@ function Save-BindMeta {
     [string]$MetaPath,
     [object]$Meta
   )
-  ($Meta | ConvertTo-Json -Depth 8) | Set-Content -LiteralPath $MetaPath -Encoding UTF8
+  Write-TextFileAtomic -PathValue $MetaPath -TextValue ($Meta | ConvertTo-Json -Depth 8)
+}
+
+function Write-TextFileAtomic {
+  param(
+    [string]$PathValue,
+    [string]$TextValue
+  )
+  if (-not $PathValue -or $PathValue.Trim() -eq "") {
+    throw "BIND_META_PATH_INVALID"
+  }
+  $dir = Split-Path -Parent $PathValue
+  if ($dir -and -not (Test-Path -LiteralPath $dir)) {
+    New-Item -ItemType Directory -Force -Path $dir | Out-Null
+  }
+  $stage = $PathValue + ".stage"
+  if (Test-Path -LiteralPath $stage) {
+    Remove-Item -LiteralPath $stage -Force -ErrorAction SilentlyContinue
+  }
+  Set-Content -LiteralPath $stage -Value $TextValue -Encoding UTF8
+  Move-Item -LiteralPath $stage -Destination $PathValue -Force
 }
 
 function Get-MetaValue {

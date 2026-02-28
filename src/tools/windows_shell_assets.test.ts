@@ -531,7 +531,10 @@ suite("tools/windows shell assets", () => {
     const bindText = fs.readFileSync(bindPath, "utf8");
     assert(!/DateTime\]::UtcNow/.test(bindText), "bind metadata must avoid wall-clock timestamp generation");
     assert(!/createdAtUtc/.test(bindText), "bind metadata must avoid createdAtUtc field drift");
+    assert(bindText.includes("-AllowLaunch(\\s|$)"), "bound shortcut compatibility checks must require -AllowLaunch");
     assert(/-OpenOnChangedOnly/.test(bindText), "bind flow must only auto-open UI on changed/blocked runs");
+    assert(/function Write-TextFileAtomic/.test(bindText), "bind metadata writes must use atomic stage/finalize helper");
+    assert(/Write-TextFileAtomic -PathValue \$MetaPath -TextValue/.test(bindText), "bind metadata save must use atomic writes");
   });
 
   register("report viewer includes optional adapter evidence panel", () => {
