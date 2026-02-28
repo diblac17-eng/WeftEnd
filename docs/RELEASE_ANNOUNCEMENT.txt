@@ -10,6 +10,8 @@ Highlights
 2. Adapter maintenance controls added:
    - weftend adapter list
    - weftend adapter doctor [--text] [--strict]
+   - adapter doctor text output now includes deterministic status headline lines (status/code/light)
+   - adapter doctor JSON output now includes deterministic summary blocks (headline/summary/lights)
    - weftend adapter doctor --write-policy <path> [--include-missing-plugins]
    - fail-closed lane disable policy support for controlled maintenance windows
 3. Verify gate (360) hardened for strict release use:
