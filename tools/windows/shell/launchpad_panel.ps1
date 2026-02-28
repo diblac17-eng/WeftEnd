@@ -2378,6 +2378,7 @@ function Open-ReportViewerFromHistory {
     return
   }
   if (-not $reportViewerScript -or -not (Test-Path -LiteralPath $reportViewerScript)) {
+    Write-LaunchpadUiError -Code "HISTORY_REPORT_VIEWER_SCRIPT_MISSING"
     $explorerPath = Join-Path $env:WINDIR "explorer.exe"
     if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
     Start-Process -FilePath $explorerPath -ArgumentList $targetDir | Out-Null
@@ -2402,6 +2403,7 @@ function Open-ReportViewerFromHistory {
     Start-Sleep -Milliseconds 350
     try { $proc.Refresh() } catch {}
     if ($proc -and $proc.HasExited -and [int]$proc.ExitCode -ne 0) {
+      Write-LaunchpadUiError -Code "HISTORY_REPORT_VIEWER_START_NONZERO"
       $explorerPath = Join-Path $env:WINDIR "explorer.exe"
       if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
       Start-Process -FilePath $explorerPath -ArgumentList $targetDir | Out-Null

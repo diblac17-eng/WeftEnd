@@ -149,6 +149,10 @@ Included
 - Extended Launchpad UI safe-guard coverage to sync/history/doctor/topmost button handlers, with explicit fail codes (for example `SYNC_NOW_FAILED`, `HISTORY_REFRESH_FAILED`, `DOCTOR_SHELL_RUN_FAILED`) recorded to `Launchpad/ui_last_error.txt`.
 - Snapshot drag/drop import failures now record `HISTORY_SNAPSHOT_DRAGDROP_FAILED` in `Launchpad/ui_last_error.txt` before surfacing status errors, improving post-failure operator diagnosis.
 - History report-open now records `HISTORY_OPEN_REPORT_FAILED` and opens a fallback folder when report viewer launch throws, preventing dead-end double-click failures.
+- History report-open now also records distinct failure codes for pre-start and startup-path failures:
+  - `HISTORY_REPORT_VIEWER_SCRIPT_MISSING`
+  - `HISTORY_REPORT_VIEWER_START_NONZERO`
+  while preserving folder fallback behavior for operator continuity.
 - Launchpad UI safe-guard status messages now append the stable failure code (for example `... (HISTORY_REFRESH_FAILED)`), improving operator triage without opening diagnostic files.
 - Added UI-safe guards for Launch/Library tab folder-open buttons with stable codes (`OPEN_TARGETS_FAILED`, `OPEN_LIBRARY_FAILED`, `OPEN_LAUNCHPAD_FOLDER_FAILED`, `OPEN_TARGETS_FOLDER_FAILED`) so explorer-launch failures are captured consistently.
 - Added `windows_bind_smoke` runtime coverage to `npm test`, validating bind/rebind/unbind behavior for `.lnk` targets and enforcing restoration of `-AllowLaunch` when legacy bound shortcuts are missing it.
