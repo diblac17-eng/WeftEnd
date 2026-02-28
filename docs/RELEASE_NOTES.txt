@@ -20,6 +20,7 @@ Included
 - Launchpad Doctor readability upgrade:
 - Doctor panel now renders concise structured summaries for Shell and Adapter checks (`DOCTOR SUMMARY (...)`) with overall state, code/exit, counts, and top issues before raw output.
 - Doctor summaries now include deterministic status blocks (`status.lines`, `check.matrix`, `adapter.matrix`) with explicit `[PASS]/[WARN]/[FAIL]` rows so operators can quickly identify actionable failures without parsing raw doctor text.
+- Adapter Doctor summaries now surface strict reason tokens and `recommended.actions` lines directly in the summary block before raw output.
 - This reduces raw-text parsing burden while preserving full underlying doctor output for deep triage.
 - Deterministic ordering hardening:
 - Replaced remaining production implicit `.sort()` call sites with explicit `cmpStrV0` comparators in canonical JSON key normalization, CLI duplicate-flag/plugin reporting, config key validation, strict/secret-zone reason ordering, and privacy-lint summary rendering.

@@ -475,6 +475,7 @@ suite("tools/windows shell assets", () => {
     assert(/status\.lines:/.test(panelText), "expected doctor status-lines block");
     assert(/check\.matrix:/.test(panelText), "expected shell doctor check matrix block");
     assert(/adapter\.matrix:/.test(panelText), "expected adapter doctor matrix block");
+    assert(/recommended\.actions:/.test(panelText), "expected adapter doctor recommended-actions block");
     assert(/Get-DoctorStateToken/.test(panelText), "expected shared doctor state token helper");
     assert(panelText.includes("(?m)^ShellDoctorStatus:\\s*FAIL\\s+code=([A-Z0-9_]+)\\s*$"), "expected shell doctor explicit fail-status code parsing");
     assert(panelText.includes("code=([A-Z0-9_]+)"), "expected shell doctor output code parsing");

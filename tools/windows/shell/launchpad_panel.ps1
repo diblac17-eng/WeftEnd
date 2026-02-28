@@ -932,6 +932,24 @@ function Build-AdapterDoctorPanelText {
   if ($strictMatch.Success -and $strictMatch.Groups.Count -gt 1) {
     $strictStatus = [string]$strictMatch.Groups[1].Value
   }
+  $strictReasons = "-"
+  $strictReasonMatch = [System.Text.RegularExpressions.Regex]::Match($output, "(?m)^strict\.reasons=([A-Z0-9_, -]+)\s*$")
+  if ($strictReasonMatch.Success -and $strictReasonMatch.Groups.Count -gt 1) {
+    $strictReasonsValue = [string]$strictReasonMatch.Groups[1].Value
+    if ($strictReasonsValue -and $strictReasonsValue.Trim() -ne "") {
+      $strictReasons = $strictReasonsValue.Trim()
+    }
+  }
+  $actionLines = @()
+  foreach ($line in $lines) {
+    $trimmed = [string]$line
+    if ($trimmed -match "^\s*-\s+(.+)$") {
+      $actionText = [string]$matches[1]
+      if ($actionText -and $actionText.Trim() -ne "" -and $actionLines.Count -lt 8) {
+        $actionLines += $actionText.Trim()
+      }
+    }
+  }
 
   $overall = "UNKNOWN"
   if (-not $ok) {
@@ -951,6 +969,7 @@ function Build-AdapterDoctorPanelText {
     "exitCode=" + $exitCode,
     "code=" + $code,
     "strict.status=" + $strictStatus,
+    "strict.reasons=" + $strictReasons,
     "adapters.enabled=" + [string]$enabledCount,
     "plugins.missing=" + [string]$missingAdapters.Count
   )
@@ -961,14 +980,25 @@ function Build-AdapterDoctorPanelText {
   $header += ""
   $header += "status.lines:"
   $header += ("  [" + $overall + "] overall")
-  $strictSignal = if ($strictStatus -eq "FAIL") { "FAIL" } elseif ($strictStatus -eq "PASS") { "PASS" } else { "UNKNOWN" }
+  $strictSignal = if ($strictStatus -eq "FAIL") { "FAIL" } elseif ($strictStatus -eq "PASS") { "PASS" } elseif ($strictStatus -eq "OFF") { "WARN" } else { "UNKNOWN" }
   $header += ("  [" + $strictSignal + "] strict.status=" + $strictStatus)
+  if ($strictReasons -and $strictReasons -ne "-") {
+    $strictReasonsSignal = if ($strictStatus -eq "FAIL") { "FAIL" } else { "WARN" }
+    $header += ("  [" + $strictReasonsSignal + "] strict.reasons=" + $strictReasons)
+  }
 
   if ($adapterRows.Count -gt 0) {
     $header += ""
     $header += "adapter.matrix:"
     foreach ($row in @($adapterRows | Sort-Object @{ Expression = { Get-StableSortKey -Value ([string]$_.name) } })) {
       $header += ("  [" + [string]$row.state + "] " + [string]$row.name + " " + [string]$row.detail)
+    }
+  }
+  if ($actionLines.Count -gt 0) {
+    $header += ""
+    $header += "recommended.actions:"
+    foreach ($action in @($actionLines | Sort-Object @{ Expression = { Get-StableSortKey -Value ([string]$_) } })) {
+      $header += ("  - " + [string]$action)
     }
   }
 
