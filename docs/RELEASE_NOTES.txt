@@ -21,6 +21,7 @@ Included
 - Doctor panel now renders concise structured summaries for Shell and Adapter checks (`DOCTOR SUMMARY (...)`) with overall state, code/exit, counts, and top issues before raw output.
 - Doctor summaries now include deterministic status blocks (`status.lines`, `check.matrix`, `adapter.matrix`) with explicit `[PASS]/[WARN]/[FAIL]` rows so operators can quickly identify actionable failures without parsing raw doctor text.
 - Adapter Doctor summaries now surface strict reason tokens and `recommended.actions` lines directly in the summary block before raw output.
+- `weftend adapter doctor --text` now also emits deterministic readability blocks (`summary`, `doctor.lights`, `status.lines`) with explicit PASS/WARN/FAIL rows while preserving raw policy/adapter/action lines for audit detail.
 - This reduces raw-text parsing burden while preserving full underlying doctor output for deep triage.
 - Added Windows shell wrapper runtime smoke coverage (`windows_shell_wrapper_smoke`) that runs `weftend_safe_run.ps1` and verifies real generated artifacts (`wrapper_result.txt`, `report_card.txt`, `snapshot_ref_latest.json`) including snapshot identity digest fields.
 - Windows shell wrapper runtime smoke now also enforces path-hygiene on generated wrapper/report/snapshot artifacts (no absolute host path identifiers in these operator-facing outputs).

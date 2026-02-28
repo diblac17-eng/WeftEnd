@@ -99,6 +99,13 @@ const collectStrictReasonCodes = (report: any): string[] => {
   return stableSortUniqueStrings(reasons);
 };
 
+const toLightToken = (state: "PASS" | "WARN" | "FAIL" | "OFF"): "GREEN" | "YELLOW" | "RED" | "GRAY" => {
+  if (state === "PASS") return "GREEN";
+  if (state === "WARN") return "YELLOW";
+  if (state === "FAIL") return "RED";
+  return "GRAY";
+};
+
 export const runAdapterCli = (args: string[]): number => {
   const command = String(args[0] || "").trim().toLowerCase();
   let textMode = false;
@@ -194,12 +201,34 @@ export const runAdapterCli = (args: string[]): number => {
     const unknownTokens = Array.isArray((report as any).policy?.unknownTokens) ? (report as any).policy.unknownTokens : [];
     const disabled = Array.isArray((report as any).policy?.disabledAdapters) ? (report as any).policy.disabledAdapters : [];
     const invalidReason = String((report as any).policy?.invalidReasonCode || "");
+    const missingPluginAdapters = collectMissingPluginAdapters(report);
+    const strictState: "PASS" | "FAIL" | "OFF" = strictMode ? (strictReasons.length > 0 ? "FAIL" : "PASS") : "OFF";
+    const policyState: "PASS" | "FAIL" = invalidReason || unknownTokens.length > 0 ? "FAIL" : "PASS";
+    const pluginState: "PASS" | "WARN" = missingPluginAdapters.length > 0 ? "WARN" : "PASS";
+    const overallState: "PASS" | "WARN" | "FAIL" =
+      policyState === "FAIL" || strictState === "FAIL" ? "FAIL" : pluginState === "WARN" ? "WARN" : "PASS";
     lines.push("WEFTEND ADAPTER DOCTOR");
+    lines.push("summary:");
+    lines.push(`  overall=${overallState}`);
+    lines.push(`  policy=${policyState}`);
+    lines.push(`  plugins=${pluginState}`);
+    lines.push(`  strict=${strictState}`);
+    lines.push("doctor.lights:");
+    lines.push(`  overall=${toLightToken(overallState)}`);
+    lines.push(`  policy=${toLightToken(policyState)}`);
+    lines.push(`  plugins=${toLightToken(pluginState)}`);
+    lines.push(`  strict=${toLightToken(strictState)}`);
+    lines.push("status.lines:");
+    lines.push(
+      `  [${policyState}] policy source=${String((report as any).policy?.source || "none")} disabled=${disabled.length > 0 ? disabled.join(",") : "-"} unknown=${unknownTokens.length > 0 ? unknownTokens.join(",") : "-"} invalid=${invalidReason || "-"}`
+    );
+    lines.push(`  [${pluginState}] missing.plugins=${missingPluginAdapters.length > 0 ? missingPluginAdapters.join(",") : "-"}`);
+    lines.push(`  [${strictState}] strict.reasons=${strictReasons.length > 0 ? strictReasons.join(",") : "-"}`);
     lines.push(`policy.source=${String((report as any).policy?.source || "none")}`);
     lines.push(`policy.disabled=${disabled.length > 0 ? disabled.join(",") : "-"}`);
     lines.push(`policy.unknown=${unknownTokens.length > 0 ? unknownTokens.join(",") : "-"}`);
     lines.push(`policy.invalid=${invalidReason || "-"}`);
-    lines.push(`strict.status=${strictMode ? (strictReasons.length > 0 ? "FAIL" : "PASS") : "OFF"}`);
+    lines.push(`strict.status=${strictState}`);
     lines.push(`strict.reasons=${strictReasons.length > 0 ? strictReasons.join(",") : "-"}`);
     lines.push("adapters:");
     ((report as any).adapters || []).forEach((item: any) => {
@@ -215,7 +244,6 @@ export const runAdapterCli = (args: string[]): number => {
     const actions: string[] = [];
     if (invalidReason) actions.push("Fix adapter policy file content or unset WEFTEND_ADAPTER_DISABLE_FILE.");
     if (unknownTokens.length > 0) actions.push("Remove unknown adapter disable tokens.");
-    const missingPluginAdapters = collectMissingPluginAdapters(report);
     if (missingPluginAdapters.length > 0) {
       actions.push(`Install missing plugins or disable affected adapters: ${missingPluginAdapters.join(",")}.`);
     }

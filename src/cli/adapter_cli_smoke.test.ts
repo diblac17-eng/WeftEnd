@@ -217,6 +217,9 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["adapter", "doctor", "--text"]);
     assertEq(res.status, 0, `adapter doctor --text should succeed\n${res.stderr}`);
     assert(res.stdout.includes("WEFTEND ADAPTER DOCTOR"), "adapter doctor --text should print header");
+    assert(res.stdout.includes("summary:"), "adapter doctor --text should print summary section");
+    assert(res.stdout.includes("doctor.lights:"), "adapter doctor --text should print traffic-light section");
+    assert(res.stdout.includes("status.lines:"), "adapter doctor --text should print status-lines section");
     assert(res.stdout.includes("policy.source="), "adapter doctor --text should print policy source");
     assert(res.stdout.includes("actions:"), "adapter doctor --text should print actions section");
   }
@@ -227,6 +230,7 @@ const run = async (): Promise<void> => {
     });
     assertEq(res.status, 0, `adapter doctor --text --strict should pass when adapters are intentionally disabled\n${res.stderr}`);
     assert(res.stdout.includes("strict.status=PASS"), "strict doctor text output should include PASS status");
+    assert(res.stdout.includes("[PASS] strict.reasons=-"), "strict PASS text output should include PASS status line");
   }
 
   {
