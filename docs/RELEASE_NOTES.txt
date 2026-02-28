@@ -4,6 +4,22 @@ Scope: Deterministic artifact intake, baseline/compare workflows, operator-facin
 Liability scope: WeftEnd is an evidence and change-tracking engine, not a malware oracle or compliance guarantee.
 
 Included
+- Bound shortcut launch-flow reliability fixes:
+- Bound WeftEnd shortcuts now use changed-only report gating (`-OpenOnChangedOnly`) so SAME runs launch without forced report popups; CHANGED/BLOCKED still gate with explicit review.
+- Bound launch flow now carries explicit launch-target override metadata (`-LaunchTargetPath`) so `.lnk`-bound targets launch correctly after gate checks instead of scanning-only/no-launch outcomes.
+- Bind action now performs in-place upgrade for older already-bound shortcuts missing current launch/gating flags, avoiding stale behavior until manual unbind/rebind.
+- Snapshot workflow reliability fixes:
+- Launchpad History now auto-materializes latest local snapshot references per row sync, keeping target bucket `snapshot_ref_latest.json` aligned with latest run evidence.
+- Snapshot import now updates `snapshot_ref_latest.json` deterministically after successful import and reports latest-pointer update state in status output.
+- Import Snapshot now supports local-latest fallback: if file-picker import is cancelled, selected target still refreshes/exports latest local snapshot reference instead of hard cancel error.
+- Safe-run now writes snapshot references directly on each completed run (no Launchpad dependency):
+- `Library/SnapshotTrust/buckets/<target>/snapshot_ref_latest.json`
+- `Library/SnapshotTrust/buckets/<target>/snapshot_ref_<target>_<runId>.json`
+- Snapshot reference writes are local-only, deterministic (`weftend.snapshotReference/0`), and include digest-linked identity fields from run artifacts.
+- Wrapper result now records deterministic snapshot write outcome line (`snapshotRef=...`) for operator/debug traceability.
+- Launchpad Doctor readability upgrade:
+- Doctor panel now renders concise structured summaries for Shell and Adapter checks (`DOCTOR SUMMARY (...)`) with overall state, code/exit, counts, and top issues before raw output.
+- This reduces raw-text parsing burden while preserving full underlying doctor output for deep triage.
 - Deterministic ordering hardening:
 - Replaced remaining production implicit `.sort()` call sites with explicit `cmpStrV0` comparators in canonical JSON key normalization, CLI duplicate-flag/plugin reporting, config key validation, strict/secret-zone reason ordering, and privacy-lint summary rendering.
 - This removes reliance on engine default sort behavior for trust-surface output ordering.
