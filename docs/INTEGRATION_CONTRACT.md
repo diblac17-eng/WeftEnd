@@ -208,3 +208,9 @@ Adapter normalization notes:
 - Email adapter outputs include `adapter_manifest.json` and required deterministic files.
 - Missing or malformed adapter normalization markers must fail closed.
 - Adapter outputs must remain path-clean and environment-clean under privacy lint.
+
+Adapter doctor JSON contract (summary fields):
+- `headline`: `{ status, code, light }` deterministic status summary.
+- `summary`: `{ overall, policy, plugins, strict }` deterministic state map.
+- `lights`: `{ overall, policy, plugins, strict }` traffic-light tokens (`GREEN`/`YELLOW`/`RED`/`GRAY`).
+- `strict`: `{ status, reasonCodes }` when strict mode is requested.
