@@ -3172,7 +3172,7 @@ $historyDetail.AllowDrop = $true
 $historyDetail.BackColor = $colorPanel
 $historyDetail.ForeColor = $colorText
 $historyDetail.Font = $fontSmall
-$historyDetail.Text = ("Select a history row to view adapter evidence and capability summary." + [Environment]::NewLine + "Auto Refresh: " + (Get-AutoRefreshStateToken) + [Environment]::NewLine + "Tip: use Import Snapshot or drag .json files here to import into a target bucket.")
+$historyDetail.Text = ("Select a history row to view adapter evidence and capability summary." + [Environment]::NewLine + "Auto Refresh: ON" + [Environment]::NewLine + "Tip: use Import Snapshot or drag .json files here to import into a target bucket.")
 
 $historyLayout.Controls.Add($historyActions, 0, 0)
 $historyLayout.Controls.Add($historyList, 0, 1)
