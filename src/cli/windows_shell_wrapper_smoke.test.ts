@@ -122,6 +122,26 @@ const run = async () => {
   assert(/^sha256:[0-9a-f]{64}$/.test(String(identity.artifactDigest || "")), "expected identity.artifactDigest sha256");
   assert(/^sha256:[0-9a-f]{64}$/.test(String(identity.reportCardDigest || "")), "expected identity.reportCardDigest sha256");
   assert(/^sha256:[0-9a-f]{64}$/.test(String(identity.safeReceiptDigest || "")), "expected identity.safeReceiptDigest sha256");
+
+  const stageResidue: string[] = [];
+  const walk = (dir: string) => {
+    let entries: any[] = [];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+      } else if (entry.isFile() && entry.name.toLowerCase().endsWith(".stage")) {
+        stageResidue.push(full);
+      }
+    }
+  };
+  walk(runDir);
+  assert(stageResidue.length === 0, "expected no .stage residue files in run output");
 };
 
 run()

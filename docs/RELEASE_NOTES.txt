@@ -24,6 +24,7 @@ Included
 - This reduces raw-text parsing burden while preserving full underlying doctor output for deep triage.
 - Added Windows shell wrapper runtime smoke coverage (`windows_shell_wrapper_smoke`) that runs `weftend_safe_run.ps1` and verifies real generated artifacts (`wrapper_result.txt`, `report_card.txt`, `snapshot_ref_latest.json`) including snapshot identity digest fields.
 - Windows shell wrapper runtime smoke now also enforces path-hygiene on generated wrapper/report/snapshot artifacts (no absolute host path identifiers in these operator-facing outputs).
+- Windows shell wrapper runtime smoke now also enforces zero finalized-run `*.stage` residue, protecting two-phase report/snapshot finalize guarantees.
 - Report-card header lines (`STATUS`, `BASELINE`, `LATEST`, `FINGERPRINT`, `BUCKETS`, `HISTORY`) are now always emitted by the shell wrapper, even when view-state metadata is unavailable, so operator cards stay structurally consistent in degraded paths.
 - Deterministic ordering hardening:
 - Replaced remaining production implicit `.sort()` call sites with explicit `cmpStrV0` comparators in canonical JSON key normalization, CLI duplicate-flag/plugin reporting, config key validation, strict/secret-zone reason ordering, and privacy-lint summary rendering.
