@@ -1175,7 +1175,7 @@ function Write-ReportCard {
     }
     $lines = $stateLines + $explainLines + $lines
     $path = Join-Path $outDir "report_card.txt"
-    $lines -join "`n" | Set-Content -Path $path -Encoding UTF8
+    Write-TextFileAtomic -PathValue $path -TextValue ($lines -join "`n")
     $reportJsonPath = Join-Path $outDir "report_card_v0.json"
     $reportJson = [ordered]@{
       schema = "weftend.reportCard/0"
@@ -1232,12 +1232,13 @@ function Write-ReportCard {
         }
       }
     }
-    ($reportJson | ConvertTo-Json -Depth 8) | Set-Content -Path $reportJsonPath -Encoding UTF8
+    $reportJsonText = [string]($reportJson | ConvertTo-Json -Depth 8)
+    Write-TextFileAtomic -PathValue $reportJsonPath -TextValue $reportJsonText
   } catch {
     try {
       $errMsg = Redact-SensitiveText -Text ([string]$_)
       $errPath = Join-Path $outDir "wrapper_report_card_error.txt"
-      $errMsg | Set-Content -Path $errPath -Encoding UTF8
+      Write-TextFileAtomic -PathValue $errPath -TextValue $errMsg
     } catch {
       # ignore diagnostic failures
     }
@@ -1324,7 +1325,7 @@ function Write-ReportCard {
       "buildDigest=$BuildDigest"
     )
     $path = Join-Path $outDir "report_card.txt"
-    $fallback -join "`n" | Set-Content -Path $path -Encoding UTF8
+    Write-TextFileAtomic -PathValue $path -TextValue ($fallback -join "`n")
     $reportJsonPath = Join-Path $outDir "report_card_v0.json"
     $reportJson = [ordered]@{
       schema = "weftend.reportCard/0"
@@ -1361,7 +1362,8 @@ function Write-ReportCard {
       explanation = $(if ($fallbackExplanation -and $fallbackExplanation.json) { $fallbackExplanation.json } else { $null })
       lines = $fallback
     }
-    ($reportJson | ConvertTo-Json -Depth 8) | Set-Content -Path $reportJsonPath -Encoding UTF8
+    $fallbackReportJsonText = [string]($reportJson | ConvertTo-Json -Depth 8)
+    Write-TextFileAtomic -PathValue $reportJsonPath -TextValue $fallbackReportJsonText
   }
 }
 

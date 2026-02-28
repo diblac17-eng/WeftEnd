@@ -401,6 +401,9 @@ suite("tools/windows shell assets", () => {
       const block = blockMatch[0];
       assert(!/[A-Za-z]:\\/.test(block), "report card block must not include absolute paths");
       assert(!/\\Users\\/.test(block), "report card block must not include user paths");
+      assert(/Write-TextFileAtomic -PathValue \$path -TextValue/.test(block), "report card writer must atomically finalize report_card.txt");
+      assert(/Write-TextFileAtomic -PathValue \$reportJsonPath -TextValue/.test(block), "report card writer must atomically finalize report_card_v0.json");
+      assert(!/Set-Content -Path \$reportJsonPath/.test(block), "report card writer must avoid direct non-atomic report json writes");
     }
   });
 
