@@ -662,6 +662,38 @@ function Compute-FileSha256Digest {
   }
 }
 
+function Write-LaunchpadUiError {
+  param([string]$Code)
+  try {
+    $errorCode = if ($Code -and $Code.Trim() -ne "") { $Code.Trim() } else { "LAUNCHPAD_UI_ERROR" }
+    $path = Join-Path $launchpadRoot "ui_last_error.txt"
+    $lines = @(
+      "code=" + $errorCode,
+      "message=UI action failed; restart Launchpad and retry."
+    )
+    Write-TextFileAtomic -PathValue $path -TextValue ($lines -join "`n")
+  } catch {
+    # best effort only
+  }
+}
+
+function Invoke-UiSafe {
+  param(
+    [string]$Code,
+    [System.Windows.Forms.Label]$StatusLabel,
+    [string]$Message,
+    [scriptblock]$Action
+  )
+  if (-not $Action) { return }
+  try {
+    & $Action
+  } catch {
+    Write-LaunchpadUiError -Code $Code
+    $safeMessage = if ($Message -and $Message.Trim() -ne "") { $Message.Trim() } else { "Launchpad action failed." }
+    Set-StatusLine -StatusLabel $StatusLabel -Message $safeMessage -IsError $true
+  }
+}
+
 function New-DoctorLampLabel {
   param([string]$Name)
   $label = New-Object System.Windows.Forms.Label
@@ -3405,13 +3437,17 @@ $btnHistoryCopyDigests.Add_Click({
   Copy-HistoryDigestText -DetailBox $historyDetail -StatusLabel $statusLabel
 })
 $historyList.Add_DoubleClick({
-  Open-ReportViewerFromHistory -ListView $historyList -StatusLabel $statusLabel
+  Invoke-UiSafe -Code "HISTORY_OPEN_REPORT_FAILED" -StatusLabel $statusLabel -Message "Open report failed." -Action {
+    Open-ReportViewerFromHistory -ListView $historyList -StatusLabel $statusLabel
+  }
 })
 $historyList.Add_KeyDown({
   param($sender, $e)
   if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
     $e.Handled = $true
-    Open-ReportViewerFromHistory -ListView $historyList -StatusLabel $statusLabel
+    Invoke-UiSafe -Code "HISTORY_OPEN_REPORT_FAILED" -StatusLabel $statusLabel -Message "Open report failed." -Action {
+      Open-ReportViewerFromHistory -ListView $historyList -StatusLabel $statusLabel
+    }
     return
   }
   if ($e.Control -and $e.KeyCode -eq [System.Windows.Forms.Keys]::C) {
@@ -3471,13 +3507,17 @@ $historyDetail.Add_DragDrop({
   }
 })
 $historyList.Add_SelectedIndexChanged({
-  Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
-  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket -SnapshotImportButton $btnHistorySnapshotImport
+  Invoke-UiSafe -Code "HISTORY_SELECTION_FAILED" -StatusLabel $statusLabel -Message "History selection update failed." -Action {
+    Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
+    Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket -SnapshotImportButton $btnHistorySnapshotImport
+  }
 })
 $chkAuto.Add_CheckedChanged({
-  Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
-  $state = if ($chkAuto.Checked) { "ON" } else { "OFF" }
-  Set-StatusLine -StatusLabel $statusLabel -Message ("Auto refresh " + $state + ".") -IsError $false
+  Invoke-UiSafe -Code "AUTO_REFRESH_TOGGLE_FAILED" -StatusLabel $statusLabel -Message "Auto refresh toggle failed." -Action {
+    Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
+    $state = if ($chkAuto.Checked) { "ON" } else { "OFF" }
+    Set-StatusLine -StatusLabel $statusLabel -Message ("Auto refresh " + $state + ".") -IsError $false
+  }
 })
 $btnDoctorRun.Add_Click({
   $result = Invoke-ShellDoctorText

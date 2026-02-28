@@ -449,11 +449,18 @@ suite("tools/windows shell assets", () => {
     assert(/-RepairReportViewer/.test(panelText), "expected shell doctor repair-viewer switch wiring");
     assert(/& \$powershellExe @args/.test(panelText), "expected shell doctor invocation to use resolved powershell executable path");
     assert(/Copy-DoctorOutputText/.test(panelText), "expected doctor output copy helper");
+    assert(/function Write-LaunchpadUiError/.test(panelText), "expected launchpad UI error capture helper");
+    assert(/function Invoke-UiSafe/.test(panelText), "expected launchpad UI safe-invoke helper");
+    assert(/ui_last_error\.txt/.test(panelText), "expected launchpad UI failure artifact path");
     assert(/Update-HistoryDetailsBox/.test(panelText), "expected history details update helper");
     assert(/function Get-AutoRefreshStateToken/.test(panelText), "expected auto-refresh state token helper");
     assert(/Auto Refresh: /.test(panelText), "expected auto-refresh state line in history details");
     assert(/\$historyDetail\.Text = \("Select a history row to view adapter evidence and capability summary\." \+ \[Environment\]::NewLine \+ "Auto Refresh: ON"/.test(panelText), "expected initial history detail hint to include default auto-refresh state");
     assert(/SelectedIndexChanged/.test(panelText), "expected history selection details wiring");
+    assert(/HISTORY_SELECTION_FAILED/.test(panelText), "expected history selection fail-code guard");
+    assert(/\$historyList\.Add_SelectedIndexChanged\(\{[\s\S]*?Invoke-UiSafe -Code "HISTORY_SELECTION_FAILED"/.test(panelText), "expected history selection handler to use safe UI guard");
+    assert(/HISTORY_OPEN_REPORT_FAILED/.test(panelText), "expected report open fail-code guard");
+    assert(/AUTO_REFRESH_TOGGLE_FAILED/.test(panelText), "expected auto-refresh toggle fail-code guard");
     assert(/\$chkAuto\.Add_CheckedChanged\(\{[\s\S]*?Update-HistoryDetailsBox -ListView \$historyList -DetailBox \$historyDetail/.test(panelText), "expected auto-refresh toggle to refresh history details text");
     assert(/Open-HistoryRunFolder/.test(panelText), "expected history open-run helper");
     assert(/Open-HistoryAdapterEvidenceFolder/.test(panelText), "expected history evidence-folder helper");
