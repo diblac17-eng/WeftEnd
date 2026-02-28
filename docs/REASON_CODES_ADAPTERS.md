@@ -82,6 +82,14 @@ Adapter precondition and routing
 - SCM_UNSUPPORTED_FORMAT
 - SIGNATURE_UNSUPPORTED_FORMAT
 
+Adapter doctor status codes (doctor output, not safe-run)
+- ADAPTER_DOCTOR_OK
+- ADAPTER_DOCTOR_POLICY_UNKNOWN_TOKEN
+- ADAPTER_DOCTOR_MISSING_PLUGIN
+- ADAPTER_DOCTOR_STRICT_POLICY_UNKNOWN_TOKEN
+- ADAPTER_DOCTOR_STRICT_POLICY_INVALID
+- ADAPTER_DOCTOR_STRICT_MISSING_PLUGIN
+
 Guidelines
 1) Codes are stable and machine-oriented.
 2) Codes are additive over time; avoid renaming/removing shipped codes.
