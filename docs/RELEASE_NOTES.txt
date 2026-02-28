@@ -636,6 +636,7 @@ Validation
 - node dist/src/cli/summarize_export_cli_smoke.test.js: pass
 - node dist/src/cli/license_cli_smoke.test.js: pass
 - npm test: pass (on release hardening sweep state)
+- npm run verify:360:release:managed: pass
 
 Not included
 - Malware scoring or reputation.
