@@ -606,6 +606,7 @@ Included
 - Launchpad Doctor tab now includes readable status lamps (`Overall`, `Shell`, `Adapter`, `Adapter Strict`) with PASS/WARN/FAIL indicators, while keeping full raw doctor output below for audit detail.
 - Intake decision severity mapping now treats strict membrane unavailability as deny-by-default (`STRICT_COMPARTMENT_UNAVAILABLE` -> `DENY`) instead of warn, aligning intake gating with strict execution fail-closed posture.
 - Added direct intake decision contract coverage pinning the strict-membrane mapping (`STRICT_COMPARTMENT_UNAVAILABLE` must resolve to `DENY`/`REJECT` under default policy), preventing silent severity regression.
+- Default `npm test` now includes strict membrane runtime coverage (`strict_executor.test` and `probe_strict_v0.test`) so strict-lane regressions are caught in baseline CI/test loops, not only ad hoc runs.
 
 Validation
 - npm run compile --silent: pass
