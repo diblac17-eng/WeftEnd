@@ -104,7 +104,7 @@ Strict release verification (optional)
 - This executes the managed strict release gate and uploads `out/verify_360_release_managed`.
 
 Notes
-- This scans repository-accessible content in the workflow run, not arbitrary files on a user’s local disk.
+- This scans repository-accessible content in the workflow run, not arbitrary files on a user's local disk.
 - WeftEnd remains analysis-first and deterministic in CI, same as local philosophy.
 
 
@@ -177,3 +177,4 @@ Long-term roadmap: WeftEnd beyond tool platform vision
 - Planned releases: trusted block execution, deterministic provenance, and reusable block-based web composition.
 - Market/exchange layer is planned after trust and operator-grade infrastructure are fully matured.
   
+
