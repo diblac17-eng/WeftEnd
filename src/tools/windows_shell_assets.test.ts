@@ -471,6 +471,10 @@ suite("tools/windows shell assets", () => {
     assert(/DOCTOR_ADAPTER_RUN_FAILED/.test(panelText), "expected adapter doctor fail-code guard");
     assert(/TOPMOST_TOGGLE_FAILED/.test(panelText), "expected topmost toggle fail-code guard");
     assert(/HISTORY_SNAPSHOT_DRAGDROP_FAILED/.test(panelText), "expected snapshot drag-drop fail-code guard");
+    assert(/OPEN_TARGETS_FAILED/.test(panelText), "expected launch tab open-targets fail-code guard");
+    assert(/OPEN_LIBRARY_FAILED/.test(panelText), "expected library tab open-library fail-code guard");
+    assert(/OPEN_LAUNCHPAD_FOLDER_FAILED/.test(panelText), "expected library tab open-launchpad fail-code guard");
+    assert(/OPEN_TARGETS_FOLDER_FAILED/.test(panelText), "expected library tab open-targets fail-code guard");
     assert(/\$chkAuto\.Add_CheckedChanged\(\{[\s\S]*?Update-HistoryDetailsBox -ListView \$historyList -DetailBox \$historyDetail/.test(panelText), "expected auto-refresh toggle to refresh history details text");
     assert(/Open-HistoryRunFolder/.test(panelText), "expected history open-run helper");
     assert(/Open-HistoryAdapterEvidenceFolder/.test(panelText), "expected history evidence-folder helper");

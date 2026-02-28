@@ -2983,9 +2983,11 @@ $btnTargets.Width = 116
 $btnTargets.Height = 30
 Style-Button -Button $btnTargets -Primary:$false
 $btnTargets.Add_Click({
-  $explorerPath = Join-Path $env:WINDIR "explorer.exe"
-  if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
-  Start-Process -FilePath $explorerPath -ArgumentList $targetsDir | Out-Null
+  Invoke-UiSafe -Code "OPEN_TARGETS_FAILED" -StatusLabel $statusLabel -Message "Open Targets failed." -Action {
+    $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+    if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
+    Start-Process -FilePath $explorerPath -ArgumentList $targetsDir | Out-Null
+  }
 })
 
 $btnSync = New-Object System.Windows.Forms.Button
@@ -3041,9 +3043,11 @@ $btnOpenLibrary.Height = 30
 $btnOpenLibrary.Dock = "Fill"
 Style-Button -Button $btnOpenLibrary -Primary:$false
 $btnOpenLibrary.Add_Click({
-  $explorerPath = Join-Path $env:WINDIR "explorer.exe"
-  if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
-  Start-Process -FilePath $explorerPath -ArgumentList $libraryRoot | Out-Null
+  Invoke-UiSafe -Code "OPEN_LIBRARY_FAILED" -StatusLabel $statusLabel -Message "Open Library failed." -Action {
+    $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+    if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
+    Start-Process -FilePath $explorerPath -ArgumentList $libraryRoot | Out-Null
+  }
 })
 
 $btnOpenLaunchpad = New-Object System.Windows.Forms.Button
@@ -3052,9 +3056,11 @@ $btnOpenLaunchpad.Height = 30
 $btnOpenLaunchpad.Dock = "Fill"
 Style-Button -Button $btnOpenLaunchpad -Primary:$false
 $btnOpenLaunchpad.Add_Click({
-  $explorerPath = Join-Path $env:WINDIR "explorer.exe"
-  if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
-  Start-Process -FilePath $explorerPath -ArgumentList $launchpadRoot | Out-Null
+  Invoke-UiSafe -Code "OPEN_LAUNCHPAD_FOLDER_FAILED" -StatusLabel $statusLabel -Message "Open Launchpad folder failed." -Action {
+    $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+    if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
+    Start-Process -FilePath $explorerPath -ArgumentList $launchpadRoot | Out-Null
+  }
 })
 
 $btnOpenTargets2 = New-Object System.Windows.Forms.Button
@@ -3063,9 +3069,11 @@ $btnOpenTargets2.Height = 30
 $btnOpenTargets2.Dock = "Fill"
 Style-Button -Button $btnOpenTargets2 -Primary:$false
 $btnOpenTargets2.Add_Click({
-  $explorerPath = Join-Path $env:WINDIR "explorer.exe"
-  if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
-  Start-Process -FilePath $explorerPath -ArgumentList $targetsDir | Out-Null
+  Invoke-UiSafe -Code "OPEN_TARGETS_FOLDER_FAILED" -StatusLabel $statusLabel -Message "Open Targets folder failed." -Action {
+    $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+    if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
+    Start-Process -FilePath $explorerPath -ArgumentList $targetsDir | Out-Null
+  }
 })
 
 $btnSync2 = New-Object System.Windows.Forms.Button
