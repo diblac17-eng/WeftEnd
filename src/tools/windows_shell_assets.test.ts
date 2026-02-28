@@ -417,6 +417,21 @@ suite("tools/windows shell assets", () => {
     assert(!/function Update-HistoryDetailsBox[\s\S]*?\$latestRun = "LATEST_UNAVAILABLE"/.test(text), "history details must not replace latest run logic value with display token");
   });
 
+  register("launchpad history auto-refresh hint stays in no-selection details state", () => {
+    const launchpadPath = path.join(shellDir, "launchpad_panel.ps1");
+    const text = fs.readFileSync(launchpadPath, "utf8");
+    const fnStart = text.indexOf("function Update-HistoryDetailsBox");
+    const fnEnd = text.indexOf("function Update-HistoryActionButtons");
+    assert(fnStart >= 0 && fnEnd > fnStart, "expected Update-HistoryDetailsBox function block");
+    const fnText = text.slice(fnStart, fnEnd);
+    assert(/if \(-not \$ListView -or \$ListView\.SelectedItems\.Count -lt 1\)[\s\S]*?"Auto Refresh: " \+ \$autoRefreshState/.test(fnText), "history details no-selection hint must include auto-refresh state");
+    const autoIdx = fnText.indexOf("Auto Refresh:");
+    const linesIdx = fnText.indexOf("$lines = @(");
+    assert(autoIdx >= 0 && linesIdx > autoIdx, "auto-refresh hint must appear before selected-row lines block");
+    const selectedSection = fnText.slice(linesIdx);
+    assert(!selectedSection.includes("Auto Refresh:"), "history selected-row detail lines must not include auto-refresh hint text");
+  });
+
   register("report viewer normalizes clipboard and subtitle placeholders", () => {
     const viewerPath = path.join(shellDir, "report_card_viewer.ps1");
     const text = fs.readFileSync(viewerPath, "utf8");

@@ -66,6 +66,7 @@ Included
 - Launchpad History includes an additive `Kind` column derived from latest report-card metadata (`targetKind`/`artifactKind`) so operators can identify target class quickly.
 - Launchpad History no-selection hint now includes `Auto Refresh: ON|OFF`, and the hint refreshes immediately when the auto-refresh checkbox is toggled.
 - Launchpad History now also shows the same `Auto Refresh` hint at initial tab render before the first selection/refresh cycle, avoiding a startup-state mismatch.
+- Windows shell contract tests now pin that `Auto Refresh` hint text stays in no-selection history details state and does not leak into selected-target detail line bundles.
 - Support docs now align with current shortcut model (Launchpad + Download only) and no longer direct operators to removed `WeftEnd Library` shortcuts.
 - Launchpad History refresh now preserves selected-row focus by target key across auto/manual refresh cycles, reducing read-flow jumps while details are open.
 - Launchpad History list now uses single-row selection (`MultiSelect=false`) so history actions always target one deterministic row.
