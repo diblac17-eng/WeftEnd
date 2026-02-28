@@ -90,6 +90,7 @@ Included
 - Doctor action row height was increased to avoid clipping when the horizontal scrollbar is shown.
 - Launchpad Doctor action strip now explicitly suppresses vertical scrolling (`VerticalScroll=disabled`) so only left/right scrolling is presented.
 - Launchpad Doctor status-lamp row now also uses a horizontally scrollable single-row strip (with increased reserved height), preventing PASS/WARN/FAIL lamp text clipping at the bottom edge.
+- Launchpad Doctor output pane now enables horizontal scrolling and disables word-wrap so long status lines remain readable without truncation.
 - Launchpad main action row (`Open Targets`, `Sync`, `Refresh`) now also uses a horizontally scrollable single-row strip to prevent clipping at narrow widths or higher DPI scaling.
 - Launchpad main and history action strips now explicitly suppress vertical scrolling (`VerticalScroll=disabled`) and keep horizontal scrolling enabled for deterministic left/right action access at narrow widths.
 - Main action row height was increased to avoid clipping when the horizontal scrollbar is shown.

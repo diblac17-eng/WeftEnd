@@ -3389,7 +3389,8 @@ $doctorSummary.Controls.Add($doctorLampAdapterStrict) | Out-Null
 $doctorText = New-Object System.Windows.Forms.TextBox
 $doctorText.Dock = "Fill"
 $doctorText.Multiline = $true
-$doctorText.ScrollBars = "Vertical"
+$doctorText.ScrollBars = "Both"
+$doctorText.WordWrap = $false
 $doctorText.ReadOnly = $true
 $doctorText.BackColor = $colorPanel
 $doctorText.ForeColor = $colorText
