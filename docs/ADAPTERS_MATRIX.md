@@ -126,6 +126,7 @@ Operator output artifacts
 - analysis/adapter_findings_v0.json
 - safe_run_receipt.json (optional adapter block)
 - contentSummary.adapterSignals (optional)
+ - adapter doctor JSON includes deterministic status summaries (`headline`, `summary`, `lights`) for automation/UI consumption
 
 CLI examples
 - npm run weftend -- adapter list
