@@ -34,6 +34,7 @@ Highlights
 Validation on release state
 - npm run compile --silent: pass
 - npm test: pass
+- npm run verify:360:release:managed: pass
 - WEFTEND_ALLOW_SKIP_RELEASE=1 npm run proofcheck --silent: pass
 
 Reference docs
