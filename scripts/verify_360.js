@@ -457,6 +457,7 @@ const runPostingEtiquetteCheck = () => {
     "docs/RELEASE_ANNOUNCEMENT.txt",
     "docs/RELEASE_NOTES.txt",
     "docs/RELEASE_HISTORY.md",
+    "docs/COMMIT_GATE_360.md",
   ];
   const issues = [];
   const bannedPatterns = [
@@ -954,6 +955,7 @@ const main = () => {
         p === "docs/RELEASE_ANNOUNCEMENT.txt" ||
         p === "docs/RELEASE_NOTES.txt" ||
         p === "docs/RELEASE_HISTORY.md" ||
+        p === "docs/COMMIT_GATE_360.md" ||
         p === "docs/QUICKSTART.txt" ||
         p === "docs/RELEASE_CHECKLIST_ALPHA.md"
     );

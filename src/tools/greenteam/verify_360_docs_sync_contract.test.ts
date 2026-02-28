@@ -111,6 +111,10 @@ suite("greenteam/verify360-docs-sync-contract", () => {
       text.includes("docs/RELEASE_HISTORY.md"),
       "verify_360 docs-sync/etiquette contract missing release history target"
     );
+    assert(
+      text.includes("docs/COMMIT_GATE_360.md"),
+      "verify_360 docs-sync/etiquette contract missing commit-gate target"
+    );
     assert(text.includes("VERIFY360_DOC_SYNC_MISSING"), "verify_360 docs-sync fail code missing");
     assert(text.includes("VERIFY360_TEST_CONTRACT_MISSING"), "verify_360 test-contract fail code missing");
     assert(text.includes("VERIFY360_TEST_SCRIPT_MISSING"), "verify_360 missing-test-script fail code missing");
@@ -161,6 +165,7 @@ suite("greenteam/verify360-docs-sync-contract", () => {
     );
     assert(doc.includes("docs/RELEASE_NOTES.txt"), "posting etiquette doc missing release notes target");
     assert(doc.includes("docs/RELEASE_HISTORY.md"), "posting etiquette doc missing release history target");
+    assert(doc.includes("docs/COMMIT_GATE_360.md"), "posting etiquette doc missing commit-gate target");
   });
 
   register("package npm test script keeps strict/examiner baseline coverage tokens", () => {
