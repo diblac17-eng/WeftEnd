@@ -770,6 +770,17 @@ function Get-NonEmptyLines {
   return $lines
 }
 
+function Get-DoctorStateToken {
+  param([string]$StateValue)
+  $state = if ($StateValue) { $StateValue.Trim().ToUpperInvariant() } else { "UNKNOWN" }
+  if (-not $state) { $state = "UNKNOWN" }
+  switch ($state) {
+    "OK" { return "PASS" }
+    "MISSING" { return "FAIL" }
+    default { return $state }
+  }
+}
+
 function Build-ShellDoctorPanelText {
   param(
     [hashtable]$Result,
@@ -793,8 +804,20 @@ function Build-ShellDoctorPanelText {
   $missingCount = 0
   $warnCount = 0
   $issueLines = @()
+  $checkRows = @()
   foreach ($line in $lines) {
     $trimmed = [string]$line
+    $checkMatch = [System.Text.RegularExpressions.Regex]::Match($trimmed, "^\s*([A-Za-z0-9_.-]+):\s*(OK|WARN|FAIL|MISSING)\b(.*)$")
+    if ($checkMatch.Success -and $checkMatch.Groups.Count -ge 3 -and $checkRows.Count -lt 16) {
+      $checkName = [string]$checkMatch.Groups[1].Value
+      $checkRawState = [string]$checkMatch.Groups[2].Value
+      $checkDetailRaw = if ($checkMatch.Groups.Count -ge 4) { [string]$checkMatch.Groups[3].Value } else { "" }
+      $checkRows += [ordered]@{
+        name = if ($checkName) { $checkName.Trim() } else { "CHECK" }
+        state = Get-DoctorStateToken -StateValue $checkRawState
+        detail = if ($checkDetailRaw) { $checkDetailRaw.Trim() } else { "" }
+      }
+    }
     if ($trimmed -match ":\s*OK(\b| )") { $okCount++; continue }
     if ($trimmed -match ":\s*MISSING(\b| )") {
       $missingCount++
@@ -824,6 +847,21 @@ function Build-ShellDoctorPanelText {
     "checks.fail=" + [string]$failCount,
     "checks.missing=" + [string]$missingCount
   )
+
+  $header += ""
+  $header += "status.lines:"
+  $header += ("  [" + (Get-DoctorStateToken -StateValue $status) + "] overall")
+  $warnSignal = if (($warnCount + $missingCount + $failCount) -gt 0) { "WARN" } else { "PASS" }
+  $header += ("  [" + $warnSignal + "] warnings=" + [string]($warnCount + $missingCount + $failCount))
+
+  if ($checkRows.Count -gt 0) {
+    $header += ""
+    $header += "check.matrix:"
+    foreach ($row in @($checkRows | Sort-Object @{ Expression = { Get-StableSortKey -Value ([string]$_.name) } })) {
+      $detailSuffix = if ($row.detail -and ([string]$row.detail).Trim() -ne "") { " " + [string]$row.detail } else { "" }
+      $header += ("  [" + [string]$row.state + "] " + [string]$row.name + $detailSuffix)
+    }
+  }
 
   if ($issueLines.Count -gt 0) {
     $header += ""
@@ -855,10 +893,34 @@ function Build-AdapterDoctorPanelText {
   $lines = @(Get-NonEmptyLines -TextValue $output)
 
   $missingAdapters = @()
+  $adapterRows = @()
   $enabledCount = 0
   foreach ($line in $lines) {
     $trimmed = [string]$line
-    if ($trimmed -match "^\s+[a-z0-9_]+\s+status=enabled\b") { $enabledCount++ }
+    $adapterMatch = [System.Text.RegularExpressions.Regex]::Match($trimmed, "^\s*([a-z0-9_]+)\s+status=([a-z_]+)\s+mode=([a-z_]+)\s+plugins=(.*)$")
+    if ($adapterMatch.Success -and $adapterMatch.Groups.Count -ge 5) {
+      $name = [string]$adapterMatch.Groups[1].Value
+      $statusToken = [string]$adapterMatch.Groups[2].Value
+      $modeToken = [string]$adapterMatch.Groups[3].Value
+      $pluginsToken = [string]$adapterMatch.Groups[4].Value
+      if ($statusToken -eq "enabled") { $enabledCount++ }
+      $rowState = "PASS"
+      $rowDetail = @("status=" + $statusToken, "mode=" + $modeToken)
+      if ($pluginsToken -and $pluginsToken.Trim() -ne "" -and $pluginsToken.Trim() -ne "-") {
+        $rowDetail += ("plugins=" + $pluginsToken.Trim())
+      }
+      if ($statusToken -ne "enabled") {
+        $rowState = "WARN"
+      }
+      if ($pluginsToken -match ":missing") {
+        $rowState = "WARN"
+      }
+      $adapterRows += [ordered]@{
+        name = if ($name) { $name.Trim() } else { "adapter" }
+        state = $rowState
+        detail = $rowDetail -join " "
+      }
+    }
     if ($trimmed -match "^\s+([a-z0-9_]+)\s+status=.*plugins=.*:missing") {
       $name = [string]$matches[1]
       if (-not ($missingAdapters -contains $name)) { $missingAdapters += $name }
@@ -894,6 +956,20 @@ function Build-AdapterDoctorPanelText {
   )
   if ($missingAdapters.Count -gt 0) {
     $header += ("missing.adapters=" + ($missingAdapters -join ","))
+  }
+
+  $header += ""
+  $header += "status.lines:"
+  $header += ("  [" + $overall + "] overall")
+  $strictSignal = if ($strictStatus -eq "FAIL") { "FAIL" } elseif ($strictStatus -eq "PASS") { "PASS" } else { "UNKNOWN" }
+  $header += ("  [" + $strictSignal + "] strict.status=" + $strictStatus)
+
+  if ($adapterRows.Count -gt 0) {
+    $header += ""
+    $header += "adapter.matrix:"
+    foreach ($row in @($adapterRows | Sort-Object @{ Expression = { Get-StableSortKey -Value ([string]$_.name) } })) {
+      $header += ("  [" + [string]$row.state + "] " + [string]$row.name + " " + [string]$row.detail)
+    }
   }
 
   $header += ""
