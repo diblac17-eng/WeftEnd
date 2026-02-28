@@ -607,6 +607,7 @@ Included
 - Intake decision severity mapping now treats strict membrane unavailability as deny-by-default (`STRICT_COMPARTMENT_UNAVAILABLE` -> `DENY`) instead of warn, aligning intake gating with strict execution fail-closed posture.
 - Added direct intake decision contract coverage pinning the strict-membrane mapping (`STRICT_COMPARTMENT_UNAVAILABLE` must resolve to `DENY`/`REJECT` under default policy), preventing silent severity regression.
 - Default `npm test` now includes strict membrane runtime coverage (`strict_executor.test` and `probe_strict_v0.test`) so strict-lane regressions are caught in baseline CI/test loops, not only ad hoc runs.
+- Default `npm test` now also includes examiner/probe contract coverage (`probe_unhandled_rejection`, `examine_*`, `intake_decision_v1*`) so deterministic probe and intake-decision behavior is pinned in the baseline loop.
 
 Validation
 - npm run compile --silent: pass
