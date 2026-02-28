@@ -110,8 +110,16 @@ suite("tools/windows shell assets", () => {
     assert(/`"\$psMenuHostExe`" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File/.test(text), "expected context menu command to use resolved powershell host path");
     assert(!/\$command = "powershell\.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File/.test(text), "context menu command must avoid bare powershell command-name invocation");
     assert(/\$iconHostExe -NoProfile -ExecutionPolicy Bypass -File \$iconScript/.test(text), "expected install script icon generation to use resolved powershell executable path");
+    assert(/Installed Scan with WeftEnd context menu\./.test(text), "expected install script completion text to use scan wording");
     assert(/WScript\.Shell/.test(text), "expected shortcut creation via WScript.Shell");
     assert(/\$shortcut\.WindowStyle = 7/.test(text), "expected minimized shortcut window style");
+  });
+
+  register("uninstall script uses scan-first completion wording", () => {
+    const uninstallPath = path.join(shellDir, "uninstall_weftend_context_menu.ps1");
+    const text = fs.readFileSync(uninstallPath, "utf8");
+    assert(/Uninstalled WeftEnd: Scan context menu\./.test(text), "expected uninstall script completion text to use scan wording");
+    assert(!/Uninstalled WeftEnd: Safe-Run context menu\./.test(text), "uninstall script completion text must not regress to safe-run wording");
   });
 
   register("windows tools scripts exist and avoid hardcoded paths/secrets", () => {

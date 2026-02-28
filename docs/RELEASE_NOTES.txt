@@ -78,6 +78,7 @@ Included
 - Report viewer subtitle/status display now also uses the same display-state normalization path for consistent on-screen vs copied placeholder semantics.
 - Windows shell contract tests now pin adapter-evidence show/hide toggle transitions (panel visibility and row-style collapse/expand wiring) to prevent UI regressions in the evidence panel.
 - Windows shell contract tests now pin wrapper prompt title wording (`WeftEnd Scan`) to prevent regression back to run-first/safe-run operator prompt text.
+- Windows shell contract tests now also pin install/uninstall completion text to scan-first wording for context-menu lifecycle consistency.
 - Launchpad Doctor tab action buttons now sit in a horizontally scrollable single-row strip, so the far-right buttons remain reachable at narrow Launchpad widths.
 - Doctor action row height was increased to avoid clipping when the horizontal scrollbar is shown.
 - Launchpad Doctor action strip now explicitly suppresses vertical scrolling (`VerticalScroll=disabled`) so only left/right scrolling is presented.
