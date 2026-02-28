@@ -49,17 +49,22 @@ const findRunDir = (libraryRoot: string): string => {
   return path.join(targetDir, runs[0]);
 };
 
-const suite = (name: string, fn: () => Promise<void> | void) => {
-  Promise.resolve()
-    .then(fn)
-    .then(() => console.log(`ok - ${name}`))
-    .catch((err) => {
-      console.error(`not ok - ${name}`);
-      throw err;
-    });
-};
+const g: any = globalThis as any;
+const hasBDD = typeof g.describe === "function" && typeof g.it === "function";
+const localTests: Array<{ name: string; fn: () => Promise<void> | void }> = [];
 
-suite("auto scan post-install trigger runs once", async () => {
+function register(name: string, fn: () => Promise<void> | void): void {
+  if (hasBDD) g.it(name, fn);
+  else localTests.push({ name, fn });
+}
+
+function suite(name: string, define: () => void): void {
+  if (hasBDD) g.describe(name, define);
+  else define();
+}
+
+suite("cli/auto_scan_post_install", () => {
+register("auto scan post-install trigger runs once", async () => {
   const root = makeTempDir();
   const target = path.join(root, "input");
   fs.mkdirSync(target, { recursive: true });
@@ -73,3 +78,23 @@ suite("auto scan post-install trigger runs once", async () => {
   const triggerPath = path.join(runDir, "watch_trigger.txt");
   assert(fs.existsSync(triggerPath), "watch_trigger.txt missing");
 });
+});
+
+if (!hasBDD) {
+  (async () => {
+    for (const t of localTests) {
+      try {
+        await t.fn();
+        console.log(`ok - ${t.name}`);
+      } catch (e: any) {
+        console.error(`not ok - ${t.name}`);
+        const detail = e?.message ? `\n${e.message}` : "";
+        throw new Error(`auto_scan_post_install.test.ts: ${t.name} failed${detail}`);
+      }
+    }
+  })().catch((e) => {
+    setTimeout(() => {
+      throw e;
+    }, 0);
+  });
+}

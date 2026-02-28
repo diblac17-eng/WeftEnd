@@ -615,6 +615,8 @@ Included
 - `auto_scan_on_change` smoke test now forces deterministic poll mode (`WEFTEND_WATCH_FORCE_POLL=1`, bounded poll interval), waits for watcher startup signal before mutating inputs, and uses a bounded longer timeout to avoid host watcher startup race flake in release-gate runs.
 - `auto_scan_on_change` smoke test now delays mutation briefly after watcher-ready signal so changes occur after poll baseline capture, removing startup-order race during watch trigger validation.
 - `auto_scan_on_change` smoke tests now run through the standard sequential local harness (instead of parallel promise launch), removing cross-test concurrency races in watch-lane validation.
+- `auto_scan_post_install` and `auto_scan_scheduled` smoke tests now also use the standard sequential local harness (instead of parallel promise launch), removing cross-test concurrency races in watch-lane validation.
+- `auto_scan_scheduled` smoke test now waits for watcher startup signal before delayed mutation and uses bounded longer timeout, aligning poll-lane trigger validation with deterministic startup ordering.
 
 Validation
 - npm run compile --silent: pass

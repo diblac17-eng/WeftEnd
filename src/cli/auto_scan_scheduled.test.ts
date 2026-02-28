@@ -19,6 +19,7 @@ const runWatchOnce = async (options: {
   target: string;
   outRoot: string;
   env?: Record<string, string>;
+  onReady?: () => void;
 }): Promise<number> =>
   new Promise((resolve, reject) => {
     const mainPath = path.join(process.cwd(), "dist", "src", "cli", "main.js");
@@ -31,7 +32,33 @@ const runWatchOnce = async (options: {
       WEFTEND_WATCH_POLL_INTERVAL_MS: "250",
       ...(options.env || {}),
     };
-    const child = spawn(process.execPath, args, { env, stdio: "ignore" });
+    const child = spawn(process.execPath, args, { env, stdio: ["ignore", "pipe", "pipe"] });
+    let readyTriggered = false;
+    let stdoutBuf = "";
+    const triggerReady = () => {
+      if (readyTriggered) return;
+      readyTriggered = true;
+      try {
+        options.onReady?.();
+      } catch {
+        // ignore callback errors here; assertions happen in test body
+      }
+    };
+    if (child.stdout) {
+      child.stdout.on("data", (chunk: any) => {
+        const text = String(chunk || "");
+        stdoutBuf += text;
+        if (stdoutBuf.includes("WATCH start")) {
+          triggerReady();
+        }
+      });
+    }
+    if (child.stderr) {
+      child.stderr.on("data", () => undefined);
+    }
+    const readyFallbackTimer = setTimeout(() => {
+      triggerReady();
+    }, 2000);
     const timer = setTimeout(() => {
       try {
         child.kill();
@@ -39,8 +66,9 @@ const runWatchOnce = async (options: {
         // ignore
       }
       reject(new Error("watch poll timeout"));
-    }, 12000);
+    }, 20000);
     child.on("exit", (code: number | null) => {
+      clearTimeout(readyFallbackTimer);
       clearTimeout(timer);
       resolve(code ?? 1);
     });
@@ -55,27 +83,37 @@ const findRunDir = (libraryRoot: string): string => {
   return path.join(targetDir, runs[0]);
 };
 
-const suite = (name: string, fn: () => Promise<void> | void) => {
-  Promise.resolve()
-    .then(fn)
-    .then(() => console.log(`ok - ${name}`))
-    .catch((err) => {
-      console.error(`not ok - ${name}`);
-      throw err;
-    });
-};
+const g: any = globalThis as any;
+const hasBDD = typeof g.describe === "function" && typeof g.it === "function";
+const localTests: Array<{ name: string; fn: () => Promise<void> | void }> = [];
 
-suite("auto scan poll mode triggers safe-run", async () => {
+function register(name: string, fn: () => Promise<void> | void): void {
+  if (hasBDD) g.it(name, fn);
+  else localTests.push({ name, fn });
+}
+
+function suite(name: string, define: () => void): void {
+  if (hasBDD) g.describe(name, define);
+  else define();
+}
+
+suite("cli/auto_scan_scheduled", () => {
+register("auto scan poll mode triggers safe-run", async () => {
   const root = makeTempDir();
   const target = path.join(root, "input");
   fs.mkdirSync(target, { recursive: true });
   const filePath = path.join(target, "sample.txt");
   fs.writeFileSync(filePath, "alpha", "utf8");
 
-  const watchPromise = runWatchOnce({ target, outRoot: root });
-  setTimeout(() => {
-    fs.writeFileSync(filePath, "alpha beta", "utf8");
-  }, 400);
+  const watchPromise = runWatchOnce({
+    target,
+    outRoot: root,
+    onReady: () => {
+      setTimeout(() => {
+        fs.writeFileSync(filePath, "alpha beta", "utf8");
+      }, 600);
+    },
+  });
 
   const exitCode = await watchPromise;
   assert(exitCode === 0, `expected watch exit 0, got ${exitCode}`);
@@ -88,3 +126,23 @@ suite("auto scan poll mode triggers safe-run", async () => {
   const text = fs.readFileSync(triggerPath, "utf8");
   assert(text.includes("watchMode=POLL"), "expected poll watchMode");
 });
+});
+
+if (!hasBDD) {
+  (async () => {
+    for (const t of localTests) {
+      try {
+        await t.fn();
+        console.log(`ok - ${t.name}`);
+      } catch (e: any) {
+        console.error(`not ok - ${t.name}`);
+        const detail = e?.message ? `\n${e.message}` : "";
+        throw new Error(`auto_scan_scheduled.test.ts: ${t.name} failed${detail}`);
+      }
+    }
+  })().catch((e) => {
+    setTimeout(() => {
+      throw e;
+    }, 0);
+  });
+}
