@@ -85,6 +85,8 @@ suite("greenteam/verify360-docs-sync-contract", () => {
     assert(text.includes("VERIFY360_TEST_CONTRACT_MISSING"), "verify_360 test-contract fail code missing");
     assert(text.includes("VERIFY360_TEST_SCRIPT_MISSING"), "verify_360 missing-test-script fail code missing");
     assert(text.includes("VERIFY360_TEST_SCRIPT_UNREADABLE"), "verify_360 unreadable-test-script fail code missing");
+    assert(text.includes("VERIFY360_PROOFCHECK_CONTRACT_MISSING"), "verify_360 proofcheck-contract fail code missing");
+    assert(text.includes("VERIFY360_PROOFCHECK_SCRIPT_UNREADABLE"), "verify_360 unreadable-proofcheck-script fail code missing");
     assert(
       text.includes("node dist/src/runtime/strict/strict_executor.test.js"),
       "verify_360 test-contract must pin strict executor coverage token"
@@ -92,6 +94,14 @@ suite("greenteam/verify360-docs-sync-contract", () => {
     assert(
       text.includes("node dist/src/runtime/examiner/examine_determinism.test.js"),
       "verify_360 test-contract must pin examiner determinism coverage token"
+    );
+    assert(
+      text.includes("dist/src/runtime/strict/strict_executor.test.js"),
+      "verify_360 proofcheck-contract must pin strict executor coverage token"
+    );
+    assert(
+      text.includes("dist/src/runtime/examiner/examine_determinism.test.js"),
+      "verify_360 proofcheck-contract must pin examiner determinism coverage token"
     );
   });
 

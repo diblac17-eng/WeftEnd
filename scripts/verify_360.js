@@ -30,6 +30,7 @@ const RUN_STATES = [
   "RECORDED",
 ];
 const CAPABILITY_REQUESTS = [
+  "proofcheck.test_contract",
   "package.test_contract",
   "cli.adapter_doctor",
   "cli.compare",
@@ -56,6 +57,17 @@ const REQUIRED_NPM_TEST_TOKENS = [
   "node dist/src/runtime/examiner/examine_golden.test.js",
   "node dist/src/runtime/examiner/intake_decision_v1_golden.test.js",
   "node dist/src/runtime/examiner/intake_decision_v1.test.js",
+];
+const REQUIRED_PROOFCHECK_TOKENS = [
+  "dist/src/runtime/strict/strict_executor.test.js",
+  "dist/src/runtime/probe/probe_strict_v0.test.js",
+  "dist/src/runtime/probe/probe_unhandled_rejection.test.js",
+  "dist/src/runtime/examiner/examine_determinism.test.js",
+  "dist/src/runtime/examiner/examine_caps_probe.test.js",
+  "dist/src/runtime/examiner/examine_external_refs.test.js",
+  "dist/src/runtime/examiner/examine_golden.test.js",
+  "dist/src/runtime/examiner/intake_decision_v1_golden.test.js",
+  "dist/src/runtime/examiner/intake_decision_v1.test.js",
 ];
 const VERIFY360_EXPLAIN_VERSION = "weftend.verify360Explain/0";
 const VERDICT_EXPLANATIONS = {
@@ -253,6 +265,35 @@ const readNpmTestContract = () => {
     return {
       ok: false,
       reasonCodes: ["VERIFY360_TEST_CONTRACT_MISSING"],
+      missing,
+    };
+  }
+  return {
+    ok: true,
+    reasonCodes: [],
+    missing: [],
+  };
+};
+
+const readProofcheckContract = () => {
+  const scriptPath = path.join(root, "scripts", "proofcheck.js");
+  let text = "";
+  try {
+    text = String(fs.readFileSync(scriptPath, "utf8"));
+  } catch {
+    return {
+      ok: false,
+      reasonCodes: ["VERIFY360_PROOFCHECK_SCRIPT_UNREADABLE"],
+      missing: [],
+    };
+  }
+  const missing = stableSortUnique(
+    REQUIRED_PROOFCHECK_TOKENS.filter((token) => !text.includes(token))
+  );
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      reasonCodes: ["VERIFY360_PROOFCHECK_CONTRACT_MISSING"],
       missing,
     };
   }
@@ -939,6 +980,24 @@ const main = () => {
       reasonCodes: testContract.reasonCodes,
       details: {
         missing: testContract.missing,
+      },
+    });
+  }
+  const proofcheckContract = readProofcheckContract();
+  recordCapability("proofcheck.test_contract", proofcheckContract.ok, proofcheckContract.reasonCodes);
+  if (proofcheckContract.ok) {
+    addStep({
+      id: "proofcheck_contract",
+      status: "PASS",
+      reasonCodes: [],
+    });
+  } else {
+    addStep({
+      id: "proofcheck_contract",
+      status: "FAIL",
+      reasonCodes: proofcheckContract.reasonCodes,
+      details: {
+        missing: proofcheckContract.missing,
       },
     });
   }
