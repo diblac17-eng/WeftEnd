@@ -310,6 +310,8 @@ suite("tools/windows shell assets", () => {
     const text = fs.readFileSync(launchpadPath, "utf8");
     assert(/function Sync-HistoryRowSnapshot/.test(text), "expected launchpad history row snapshot sync helper");
     assert(/function Open-ReportViewerFromHistory[\s\S]*?Sync-HistoryRowSnapshot -Item \$selected/.test(text), "report viewer history action must resync selected row");
+    assert(/function Open-ReportViewerFromHistory[\s\S]*?Write-LaunchpadUiError -Code "HISTORY_OPEN_REPORT_FAILED"/.test(text), "report viewer history action must write stable UI failure code");
+    assert(/function Open-ReportViewerFromHistory[\s\S]*?Failed to open report viewer\. Opened fallback folder\./.test(text), "report viewer history action must provide fallback-folder status message");
     assert(/function Open-HistoryRunFolder[\s\S]*?Sync-HistoryRowSnapshot -Item \$selected/.test(text), "run-folder history action must resync selected row");
     assert(/function Open-HistoryAdapterEvidenceFolder[\s\S]*?Sync-HistoryRowSnapshot -Item \$selected/.test(text), "adapter-evidence history action must resync selected row");
   });

@@ -2417,7 +2417,12 @@ function Open-ReportViewerFromHistory {
     $statusText = if ($latestRun -and $latestRun -ne "-") { "Opened report: " + $targetKey + " / " + $latestRun } else { "Opened report viewer: " + $targetKey }
     Set-StatusLine -StatusLabel $StatusLabel -Message $statusText -IsError $false
   } catch {
-    Set-StatusLine -StatusLabel $StatusLabel -Message "Failed to open report viewer." -IsError $true
+    Write-LaunchpadUiError -Code "HISTORY_OPEN_REPORT_FAILED"
+    $fallbackPath = if ($runDir -and (Test-Path -LiteralPath $runDir)) { $runDir } else { $targetDir }
+    $explorerPath = Join-Path $env:WINDIR "explorer.exe"
+    if (-not (Test-Path -LiteralPath $explorerPath)) { $explorerPath = "explorer.exe" }
+    Start-Process -FilePath $explorerPath -ArgumentList $fallbackPath | Out-Null
+    Set-StatusLine -StatusLabel $StatusLabel -Message "Failed to open report viewer. Opened fallback folder." -IsError $true
   }
 }
 
