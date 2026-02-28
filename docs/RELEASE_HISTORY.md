@@ -24,6 +24,7 @@ Current working entry (next publish)
   - verify:360 strict-gate contract tightening
   - report-card evidence/contract hardening
   - Windows wrapper/host path resolution hardening
+  - Launchpad Doctor UX/readability hardening
 - Validation baseline:
   - `npm run compile --silent`
   - `npm test`
