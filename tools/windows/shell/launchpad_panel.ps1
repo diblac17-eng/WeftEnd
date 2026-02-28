@@ -2976,6 +2976,10 @@ $launchActions.Dock = "Fill"
 $launchActions.FlowDirection = "LeftToRight"
 $launchActions.WrapContents = $false
 $launchActions.AutoScroll = $true
+$launchActions.HorizontalScroll.Enabled = $true
+$launchActions.HorizontalScroll.Visible = $true
+$launchActions.VerticalScroll.Enabled = $false
+$launchActions.VerticalScroll.Visible = $false
 $launchActions.BackColor = $colorBg
 $launchActions.Padding = New-Object System.Windows.Forms.Padding(0, 0, 6, 0)
 
@@ -3112,6 +3116,10 @@ $historyActions.Dock = "Fill"
 $historyActions.FlowDirection = "LeftToRight"
 $historyActions.WrapContents = $false
 $historyActions.AutoScroll = $true
+$historyActions.HorizontalScroll.Enabled = $true
+$historyActions.HorizontalScroll.Visible = $true
+$historyActions.VerticalScroll.Enabled = $false
+$historyActions.VerticalScroll.Visible = $false
 $historyActions.BackColor = $colorBg
 $historyActions.Padding = New-Object System.Windows.Forms.Padding(0, 0, 6, 0)
 

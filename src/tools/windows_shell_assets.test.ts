@@ -400,6 +400,8 @@ suite("tools/windows shell assets", () => {
     assert(/\$historyLayout\.RowStyles\.Add\(\(New-Object System\.Windows\.Forms\.RowStyle\(\[System\.Windows\.Forms\.SizeType\]::Absolute, 56\)\)\)/.test(text), "history actions row must reserve height for horizontal scrollbar");
     assert(/\$historyActions\.WrapContents = \$false/.test(text), "history actions row must stay single-line scroll strip");
     assert(/\$historyActions\.AutoScroll = \$true/.test(text), "history actions row must enable horizontal scrolling");
+    assert(/\$historyActions\.HorizontalScroll\.Enabled = \$true/.test(text), "history actions row must keep horizontal scroll enabled");
+    assert(/\$historyActions\.VerticalScroll\.Enabled = \$false/.test(text), "history actions row must suppress vertical scrolling");
   });
 
   register("launchpad main actions row is horizontally scrollable", () => {
@@ -408,6 +410,8 @@ suite("tools/windows shell assets", () => {
     assert(/\$launchLayout\.RowStyles\.Add\(\(New-Object System\.Windows\.Forms\.RowStyle\(\[System\.Windows\.Forms\.SizeType\]::Absolute, 56\)\)\)/.test(text), "launch actions row must reserve height for horizontal scrollbar");
     assert(/\$launchActions\.WrapContents = \$false/.test(text), "launch actions row must stay single-line scroll strip");
     assert(/\$launchActions\.AutoScroll = \$true/.test(text), "launch actions row must enable horizontal scrolling");
+    assert(/\$launchActions\.HorizontalScroll\.Enabled = \$true/.test(text), "launch actions row must keep horizontal scroll enabled");
+    assert(/\$launchActions\.VerticalScroll\.Enabled = \$false/.test(text), "launch actions row must suppress vertical scrolling");
   });
 
   register("launchpad history details keep latest-run logic separate from display token", () => {
