@@ -444,6 +444,7 @@ suite("tools/windows shell assets", () => {
     assert(/Update-HistoryDetailsBox/.test(panelText), "expected history details update helper");
     assert(/function Get-AutoRefreshStateToken/.test(panelText), "expected auto-refresh state token helper");
     assert(/Auto Refresh: /.test(panelText), "expected auto-refresh state line in history details");
+    assert(/\$historyDetail\.Text = \("Select a history row to view adapter evidence and capability summary\." \+ \[Environment\]::NewLine \+ "Auto Refresh: " \+ \(Get-AutoRefreshStateToken\)/.test(panelText), "expected initial history detail hint to include auto-refresh state");
     assert(/SelectedIndexChanged/.test(panelText), "expected history selection details wiring");
     assert(/\$chkAuto\.Add_CheckedChanged\(\{[\s\S]*?Update-HistoryDetailsBox -ListView \$historyList -DetailBox \$historyDetail/.test(panelText), "expected auto-refresh toggle to refresh history details text");
     assert(/Open-HistoryRunFolder/.test(panelText), "expected history open-run helper");
