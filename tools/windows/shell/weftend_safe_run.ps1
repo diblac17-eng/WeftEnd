@@ -1599,7 +1599,7 @@ function Show-ReportCardPopup {
     $form.Controls.Add($header)
 
     $title = New-Object System.Windows.Forms.Label
-    $title.Text = "WeftEnd Safe-Run"
+    $title.Text = "WeftEnd Scan"
     $title.ForeColor = $text
     $title.Font = New-Object System.Drawing.Font "Segoe UI Semibold", 10
     $title.AutoSize = $false
