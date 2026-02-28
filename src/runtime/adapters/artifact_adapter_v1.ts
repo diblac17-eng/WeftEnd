@@ -158,6 +158,26 @@ export interface AdapterDoctorItemV1 {
   reasonCodes: string[];
 }
 
+export interface AdapterDoctorHeadlineV1 {
+  status: "PASS" | "WARN" | "FAIL";
+  code: string;
+  light: "GREEN" | "YELLOW" | "RED" | "GRAY";
+}
+
+export interface AdapterDoctorSummaryV1 {
+  overall: "PASS" | "WARN" | "FAIL";
+  policy: "PASS" | "FAIL";
+  plugins: "PASS" | "WARN";
+  strict: "PASS" | "FAIL" | "OFF";
+}
+
+export interface AdapterDoctorLightsV1 {
+  overall: "GREEN" | "YELLOW" | "RED" | "GRAY";
+  policy: "GREEN" | "YELLOW" | "RED" | "GRAY";
+  plugins: "GREEN" | "YELLOW" | "RED" | "GRAY";
+  strict: "GREEN" | "YELLOW" | "RED" | "GRAY";
+}
+
 export interface AdapterDoctorReportV1 {
   schema: "weftend.adapterDoctor/0";
   schemaVersion: 0;
@@ -168,6 +188,13 @@ export interface AdapterDoctorReportV1 {
     invalidReasonCode?: string;
   };
   adapters: AdapterDoctorItemV1[];
+  headline?: AdapterDoctorHeadlineV1;
+  summary?: AdapterDoctorSummaryV1;
+  lights?: AdapterDoctorLightsV1;
+  strict?: {
+    status: "PASS" | "FAIL";
+    reasonCodes: string[];
+  };
 }
 
 export interface AdapterMaintenanceStatusV1 {
