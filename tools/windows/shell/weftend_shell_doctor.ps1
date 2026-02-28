@@ -13,8 +13,21 @@ $configKey = "HKCU:\Software\WeftEnd\Shell"
 function Read-RegistryValue {
   param([string]$Path, [string]$Name)
   try {
-    $item = Get-ItemProperty -Path $Path -Name $Name -ErrorAction Stop
-    return $item.$Name
+    $regPath = $Path
+    if ($Path.StartsWith("HKCU:\")) {
+      $regPath = $Path.Substring(6)
+    }
+    $root = [Microsoft.Win32.Registry]::CurrentUser
+    $subKey = $root.OpenSubKey($regPath)
+    if (-not $subKey) { return $null }
+    $value = $subKey.GetValue($Name, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+    $subKey.Close()
+    if ($null -eq $value) { return $null }
+    if ($value -is [System.Array]) {
+      if ($value.Count -le 0) { return $null }
+      return [string]$value[0]
+    }
+    return [string]$value
   } catch {
     return $null
   }
@@ -69,6 +82,20 @@ function Check-CommandKey {
   $status = if ($ok) { "OK" } else { "BAD" }
   $redacted = Redact-Command -CommandText $cmd
   Write-Host "${Label}: ${status} (${Token}) command=""$redacted"""
+  return $ok
+}
+
+function Check-MenuVerbValue {
+  param([string]$Label, [string]$KeyPath, [string]$ExpectedVerb)
+  $actual = Read-RegistryValue -Path $KeyPath -Name "MUIVerb"
+  if (-not $actual -or [string]$actual -eq "") {
+    Write-Host "${Label}: BAD (missing MUIVerb)"
+    return $false
+  }
+  $actualText = [string]$actual
+  $ok = $actualText -eq [string]$ExpectedVerb
+  $status = if ($ok) { "OK" } else { "BAD" }
+  Write-Host "${Label}: ${status} expected=""$ExpectedVerb"" actual=""$actualText"""
   return $ok
 }
 
@@ -249,6 +276,28 @@ $lnkBindKey = "HKCU:\Software\Classes\lnkfile\shell\WeftEndBind\command"
 $lnkUnbindKey = "HKCU:\Software\Classes\lnkfile\shell\WeftEndUnbind\command"
 $dirBindKey = "HKCU:\Software\Classes\Directory\shell\WeftEndBind\command"
 $dirUnbindKey = "HKCU:\Software\Classes\Directory\shell\WeftEndUnbind\command"
+$starVerbKey = "HKCU:\Software\Classes\*\shell\WeftEndSafeRun"
+$lnkVerbKey = "HKCU:\Software\Classes\lnkfile\shell\WeftEndSafeRun"
+$dirVerbKey = "HKCU:\Software\Classes\Directory\shell\WeftEndSafeRun"
+$dirBgVerbKey = "HKCU:\Software\Classes\Directory\Background\shell\WeftEndSafeRun"
+$zipVerbKey = "HKCU:\Software\Classes\SystemFileAssociations\.zip\shell\WeftEndSafeRun"
+$emlVerbKey = "HKCU:\Software\Classes\SystemFileAssociations\.eml\shell\WeftEndSafeRun"
+$mboxVerbKey = "HKCU:\Software\Classes\SystemFileAssociations\.mbox\shell\WeftEndSafeRun"
+$msgVerbKey = "HKCU:\Software\Classes\SystemFileAssociations\.msg\shell\WeftEndSafeRun"
+$starOpenVerbKey = "HKCU:\Software\Classes\*\shell\WeftEndSafeRunOpenLibrary"
+$lnkOpenVerbKey = "HKCU:\Software\Classes\lnkfile\shell\WeftEndSafeRunOpenLibrary"
+$dirOpenVerbKey = "HKCU:\Software\Classes\Directory\shell\WeftEndSafeRunOpenLibrary"
+$dirBgOpenVerbKey = "HKCU:\Software\Classes\Directory\Background\shell\WeftEndSafeRunOpenLibrary"
+$zipOpenVerbKey = "HKCU:\Software\Classes\SystemFileAssociations\.zip\shell\WeftEndSafeRunOpenLibrary"
+$emlOpenVerbKey = "HKCU:\Software\Classes\SystemFileAssociations\.eml\shell\WeftEndSafeRunOpenLibrary"
+$mboxOpenVerbKey = "HKCU:\Software\Classes\SystemFileAssociations\.mbox\shell\WeftEndSafeRunOpenLibrary"
+$msgOpenVerbKey = "HKCU:\Software\Classes\SystemFileAssociations\.msg\shell\WeftEndSafeRunOpenLibrary"
+$starBindVerbKey = "HKCU:\Software\Classes\*\shell\WeftEndBind"
+$starUnbindVerbKey = "HKCU:\Software\Classes\*\shell\WeftEndUnbind"
+$lnkBindVerbKey = "HKCU:\Software\Classes\lnkfile\shell\WeftEndBind"
+$lnkUnbindVerbKey = "HKCU:\Software\Classes\lnkfile\shell\WeftEndUnbind"
+$dirBindVerbKey = "HKCU:\Software\Classes\Directory\shell\WeftEndBind"
+$dirUnbindVerbKey = "HKCU:\Software\Classes\Directory\shell\WeftEndUnbind"
 
 if (-not (Check-CommandKey -Label "STAR_FILE_CMD" -KeyPath $starKey -Token "%1")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "LNK_FILE_CMD" -KeyPath $lnkKey -Token "%1")) { $allOk = $false }
@@ -272,6 +321,28 @@ if (-not (Check-CommandKey -Label "LNK_BIND" -KeyPath $lnkBindKey -Token "-Actio
 if (-not (Check-CommandKey -Label "LNK_UNBIND" -KeyPath $lnkUnbindKey -Token "-Action unbind")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "DIR_BIND" -KeyPath $dirBindKey -Token "-Action bind")) { $allOk = $false }
 if (-not (Check-CommandKey -Label "DIR_UNBIND" -KeyPath $dirUnbindKey -Token "-Action unbind")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "STAR_FILE_VERB" -KeyPath $starVerbKey -ExpectedVerb "Scan with WeftEnd")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "LNK_FILE_VERB" -KeyPath $lnkVerbKey -ExpectedVerb "Scan with WeftEnd")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "DIR_VERB" -KeyPath $dirVerbKey -ExpectedVerb "Scan with WeftEnd")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "DIR_BG_VERB" -KeyPath $dirBgVerbKey -ExpectedVerb "Scan with WeftEnd")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "ZIP_VERB" -KeyPath $zipVerbKey -ExpectedVerb "Scan with WeftEnd")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "EML_VERB" -KeyPath $emlVerbKey -ExpectedVerb "Scan with WeftEnd")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "MBOX_VERB" -KeyPath $mboxVerbKey -ExpectedVerb "Scan with WeftEnd")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "MSG_VERB" -KeyPath $msgVerbKey -ExpectedVerb "Scan with WeftEnd")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "STAR_FILE_OPEN_LIB_VERB" -KeyPath $starOpenVerbKey -ExpectedVerb "Scan with WeftEnd (Open Library)")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "LNK_FILE_OPEN_LIB_VERB" -KeyPath $lnkOpenVerbKey -ExpectedVerb "Scan with WeftEnd (Open Library)")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "DIR_OPEN_LIB_VERB" -KeyPath $dirOpenVerbKey -ExpectedVerb "Scan with WeftEnd (Open Library)")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "DIR_BG_OPEN_LIB_VERB" -KeyPath $dirBgOpenVerbKey -ExpectedVerb "Scan with WeftEnd (Open Library)")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "ZIP_OPEN_LIB_VERB" -KeyPath $zipOpenVerbKey -ExpectedVerb "Scan with WeftEnd (Open Library)")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "EML_OPEN_LIB_VERB" -KeyPath $emlOpenVerbKey -ExpectedVerb "Scan with WeftEnd (Open Library)")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "MBOX_OPEN_LIB_VERB" -KeyPath $mboxOpenVerbKey -ExpectedVerb "Scan with WeftEnd (Open Library)")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "MSG_OPEN_LIB_VERB" -KeyPath $msgOpenVerbKey -ExpectedVerb "Scan with WeftEnd (Open Library)")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "STAR_BIND_VERB" -KeyPath $starBindVerbKey -ExpectedVerb "Bind to WeftEnd")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "STAR_UNBIND_VERB" -KeyPath $starUnbindVerbKey -ExpectedVerb "Unbind from WeftEnd")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "LNK_BIND_VERB" -KeyPath $lnkBindVerbKey -ExpectedVerb "Bind to WeftEnd")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "LNK_UNBIND_VERB" -KeyPath $lnkUnbindVerbKey -ExpectedVerb "Unbind from WeftEnd")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "DIR_BIND_VERB" -KeyPath $dirBindVerbKey -ExpectedVerb "Bind to WeftEnd")) { $allOk = $false }
+if (-not (Check-MenuVerbValue -Label "DIR_UNBIND_VERB" -KeyPath $dirUnbindVerbKey -ExpectedVerb "Unbind from WeftEnd")) { $allOk = $false }
 
 $startMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
 $desktopDir = [Environment]::GetFolderPath("Desktop")

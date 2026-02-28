@@ -89,6 +89,8 @@ Included
 - Shell doctor now supports `-RepairShortcuts` to repair Start Menu WeftEnd shortcuts (and update existing desktop WeftEnd shortcuts when present) to the configured repo script paths.
 - `tools/windows/INSTALL_WINDOWS.cmd` now runs `weftend_shell_doctor.ps1 -RepairShortcuts` before strict shell doctor validation so clean installs self-heal stale shortcut wiring before fail-closed checks.
 - Shell doctor now validates Launchpad/Download shortcut wiring (`STARTMENU_*` required, `DESKTOP_*` optional) and fails closed on required shortcut mismatch.
+- Shell doctor now also validates context-menu `MUIVerb` labels for scan/open-library/bind/unbind verbs and fails closed on verb-text drift from expected operator wording.
+- Shell doctor registry value reads now use literal Win32 key access for wildcard registry paths (for example `HKCU:\Software\Classes\*\...`), preventing false duplicate-verb reads during label checks.
 - Shell doctor Download shortcut repair/check now matches installer wiring (`tools/windows/open_release_folder.ps1 -BuildIfMissing`) to prevent false mismatch failures.
 - Shell doctor shortcut validation now requires exact target host-path match (no bare `powershell.exe` acceptance when full path is expected), tightening stale-shortcut drift detection.
 - Launchpad Doctor tab now includes a `Repair Shortcuts` action wired to shell doctor shortcut repair mode.

@@ -224,6 +224,14 @@ suite("tools/windows shell assets", () => {
     assert(/if \(-not \$repairOk\) \{ exit 40 \}/.test(text), "expected shell doctor repair mode to fail closed on write failure");
     assert(/ShellDoctorStatus: PASS/.test(text), "expected shell doctor deterministic pass status line");
     assert(/SHELL_DOCTOR_CONFIG_INVALID/.test(text), "expected shell doctor deterministic config-failure code");
+    assert(/function Check-MenuVerbValue/.test(text), "expected shell doctor menu-verb checker");
+    assert(/Read-RegistryValue -Path \$KeyPath -Name "MUIVerb"/.test(text), "expected shell doctor to read MUIVerb labels");
+    assert(/function Read-RegistryValue[\s\S]*OpenSubKey/.test(text), "expected shell doctor registry reads to use literal Win32 key access");
+    assert(!/function Read-RegistryValue[\s\S]*Get-ItemProperty -Path/.test(text), "shell doctor registry reads must avoid wildcard-expanding Get-ItemProperty");
+    assert(/Scan with WeftEnd/.test(text), "expected shell doctor scan-first verb expectation");
+    assert(/Scan with WeftEnd \(Open Library\)/.test(text), "expected shell doctor open-library scan verb expectation");
+    assert(/Bind to WeftEnd/.test(text), "expected shell doctor bind verb expectation");
+    assert(/Unbind from WeftEnd/.test(text), "expected shell doctor unbind verb expectation");
     assert(/HKCU:\\Software\\WeftEnd\\Shell/.test(text), "expected config registry key");
     assert(/HKCU:\\Software\\Classes\\\*\\shell\\WeftEndSafeRun\\command/.test(text), "expected star command key");
     assert(/HKCU:\\Software\\Classes\\lnkfile\\shell\\WeftEndSafeRun\\command/.test(text), "expected lnk command key");
