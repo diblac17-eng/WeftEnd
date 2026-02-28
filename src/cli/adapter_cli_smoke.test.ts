@@ -217,6 +217,9 @@ const run = async (): Promise<void> => {
     const res = await runCliCapture(["adapter", "doctor", "--text"]);
     assertEq(res.status, 0, `adapter doctor --text should succeed\n${res.stderr}`);
     assert(res.stdout.includes("WEFTEND ADAPTER DOCTOR"), "adapter doctor --text should print header");
+    assert(res.stdout.includes("AdapterDoctorStatus: "), "adapter doctor --text should print top-level status line");
+    assert(res.stdout.includes("AdapterDoctorCode: "), "adapter doctor --text should print top-level code line");
+    assert(res.stdout.includes("AdapterDoctorLight: "), "adapter doctor --text should print top-level light line");
     assert(res.stdout.includes("summary:"), "adapter doctor --text should print summary section");
     assert(res.stdout.includes("doctor.lights:"), "adapter doctor --text should print traffic-light section");
     assert(res.stdout.includes("status.lines:"), "adapter doctor --text should print status-lines section");
@@ -229,6 +232,7 @@ const run = async (): Promise<void> => {
       env: { WEFTEND_ADAPTER_DISABLE: "all", WEFTEND_ADAPTER_DISABLE_FILE: undefined },
     });
     assertEq(res.status, 0, `adapter doctor --text --strict should pass when adapters are intentionally disabled\n${res.stderr}`);
+    assert(res.stdout.includes("AdapterDoctorCode: ADAPTER_DOCTOR_OK"), "strict PASS text output should include deterministic OK code");
     assert(res.stdout.includes("strict.status=PASS"), "strict doctor text output should include PASS status");
     assert(res.stdout.includes("[PASS] strict.reasons=-"), "strict PASS text output should include PASS status line");
   }
@@ -320,6 +324,10 @@ const run = async (): Promise<void> => {
       env: { WEFTEND_ADAPTER_DISABLE: "all,invalid_lane" },
     });
     assertEq(res.status, 40, "adapter doctor --text --strict should fail closed on unknown policy tokens");
+    assert(
+      res.stdout.includes("AdapterDoctorCode: ADAPTER_DOCTOR_STRICT_POLICY_UNKNOWN_TOKEN"),
+      "strict FAIL text output should include deterministic strict fail code"
+    );
     assert(res.stdout.includes("strict.status=FAIL"), "strict text output should include FAIL status");
     assert(
       res.stdout.includes("ADAPTER_DOCTOR_STRICT_POLICY_UNKNOWN_TOKEN"),

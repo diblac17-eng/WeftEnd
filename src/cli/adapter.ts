@@ -106,6 +106,21 @@ const toLightToken = (state: "PASS" | "WARN" | "FAIL" | "OFF"): "GREEN" | "YELLO
   return "GRAY";
 };
 
+const deriveDoctorCode = (params: {
+  strictMode: boolean;
+  strictReasons: string[];
+  invalidReason: string;
+  unknownTokens: string[];
+  missingPluginAdapters: string[];
+}): string => {
+  const strictReasons = Array.isArray(params.strictReasons) ? params.strictReasons : [];
+  if (params.strictMode && strictReasons.length > 0) return strictReasons[0];
+  if (params.invalidReason) return params.invalidReason;
+  if (Array.isArray(params.unknownTokens) && params.unknownTokens.length > 0) return "ADAPTER_DOCTOR_POLICY_UNKNOWN_TOKEN";
+  if (Array.isArray(params.missingPluginAdapters) && params.missingPluginAdapters.length > 0) return "ADAPTER_DOCTOR_MISSING_PLUGIN";
+  return "ADAPTER_DOCTOR_OK";
+};
+
 export const runAdapterCli = (args: string[]): number => {
   const command = String(args[0] || "").trim().toLowerCase();
   let textMode = false;
@@ -207,7 +222,17 @@ export const runAdapterCli = (args: string[]): number => {
     const pluginState: "PASS" | "WARN" = missingPluginAdapters.length > 0 ? "WARN" : "PASS";
     const overallState: "PASS" | "WARN" | "FAIL" =
       policyState === "FAIL" || strictState === "FAIL" ? "FAIL" : pluginState === "WARN" ? "WARN" : "PASS";
+    const doctorCode = deriveDoctorCode({
+      strictMode,
+      strictReasons,
+      invalidReason,
+      unknownTokens,
+      missingPluginAdapters,
+    });
     lines.push("WEFTEND ADAPTER DOCTOR");
+    lines.push(`AdapterDoctorStatus: ${overallState}`);
+    lines.push(`AdapterDoctorCode: ${doctorCode}`);
+    lines.push(`AdapterDoctorLight: ${toLightToken(overallState)}`);
     lines.push("summary:");
     lines.push(`  overall=${overallState}`);
     lines.push(`  policy=${policyState}`);
