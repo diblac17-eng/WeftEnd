@@ -57,6 +57,9 @@ const REQUIRED_NPM_TEST_TOKENS = [
   "node dist/src/runtime/examiner/examine_golden.test.js",
   "node dist/src/runtime/examiner/intake_decision_v1_golden.test.js",
   "node dist/src/runtime/examiner/intake_decision_v1.test.js",
+  "node dist/src/cli/auto_scan_on_change.test.js",
+  "node dist/src/cli/auto_scan_post_install.test.js",
+  "node dist/src/cli/auto_scan_scheduled.test.js",
 ];
 const REQUIRED_PROOFCHECK_TOKENS = [
   "dist/src/runtime/strict/strict_executor.test.js",
@@ -68,6 +71,9 @@ const REQUIRED_PROOFCHECK_TOKENS = [
   "dist/src/runtime/examiner/examine_golden.test.js",
   "dist/src/runtime/examiner/intake_decision_v1_golden.test.js",
   "dist/src/runtime/examiner/intake_decision_v1.test.js",
+  "dist/src/cli/auto_scan_on_change.test.js",
+  "dist/src/cli/auto_scan_post_install.test.js",
+  "dist/src/cli/auto_scan_scheduled.test.js",
 ];
 const VERIFY360_EXPLAIN_VERSION = "weftend.verify360Explain/0";
 const VERDICT_EXPLANATIONS = {

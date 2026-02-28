@@ -60,6 +60,9 @@ const REQUIRED_NPM_TEST_TOKENS = [
   "node dist/src/runtime/examiner/examine_golden.test.js",
   "node dist/src/runtime/examiner/intake_decision_v1_golden.test.js",
   "node dist/src/runtime/examiner/intake_decision_v1.test.js",
+  "node dist/src/cli/auto_scan_on_change.test.js",
+  "node dist/src/cli/auto_scan_post_install.test.js",
+  "node dist/src/cli/auto_scan_scheduled.test.js",
 ];
 
 const REQUIRED_PROOFCHECK_TOKENS = [
@@ -72,6 +75,9 @@ const REQUIRED_PROOFCHECK_TOKENS = [
   "dist/src/runtime/examiner/examine_golden.test.js",
   "dist/src/runtime/examiner/intake_decision_v1_golden.test.js",
   "dist/src/runtime/examiner/intake_decision_v1.test.js",
+  "dist/src/cli/auto_scan_on_change.test.js",
+  "dist/src/cli/auto_scan_post_install.test.js",
+  "dist/src/cli/auto_scan_scheduled.test.js",
 ];
 
 suite("greenteam/verify360-docs-sync-contract", () => {
