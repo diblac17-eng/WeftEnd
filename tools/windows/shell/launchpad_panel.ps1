@@ -1063,7 +1063,7 @@ function Build-AdapterDoctorPanelText {
   $header += ""
   $header += "status.lines:"
   $header += ("  [" + $overall + "] overall")
-  $strictSignal = if ($strictStatus -eq "FAIL") { "FAIL" } elseif ($strictStatus -eq "PASS") { "PASS" } elseif ($strictStatus -eq "OFF") { "WARN" } else { "UNKNOWN" }
+  $strictSignal = if ($strictStatus -eq "FAIL") { "FAIL" } elseif ($strictStatus -eq "PASS") { "PASS" } elseif ($strictStatus -eq "OFF") { "OFF" } else { "UNKNOWN" }
   $header += ("  [" + $strictSignal + "] strict.status=" + $strictStatus)
   if ($strictReasons -and $strictReasons -ne "-") {
     $strictReasonsSignal = if ($strictStatus -eq "FAIL") { "FAIL" } else { "WARN" }
