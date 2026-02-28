@@ -89,6 +89,7 @@ Included
 - Launchpad History action buttons now also use a horizontally scrollable single-row strip to prevent right-side button clipping at narrow Launchpad widths.
 - History action row height was increased to avoid clipping when the horizontal scrollbar is shown.
 - Launchpad History details now keep latest-run resolution logic separate from display tokens, so `LATEST_UNAVAILABLE` is used only for rendered text and not as an internal run-id input.
+- Windows shell contract tests now pin Launchpad snapshot-import routing to selected history target keys (button + drag/drop) and no-selection fail-closed behavior, preventing silent bucket-misroute regressions.
 - Shell doctor now supports `-RepairShortcuts` to repair Start Menu WeftEnd shortcuts (and update existing desktop WeftEnd shortcuts when present) to the configured repo script paths.
 - `tools/windows/INSTALL_WINDOWS.cmd` now runs `weftend_shell_doctor.ps1 -RepairShortcuts` before strict shell doctor validation so clean installs self-heal stale shortcut wiring before fail-closed checks.
 - Shell doctor now validates Launchpad/Download shortcut wiring (`STARTMENU_*` required, `DESKTOP_*` optional) and fails closed on required shortcut mismatch.

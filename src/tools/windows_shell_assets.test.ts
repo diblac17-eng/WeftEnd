@@ -364,6 +364,15 @@ suite("tools/windows shell assets", () => {
     assert(/function Open-HistoryAdapterEvidenceFolder[\s\S]*?Sync-HistoryRowSnapshot -Item \$selected/.test(text), "adapter-evidence history action must resync selected row");
   });
 
+  register("launchpad snapshot import routes through selected history target", () => {
+    const launchpadPath = path.join(shellDir, "launchpad_panel.ps1");
+    const text = fs.readFileSync(launchpadPath, "utf8");
+    assert(/\$btnHistorySnapshotImport\.Add_Click\(\{[\s\S]*?Import-HistorySnapshotReferenceFiles -ListView \$historyList -StatusLabel \$statusLabel/.test(text), "snapshot import button must invoke import flow with selected history list context");
+    assert(/\$historyDetail\.Add_DragDrop\(\{[\s\S]*?if \(-not \$historyList -or \$historyList\.SelectedItems\.Count -lt 1\)[\s\S]*?Select a history row before importing snapshots\./.test(text), "snapshot drag/drop must fail closed when no history row is selected");
+    assert(/\$historyDetail\.Add_DragDrop\(\{[\s\S]*?\$row = Sync-HistoryRowSnapshot -Item \$selected[\s\S]*?\$targetKey = \[string\]\$row\.targetKey[\s\S]*?Import-SnapshotReferencesFromPaths -TargetKey \$targetKey -InputPaths \$paths/.test(text), "snapshot drag/drop must import into the selected target key");
+    assert(/\$historyDetail\.Add_DragDrop\(\{[\s\S]*?Write-LaunchpadUiError -Code "HISTORY_SNAPSHOT_DRAGDROP_FAILED"/.test(text), "snapshot drag/drop failures must emit deterministic UI error code");
+  });
+
   register("launchpad doctor actions row is horizontally scrollable", () => {
     const launchpadPath = path.join(shellDir, "launchpad_panel.ps1");
     const text = fs.readFileSync(launchpadPath, "utf8");
