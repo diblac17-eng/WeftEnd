@@ -413,6 +413,8 @@ suite("tools/windows shell assets", () => {
     assert(/ReportViewerStartFailCount/.test(text), "expected report viewer startup failure counter");
     assert(/reportViewerDisableThreshold/.test(text), "expected report viewer disable threshold");
     assert(/reportViewerStartupFailures=/.test(text), "expected report viewer startup-failure diagnostics");
+    assert(/\$title\.Text = "WeftEnd Scan"/.test(text), "wrapper prompt title must use scan-first wording");
+    assert(!/\$title\.Text = "WeftEnd Safe-Run"/.test(text), "wrapper prompt title must not regress to safe-run wording");
     assert(/Start-Process -FilePath \$explorerPath/.test(text), "expected explorer open for output folder");
     assert(/AllowLaunch/.test(text), "expected AllowLaunch gate");
     assert(/Start-Process -FilePath \$effectiveLaunchPath/.test(text), "expected launch support");
