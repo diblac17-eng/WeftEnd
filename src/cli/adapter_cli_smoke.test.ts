@@ -211,6 +211,9 @@ const run = async (): Promise<void> => {
     const parsed = JSON.parse(res.stdout);
     assertEq(parsed.schema, "weftend.adapterDoctor/0", "adapter doctor schema mismatch");
     assert(Array.isArray(parsed.adapters), "adapter doctor adapters should be array");
+    assert(parsed.headline && typeof parsed.headline === "object", "adapter doctor JSON should include headline");
+    assert(parsed.summary && typeof parsed.summary === "object", "adapter doctor JSON should include summary states");
+    assert(parsed.lights && typeof parsed.lights === "object", "adapter doctor JSON should include light states");
   }
 
   {
@@ -246,6 +249,8 @@ const run = async (): Promise<void> => {
     assertEq(parsed.strict?.status, "PASS", "strict JSON status should be PASS");
     const reasonCodes = Array.isArray(parsed.strict?.reasonCodes) ? parsed.strict.reasonCodes : [];
     assertEq(reasonCodes.length, 0, "strict PASS should have empty reason codes");
+    assertEq(parsed.headline?.code, "ADAPTER_DOCTOR_OK", "strict PASS JSON headline should be deterministic OK");
+    assertEq(parsed.summary?.strict, "PASS", "strict PASS JSON summary.strict should be PASS");
   }
 
   {
@@ -313,6 +318,11 @@ const run = async (): Promise<void> => {
     assertEq(parsed.strict?.status, "FAIL", "strict JSON status should be FAIL");
     const reasonCodes = Array.isArray(parsed.strict?.reasonCodes) ? parsed.strict.reasonCodes : [];
     assert(reasonCodes.includes("ADAPTER_DOCTOR_STRICT_POLICY_UNKNOWN_TOKEN"), "strict JSON reason codes should include unknown-token code");
+    assertEq(
+      parsed.headline?.code,
+      "ADAPTER_DOCTOR_STRICT_POLICY_UNKNOWN_TOKEN",
+      "strict FAIL JSON headline should prioritize strict unknown-token code"
+    );
     assert(
       res.stderr.includes("ADAPTER_DOCTOR_STRICT_POLICY_UNKNOWN_TOKEN"),
       "strict doctor should report ADAPTER_DOCTOR_STRICT_POLICY_UNKNOWN_TOKEN"

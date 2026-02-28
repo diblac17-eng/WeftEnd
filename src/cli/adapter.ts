@@ -121,6 +121,50 @@ const deriveDoctorCode = (params: {
   return "ADAPTER_DOCTOR_OK";
 };
 
+const buildDoctorStatusSummary = (params: {
+  strictMode: boolean;
+  strictReasons: string[];
+  invalidReason: string;
+  unknownTokens: string[];
+  missingPluginAdapters: string[];
+}): {
+  states: { overall: "PASS" | "WARN" | "FAIL"; policy: "PASS" | "FAIL"; plugins: "PASS" | "WARN"; strict: "PASS" | "FAIL" | "OFF" };
+  lights: { overall: "GREEN" | "YELLOW" | "RED" | "GRAY"; policy: "GREEN" | "YELLOW" | "RED" | "GRAY"; plugins: "GREEN" | "YELLOW" | "RED" | "GRAY"; strict: "GREEN" | "YELLOW" | "RED" | "GRAY" };
+  headline: { status: "PASS" | "WARN" | "FAIL"; code: string; light: "GREEN" | "YELLOW" | "RED" | "GRAY" };
+} => {
+  const strictState: "PASS" | "FAIL" | "OFF" = params.strictMode ? (params.strictReasons.length > 0 ? "FAIL" : "PASS") : "OFF";
+  const policyState: "PASS" | "FAIL" = params.invalidReason || params.unknownTokens.length > 0 ? "FAIL" : "PASS";
+  const pluginState: "PASS" | "WARN" = params.missingPluginAdapters.length > 0 ? "WARN" : "PASS";
+  const overallState: "PASS" | "WARN" | "FAIL" =
+    policyState === "FAIL" || strictState === "FAIL" ? "FAIL" : pluginState === "WARN" ? "WARN" : "PASS";
+  const code = deriveDoctorCode({
+    strictMode: params.strictMode,
+    strictReasons: params.strictReasons,
+    invalidReason: params.invalidReason,
+    unknownTokens: params.unknownTokens,
+    missingPluginAdapters: params.missingPluginAdapters,
+  });
+  return {
+    states: {
+      overall: overallState,
+      policy: policyState,
+      plugins: pluginState,
+      strict: strictState,
+    },
+    lights: {
+      overall: toLightToken(overallState),
+      policy: toLightToken(policyState),
+      plugins: toLightToken(pluginState),
+      strict: toLightToken(strictState),
+    },
+    headline: {
+      status: overallState,
+      code,
+      light: toLightToken(overallState),
+    },
+  };
+};
+
 export const runAdapterCli = (args: string[]): number => {
   const command = String(args[0] || "").trim().toLowerCase();
   let textMode = false;
@@ -170,16 +214,39 @@ export const runAdapterCli = (args: string[]): number => {
   }
   const report = command === "doctor" ? runAdapterDoctorV1() : listAdaptersV1();
   const strictReasons = command === "doctor" && strictMode ? collectStrictReasonCodes(report) : [];
+  const unknownTokens = Array.isArray((report as any).policy?.unknownTokens) ? (report as any).policy.unknownTokens : [];
+  const invalidReason = String((report as any).policy?.invalidReasonCode || "");
+  const missingPluginAdapters = command === "doctor" ? collectMissingPluginAdapters(report) : [];
+  const doctorSummary =
+    command === "doctor"
+      ? buildDoctorStatusSummary({
+          strictMode,
+          strictReasons,
+          invalidReason,
+          unknownTokens,
+          missingPluginAdapters,
+        })
+      : null;
   const reportOut =
     command === "doctor" && strictMode
       ? {
           ...(report as any),
+          headline: doctorSummary?.headline,
+          summary: doctorSummary?.states,
+          lights: doctorSummary?.lights,
           strict: {
             status: strictReasons.length > 0 ? "FAIL" : "PASS",
             reasonCodes: strictReasons,
           },
         }
-      : report;
+      : command === "doctor"
+        ? {
+            ...(report as any),
+            headline: doctorSummary?.headline,
+            summary: doctorSummary?.states,
+            lights: doctorSummary?.lights,
+          }
+        : report;
   if (command === "doctor" && writePolicyPath.length > 0) {
     const outPathCheck = validatePolicyOutputPath(writePolicyPath);
     if (!outPathCheck.ok) {
@@ -213,36 +280,26 @@ export const runAdapterCli = (args: string[]): number => {
   }
   if (command === "doctor" && textMode) {
     const lines: string[] = [];
-    const unknownTokens = Array.isArray((report as any).policy?.unknownTokens) ? (report as any).policy.unknownTokens : [];
     const disabled = Array.isArray((report as any).policy?.disabledAdapters) ? (report as any).policy.disabledAdapters : [];
-    const invalidReason = String((report as any).policy?.invalidReasonCode || "");
-    const missingPluginAdapters = collectMissingPluginAdapters(report);
-    const strictState: "PASS" | "FAIL" | "OFF" = strictMode ? (strictReasons.length > 0 ? "FAIL" : "PASS") : "OFF";
-    const policyState: "PASS" | "FAIL" = invalidReason || unknownTokens.length > 0 ? "FAIL" : "PASS";
-    const pluginState: "PASS" | "WARN" = missingPluginAdapters.length > 0 ? "WARN" : "PASS";
-    const overallState: "PASS" | "WARN" | "FAIL" =
-      policyState === "FAIL" || strictState === "FAIL" ? "FAIL" : pluginState === "WARN" ? "WARN" : "PASS";
-    const doctorCode = deriveDoctorCode({
-      strictMode,
-      strictReasons,
-      invalidReason,
-      unknownTokens,
-      missingPluginAdapters,
-    });
+    const strictState = doctorSummary?.states.strict || "OFF";
+    const policyState = doctorSummary?.states.policy || "PASS";
+    const pluginState = doctorSummary?.states.plugins || "PASS";
+    const overallState = doctorSummary?.states.overall || "PASS";
+    const doctorCode = doctorSummary?.headline.code || "ADAPTER_DOCTOR_OK";
     lines.push("WEFTEND ADAPTER DOCTOR");
     lines.push(`AdapterDoctorStatus: ${overallState}`);
     lines.push(`AdapterDoctorCode: ${doctorCode}`);
-    lines.push(`AdapterDoctorLight: ${toLightToken(overallState)}`);
+    lines.push(`AdapterDoctorLight: ${doctorSummary?.headline.light || "GREEN"}`);
     lines.push("summary:");
     lines.push(`  overall=${overallState}`);
     lines.push(`  policy=${policyState}`);
     lines.push(`  plugins=${pluginState}`);
     lines.push(`  strict=${strictState}`);
     lines.push("doctor.lights:");
-    lines.push(`  overall=${toLightToken(overallState)}`);
-    lines.push(`  policy=${toLightToken(policyState)}`);
-    lines.push(`  plugins=${toLightToken(pluginState)}`);
-    lines.push(`  strict=${toLightToken(strictState)}`);
+    lines.push(`  overall=${doctorSummary?.lights.overall || "GREEN"}`);
+    lines.push(`  policy=${doctorSummary?.lights.policy || "GREEN"}`);
+    lines.push(`  plugins=${doctorSummary?.lights.plugins || "GREEN"}`);
+    lines.push(`  strict=${doctorSummary?.lights.strict || "GRAY"}`);
     lines.push("status.lines:");
     lines.push(
       `  [${policyState}] policy source=${String((report as any).policy?.source || "none")} disabled=${disabled.length > 0 ? disabled.join(",") : "-"} unknown=${unknownTokens.length > 0 ? unknownTokens.join(",") : "-"} invalid=${invalidReason || "-"}`
