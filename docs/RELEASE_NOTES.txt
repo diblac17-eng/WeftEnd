@@ -580,6 +580,8 @@ Included
 - Windows right-click analysis verbs are now scan-first in operator language:
 - `Scan with WeftEnd`
 - `Scan with WeftEnd (Open Library)`
+- Shell wrapper prompt title now uses scan-first wording (`WeftEnd Scan`) for operator-facing consistency with right-click verbs.
+- Shell install/uninstall scripts now also use scan-first operator text (`Installed/Uninstalled ... Scan context menu`) instead of Safe-Run wording.
 - .lnk rewrap mode preserves icon and stores an original shortcut backup for safe restoration.
 - Legacy metadata compatibility fixes prevent stale-state and strict-mode unbind failures.
 - Shell integration simplification: only WeftEnd Launchpad and WeftEnd Download shortcuts are installed by default.
