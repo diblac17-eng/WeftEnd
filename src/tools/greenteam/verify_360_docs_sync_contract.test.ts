@@ -50,6 +50,30 @@ const readText = (relPath: string): string => {
   return String(fs.readFileSync(full, "utf8"));
 };
 
+const REQUIRED_NPM_TEST_TOKENS = [
+  "node dist/src/runtime/strict/strict_executor.test.js",
+  "node dist/src/runtime/probe/probe_strict_v0.test.js",
+  "node dist/src/runtime/probe/probe_unhandled_rejection.test.js",
+  "node dist/src/runtime/examiner/examine_determinism.test.js",
+  "node dist/src/runtime/examiner/examine_caps_probe.test.js",
+  "node dist/src/runtime/examiner/examine_external_refs.test.js",
+  "node dist/src/runtime/examiner/examine_golden.test.js",
+  "node dist/src/runtime/examiner/intake_decision_v1_golden.test.js",
+  "node dist/src/runtime/examiner/intake_decision_v1.test.js",
+];
+
+const REQUIRED_PROOFCHECK_TOKENS = [
+  "dist/src/runtime/strict/strict_executor.test.js",
+  "dist/src/runtime/probe/probe_strict_v0.test.js",
+  "dist/src/runtime/probe/probe_unhandled_rejection.test.js",
+  "dist/src/runtime/examiner/examine_determinism.test.js",
+  "dist/src/runtime/examiner/examine_caps_probe.test.js",
+  "dist/src/runtime/examiner/examine_external_refs.test.js",
+  "dist/src/runtime/examiner/examine_golden.test.js",
+  "dist/src/runtime/examiner/intake_decision_v1_golden.test.js",
+  "dist/src/runtime/examiner/intake_decision_v1.test.js",
+];
+
 suite("greenteam/verify360-docs-sync-contract", () => {
   register("verify:360 constrains WEFTEND_360_OUT_ROOT to repo out/", () => {
     const text = readScript();
@@ -131,6 +155,28 @@ suite("greenteam/verify360-docs-sync-contract", () => {
     );
     assert(doc.includes("docs/RELEASE_NOTES.txt"), "posting etiquette doc missing release notes target");
     assert(doc.includes("docs/RELEASE_HISTORY.md"), "posting etiquette doc missing release history target");
+  });
+
+  register("package npm test script keeps strict/examiner baseline coverage tokens", () => {
+    const packageJson = JSON.parse(readText("package.json"));
+    const testScript = String(packageJson?.scripts?.test || "");
+    assert(testScript.length > 0, "package.json scripts.test missing");
+    REQUIRED_NPM_TEST_TOKENS.forEach((token) => {
+      assert(
+        testScript.includes(token),
+        `package.json scripts.test missing required strict/examiner coverage token: ${token}`
+      );
+    });
+  });
+
+  register("proofcheck script keeps strict/examiner release-proof coverage tokens", () => {
+    const proofcheck = readText("scripts/proofcheck.js");
+    REQUIRED_PROOFCHECK_TOKENS.forEach((token) => {
+      assert(
+        proofcheck.includes(token),
+        `scripts/proofcheck.js missing required strict/examiner coverage token: ${token}`
+      );
+    });
   });
 });
 

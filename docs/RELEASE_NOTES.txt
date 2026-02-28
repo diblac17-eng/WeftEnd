@@ -611,6 +611,10 @@ Included
 - `verify:360` now includes a fail-closed `test_contract` precheck step that validates required strict/probe/examiner coverage tokens remain present in `package.json` `npm test` script, preventing silent baseline-loop coverage drift.
 - `verify:360` now also includes a fail-closed `proofcheck_contract` precheck step that validates required strict/probe/examiner coverage tokens remain present in `scripts/proofcheck.js`, preventing coverage drift between baseline and release-proof loops.
 - Green Team `verify_360_docs_sync_contract` now also pins deterministic `verify:360` precheck step ids (`test_contract`, `proofcheck_contract`) and capability ledger entries (`package.test_contract`, `proofcheck.test_contract`) to prevent silent gate-step drift.
+- Green Team `verify_360_docs_sync_contract` now directly validates required strict/probe/examiner coverage tokens are present in both `package.json` `scripts.test` and `scripts/proofcheck.js`, preventing drift between baseline and release-proof test loops.
+- `auto_scan_on_change` smoke test now forces deterministic poll mode (`WEFTEND_WATCH_FORCE_POLL=1`, bounded poll interval), waits for watcher startup signal before mutating inputs, and uses a bounded longer timeout to avoid host watcher startup race flake in release-gate runs.
+- `auto_scan_on_change` smoke test now delays mutation briefly after watcher-ready signal so changes occur after poll baseline capture, removing startup-order race during watch trigger validation.
+- `auto_scan_on_change` smoke tests now run through the standard sequential local harness (instead of parallel promise launch), removing cross-test concurrency races in watch-lane validation.
 
 Validation
 - npm run compile --silent: pass

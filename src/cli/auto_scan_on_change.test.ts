@@ -22,6 +22,7 @@ const runWatchOnce = async (options: {
   outRoot: string;
   env?: Record<string, string>;
   debounceMs?: number;
+  onReady?: () => void;
 }): Promise<number> =>
   new Promise((resolve, reject) => {
     const mainPath = path.join(process.cwd(), "dist", "src", "cli", "main.js");
@@ -33,9 +34,37 @@ const runWatchOnce = async (options: {
       ...process.env,
       WEFTEND_WATCH_EXIT_AFTER_ONE: "1",
       WEFTEND_WATCH_DISABLE_POPUP: "1",
+      WEFTEND_WATCH_FORCE_POLL: "1",
+      WEFTEND_WATCH_POLL_INTERVAL_MS: "100",
       ...(options.env || {}),
     };
-    const child = spawn(process.execPath, args, { env, stdio: "ignore" });
+    const child = spawn(process.execPath, args, { env, stdio: ["ignore", "pipe", "pipe"] });
+    let readyTriggered = false;
+    let stdoutBuf = "";
+    const triggerReady = () => {
+      if (readyTriggered) return;
+      readyTriggered = true;
+      try {
+        options.onReady?.();
+      } catch {
+        // ignore test callback failures here; assertions happen in test body
+      }
+    };
+    if (child.stdout) {
+      child.stdout.on("data", (chunk: any) => {
+        const text = String(chunk || "");
+        stdoutBuf += text;
+        if (stdoutBuf.includes("WATCH start")) {
+          triggerReady();
+        }
+      });
+    }
+    if (child.stderr) {
+      child.stderr.on("data", () => undefined);
+    }
+    const readyFallbackTimer = setTimeout(() => {
+      triggerReady();
+    }, 2000);
     const timer = setTimeout(() => {
       try {
         child.kill();
@@ -43,8 +72,9 @@ const runWatchOnce = async (options: {
         // ignore
       }
       reject(new Error("watch timeout"));
-    }, 10000);
+    }, 20000);
     child.on("exit", (code: number | null) => {
+      clearTimeout(readyFallbackTimer);
       clearTimeout(timer);
       resolve(code ?? 1);
     });
@@ -59,27 +89,38 @@ const findRunDir = (libraryRoot: string): string => {
   return path.join(targetDir, runs[0]);
 };
 
-const suite = (name: string, fn: () => Promise<void> | void) => {
-  Promise.resolve()
-    .then(fn)
-    .then(() => console.log(`ok - ${name}`))
-    .catch((err) => {
-      console.error(`not ok - ${name}`);
-      throw err;
-    });
-};
+const g: any = globalThis as any;
+const hasBDD = typeof g.describe === "function" && typeof g.it === "function";
+const localTests: Array<{ name: string; fn: () => Promise<void> | void }> = [];
 
-suite("auto scan on change triggers safe-run", async () => {
+function register(name: string, fn: () => Promise<void> | void): void {
+  if (hasBDD) g.it(name, fn);
+  else localTests.push({ name, fn });
+}
+
+function suite(name: string, define: () => void): void {
+  if (hasBDD) g.describe(name, define);
+  else define();
+}
+
+suite("cli/auto_scan_on_change", () => {
+register("auto scan on change triggers safe-run", async () => {
   const root = makeTempDir();
   const target = path.join(root, "input");
   fs.mkdirSync(target, { recursive: true });
   const filePath = path.join(target, "sample.txt");
   fs.writeFileSync(filePath, "alpha", "utf8");
 
-  const watchPromise = runWatchOnce({ target, outRoot: root, debounceMs: 200 });
-  setTimeout(() => {
-    fs.writeFileSync(filePath, "alpha beta", "utf8");
-  }, 200);
+  const watchPromise = runWatchOnce({
+    target,
+    outRoot: root,
+    debounceMs: 200,
+    onReady: () => {
+      setTimeout(() => {
+        fs.writeFileSync(filePath, "alpha beta", "utf8");
+      }, 600);
+    },
+  });
 
   const exitCode = await watchPromise;
   assert(exitCode === 0, `expected watch exit 0, got ${exitCode}`);
@@ -93,7 +134,7 @@ suite("auto scan on change triggers safe-run", async () => {
   assert(text.includes("trigger=WATCH"), "expected trigger=WATCH");
 });
 
-suite("watch fails closed when out-root overlaps target", async () => {
+register("watch fails closed when out-root overlaps target", async () => {
   const root = makeTempDir();
   const target = path.join(root, "input");
   fs.mkdirSync(target, { recursive: true });
@@ -108,7 +149,7 @@ suite("watch fails closed when out-root overlaps target", async () => {
   assert(!fs.existsSync(path.join(target, "Library")), "watch overlap conflict must not create Library inside target");
 });
 
-suite("watch fails closed when explicit out-root path is an existing file", async () => {
+register("watch fails closed when explicit out-root path is an existing file", async () => {
   const root = makeTempDir();
   const target = path.join(root, "input");
   fs.mkdirSync(target, { recursive: true });
@@ -123,7 +164,7 @@ suite("watch fails closed when explicit out-root path is an existing file", asyn
   assert(!fs.existsSync(path.join(root, "watch_out.txt", "Library")), "watch must not create Library under file out-root");
 });
 
-suite("watch fails closed when parent of explicit out-root path is a file", async () => {
+register("watch fails closed when parent of explicit out-root path is a file", async () => {
   const root = makeTempDir();
   const target = path.join(root, "input");
   fs.mkdirSync(target, { recursive: true });
@@ -137,3 +178,23 @@ suite("watch fails closed when parent of explicit out-root path is a file", asyn
   assert(res.stderr.includes("WATCH_OUT_ROOT_PATH_PARENT_NOT_DIRECTORY"), "expected watch out-root parent-file rejection code");
   assert(fs.readFileSync(parentFile, "utf8") === "keep", "watch must not modify out-root parent file");
 });
+});
+
+if (!hasBDD) {
+  (async () => {
+    for (const t of localTests) {
+      try {
+        await t.fn();
+        console.log(`ok - ${t.name}`);
+      } catch (e: any) {
+        console.error(`not ok - ${t.name}`);
+        const detail = e?.message ? `\n${e.message}` : "";
+        throw new Error(`auto_scan_on_change.test.ts: ${t.name} failed${detail}`);
+      }
+    }
+  })().catch((e) => {
+    setTimeout(() => {
+      throw e;
+    }, 0);
+  });
+}
