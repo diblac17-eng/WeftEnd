@@ -155,6 +155,30 @@ suite("greenteam/verify360-docs-sync-contract", () => {
     );
   });
 
+  register("verify:360 keeps windows-safe npm fallback and adapter-doctor report line contract", () => {
+    const text = readScript();
+    assert(
+      text.includes("return { cmd: process.env.ComSpec || \"cmd.exe\", argsPrefix: [\"/d\", \"/s\", \"/c\", \"npm\"] };"),
+      "verify_360 must keep Windows-safe cmd/npm fallback when npm_execpath is unavailable"
+    );
+    assert(
+      text.includes("adapterDoctor.light="),
+      "verify_360 report must include adapterDoctor.light summary line"
+    );
+    assert(
+      text.includes("adapterDoctor.exitCode="),
+      "verify_360 report must include adapterDoctor.exitCode summary line"
+    );
+    assert(
+      text.includes("adapterDoctor.reasonCodes="),
+      "verify_360 report must include adapterDoctor.reasonCodes summary line"
+    );
+    assert(
+      text.includes("adapterDoctor.strictLight="),
+      "verify_360 report must include adapterDoctor.strictLight summary line"
+    );
+  });
+
   register("posting etiquette doc stays aligned with verify:360 etiquette targets", () => {
     const doc = readText("docs/GIT_POSTING_ETIQUETTE.md");
     assert(doc.includes("CHANGELOG.md"), "posting etiquette doc missing CHANGELOG target");
