@@ -150,6 +150,7 @@ Included
 - Snapshot drag/drop import failures now record `HISTORY_SNAPSHOT_DRAGDROP_FAILED` in `Launchpad/ui_last_error.txt` before surfacing status errors, improving post-failure operator diagnosis.
 - Added `windows_bind_smoke` runtime coverage to `npm test`, validating bind/rebind/unbind behavior for `.lnk` targets and enforcing restoration of `-AllowLaunch` when legacy bound shortcuts are missing it.
 - Launchpad Doctor text output now includes a compact `doctor.lights` section (`GREEN`/`YELLOW`/`RED`/`GRAY`) for fast pass/warn/fail scanning without parsing raw diagnostic lines.
+- Windows shell asset contracts now pin that `Write-LaunchpadUiError` uses `Write-TextFileAtomic`, protecting UI error artifact writes from partial-write drift regressions.
 - `email unpack` export text artifacts and attachment file writes now use per-file stage/finalize writes.
 - `intake` staged outputs now write per-file stage/finalize before out-root finalize.
 - `container scan` staged artifacts (`safe_run_receipt.json`, README, capability/adapter analysis JSON) now use per-file stage/finalize writes.
