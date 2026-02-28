@@ -313,7 +313,7 @@ function Invoke-LaunchpadSync {
       "exitCode=$exitCode",
       "output=" + $flatOutput.Trim()
     )
-    $diagLines -join "`n" | Set-Content -Path $diagPath -Encoding UTF8
+    Write-TextFileAtomic -PathValue $diagPath -TextValue ($diagLines -join "`n")
     if ($exitCode -ne 0) {
       $reason = "UNKNOWN"
       $bracket = [System.Text.RegularExpressions.Regex]::Match($syncOutput, "\[([A-Z0-9_]+)\]")
@@ -366,7 +366,7 @@ function Invoke-LaunchpadSync {
         "exception=LAUNCHPAD_SYNC_EXCEPTION",
         "message=" + $exMsg
       )
-      $diag -join "`n" | Set-Content -Path $diagPath -Encoding UTF8
+      Write-TextFileAtomic -PathValue $diagPath -TextValue ($diag -join "`n")
     } catch {
       # ignore diagnostic-write failures
     }

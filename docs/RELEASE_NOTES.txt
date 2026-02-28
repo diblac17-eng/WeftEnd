@@ -142,6 +142,7 @@ Included
 - `safe-run`, `run`, and `examine` text artifact writers now use per-file stage/finalize writes.
 - Windows shell report-card emission (`report_card.txt`, `report_card_v0.json`, and fallback `wrapper_report_card_error.txt`) now uses staged atomic finalize writes, reducing partial-report residue risk in wrapper paths.
 - Windows shell wrapper sidecar line-appends (`wrapper_result.txt` and report-card action markers such as baseline/ticket/viewer/launch lines) now use atomic append-through-stage behavior instead of direct `Add-Content` writes, reducing partial append drift under interruption.
+- Launchpad sync diagnostics (`Launchpad/sync_last.txt`) now use staged atomic finalize writes for both success and exception paths, reducing partial diagnostic-file drift when sync runs are interrupted.
 - `email unpack` export text artifacts and attachment file writes now use per-file stage/finalize writes.
 - `intake` staged outputs now write per-file stage/finalize before out-root finalize.
 - `container scan` staged artifacts (`safe_run_receipt.json`, README, capability/adapter analysis JSON) now use per-file stage/finalize writes.

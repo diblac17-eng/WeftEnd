@@ -422,6 +422,8 @@ suite("tools/windows shell assets", () => {
     assert(/function Get-StableSortKey/.test(panelText), "expected deterministic launchpad sort-key helper");
     assert(/Get-StableSortKey -Value \$_.Name/.test(panelText), "expected launchpad name sorting to use stable sort key");
     assert(!/Sort-Object Name/.test(panelText), "launchpad must avoid locale-sensitive Sort-Object Name");
+    assert(/Write-TextFileAtomic -PathValue \$diagPath -TextValue/.test(panelText), "launchpad sync diagnostics must use atomic writes");
+    assert(!/Set-Content -Path \$diagPath/.test(panelText), "launchpad sync diagnostics must avoid direct Set-Content writes");
     assert(/Get-LaunchpadShortcutMetadata/.test(panelText), "expected launchpad shortcut metadata validation");
     assert(/WeftEnd Launchpad Shortcut v1/.test(panelText), "expected launchpad shortcut description trust marker");
     assert(/-LaunchpadMode/.test(panelText), "expected launchpad shortcut args to require LaunchpadMode");
