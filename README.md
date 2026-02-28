@@ -148,6 +148,7 @@ Validation status (latest release state)
 - node dist/src/tools/windows_shell_assets.test.js: pass
 - node dist/src/tools/greenteam/release_artifacts_present.test.js: pass
 - npm test: pass
+- npm run verify:360:release:managed: pass
 
 WeftEnd roadmap
 
