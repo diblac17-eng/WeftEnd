@@ -97,6 +97,7 @@ suite("tools/windows shell assets", () => {
     assert(/WeftEnd Launchpad\.lnk/.test(text), "expected launchpad shortcut");
     assert(!/weftend_menu\.ps1/.test(text), "menu script reference must be removed");
     assert(/WeftEnd Download\.lnk/.test(text), "expected download shortcut");
+    assert(/\$downloadScript = \[System\.IO\.Path\]::GetFullPath\(\(Join-Path \$scriptDir "\.\.\\open_release_folder\.ps1"\)\)/.test(text), "expected download shortcut script path to be canonicalized");
     assert(
       !/Install-LaunchpadShortcut -ShortcutPath \(Join-Path \$startMenu "WeftEnd\.lnk"\)/.test(text),
       "must not install a generic WeftEnd shortcut"

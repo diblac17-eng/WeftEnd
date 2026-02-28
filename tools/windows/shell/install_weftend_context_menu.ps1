@@ -200,7 +200,7 @@ function Install-LaunchpadShortcut {
   $shortcut.Save()
 }
 
-$downloadScript = Join-Path $scriptDir "..\open_release_folder.ps1"
+$downloadScript = [System.IO.Path]::GetFullPath((Join-Path $scriptDir "..\open_release_folder.ps1"))
 
 function Install-DownloadShortcut {
   param([string]$ShortcutPath)
