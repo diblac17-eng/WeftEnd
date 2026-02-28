@@ -30,6 +30,7 @@ const RUN_STATES = [
   "RECORDED",
 ];
 const CAPABILITY_REQUESTS = [
+  "package.test_contract",
   "cli.adapter_doctor",
   "cli.compare",
   "cli.safe_run",
@@ -44,6 +45,17 @@ const CAPABILITY_REQUESTS = [
   "output.write_receipt",
   "runtime.privacy_lint",
   "verify360.history_audit",
+];
+const REQUIRED_NPM_TEST_TOKENS = [
+  "node dist/src/runtime/strict/strict_executor.test.js",
+  "node dist/src/runtime/probe/probe_strict_v0.test.js",
+  "node dist/src/runtime/probe/probe_unhandled_rejection.test.js",
+  "node dist/src/runtime/examiner/examine_determinism.test.js",
+  "node dist/src/runtime/examiner/examine_caps_probe.test.js",
+  "node dist/src/runtime/examiner/examine_external_refs.test.js",
+  "node dist/src/runtime/examiner/examine_golden.test.js",
+  "node dist/src/runtime/examiner/intake_decision_v1_golden.test.js",
+  "node dist/src/runtime/examiner/intake_decision_v1.test.js",
 ];
 const VERIFY360_EXPLAIN_VERSION = "weftend.verify360Explain/0";
 const VERDICT_EXPLANATIONS = {
@@ -212,6 +224,43 @@ const summarizeStepStatuses = (steps) => {
     else summary.OTHER += 1;
   });
   return summary;
+};
+
+const readNpmTestContract = () => {
+  const pkgPath = path.join(root, "package.json");
+  let pkg = null;
+  try {
+    pkg = JSON.parse(String(fs.readFileSync(pkgPath, "utf8")));
+  } catch {
+    return {
+      ok: false,
+      reasonCodes: ["VERIFY360_TEST_SCRIPT_UNREADABLE"],
+      missing: [],
+    };
+  }
+  const script = String(pkg?.scripts?.test || "");
+  if (script.trim().length === 0) {
+    return {
+      ok: false,
+      reasonCodes: ["VERIFY360_TEST_SCRIPT_MISSING"],
+      missing: [],
+    };
+  }
+  const missing = stableSortUnique(
+    REQUIRED_NPM_TEST_TOKENS.filter((token) => !script.includes(token))
+  );
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      reasonCodes: ["VERIFY360_TEST_CONTRACT_MISSING"],
+      missing,
+    };
+  }
+  return {
+    ok: true,
+    reasonCodes: [],
+    missing: [],
+  };
 };
 
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -874,6 +923,24 @@ const main = () => {
         reasonCodes: [],
       });
     }
+  }
+  const testContract = readNpmTestContract();
+  recordCapability("package.test_contract", testContract.ok, testContract.reasonCodes);
+  if (testContract.ok) {
+    addStep({
+      id: "test_contract",
+      status: "PASS",
+      reasonCodes: [],
+    });
+  } else {
+    addStep({
+      id: "test_contract",
+      status: "FAIL",
+      reasonCodes: testContract.reasonCodes,
+      details: {
+        missing: testContract.missing,
+      },
+    });
   }
   advanceState("PRECHECKED");
   recordCapability("git.status", changedFiles !== null, changedFiles !== null ? [] : ["VERIFY360_GIT_STATUS_UNAVAILABLE"]);
