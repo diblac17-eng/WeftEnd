@@ -758,6 +758,154 @@ function Get-AdapterDoctorLampState {
   return $out
 }
 
+function Get-NonEmptyLines {
+  param([string]$TextValue)
+  $lines = @()
+  if (-not $TextValue -or $TextValue.Trim() -eq "") { return $lines }
+  foreach ($lineObj in @([string]$TextValue -split "`r?`n")) {
+    $line = [string]$lineObj
+    if ($line.Trim() -eq "") { continue }
+    $lines += $line
+  }
+  return $lines
+}
+
+function Build-ShellDoctorPanelText {
+  param(
+    [hashtable]$Result,
+    [string]$ModeToken = "run"
+  )
+  $ok = [bool](Get-ObjectProperty -ObjectValue $Result -Name "ok")
+  $code = [string](Get-ObjectProperty -ObjectValue $Result -Name "code")
+  $exitCode = [string](Get-ObjectProperty -ObjectValue $Result -Name "exitCode")
+  $output = [string](Get-ObjectProperty -ObjectValue $Result -Name "output")
+  $lines = @(Get-NonEmptyLines -TextValue $output)
+
+  $status = if ($ok) { "PASS" } else { "FAIL" }
+  $statusMatch = [System.Text.RegularExpressions.Regex]::Match($output, "(?m)^ShellDoctorStatus:\s*([A-Z]+)\s*$")
+  if ($statusMatch.Success -and $statusMatch.Groups.Count -gt 1) {
+    $parsedStatus = [string]$statusMatch.Groups[1].Value
+    if ($parsedStatus -and $parsedStatus.Trim() -ne "") { $status = $parsedStatus.Trim() }
+  }
+
+  $okCount = 0
+  $failCount = 0
+  $missingCount = 0
+  $warnCount = 0
+  $issueLines = @()
+  foreach ($line in $lines) {
+    $trimmed = [string]$line
+    if ($trimmed -match ":\s*OK(\b| )") { $okCount++; continue }
+    if ($trimmed -match ":\s*MISSING(\b| )") {
+      $missingCount++
+      if ($issueLines.Count -lt 8) { $issueLines += $trimmed }
+      continue
+    }
+    if ($trimmed -match ":\s*FAIL(\b| )") {
+      $failCount++
+      if ($issueLines.Count -lt 8) { $issueLines += $trimmed }
+      continue
+    }
+    if ($trimmed -match ":\s*WARN(\b| )") {
+      $warnCount++
+      if ($issueLines.Count -lt 8) { $issueLines += $trimmed }
+      continue
+    }
+  }
+
+  $mode = if ($ModeToken -and $ModeToken.Trim() -ne "") { $ModeToken.Trim() } else { "run" }
+  $header = @(
+    "DOCTOR SUMMARY (Shell/" + $mode + ")",
+    "overall=" + $status,
+    "exitCode=" + $exitCode,
+    "code=" + $code,
+    "checks.ok=" + [string]$okCount,
+    "checks.warn=" + [string]$warnCount,
+    "checks.fail=" + [string]$failCount,
+    "checks.missing=" + [string]$missingCount
+  )
+
+  if ($issueLines.Count -gt 0) {
+    $header += ""
+    $header += "issues:"
+    foreach ($issue in $issueLines) {
+      $header += ("  - " + $issue)
+    }
+  }
+
+  $header += ""
+  $header += "raw:"
+  if ($output -and $output.Trim() -ne "") {
+    $header += $output
+  } else {
+    $header += "(no shell doctor output)"
+  }
+  return ($header -join [Environment]::NewLine)
+}
+
+function Build-AdapterDoctorPanelText {
+  param(
+    [hashtable]$Result,
+    [switch]$Strict
+  )
+  $ok = [bool](Get-ObjectProperty -ObjectValue $Result -Name "ok")
+  $code = [string](Get-ObjectProperty -ObjectValue $Result -Name "code")
+  $exitCode = [string](Get-ObjectProperty -ObjectValue $Result -Name "exitCode")
+  $output = [string](Get-ObjectProperty -ObjectValue $Result -Name "output")
+  $lines = @(Get-NonEmptyLines -TextValue $output)
+
+  $missingAdapters = @()
+  $enabledCount = 0
+  foreach ($line in $lines) {
+    $trimmed = [string]$line
+    if ($trimmed -match "^\s+[a-z0-9_]+\s+status=enabled\b") { $enabledCount++ }
+    if ($trimmed -match "^\s+([a-z0-9_]+)\s+status=.*plugins=.*:missing") {
+      $name = [string]$matches[1]
+      if (-not ($missingAdapters -contains $name)) { $missingAdapters += $name }
+    }
+  }
+
+  $strictStatus = "OFF"
+  $strictMatch = [System.Text.RegularExpressions.Regex]::Match($output, "(?m)^strict\.status=([A-Z]+)\s*$")
+  if ($strictMatch.Success -and $strictMatch.Groups.Count -gt 1) {
+    $strictStatus = [string]$strictMatch.Groups[1].Value
+  }
+
+  $overall = "UNKNOWN"
+  if (-not $ok) {
+    $overall = "FAIL"
+  } elseif ($Strict.IsPresent) {
+    $overall = "PASS"
+  } elseif ($missingAdapters.Count -gt 0) {
+    $overall = "WARN"
+  } else {
+    $overall = "PASS"
+  }
+
+  $mode = if ($Strict.IsPresent) { "strict" } else { "run" }
+  $header = @(
+    "DOCTOR SUMMARY (Adapter/" + $mode + ")",
+    "overall=" + $overall,
+    "exitCode=" + $exitCode,
+    "code=" + $code,
+    "strict.status=" + $strictStatus,
+    "adapters.enabled=" + [string]$enabledCount,
+    "plugins.missing=" + [string]$missingAdapters.Count
+  )
+  if ($missingAdapters.Count -gt 0) {
+    $header += ("missing.adapters=" + ($missingAdapters -join ","))
+  }
+
+  $header += ""
+  $header += "raw:"
+  if ($output -and $output.Trim() -ne "") {
+    $header += $output
+  } else {
+    $header += "(no adapter doctor output)"
+  }
+  return ($header -join [Environment]::NewLine)
+}
+
 function Compute-TextSha256Digest {
   param([string]$TextValue)
   if ($null -eq $TextValue) { $TextValue = "" }
@@ -3216,16 +3364,7 @@ $chkAuto.Add_CheckedChanged({
 })
 $btnDoctorRun.Add_Click({
   $result = Invoke-ShellDoctorText
-  $header = @(
-    "Shell doctor exitCode=" + [string]$result.exitCode,
-    "Shell doctor code=" + [string]$result.code
-  )
-  $body = if ($result.output -and [string]$result.output -ne "") {
-    [string]$result.output
-  } else {
-    "(no shell doctor output)"
-  }
-  $doctorText.Text = (($header + @("", $body)) -join [Environment]::NewLine)
+  $doctorText.Text = Build-ShellDoctorPanelText -Result $result -ModeToken "run"
   if ($result.ok) {
     Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "PASS" -Detail "ok"
     Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
@@ -3238,17 +3377,7 @@ $btnDoctorRun.Add_Click({
 })
 $btnDoctorRepairViewer.Add_Click({
   $result = Invoke-ShellDoctorText -RepairReportViewer
-  $header = @(
-    "Shell doctor repair=true",
-    "Shell doctor exitCode=" + [string]$result.exitCode,
-    "Shell doctor code=" + [string]$result.code
-  )
-  $body = if ($result.output -and [string]$result.output -ne "") {
-    [string]$result.output
-  } else {
-    "(no shell doctor output)"
-  }
-  $doctorText.Text = (($header + @("", $body)) -join [Environment]::NewLine)
+  $doctorText.Text = Build-ShellDoctorPanelText -Result $result -ModeToken "repair_viewer"
   if ($result.ok) {
     Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "PASS" -Detail "viewer repair"
     Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
@@ -3261,17 +3390,7 @@ $btnDoctorRepairViewer.Add_Click({
 })
 $btnDoctorRepairShortcuts.Add_Click({
   $result = Invoke-ShellDoctorText -RepairShortcuts
-  $header = @(
-    "Shell doctor repairShortcuts=true",
-    "Shell doctor exitCode=" + [string]$result.exitCode,
-    "Shell doctor code=" + [string]$result.code
-  )
-  $body = if ($result.output -and [string]$result.output -ne "") {
-    [string]$result.output
-  } else {
-    "(no shell doctor output)"
-  }
-  $doctorText.Text = (($header + @("", $body)) -join [Environment]::NewLine)
+  $doctorText.Text = Build-ShellDoctorPanelText -Result $result -ModeToken "repair_shortcuts"
   if ($result.ok) {
     Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "PASS" -Detail "shortcut repair"
     Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
@@ -3284,16 +3403,7 @@ $btnDoctorRepairShortcuts.Add_Click({
 })
 $btnAdapterDoctorRun.Add_Click({
   $result = Invoke-AdapterDoctorText
-  $header = @(
-    "Adapter doctor exitCode=" + [string]$result.exitCode,
-    "Adapter doctor code=" + [string]$result.code
-  )
-  $body = if ($result.output -and [string]$result.output -ne "") {
-    [string]$result.output
-  } else {
-    "(no adapter doctor output)"
-  }
-  $doctorText.Text = (($header + @("", $body)) -join [Environment]::NewLine)
+  $doctorText.Text = Build-AdapterDoctorPanelText -Result $result
   $adapterLamp = Get-AdapterDoctorLampState -Result $result
   Set-DoctorLampState -Label $doctorLampAdapter -Name "Adapter" -State ([string]$adapterLamp.state) -Detail ([string]$adapterLamp.detail)
   Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
@@ -3305,17 +3415,7 @@ $btnAdapterDoctorRun.Add_Click({
 })
 $btnAdapterDoctorStrictRun.Add_Click({
   $result = Invoke-AdapterDoctorText -Strict
-  $header = @(
-    "Adapter doctor strict=true",
-    "Adapter doctor exitCode=" + [string]$result.exitCode,
-    "Adapter doctor code=" + [string]$result.code
-  )
-  $body = if ($result.output -and [string]$result.output -ne "") {
-    [string]$result.output
-  } else {
-    "(no adapter doctor output)"
-  }
-  $doctorText.Text = (($header + @("", $body)) -join [Environment]::NewLine)
+  $doctorText.Text = Build-AdapterDoctorPanelText -Result $result -Strict
   $adapterStrictLamp = Get-AdapterDoctorLampState -Result $result -Strict
   Set-DoctorLampState -Label $doctorLampAdapterStrict -Name "Adapter Strict" -State ([string]$adapterStrictLamp.state) -Detail ([string]$adapterStrictLamp.detail)
   Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict

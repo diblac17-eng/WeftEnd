@@ -462,8 +462,12 @@ suite("tools/windows shell assets", () => {
     assert(panelText.includes("strict\\.reasons=([A-Z0-9_, -]+)"), "expected adapter doctor strict.reasons parsing fallback");
     assert(/Repair Viewer/.test(panelText), "expected launchpad doctor repair viewer action");
     assert(/Copy Doctor Output/.test(panelText), "expected launchpad doctor copy action");
-    assert(/Shell doctor exitCode=/.test(panelText), "expected shell doctor output header");
-    assert(/Shell doctor code=/.test(panelText), "expected shell doctor code header");
+    assert(/Build-ShellDoctorPanelText/.test(panelText), "expected shell doctor panel formatter");
+    assert(/Build-AdapterDoctorPanelText/.test(panelText), "expected adapter doctor panel formatter");
+    assert(/DOCTOR SUMMARY \(Shell\//.test(panelText), "expected shell doctor summary heading");
+    assert(/DOCTOR SUMMARY \(Adapter\//.test(panelText), "expected adapter doctor summary heading");
+    assert(/checks\.ok=/.test(panelText), "expected shell doctor summary counters");
+    assert(/plugins\.missing=/.test(panelText), "expected adapter doctor summary counters");
     assert(panelText.includes("(?m)^ShellDoctorStatus:\\s*FAIL\\s+code=([A-Z0-9_]+)\\s*$"), "expected shell doctor explicit fail-status code parsing");
     assert(panelText.includes("code=([A-Z0-9_]+)"), "expected shell doctor output code parsing");
     assert(/"adapter", "doctor", "--text"/.test(panelText), "expected launchpad adapter doctor text-mode command");
