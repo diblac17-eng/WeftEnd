@@ -1,5 +1,5 @@
 # tools/windows/shell/uninstall_weftend_context_menu.ps1
-# Uninstall per-user context menu entry for WeftEnd Safe-Run.
+# Uninstall per-user context menu entry for WeftEnd scan flows.
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -66,4 +66,4 @@ if ($desktop -and (Test-Path $desktop)) {
   Remove-Shortcut -ShortcutPath (Join-Path $desktop "WeftEnd Download.lnk")
 }
 
-Write-Output "Uninstalled WeftEnd: Safe-Run context menu."
+Write-Output "Uninstalled WeftEnd: Scan context menu."

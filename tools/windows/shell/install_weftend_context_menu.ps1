@@ -1,5 +1,5 @@
 # tools/windows/shell/install_weftend_context_menu.ps1
-# Install per-user context menu entry for WeftEnd Safe-Run.
+# Install per-user context menu entry for WeftEnd scan flows.
 
 param(
   [string]$RepoRoot,

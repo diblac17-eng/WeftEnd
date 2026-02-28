@@ -1,5 +1,5 @@
 # tools/windows/shell/weftend_shell_doctor.ps1
-# Sanity check WeftEnd Safe-Run registry wiring (per-user).
+# Sanity check WeftEnd scan registry wiring (per-user).
 
 param(
   [switch]$RepairReportViewer,

@@ -93,7 +93,7 @@ You can also double-click `tools\windows\shell\weftend_shell_doctor.cmd`.
 
 Operator smoke checklist
 - Run the install script.
-- Right-click a folder -> WeftEnd: Safe-Run.
+- Right-click a folder -> Scan with WeftEnd.
 - Confirm an output folder is created under `%LOCALAPPDATA%\WeftEnd\Library\`.
 - Confirm receipts include `schemaVersion: 0` and `weftendBuild`.
 - Confirm the one-line summary includes `privacyLint=PASS`.
