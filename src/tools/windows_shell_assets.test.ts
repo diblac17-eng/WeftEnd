@@ -461,6 +461,11 @@ suite("tools/windows shell assets", () => {
     assert(/\$historyList\.Add_SelectedIndexChanged\(\{[\s\S]*?Invoke-UiSafe -Code "HISTORY_SELECTION_FAILED"/.test(panelText), "expected history selection handler to use safe UI guard");
     assert(/HISTORY_OPEN_REPORT_FAILED/.test(panelText), "expected report open fail-code guard");
     assert(/AUTO_REFRESH_TOGGLE_FAILED/.test(panelText), "expected auto-refresh toggle fail-code guard");
+    assert(/SYNC_NOW_FAILED/.test(panelText), "expected launchpad sync fail-code guard");
+    assert(/HISTORY_REFRESH_FAILED/.test(panelText), "expected history refresh fail-code guard");
+    assert(/DOCTOR_SHELL_RUN_FAILED/.test(panelText), "expected shell doctor fail-code guard");
+    assert(/DOCTOR_ADAPTER_RUN_FAILED/.test(panelText), "expected adapter doctor fail-code guard");
+    assert(/TOPMOST_TOGGLE_FAILED/.test(panelText), "expected topmost toggle fail-code guard");
     assert(/\$chkAuto\.Add_CheckedChanged\(\{[\s\S]*?Update-HistoryDetailsBox -ListView \$historyList -DetailBox \$historyDetail/.test(panelText), "expected auto-refresh toggle to refresh history details text");
     assert(/Open-HistoryRunFolder/.test(panelText), "expected history open-run helper");
     assert(/Open-HistoryAdapterEvidenceFolder/.test(panelText), "expected history evidence-folder helper");

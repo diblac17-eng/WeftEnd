@@ -3353,13 +3353,15 @@ $chkTop.Checked = $TopMost.IsPresent
 $chkTop.AutoSize = $true
 $chkTop.ForeColor = $colorText
 $chkTop.Add_CheckedChanged({
-  $form.TopMost = $chkTop.Checked
-  if ($chkTop.Checked) {
-    $form.Activate()
-    $form.BringToFront()
-    Set-StatusLine -StatusLabel $statusLabel -Message "Topmost enabled." -IsError $false
-  } else {
-    Set-StatusLine -StatusLabel $statusLabel -Message "Topmost disabled." -IsError $false
+  Invoke-UiSafe -Code "TOPMOST_TOGGLE_FAILED" -StatusLabel $statusLabel -Message "Topmost toggle failed." -Action {
+    $form.TopMost = $chkTop.Checked
+    if ($chkTop.Checked) {
+      $form.Activate()
+      $form.BringToFront()
+      Set-StatusLine -StatusLabel $statusLabel -Message "Topmost enabled." -IsError $false
+    } else {
+      Set-StatusLine -StatusLabel $statusLabel -Message "Topmost disabled." -IsError $false
+    }
   }
 })
 
@@ -3391,71 +3393,109 @@ $statusBar.Controls.Add($statusLabel) | Out-Null
 
 $syncNow = {
   param([switch]$Silent)
-  $sync = if ($Silent.IsPresent) { Invoke-LaunchpadSync -Silent } else { Invoke-LaunchpadSync }
-  $count = Load-Shortcuts -Panel $listPanel
-  $tracked = Load-HistoryRows -ListView $historyList
-  Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
-  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket -SnapshotImportButton $btnHistorySnapshotImport
-  if ($sync.ok) {
-    if (-not $Silent.IsPresent) {
-      $msg = "Synced. targets=" + $sync.scanned + " added=" + $sync.added + " removed=" + $sync.removed + " failed=" + $sync.failed + " visible=" + $count + " tracked=" + $tracked
-      Set-StatusLine -StatusLabel $statusLabel -Message $msg -IsError $false
+  try {
+    $sync = if ($Silent.IsPresent) { Invoke-LaunchpadSync -Silent } else { Invoke-LaunchpadSync }
+    $count = Load-Shortcuts -Panel $listPanel
+    $tracked = Load-HistoryRows -ListView $historyList
+    Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
+    Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket -SnapshotImportButton $btnHistorySnapshotImport
+    if ($sync.ok) {
+      if (-not $Silent.IsPresent) {
+        $msg = "Synced. targets=" + $sync.scanned + " added=" + $sync.added + " removed=" + $sync.removed + " failed=" + $sync.failed + " visible=" + $count + " tracked=" + $tracked
+        Set-StatusLine -StatusLabel $statusLabel -Message $msg -IsError $false
+      }
+    } else {
+      $label = if ($Silent.IsPresent) { "Refresh warning: " } else { "Sync error: " }
+      Set-StatusLine -StatusLabel $statusLabel -Message ($label + $sync.code) -IsError $true
     }
-  } else {
-    $label = if ($Silent.IsPresent) { "Refresh warning: " } else { "Sync error: " }
-    Set-StatusLine -StatusLabel $statusLabel -Message ($label + $sync.code) -IsError $true
+  } catch {
+    Write-LaunchpadUiError -Code "SYNC_NOW_FAILED"
+    $label = if ($Silent.IsPresent) { "Auto refresh failed." } else { "Sync failed." }
+    Set-StatusLine -StatusLabel $statusLabel -Message $label -IsError $true
   }
 }
 
-$btnSync.Add_Click({ & $syncNow })
-$btnSync2.Add_Click({ & $syncNow })
-$btnRefresh.Add_Click({ & $syncNow -Silent })
+$btnSync.Add_Click({
+  Invoke-UiSafe -Code "SYNC_BUTTON_FAILED" -StatusLabel $statusLabel -Message "Sync failed." -Action { & $syncNow }
+})
+$btnSync2.Add_Click({
+  Invoke-UiSafe -Code "SYNC_BUTTON_FAILED" -StatusLabel $statusLabel -Message "Sync failed." -Action { & $syncNow }
+})
+$btnRefresh.Add_Click({
+  Invoke-UiSafe -Code "REFRESH_BUTTON_FAILED" -StatusLabel $statusLabel -Message "Refresh failed." -Action { & $syncNow -Silent }
+})
 $btnHistoryRefresh.Add_Click({
-  $tracked = Load-HistoryRows -ListView $historyList
-  Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
-  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket -SnapshotImportButton $btnHistorySnapshotImport
-  Set-StatusLine -StatusLabel $statusLabel -Message ("History refreshed. tracked=" + $tracked) -IsError $false
+  Invoke-UiSafe -Code "HISTORY_REFRESH_FAILED" -StatusLabel $statusLabel -Message "History refresh failed." -Action {
+    $tracked = Load-HistoryRows -ListView $historyList
+    Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
+    Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket -SnapshotImportButton $btnHistorySnapshotImport
+    Set-StatusLine -StatusLabel $statusLabel -Message ("History refreshed. tracked=" + $tracked) -IsError $false
+  }
 })
 $btnHistoryView.Add_Click({
-  Open-ReportViewerFromHistory -ListView $historyList -StatusLabel $statusLabel
+  Invoke-UiSafe -Code "HISTORY_OPEN_REPORT_FAILED" -StatusLabel $statusLabel -Message "Open report failed." -Action {
+    Open-ReportViewerFromHistory -ListView $historyList -StatusLabel $statusLabel
+  }
 })
 $btnHistoryRun.Add_Click({
-  Open-HistoryRunFolder -ListView $historyList -StatusLabel $statusLabel
+  Invoke-UiSafe -Code "HISTORY_OPEN_RUN_FAILED" -StatusLabel $statusLabel -Message "Open run folder failed." -Action {
+    Open-HistoryRunFolder -ListView $historyList -StatusLabel $statusLabel
+  }
 })
 $btnHistoryEvidence.Add_Click({
-  Open-HistoryAdapterEvidenceFolder -ListView $historyList -StatusLabel $statusLabel
+  Invoke-UiSafe -Code "HISTORY_OPEN_EVIDENCE_FAILED" -StatusLabel $statusLabel -Message "Open adapter evidence failed." -Action {
+    Open-HistoryAdapterEvidenceFolder -ListView $historyList -StatusLabel $statusLabel
+  }
 })
 $btnHistorySnapshotExport.Add_Click({
-  Export-HistorySnapshotReference -ListView $historyList -StatusLabel $statusLabel
-  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket -SnapshotImportButton $btnHistorySnapshotImport
+  Invoke-UiSafe -Code "HISTORY_SNAPSHOT_EXPORT_FAILED" -StatusLabel $statusLabel -Message "Snapshot export failed." -Action {
+    Export-HistorySnapshotReference -ListView $historyList -StatusLabel $statusLabel
+    Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket -SnapshotImportButton $btnHistorySnapshotImport
+  }
 })
 $btnHistorySnapshotCompare.Add_Click({
-  Compare-HistorySnapshotReference -ListView $historyList -StatusLabel $statusLabel
+  Invoke-UiSafe -Code "HISTORY_SNAPSHOT_COMPARE_FAILED" -StatusLabel $statusLabel -Message "Snapshot compare failed." -Action {
+    Compare-HistorySnapshotReference -ListView $historyList -StatusLabel $statusLabel
+  }
 })
 $btnHistorySnapshotTrust.Add_Click({
-  CompareAndTrust-HistorySnapshotReference -ListView $historyList -StatusLabel $statusLabel
-  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket -SnapshotImportButton $btnHistorySnapshotImport
+  Invoke-UiSafe -Code "HISTORY_SNAPSHOT_TRUST_FAILED" -StatusLabel $statusLabel -Message "Snapshot trust action failed." -Action {
+    CompareAndTrust-HistorySnapshotReference -ListView $historyList -StatusLabel $statusLabel
+    Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket -SnapshotImportButton $btnHistorySnapshotImport
+  }
 })
 $btnHistorySnapshotOpen.Add_Click({
-  Open-HistorySnapshotBinding -ListView $historyList -StatusLabel $statusLabel
+  Invoke-UiSafe -Code "HISTORY_SNAPSHOT_OPEN_FAILED" -StatusLabel $statusLabel -Message "Open snapshot binding failed." -Action {
+    Open-HistorySnapshotBinding -ListView $historyList -StatusLabel $statusLabel
+  }
 })
 $btnHistorySnapshotRemove.Add_Click({
-  Remove-HistorySnapshotBinding -ListView $historyList -StatusLabel $statusLabel
-  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket -SnapshotImportButton $btnHistorySnapshotImport
+  Invoke-UiSafe -Code "HISTORY_SNAPSHOT_REMOVE_FAILED" -StatusLabel $statusLabel -Message "Remove snapshot binding failed." -Action {
+    Remove-HistorySnapshotBinding -ListView $historyList -StatusLabel $statusLabel
+    Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket -SnapshotImportButton $btnHistorySnapshotImport
+  }
 })
 $btnHistorySnapshotBucket.Add_Click({
-  Open-HistorySnapshotBucket -ListView $historyList -StatusLabel $statusLabel
+  Invoke-UiSafe -Code "HISTORY_SNAPSHOT_BUCKET_FAILED" -StatusLabel $statusLabel -Message "Open snapshot bucket failed." -Action {
+    Open-HistorySnapshotBucket -ListView $historyList -StatusLabel $statusLabel
+  }
 })
 $btnHistorySnapshotImport.Add_Click({
-  Import-HistorySnapshotReferenceFiles -ListView $historyList -StatusLabel $statusLabel
-  Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
-  Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket -SnapshotImportButton $btnHistorySnapshotImport
+  Invoke-UiSafe -Code "HISTORY_SNAPSHOT_IMPORT_FAILED" -StatusLabel $statusLabel -Message "Snapshot import failed." -Action {
+    Import-HistorySnapshotReferenceFiles -ListView $historyList -StatusLabel $statusLabel
+    Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
+    Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket -SnapshotImportButton $btnHistorySnapshotImport
+  }
 })
 $btnHistoryCopy.Add_Click({
-  Copy-HistoryDetailsText -DetailBox $historyDetail -StatusLabel $statusLabel
+  Invoke-UiSafe -Code "HISTORY_COPY_FAILED" -StatusLabel $statusLabel -Message "Copy details failed." -Action {
+    Copy-HistoryDetailsText -DetailBox $historyDetail -StatusLabel $statusLabel
+  }
 })
 $btnHistoryCopyDigests.Add_Click({
-  Copy-HistoryDigestText -DetailBox $historyDetail -StatusLabel $statusLabel
+  Invoke-UiSafe -Code "HISTORY_COPY_DIGEST_FAILED" -StatusLabel $statusLabel -Message "Copy digests failed." -Action {
+    Copy-HistoryDigestText -DetailBox $historyDetail -StatusLabel $statusLabel
+  }
 })
 $historyList.Add_DoubleClick({
   Invoke-UiSafe -Code "HISTORY_OPEN_REPORT_FAILED" -StatusLabel $statusLabel -Message "Open report failed." -Action {
@@ -3541,70 +3581,82 @@ $chkAuto.Add_CheckedChanged({
   }
 })
 $btnDoctorRun.Add_Click({
-  $result = Invoke-ShellDoctorText
-  $doctorText.Text = Build-ShellDoctorPanelText -Result $result -ModeToken "run"
-  if ($result.ok) {
-    Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "PASS" -Detail "ok"
-    Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
-    Set-StatusLine -StatusLabel $statusLabel -Message "Shell doctor completed." -IsError $false
-  } else {
-    Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "FAIL" -Detail ([string]$result.code)
-    Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
-    Set-StatusLine -StatusLabel $statusLabel -Message ("Shell doctor failed (" + [string]$result.code + ").") -IsError $true
+  Invoke-UiSafe -Code "DOCTOR_SHELL_RUN_FAILED" -StatusLabel $statusLabel -Message "Shell doctor action failed." -Action {
+    $result = Invoke-ShellDoctorText
+    $doctorText.Text = Build-ShellDoctorPanelText -Result $result -ModeToken "run"
+    if ($result.ok) {
+      Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "PASS" -Detail "ok"
+      Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
+      Set-StatusLine -StatusLabel $statusLabel -Message "Shell doctor completed." -IsError $false
+    } else {
+      Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "FAIL" -Detail ([string]$result.code)
+      Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
+      Set-StatusLine -StatusLabel $statusLabel -Message ("Shell doctor failed (" + [string]$result.code + ").") -IsError $true
+    }
   }
 })
 $btnDoctorRepairViewer.Add_Click({
-  $result = Invoke-ShellDoctorText -RepairReportViewer
-  $doctorText.Text = Build-ShellDoctorPanelText -Result $result -ModeToken "repair_viewer"
-  if ($result.ok) {
-    Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "PASS" -Detail "viewer repair"
-    Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
-    Set-StatusLine -StatusLabel $statusLabel -Message "Viewer repair completed." -IsError $false
-  } else {
-    Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "FAIL" -Detail ([string]$result.code)
-    Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
-    Set-StatusLine -StatusLabel $statusLabel -Message ("Viewer repair failed (" + [string]$result.code + ").") -IsError $true
+  Invoke-UiSafe -Code "DOCTOR_REPAIR_VIEWER_FAILED" -StatusLabel $statusLabel -Message "Viewer repair action failed." -Action {
+    $result = Invoke-ShellDoctorText -RepairReportViewer
+    $doctorText.Text = Build-ShellDoctorPanelText -Result $result -ModeToken "repair_viewer"
+    if ($result.ok) {
+      Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "PASS" -Detail "viewer repair"
+      Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
+      Set-StatusLine -StatusLabel $statusLabel -Message "Viewer repair completed." -IsError $false
+    } else {
+      Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "FAIL" -Detail ([string]$result.code)
+      Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
+      Set-StatusLine -StatusLabel $statusLabel -Message ("Viewer repair failed (" + [string]$result.code + ").") -IsError $true
+    }
   }
 })
 $btnDoctorRepairShortcuts.Add_Click({
-  $result = Invoke-ShellDoctorText -RepairShortcuts
-  $doctorText.Text = Build-ShellDoctorPanelText -Result $result -ModeToken "repair_shortcuts"
-  if ($result.ok) {
-    Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "PASS" -Detail "shortcut repair"
-    Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
-    Set-StatusLine -StatusLabel $statusLabel -Message "Shortcut repair completed." -IsError $false
-  } else {
-    Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "FAIL" -Detail ([string]$result.code)
-    Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
-    Set-StatusLine -StatusLabel $statusLabel -Message ("Shortcut repair failed (" + [string]$result.code + ").") -IsError $true
+  Invoke-UiSafe -Code "DOCTOR_REPAIR_SHORTCUTS_FAILED" -StatusLabel $statusLabel -Message "Shortcut repair action failed." -Action {
+    $result = Invoke-ShellDoctorText -RepairShortcuts
+    $doctorText.Text = Build-ShellDoctorPanelText -Result $result -ModeToken "repair_shortcuts"
+    if ($result.ok) {
+      Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "PASS" -Detail "shortcut repair"
+      Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
+      Set-StatusLine -StatusLabel $statusLabel -Message "Shortcut repair completed." -IsError $false
+    } else {
+      Set-DoctorLampState -Label $doctorLampShell -Name "Shell" -State "FAIL" -Detail ([string]$result.code)
+      Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
+      Set-StatusLine -StatusLabel $statusLabel -Message ("Shortcut repair failed (" + [string]$result.code + ").") -IsError $true
+    }
   }
 })
 $btnAdapterDoctorRun.Add_Click({
-  $result = Invoke-AdapterDoctorText
-  $doctorText.Text = Build-AdapterDoctorPanelText -Result $result
-  $adapterLamp = Get-AdapterDoctorLampState -Result $result
-  Set-DoctorLampState -Label $doctorLampAdapter -Name "Adapter" -State ([string]$adapterLamp.state) -Detail ([string]$adapterLamp.detail)
-  Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
-  if ($result.ok) {
-    Set-StatusLine -StatusLabel $statusLabel -Message "Adapter doctor completed." -IsError $false
-  } else {
-    Set-StatusLine -StatusLabel $statusLabel -Message ("Adapter doctor failed (" + [string]$result.code + ").") -IsError $true
+  Invoke-UiSafe -Code "DOCTOR_ADAPTER_RUN_FAILED" -StatusLabel $statusLabel -Message "Adapter doctor action failed." -Action {
+    $result = Invoke-AdapterDoctorText
+    $doctorText.Text = Build-AdapterDoctorPanelText -Result $result
+    $adapterLamp = Get-AdapterDoctorLampState -Result $result
+    Set-DoctorLampState -Label $doctorLampAdapter -Name "Adapter" -State ([string]$adapterLamp.state) -Detail ([string]$adapterLamp.detail)
+    Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
+    if ($result.ok) {
+      Set-StatusLine -StatusLabel $statusLabel -Message "Adapter doctor completed." -IsError $false
+    } else {
+      Set-StatusLine -StatusLabel $statusLabel -Message ("Adapter doctor failed (" + [string]$result.code + ").") -IsError $true
+    }
   }
 })
 $btnAdapterDoctorStrictRun.Add_Click({
-  $result = Invoke-AdapterDoctorText -Strict
-  $doctorText.Text = Build-AdapterDoctorPanelText -Result $result -Strict
-  $adapterStrictLamp = Get-AdapterDoctorLampState -Result $result -Strict
-  Set-DoctorLampState -Label $doctorLampAdapterStrict -Name "Adapter Strict" -State ([string]$adapterStrictLamp.state) -Detail ([string]$adapterStrictLamp.detail)
-  Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
-  if ($result.ok) {
-    Set-StatusLine -StatusLabel $statusLabel -Message "Adapter doctor strict check passed." -IsError $false
-  } else {
-    Set-StatusLine -StatusLabel $statusLabel -Message ("Adapter doctor strict check failed (" + [string]$result.code + ").") -IsError $true
+  Invoke-UiSafe -Code "DOCTOR_ADAPTER_STRICT_FAILED" -StatusLabel $statusLabel -Message "Adapter doctor strict action failed." -Action {
+    $result = Invoke-AdapterDoctorText -Strict
+    $doctorText.Text = Build-AdapterDoctorPanelText -Result $result -Strict
+    $adapterStrictLamp = Get-AdapterDoctorLampState -Result $result -Strict
+    Set-DoctorLampState -Label $doctorLampAdapterStrict -Name "Adapter Strict" -State ([string]$adapterStrictLamp.state) -Detail ([string]$adapterStrictLamp.detail)
+    Update-DoctorOverallLamp -OverallLamp $doctorLampOverall -ShellLamp $doctorLampShell -AdapterLamp $doctorLampAdapter -AdapterStrictLamp $doctorLampAdapterStrict
+    if ($result.ok) {
+      Set-StatusLine -StatusLabel $statusLabel -Message "Adapter doctor strict check passed." -IsError $false
+    } else {
+      Set-StatusLine -StatusLabel $statusLabel -Message ("Adapter doctor strict check failed (" + [string]$result.code + ").") -IsError $true
+    }
   }
 })
 $btnDoctorCopy.Add_Click({
-  Copy-DoctorOutputText -DoctorBox $doctorText -StatusLabel $statusLabel
+  Invoke-UiSafe -Code "DOCTOR_COPY_FAILED" -StatusLabel $statusLabel -Message "Copy doctor output failed." -Action {
+    Copy-DoctorOutputText -DoctorBox $doctorText -StatusLabel $statusLabel
+  }
 })
 $doctorText.Add_KeyDown({
   param($sender, $e)
