@@ -30,6 +30,7 @@ Highlights
    - native report viewer default, with safe fallback behavior
    - launchpad CHANGED/BLOCKED accept/decline flow restored
    - .lnk target resolution and bind/unbind workflow hardening
+   - Launchpad Doctor now surfaces deterministic summary blocks and traffic-light status for Shell/Adapter checks
 
 Validation on release state
 - npm run compile --silent: pass
