@@ -43,6 +43,7 @@ Fail-closed behavior
 Doctor command
 - JSON: `npm run weftend -- adapter doctor`
 - Text: `npm run weftend -- adapter doctor --text`
+- `WARN` is informational when optional plugins are missing; it does not block analysis unless strict mode is requested.
 - Strict gate (exit 40 on invalid policy/unknown tokens/unresolved missing plugins): `npm run weftend -- adapter doctor --strict`
   - JSON output includes `headline`, `summary`, `lights` for deterministic status consumption.
   - JSON output includes `strict.status` (`PASS`|`FAIL`) and `strict.reasonCodes`.
