@@ -31,6 +31,8 @@ Highlights
    - launchpad CHANGED/BLOCKED accept/decline flow restored
    - .lnk target resolution and bind/unbind workflow hardening
    - Launchpad Doctor now surfaces deterministic summary blocks and traffic-light status for Shell/Adapter checks
+7. Privacy and trust posture remains local-only:
+   - No phone home, no cloud analysis, no implicit network lookups.
 
 Validation on release state
 - npm run compile --silent: pass
