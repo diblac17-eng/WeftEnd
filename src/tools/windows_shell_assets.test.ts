@@ -391,6 +391,10 @@ suite("tools/windows shell assets", () => {
     assert(/DENY/.test(text), "expected DENY wrapper result");
     assert(/OpenLibrary/.test(text), "expected OpenLibrary support");
     assert(/LaunchpadMode/.test(text), "expected LaunchpadMode support");
+    assert(/Write-LatestSnapshotReferenceForRun/.test(text), "expected wrapper snapshot reference writer");
+    assert(/snapshot_ref_latest\.json/.test(text), "expected wrapper to maintain latest snapshot reference");
+    assert(/SNAPSHOT_REFERENCE_WRITTEN/.test(text), "expected wrapper snapshot write status code");
+    assert(/snapshotRef=/.test(text), "expected wrapper result snapshot reference status line");
 
     const blockMatch = text.match(/function Write-ReportCard[\s\S]*?function Read-ReceiptSummary/);
     if (blockMatch && blockMatch[0]) {

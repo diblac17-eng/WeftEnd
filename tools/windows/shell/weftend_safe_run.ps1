@@ -225,6 +225,12 @@ function ShortSha256Hex {
   return $full.Substring(0, $Length)
 }
 
+function Compute-TextSha256Digest {
+  param([string]$TextValue)
+  if ($null -eq $TextValue) { $TextValue = "" }
+  return "sha256:" + (Sha256Hex -Value ([string]$TextValue))
+}
+
 function Compute-FileSha256Digest {
   param([string]$PathValue)
   if (-not $PathValue -or -not (Test-Path -LiteralPath $PathValue)) { return $null }
@@ -234,6 +240,165 @@ function Compute-FileSha256Digest {
     return "sha256:" + ([string]$hash.Hash).ToLowerInvariant()
   } catch {
     return $null
+  }
+}
+
+function Write-TextFileAtomic {
+  param(
+    [string]$PathValue,
+    [string]$TextValue
+  )
+  if (-not $PathValue -or $PathValue.Trim() -eq "") { return }
+  $dir = Split-Path -Parent $PathValue
+  if ($dir -and -not (Test-Path -LiteralPath $dir)) {
+    New-Item -ItemType Directory -Force -Path $dir | Out-Null
+  }
+  $stage = $PathValue + ".stage"
+  if (Test-Path -LiteralPath $stage) {
+    Remove-Item -LiteralPath $stage -Force -ErrorAction SilentlyContinue
+  }
+  Set-Content -LiteralPath $stage -Value $TextValue -Encoding UTF8
+  Move-Item -LiteralPath $stage -Destination $PathValue -Force
+}
+
+function Get-SnapshotTargetToken {
+  param([string]$TargetKeyValue)
+  $token = if ($TargetKeyValue) { ([string]$TargetKeyValue -replace "[^A-Za-z0-9_]+", "_").Trim("_") } else { "target" }
+  if (-not $token -or $token -eq "") { $token = "target" }
+  return $token
+}
+
+function Read-SnapshotIdentityFromRun {
+  param(
+    [string]$RunDir,
+    [object]$Summary
+  )
+  $out = [ordered]@{
+    artifactFingerprint = "-"
+    artifactDigest = "-"
+  }
+  if (-not $RunDir -or -not (Test-Path -LiteralPath $RunDir)) { return $out }
+
+  $reportJsonPath = Join-Path $RunDir "report_card_v0.json"
+  if (Test-Path -LiteralPath $reportJsonPath) {
+    try {
+      $report = Get-Content -LiteralPath $reportJsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
+      $fp = [string](Get-PropertyValue -ObjectValue $report -Name "artifactFingerprint")
+      $dg = [string](Get-PropertyValue -ObjectValue $report -Name "artifactDigest")
+      if ($fp -and $fp.Trim() -ne "") { $out.artifactFingerprint = $fp.Trim() }
+      if ($dg -and $dg.Trim() -ne "") { $out.artifactDigest = $dg.Trim() }
+    } catch {
+      # best effort only
+    }
+  }
+
+  if ($out.artifactFingerprint -eq "-" -or $out.artifactDigest -eq "-") {
+    $reportTxtPath = Join-Path $RunDir "report_card.txt"
+    if (Test-Path -LiteralPath $reportTxtPath) {
+      try {
+        $lines = @(Get-Content -LiteralPath $reportTxtPath -Encoding UTF8)
+        foreach ($lineObj in $lines) {
+          $line = [string]$lineObj
+          if ($out.artifactFingerprint -eq "-" -and $line.StartsWith("artifactFingerprint=")) {
+            $value = $line.Substring("artifactFingerprint=".Length).Trim()
+            if ($value -ne "") { $out.artifactFingerprint = $value }
+          } elseif ($out.artifactDigest -eq "-" -and $line.StartsWith("artifactDigest=")) {
+            $value = $line.Substring("artifactDigest=".Length).Trim()
+            if ($value -ne "") { $out.artifactDigest = $value }
+          }
+        }
+      } catch {
+        # best effort only
+      }
+    }
+  }
+
+  if ($out.artifactDigest -eq "-" -and $Summary -and $Summary.hashSha256) {
+    $out.artifactDigest = [string]$Summary.hashSha256
+  }
+  if ($out.artifactFingerprint -eq "-" -and $out.artifactDigest -ne "-") {
+    $out.artifactFingerprint = [string]$out.artifactDigest
+  }
+  return $out
+}
+
+function Write-LatestSnapshotReferenceForRun {
+  param(
+    [string]$LibraryRootValue,
+    [string]$TargetKeyValue,
+    [string]$RunDir,
+    [string]$RunIdValue,
+    [object]$Summary
+  )
+  $out = [ordered]@{
+    ok = $false
+    code = "SNAPSHOT_REFERENCE_SKIPPED"
+    latestPath = ""
+    runPath = ""
+  }
+  if (-not $LibraryRootValue -or -not $TargetKeyValue -or -not $RunDir -or -not $RunIdValue) { return $out }
+  if (-not (Test-Path -LiteralPath $RunDir)) { return $out }
+
+  try {
+    $token = Get-SnapshotTargetToken -TargetKeyValue $TargetKeyValue
+    $bucketDir = Join-Path (Join-Path (Join-Path $LibraryRootValue "SnapshotTrust") "buckets") $token
+    New-Item -ItemType Directory -Force -Path $bucketDir | Out-Null
+
+    $identity = Read-SnapshotIdentityFromRun -RunDir $RunDir -Summary $Summary
+    $safeReceiptDigest = Compute-FileSha256Digest -PathValue (Join-Path $RunDir "safe_run_receipt.json")
+    $reportCardDigest = Compute-FileSha256Digest -PathValue (Join-Path $RunDir "report_card_v0.json")
+    if (-not $reportCardDigest) {
+      $reportCardDigest = Compute-FileSha256Digest -PathValue (Join-Path $RunDir "report_card.txt")
+    }
+    $operatorReceiptDigest = Compute-FileSha256Digest -PathValue (Join-Path $RunDir "operator_receipt.json")
+    $privacyLintDigest = Compute-FileSha256Digest -PathValue (Join-Path (Join-Path $RunDir "weftend") "privacy_lint_v0.json")
+
+    if (-not $safeReceiptDigest) { $safeReceiptDigest = "-" }
+    if (-not $reportCardDigest) { $reportCardDigest = "-" }
+    if (-not $operatorReceiptDigest) { $operatorReceiptDigest = "-" }
+    if (-not $privacyLintDigest) { $privacyLintDigest = "-" }
+
+    $reference = [ordered]@{
+      schema = "weftend.snapshotReference/0"
+      schemaVersion = 0
+      targetKey = [string]$TargetKeyValue
+      runId = [string]$RunIdValue
+      identity = [ordered]@{
+        artifactFingerprint = [string]$identity.artifactFingerprint
+        artifactDigest = [string]$identity.artifactDigest
+        safeReceiptDigest = [string]$safeReceiptDigest
+        reportCardDigest = [string]$reportCardDigest
+        operatorReceiptDigest = [string]$operatorReceiptDigest
+        privacyLintDigest = [string]$privacyLintDigest
+      }
+      reasonCodes = @("SNAPSHOT_REFERENCE_LOCAL_ONLY")
+    }
+
+    $core = [ordered]@{
+      schema = $reference.schema
+      schemaVersion = $reference.schemaVersion
+      targetKey = $reference.targetKey
+      runId = $reference.runId
+      identity = $reference.identity
+      reasonCodes = $reference.reasonCodes
+    }
+    $reference.snapshotDigest = Compute-TextSha256Digest -TextValue (($core | ConvertTo-Json -Depth 8) + "`n")
+    $text = (($reference | ConvertTo-Json -Depth 10) + "`n")
+
+    $runPath = Join-Path $bucketDir ("snapshot_ref_{0}_{1}.json" -f $token, $RunIdValue)
+    $latestPath = Join-Path $bucketDir "snapshot_ref_latest.json"
+    Write-TextFileAtomic -PathValue $runPath -TextValue $text
+    Write-TextFileAtomic -PathValue $latestPath -TextValue $text
+
+    $out.ok = $true
+    $out.code = "SNAPSHOT_REFERENCE_WRITTEN"
+    $out.latestPath = $latestPath
+    $out.runPath = $runPath
+    return $out
+  } catch {
+    $out.ok = $false
+    $out.code = "SNAPSHOT_REFERENCE_WRITE_FAILED"
+    return $out
   }
 }
 
@@ -2041,6 +2206,13 @@ try {
   )
   $path = Join-Path $outDir "report_card.txt"
   $fallback -join "`n" | Set-Content -Path $path -Encoding UTF8
+}
+
+$snapshotRef = Write-LatestSnapshotReferenceForRun -LibraryRootValue $libraryRoot -TargetKeyValue $targetKey -RunDir $outDir -RunIdValue $runId -Summary $summary
+try {
+  Add-Content -Path (Join-Path $outDir "wrapper_result.txt") -Value ("snapshotRef=" + [string]$snapshotRef.code) -Encoding UTF8
+} catch {
+  # best effort only
 }
 
 $openFlag = -not ($Open -eq "0" -or $Open -eq "false" -or $Open -eq "False")
