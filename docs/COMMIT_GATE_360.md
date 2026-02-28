@@ -87,6 +87,12 @@ Core rule
    - non-strict mode records readiness evidence without failing the gate on missing plugins
    - strict behavior is available via `WEFTEND_360_ADAPTER_DOCTOR_STRICT=1`
    - strict failures are recorded as explicit PARTIAL evidence (`VERIFY360_ADAPTER_DOCTOR_STRICT_FAILED`) with adapter strict reason codes
+22. `verify:360` includes a `test_contract` precheck step:
+   - fails closed when required strict/probe/examiner test tokens are missing from `package.json` `scripts.test`
+   - fail codes are explicit (`VERIFY360_TEST_CONTRACT_MISSING`, `VERIFY360_TEST_SCRIPT_MISSING`, `VERIFY360_TEST_SCRIPT_UNREADABLE`)
+23. `verify:360` includes a `proofcheck_contract` precheck step:
+   - fails closed when required strict/probe/examiner test tokens are missing from `scripts/proofcheck.js`
+   - fail codes are explicit (`VERIFY360_PROOFCHECK_CONTRACT_MISSING`, `VERIFY360_PROOFCHECK_SCRIPT_UNREADABLE`)
 
 Command
 - `npm run verify:360`
@@ -138,3 +144,5 @@ Policy
 - Host precondition misses must be explicit evidence (`PARTIAL`/`SKIP`) and must not silently drop receipts.
 - Missing docs/update sync for code changes is a gate failure (`VERIFY360_DOC_SYNC_MISSING`).
 - Etiquette violations are a gate failure (`VERIFY360_GIT_ETIQUETTE_FAILED`).
+- Missing required baseline-loop test tokens is a gate failure (`VERIFY360_TEST_CONTRACT_MISSING`).
+- Missing required proofcheck-loop test tokens is a gate failure (`VERIFY360_PROOFCHECK_CONTRACT_MISSING`).
