@@ -103,6 +103,22 @@ suite("greenteam/verify360-docs-sync-contract", () => {
       text.includes("dist/src/runtime/examiner/examine_determinism.test.js"),
       "verify_360 proofcheck-contract must pin examiner determinism coverage token"
     );
+    assert(
+      text.includes("id: \"test_contract\""),
+      "verify_360 must emit deterministic test_contract step id"
+    );
+    assert(
+      text.includes("id: \"proofcheck_contract\""),
+      "verify_360 must emit deterministic proofcheck_contract step id"
+    );
+    assert(
+      text.includes("\"package.test_contract\""),
+      "verify_360 must include package.test_contract capability in requested ledger"
+    );
+    assert(
+      text.includes("\"proofcheck.test_contract\""),
+      "verify_360 must include proofcheck.test_contract capability in requested ledger"
+    );
   });
 
   register("posting etiquette doc stays aligned with verify:360 etiquette targets", () => {
