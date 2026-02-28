@@ -216,7 +216,8 @@ Included
 - `verify:360` idempotence context now includes strict-mode flags, preventing replay-key collisions between strict and non-strict runs.
 - `verify:360` now supports optional deterministic safe-run adapter override via `WEFTEND_360_SAFE_RUN_ADAPTER` (validated adapter set, included in idempotence context and report policy lines).
 - Added `WEFTEND_360_FAIL_ON_PARTIAL=1` policy support (and helper commands) to force non-zero exit when verify ends in PARTIAL.
-- `verify_360_report.txt` now includes explicit gate-policy and adapter-doctor strict summary lines (`policy.*`, `adapterDoctor.*`) for quick human review.
+- `verify_360_report.txt` now includes explicit gate-policy and adapter-doctor summary lines (`policy.*`, `adapterDoctor.*`) for quick human review, including deterministic doctor light tokens and reason/exit summaries (`adapterDoctor.light`, `adapterDoctor.exitCode`, `adapterDoctor.reasonCodes`, `adapterDoctor.strictLight`).
+- `verify:360` npm invocation fallback is now host-correct on Windows (`cmd.exe /d /s /c npm ...` when `npm_execpath` is unavailable), so direct script/harness runs outside `npm run ...` no longer fail compile/test/proofcheck lanes due command-resolution mismatch.
 - `verify:360:harness` now checks these report lines in pass/replay/fail lanes to prevent report regression.
 - Harness now also proves strict-flag idempotence separation (`NEW` then `REPLAY` under strict-mode context), protecting against replay-key collisions.
 - Policy-enforced PARTIAL exits now print `verify:360 PARTIAL (blocked_by_policy)` and set `interpreted.policy.partialBlockedByPolicy=1` for explicit machine/human signaling.

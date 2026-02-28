@@ -81,6 +81,13 @@ const VERDICT_EXPLANATIONS = {
   PARTIAL: "Verification completed with partial knowledge; evidence is recorded and reusable state advancement remains constrained.",
   FAIL: "Verification failed closed; evidence is recorded and reusable state must not advance until issues are resolved.",
 };
+const lightTokenFromState = (state) => {
+  const token = String(state || "").toUpperCase();
+  if (token === "PASS") return "GREEN";
+  if (token === "PARTIAL" || token === "WARN") return "YELLOW";
+  if (token === "FAIL" || token === "DENY" || token === "BLOCKED") return "RED";
+  return "GRAY";
+};
 const buildCapabilityDecisions = (capabilityMap) =>
   stableSortUnique(CAPABILITY_REQUESTS).map((capability) => {
     const entry = capabilityMap.get(capability);
@@ -371,6 +378,9 @@ const nextRunDir = () => {
 const npmExec = () => {
   const cli = process.env.npm_execpath || "";
   if (cli.length > 0) return { cmd: process.execPath, argsPrefix: [cli] };
+  if (process.platform === "win32") {
+    return { cmd: process.env.ComSpec || "cmd.exe", argsPrefix: ["/d", "/s", "/c", "npm"] };
+  }
   return { cmd: "npm", argsPrefix: [] };
 };
 
@@ -649,7 +659,13 @@ const writeOutputs = (runDir, payload, options = {}) => {
   lines.push(`policy.partialBlocked=${policyPartialBlocked}`);
   lines.push(`policy.safeRunAdapter=${String(payload.idempotenceContext?.safeRunAdapter || "auto")}`);
   lines.push(`adapterDoctor.status=${adapterDoctorStep?.status || "-"}`);
+  lines.push(`adapterDoctor.light=${lightTokenFromState(adapterDoctorStep?.status || "-")}`);
+  lines.push(`adapterDoctor.exitCode=${typeof adapterDoctorStep?.exitCode === "number" ? adapterDoctorStep.exitCode : "-"}`);
+  lines.push(
+    `adapterDoctor.reasonCodes=${Array.isArray(adapterDoctorStep?.reasonCodes) && adapterDoctorStep.reasonCodes.length > 0 ? adapterDoctorStep.reasonCodes.join("|") : "-"}`
+  );
   lines.push(`adapterDoctor.strictStatus=${String(adapterDoctorDetails?.strictStatus || "-")}`);
+  lines.push(`adapterDoctor.strictLight=${lightTokenFromState(String(adapterDoctorDetails?.strictStatus || "-"))}`);
   lines.push(
     `adapterDoctor.strictReasons=${
       Array.isArray(adapterDoctorDetails?.strictReasonCodes) && adapterDoctorDetails.strictReasonCodes.length > 0

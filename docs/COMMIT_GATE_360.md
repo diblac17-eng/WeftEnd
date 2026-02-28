@@ -121,7 +121,8 @@ Output evidence
 - `out/verify_360/latest.txt` (pointer to latest run folder)
 - Report includes quick policy/doctors lines for human scan:
   - `policy.auditStrict`, `policy.adapterDoctorStrict`, `policy.failOnPartial`, `policy.partialBlocked`, `policy.safeRunAdapter`
-  - `adapterDoctor.status`, `adapterDoctor.strictStatus`, `adapterDoctor.strictReasons`
+  - `adapterDoctor.status`, `adapterDoctor.light`, `adapterDoctor.exitCode`, `adapterDoctor.reasonCodes`
+  - `adapterDoctor.strictStatus`, `adapterDoctor.strictLight`, `adapterDoctor.strictReasons`
 - Receipt includes evidence-chain links:
   - report/receipt chain digests
   - safe-run/compare artifact digests (when present)

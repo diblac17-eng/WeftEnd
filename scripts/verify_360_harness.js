@@ -5,13 +5,13 @@
 // 3) forced exception run fails but still writes receipt/report and does not advance pointer
 
 const fs = require("fs");
-const os = require("os");
 const path = require("path");
 const crypto = require("crypto");
 const { spawnSync } = require("child_process");
 
 const root = process.cwd();
-const outRoot = fs.mkdtempSync(path.join(os.tmpdir(), "weftend-verify360-harness-"));
+const outRoot = path.join(root, "out", `verify_360_harness_${crypto.randomBytes(4).toString("hex")}`);
+fs.mkdirSync(outRoot, { recursive: true });
 const historyRoot = path.join(outRoot, "history");
 const latestPath = path.join(outRoot, "latest.txt");
 
@@ -142,7 +142,11 @@ const assertReportPolicyLines = (reportText) => {
     "policy.partialBlocked=",
     "policy.safeRunAdapter=",
     "adapterDoctor.status=",
+    "adapterDoctor.light=",
+    "adapterDoctor.exitCode=",
+    "adapterDoctor.reasonCodes=",
     "adapterDoctor.strictStatus=",
+    "adapterDoctor.strictLight=",
     "adapterDoctor.strictReasons=",
   ];
   requiredPrefixes.forEach((prefix) => {
