@@ -776,6 +776,21 @@ function Get-AdapterDoctorLampState {
     return $out
   }
   $text = [string](Get-ObjectProperty -ObjectValue $Result -Name "output")
+  $headlineStatus = ""
+  $headlineCode = ""
+  $statusMatch = [System.Text.RegularExpressions.Regex]::Match($text, "(?m)^AdapterDoctorStatus:\s*([A-Z]+)\s*$")
+  if ($statusMatch.Success -and $statusMatch.Groups.Count -gt 1) {
+    $headlineStatus = [string]$statusMatch.Groups[1].Value
+  }
+  $codeMatch = [System.Text.RegularExpressions.Regex]::Match($text, "(?m)^AdapterDoctorCode:\s*([A-Z0-9_]+)\s*$")
+  if ($codeMatch.Success -and $codeMatch.Groups.Count -gt 1) {
+    $headlineCode = [string]$codeMatch.Groups[1].Value
+  }
+  if ($headlineStatus -and $headlineStatus.Trim() -ne "") {
+    $out.state = $headlineStatus.Trim()
+    $out.detail = if ($headlineCode -and $headlineCode.Trim() -ne "") { $headlineCode.Trim() } else { $headlineStatus.Trim().ToLowerInvariant() }
+    return $out
+  }
   if ($Strict.IsPresent) {
     $out.state = "PASS"
     $out.detail = "strict"
@@ -988,6 +1003,21 @@ function Build-AdapterDoctorPanelText {
       $strictReasons = $strictReasonsValue.Trim()
     }
   }
+  $headlineStatus = ""
+  $headlineCode = ""
+  $headlineLight = ""
+  $statusMatch = [System.Text.RegularExpressions.Regex]::Match($output, "(?m)^AdapterDoctorStatus:\s*([A-Z]+)\s*$")
+  if ($statusMatch.Success -and $statusMatch.Groups.Count -gt 1) {
+    $headlineStatus = [string]$statusMatch.Groups[1].Value
+  }
+  $codeMatch = [System.Text.RegularExpressions.Regex]::Match($output, "(?m)^AdapterDoctorCode:\s*([A-Z0-9_]+)\s*$")
+  if ($codeMatch.Success -and $codeMatch.Groups.Count -gt 1) {
+    $headlineCode = [string]$codeMatch.Groups[1].Value
+  }
+  $lightMatch = [System.Text.RegularExpressions.Regex]::Match($output, "(?m)^AdapterDoctorLight:\s*([A-Z]+)\s*$")
+  if ($lightMatch.Success -and $lightMatch.Groups.Count -gt 1) {
+    $headlineLight = [string]$lightMatch.Groups[1].Value
+  }
   $actionLines = @()
   foreach ($line in $lines) {
     $trimmed = [string]$line
@@ -1002,12 +1032,17 @@ function Build-AdapterDoctorPanelText {
   $overall = "UNKNOWN"
   if (-not $ok) {
     $overall = "FAIL"
+  } elseif ($headlineStatus -and $headlineStatus.Trim() -ne "") {
+    $overall = $headlineStatus.Trim()
   } elseif ($Strict.IsPresent) {
     $overall = "PASS"
   } elseif ($missingAdapters.Count -gt 0) {
     $overall = "WARN"
   } else {
     $overall = "PASS"
+  }
+  if ($headlineCode -and $headlineCode.Trim() -ne "") {
+    $code = $headlineCode.Trim()
   }
 
   $mode = if ($Strict.IsPresent) { "strict" } else { "run" }
@@ -1036,7 +1071,11 @@ function Build-AdapterDoctorPanelText {
   }
   $header += ""
   $header += "doctor.lights:"
-  $header += ("  overall=" + (Get-DoctorLightToken -StateValue $overall))
+  if ($headlineLight -and $headlineLight.Trim() -ne "") {
+    $header += ("  overall=" + $headlineLight.Trim())
+  } else {
+    $header += ("  overall=" + (Get-DoctorLightToken -StateValue $overall))
+  }
   $header += ("  strict=" + (Get-DoctorLightToken -StateValue $strictSignal))
   $pluginSignal = if ($missingAdapters.Count -gt 0) { "WARN" } else { "PASS" }
   $header += ("  plugins=" + (Get-DoctorLightToken -StateValue $pluginSignal))

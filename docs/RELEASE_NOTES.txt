@@ -25,6 +25,7 @@ Included
 - `weftend adapter doctor --text` now includes deterministic top-level status lines (`AdapterDoctorStatus`, `AdapterDoctorCode`, `AdapterDoctorLight`) so operators can identify pass/warn/fail state and primary cause without parsing full doctor output blocks.
 - `weftend adapter doctor` JSON now includes structured deterministic status summaries (`headline`, `summary`, `lights`) so automation/UI can consume doctor status directly without text parsing.
 - Adapter doctor schema now explicitly defines optional `headline/summary/lights/strict` fields to formalize the JSON status contract in code-level types.
+- Launchpad adapter-doctor parsing now honors deterministic headline lines (`AdapterDoctorStatus`, `AdapterDoctorCode`, `AdapterDoctorLight`) to drive UI lamp and summary state without heuristic guessing.
 - This reduces raw-text parsing burden while preserving full underlying doctor output for deep triage.
 - Added Windows shell wrapper runtime smoke coverage (`windows_shell_wrapper_smoke`) that runs `weftend_safe_run.ps1` and verifies real generated artifacts (`wrapper_result.txt`, `report_card.txt`, `snapshot_ref_latest.json`) including snapshot identity digest fields.
 - Windows shell wrapper runtime smoke now also enforces path-hygiene on generated wrapper/report/snapshot artifacts (no absolute host path identifiers in these operator-facing outputs).

@@ -584,6 +584,9 @@ suite("tools/windows shell assets", () => {
     assert(/Run Adapter Doctor/.test(panelText), "expected launchpad doctor adapter action");
     assert(/Run Adapter Doctor \(Strict\)/.test(panelText), "expected launchpad doctor strict adapter action");
     assert(panelText.includes("(?m)^\\[([A-Z0-9_]+)\\]"), "expected adapter doctor reason-code parsing from bracketed output");
+    assert(panelText.includes("AdapterDoctorStatus:"), "expected adapter doctor status headline parsing");
+    assert(panelText.includes("AdapterDoctorCode:"), "expected adapter doctor code headline parsing");
+    assert(panelText.includes("AdapterDoctorLight:"), "expected adapter doctor light headline parsing");
     assert(panelText.includes("strict\\.reasons=([A-Z0-9_, -]+)"), "expected adapter doctor strict.reasons parsing fallback");
     assert(/Repair Viewer/.test(panelText), "expected launchpad doctor repair viewer action");
     assert(/Copy Doctor Output/.test(panelText), "expected launchpad doctor copy action");
