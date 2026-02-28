@@ -261,6 +261,30 @@ function Write-TextFileAtomic {
   Move-Item -LiteralPath $stage -Destination $PathValue -Force
 }
 
+function Append-TextLineAtomic {
+  param(
+    [string]$PathValue,
+    [string]$LineValue
+  )
+  if (-not $PathValue -or $PathValue.Trim() -eq "") { return }
+  $existing = ""
+  if (Test-Path -LiteralPath $PathValue) {
+    try {
+      $existing = [string](Get-Content -LiteralPath $PathValue -Raw -Encoding UTF8)
+    } catch {
+      $existing = ""
+    }
+  }
+  $line = if ($null -eq $LineValue) { "" } else { [string]$LineValue }
+  $text = if ($existing -and $existing.Length -gt 0) {
+    $trimmed = if ($existing.EndsWith("`n")) { $existing.TrimEnd("`r", "`n") } else { $existing }
+    if ($trimmed -and $trimmed.Length -gt 0) { $trimmed + [Environment]::NewLine + $line } else { $line }
+  } else {
+    $line
+  }
+  Write-TextFileAtomic -PathValue $PathValue -TextValue $text
+}
+
 function Get-SnapshotTargetToken {
   param([string]$TargetKeyValue)
   $token = if ($TargetKeyValue) { ([string]$TargetKeyValue -replace "[^A-Za-z0-9_]+", "_").Trim("_") } else { "target" }
@@ -666,7 +690,7 @@ function Write-WrapperResult {
     $lines += "detail=$Detail"
   }
   $path = Join-Path $outDir "wrapper_result.txt"
-  $lines -join "`n" | Set-Content -Path $path -Encoding UTF8
+  Write-TextFileAtomic -PathValue $path -TextValue ($lines -join "`n")
 }
 
 function Write-WrapperStderr {
@@ -680,7 +704,7 @@ function Write-WrapperStderr {
     $line = "(no diagnostic line captured)"
   }
   $path = Join-Path $outDir "wrapper_stderr.txt"
-  $line | Set-Content -Path $path -Encoding UTF8
+  Write-TextFileAtomic -PathValue $path -TextValue $line
 }
 
 function Get-ExplicitStateToken {
@@ -2171,7 +2195,7 @@ try {
 } catch {
   $errMsg = Redact-SensitiveText -Text ([string]$_)
   $errPath = Join-Path $outDir "wrapper_report_card_error.txt"
-  $errMsg | Set-Content -Path $errPath -Encoding UTF8
+  Write-TextFileAtomic -PathValue $errPath -TextValue $errMsg
   $summary = Read-ReceiptSummary
   $targetKind = if ($summary.targetKind) { $summary.targetKind } else { "unknown" }
   $artifactKind = if ($summary.artifactKind) { $summary.artifactKind } else { "unknown" }
@@ -2202,12 +2226,12 @@ try {
     "operator=operator_receipt.json"
   )
   $path = Join-Path $outDir "report_card.txt"
-  $fallback -join "`n" | Set-Content -Path $path -Encoding UTF8
+  Write-TextFileAtomic -PathValue $path -TextValue ($fallback -join "`n")
 }
 
 $snapshotRef = Write-LatestSnapshotReferenceForRun -LibraryRootValue $libraryRoot -TargetKeyValue $targetKey -RunDir $outDir -RunIdValue $runId -Summary $summary
 try {
-  Add-Content -Path (Join-Path $outDir "wrapper_result.txt") -Value ("snapshotRef=" + [string]$snapshotRef.code) -Encoding UTF8
+  Append-TextLineAtomic -PathValue (Join-Path $outDir "wrapper_result.txt") -LineValue ("snapshotRef=" + [string]$snapshotRef.code)
 } catch {
   # best effort only
 }
@@ -2250,7 +2274,7 @@ if ($shouldHandleUi) {
   if ($shouldPromptBaseline) {
     $accept = Show-AcceptBaselinePrompt -TargetKey $targetKey
     try {
-      Add-Content -Path (Join-Path $outDir "report_card.txt") -Value "baselinePrompt=SHOWN" -Encoding UTF8
+      Append-TextLineAtomic -PathValue (Join-Path $outDir "report_card.txt") -LineValue "baselinePrompt=SHOWN"
     } catch {
       # best effort only
     }
@@ -2262,7 +2286,7 @@ if ($shouldHandleUi) {
           & $npmPathResolved run weftend -- "library" "accept-baseline" $targetKey | Out-Null
         }
         try {
-          Add-Content -Path (Join-Path $outDir "report_card.txt") -Value "baselineAction=ACCEPTED" -Encoding UTF8
+          Append-TextLineAtomic -PathValue (Join-Path $outDir "report_card.txt") -LineValue "baselineAction=ACCEPTED"
         } catch {
           # best effort only
         }
@@ -2272,7 +2296,7 @@ if ($shouldHandleUi) {
       }
     } elseif ($accept -ne $null) {
       try {
-        Add-Content -Path (Join-Path $outDir "report_card.txt") -Value "baselineAction=DECLINED" -Encoding UTF8
+        Append-TextLineAtomic -PathValue (Join-Path $outDir "report_card.txt") -LineValue "baselineAction=DECLINED"
       } catch {
         # best effort only
       }
@@ -2300,13 +2324,13 @@ if ($shouldHandleUi) {
   }
   if ($ticketPromptShown) {
     try {
-      Add-Content -Path (Join-Path $outDir "report_card.txt") -Value "ticketPackPrompt=SHOWN" -Encoding UTF8
-      Add-Content -Path (Join-Path $outDir "report_card.txt") -Value ("ticketPackAction=" + $ticketAction) -Encoding UTF8
+      Append-TextLineAtomic -PathValue (Join-Path $outDir "report_card.txt") -LineValue "ticketPackPrompt=SHOWN"
+      Append-TextLineAtomic -PathValue (Join-Path $outDir "report_card.txt") -LineValue ("ticketPackAction=" + $ticketAction)
     } catch {
       # best effort only
     }
     try {
-      Add-Content -Path (Join-Path $outDir "wrapper_result.txt") -Value ("ticketPack=" + $ticketAction) -Encoding UTF8
+      Append-TextLineAtomic -PathValue (Join-Path $outDir "wrapper_result.txt") -LineValue ("ticketPack=" + $ticketAction)
     } catch {
       # best effort only
     }
@@ -2326,18 +2350,18 @@ if ($shouldHandleUi) {
     $reportViewerOpened = Start-ReportCardViewer -RunDir $outDir -TargetDir $targetDir -TargetKey $targetKey
     if (-not $reportViewerOpened -and $script:reportViewerAutoDisabled) {
       try {
-        Add-Content -Path (Join-Path $outDir "wrapper_result.txt") -Value "reportViewer=AUTO_DISABLED_STARTUP_FAIL" -Encoding UTF8
+        Append-TextLineAtomic -PathValue (Join-Path $outDir "wrapper_result.txt") -LineValue "reportViewer=AUTO_DISABLED_STARTUP_FAIL"
       } catch {
         # best effort only
       }
       try {
-        Add-Content -Path (Join-Path $outDir "report_card.txt") -Value "reportViewerAutoOpen=DISABLED_STARTUP_FAIL" -Encoding UTF8
+        Append-TextLineAtomic -PathValue (Join-Path $outDir "report_card.txt") -LineValue "reportViewerAutoOpen=DISABLED_STARTUP_FAIL"
       } catch {
         # best effort only
       }
     } elseif (-not $reportViewerOpened -and $script:reportViewerFailureCount -gt 0) {
       try {
-        Add-Content -Path (Join-Path $outDir "wrapper_result.txt") -Value ("reportViewerStartupFailures=" + [string]$script:reportViewerFailureCount) -Encoding UTF8
+        Append-TextLineAtomic -PathValue (Join-Path $outDir "wrapper_result.txt") -LineValue ("reportViewerStartupFailures=" + [string]$script:reportViewerFailureCount)
       } catch {
         # best effort only
       }
@@ -2443,7 +2467,7 @@ if ($AllowLaunch.IsPresent) {
     }
   }
   try {
-    Add-Content -Path (Join-Path $outDir "wrapper_result.txt") -Value ("launch=" + $launchResult) -Encoding UTF8
+    Append-TextLineAtomic -PathValue (Join-Path $outDir "wrapper_result.txt") -LineValue ("launch=" + $launchResult)
   } catch {
     # best effort only
   }

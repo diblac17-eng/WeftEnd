@@ -376,6 +376,9 @@ suite("tools/windows shell assets", () => {
     assert(/WEFTEND_FAILED_BEFORE_RECEIPT/.test(text), "expected actionable pre-receipt reason");
     assert(/report_card\.txt/.test(text), "expected report card artifact");
     assert(/report_card_v0\.json/.test(text), "expected report card json artifact");
+    assert(/Append-TextLineAtomic/.test(text), "expected atomic line-append helper in wrapper");
+    assert(!/Add-Content -Path \(Join-Path \$outDir "wrapper_result\.txt"\)/.test(text), "wrapper_result writes must avoid direct Add-Content");
+    assert(!/Add-Content -Path \(Join-Path \$outDir "report_card\.txt"\)/.test(text), "report_card appends must avoid direct Add-Content");
     assert(/run_/.test(text), "expected deterministic run id prefix");
     assert(/Library/.test(text), "expected Library output subfolder");
     assert(/Start-ReportCardViewer/.test(text), "expected report viewer launch");
