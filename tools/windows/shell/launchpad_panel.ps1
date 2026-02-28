@@ -2687,6 +2687,18 @@ function Import-SnapshotReferencesFromPaths {
   return $result
 }
 
+function Build-SnapshotImportStatusMessage {
+  param([hashtable]$ImportResult)
+  if (-not $ImportResult) { return "Snapshot import: imported=0 invalid=0 skipped=0 latest=UNCHANGED" }
+  $latestState = if ([bool](Get-ObjectProperty -ObjectValue $ImportResult -Name "latestUpdated")) { "UPDATED" } else { "UNCHANGED" }
+  return (
+    "Snapshot import: imported=" + [string](Get-ObjectProperty -ObjectValue $ImportResult -Name "imported") +
+    " invalid=" + [string](Get-ObjectProperty -ObjectValue $ImportResult -Name "invalid") +
+    " skipped=" + [string](Get-ObjectProperty -ObjectValue $ImportResult -Name "skipped") +
+    " latest=" + $latestState
+  )
+}
+
 function Import-HistorySnapshotReferenceFiles {
   param(
     [System.Windows.Forms.ListView]$ListView,
@@ -2716,8 +2728,7 @@ function Import-HistorySnapshotReferenceFiles {
     return
   }
   $import = Import-SnapshotReferencesFromPaths -TargetKey $targetKey -InputPaths $paths
-  $latestState = if ($import.latestUpdated) { "UPDATED" } else { "UNCHANGED" }
-  $msg = "Snapshot import: imported=" + [string]$import.imported + " invalid=" + [string]$import.invalid + " skipped=" + [string]$import.skipped + " latest=" + $latestState
+  $msg = Build-SnapshotImportStatusMessage -ImportResult $import
   if ([int]$import.imported -gt 0) {
     Set-StatusLine -StatusLabel $StatusLabel -Message $msg -IsError $false
   } else {
@@ -3343,7 +3354,7 @@ $historyDetail.Add_DragDrop({
     $import = Import-SnapshotReferencesFromPaths -TargetKey $targetKey -InputPaths $paths
     Update-HistoryDetailsBox -ListView $historyList -DetailBox $historyDetail
     Update-HistoryActionButtons -ListView $historyList -RunButton $btnHistoryRun -EvidenceButton $btnHistoryEvidence -SnapshotExportButton $btnHistorySnapshotExport -SnapshotCompareButton $btnHistorySnapshotCompare -SnapshotTrustButton $btnHistorySnapshotTrust -SnapshotOpenBindingButton $btnHistorySnapshotOpen -SnapshotRemoveBindingButton $btnHistorySnapshotRemove -SnapshotBucketButton $btnHistorySnapshotBucket -SnapshotImportButton $btnHistorySnapshotImport
-    $msg = "Snapshot import: imported=" + [string]$import.imported + " invalid=" + [string]$import.invalid + " skipped=" + [string]$import.skipped
+    $msg = Build-SnapshotImportStatusMessage -ImportResult $import
     if ([int]$import.imported -gt 0) {
       Set-StatusLine -StatusLabel $statusLabel -Message $msg -IsError $false
     } else {
