@@ -688,9 +688,10 @@ function Invoke-UiSafe {
   try {
     & $Action
   } catch {
-    Write-LaunchpadUiError -Code $Code
+    $errorCode = if ($Code -and $Code.Trim() -ne "") { $Code.Trim() } else { "LAUNCHPAD_UI_ERROR" }
+    Write-LaunchpadUiError -Code $errorCode
     $safeMessage = if ($Message -and $Message.Trim() -ne "") { $Message.Trim() } else { "Launchpad action failed." }
-    Set-StatusLine -StatusLabel $StatusLabel -Message $safeMessage -IsError $true
+    Set-StatusLine -StatusLabel $StatusLabel -Message ($safeMessage + " (" + $errorCode + ")") -IsError $true
   }
 }
 

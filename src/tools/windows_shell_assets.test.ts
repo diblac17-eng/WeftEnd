@@ -455,6 +455,7 @@ suite("tools/windows shell assets", () => {
     assert(/function Invoke-UiSafe/.test(panelText), "expected launchpad UI safe-invoke helper");
     assert(/ui_last_error\.txt/.test(panelText), "expected launchpad UI failure artifact path");
     assert(/function Write-LaunchpadUiError[\s\S]*Write-TextFileAtomic -PathValue \$path -TextValue/.test(panelText), "expected launchpad UI error capture to use atomic writes");
+    assert(/Set-StatusLine -StatusLabel \$StatusLabel -Message \(\$safeMessage \+ " \(" \+ \$errorCode \+ "\)"\) -IsError \$true/.test(panelText), "expected ui-safe status messages to include stable failure code");
     assert(/Update-HistoryDetailsBox/.test(panelText), "expected history details update helper");
     assert(/function Get-AutoRefreshStateToken/.test(panelText), "expected auto-refresh state token helper");
     assert(/Auto Refresh: /.test(panelText), "expected auto-refresh state line in history details");
