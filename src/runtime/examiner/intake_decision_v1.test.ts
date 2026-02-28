@@ -139,6 +139,19 @@ suite("runtime/intake decision flags", () => {
     assertEq(out.decision.action, "REJECT", "expected fail-closed action");
     assertEq(out.disclosure, "DISCLOSURE_REQUIRED", "expected deterministic disclosure sentinel");
   });
+
+  register("STRICT_COMPARTMENT_UNAVAILABLE defaults to DENY action", () => {
+    const mint = examineArtifactV1(fixturePath("safe_no_caps"), { profile: "web" }).mint;
+    mint.grade.reasonCodes = ["STRICT_COMPARTMENT_UNAVAILABLE"];
+    const policy = makePolicy();
+    const out = buildIntakeDecisionV1(mint, policy);
+    assert(
+      out.decision.topReasonCodes.includes("STRICT_COMPARTMENT_UNAVAILABLE"),
+      "expected strict compartment reason"
+    );
+    assertEq(out.decision.grade, "DENY", "expected default severity to map to DENY");
+    assertEq(out.decision.action, "REJECT", "expected default DENY action");
+  });
 });
 
 suite("runtime/intake appeal oversize", () => {

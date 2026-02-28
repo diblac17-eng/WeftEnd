@@ -605,6 +605,7 @@ Included
 - History detail panel now also surfaces deterministic snapshot gate state (`UNBOUND`, `BOUND_MATCH`, `BOUND_DRIFT`, `BOUND_INCOMPLETE`) and match counts for the selected latest run against the current local trusted binding.
 - Launchpad Doctor tab now includes readable status lamps (`Overall`, `Shell`, `Adapter`, `Adapter Strict`) with PASS/WARN/FAIL indicators, while keeping full raw doctor output below for audit detail.
 - Intake decision severity mapping now treats strict membrane unavailability as deny-by-default (`STRICT_COMPARTMENT_UNAVAILABLE` -> `DENY`) instead of warn, aligning intake gating with strict execution fail-closed posture.
+- Added direct intake decision contract coverage pinning the strict-membrane mapping (`STRICT_COMPARTMENT_UNAVAILABLE` must resolve to `DENY`/`REJECT` under default policy), preventing silent severity regression.
 
 Validation
 - npm run compile --silent: pass
