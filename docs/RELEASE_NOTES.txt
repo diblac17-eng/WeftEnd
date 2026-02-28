@@ -79,6 +79,7 @@ Included
 - Windows shell contract tests now pin adapter-evidence show/hide toggle transitions (panel visibility and row-style collapse/expand wiring) to prevent UI regressions in the evidence panel.
 - Windows shell contract tests now pin wrapper prompt title wording (`WeftEnd Scan`) to prevent regression back to run-first/safe-run operator prompt text.
 - Windows shell contract tests now also pin install/uninstall completion text to scan-first wording for context-menu lifecycle consistency.
+- Windows shell contract tests now pin full shell-doctor context-menu verb-check coverage across STAR/LNK/DIR/background/archive/email/open-library/bind/unbind labels to prevent silent verb-check drift.
 - Launchpad Doctor tab action buttons now sit in a horizontally scrollable single-row strip, so the far-right buttons remain reachable at narrow Launchpad widths.
 - Doctor action row height was increased to avoid clipping when the horizontal scrollbar is shown.
 - Launchpad Doctor action strip now explicitly suppresses vertical scrolling (`VerticalScroll=disabled`) so only left/right scrolling is presented.

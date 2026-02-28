@@ -240,6 +240,32 @@ suite("tools/windows shell assets", () => {
     assert(/Scan with WeftEnd \(Open Library\)/.test(text), "expected shell doctor open-library scan verb expectation");
     assert(/Bind to WeftEnd/.test(text), "expected shell doctor bind verb expectation");
     assert(/Unbind from WeftEnd/.test(text), "expected shell doctor unbind verb expectation");
+    [
+      "STAR_FILE_VERB",
+      "LNK_FILE_VERB",
+      "DIR_VERB",
+      "DIR_BG_VERB",
+      "ZIP_VERB",
+      "EML_VERB",
+      "MBOX_VERB",
+      "MSG_VERB",
+      "STAR_FILE_OPEN_LIB_VERB",
+      "LNK_FILE_OPEN_LIB_VERB",
+      "DIR_OPEN_LIB_VERB",
+      "DIR_BG_OPEN_LIB_VERB",
+      "ZIP_OPEN_LIB_VERB",
+      "EML_OPEN_LIB_VERB",
+      "MBOX_OPEN_LIB_VERB",
+      "MSG_OPEN_LIB_VERB",
+      "STAR_BIND_VERB",
+      "STAR_UNBIND_VERB",
+      "LNK_BIND_VERB",
+      "LNK_UNBIND_VERB",
+      "DIR_BIND_VERB",
+      "DIR_UNBIND_VERB"
+    ].forEach((label) => {
+      assert(new RegExp(`Check-MenuVerbValue -Label \"${label}\"`).test(text), `expected shell doctor verb check for ${label}`);
+    });
     assert(/HKCU:\\Software\\WeftEnd\\Shell/.test(text), "expected config registry key");
     assert(/HKCU:\\Software\\Classes\\\*\\shell\\WeftEndSafeRun\\command/.test(text), "expected star command key");
     assert(/HKCU:\\Software\\Classes\\lnkfile\\shell\\WeftEndSafeRun\\command/.test(text), "expected lnk command key");
