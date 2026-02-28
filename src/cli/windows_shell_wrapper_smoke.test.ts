@@ -17,6 +17,8 @@ const assert = (cond: unknown, msg: string) => {
 
 const makeTempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), "weftend-shell-wrapper-"));
 
+const containsPathLeak = (text: string): boolean => /[A-Za-z]:\\/.test(text) || /\\Users\\/.test(text);
+
 const findFirstFile = (root: string, fileName: string): string | null => {
   const stack: string[] = [root];
   while (stack.length > 0) {
@@ -89,6 +91,7 @@ const run = async () => {
   assert(wrapperResultPath, "expected wrapper_result.txt");
   const wrapperResult = fs.readFileSync(String(wrapperResultPath), "utf8");
   assert(wrapperResult.includes("snapshotRef=SNAPSHOT_REFERENCE_WRITTEN"), "expected snapshot reference write status in wrapper_result.txt");
+  assert(!containsPathLeak(wrapperResult), "wrapper_result.txt must not contain absolute path identifiers");
 
   const runDir = path.dirname(String(wrapperResultPath));
   const targetDir = path.dirname(runDir);
@@ -102,12 +105,15 @@ const run = async () => {
   assert(reportCard.includes("FINGERPRINT:"), "expected FINGERPRINT line in report card");
   assert(reportCard.includes("result="), "expected result line in report card");
   assert(reportCard.includes("receipt=safe_run_receipt.json"), "expected receipt reference in report card");
+  assert(!containsPathLeak(reportCard), "report_card.txt must not contain absolute path identifiers");
 
   const operatorReceiptPath = path.join(runDir, "operator_receipt.json");
   assert(fs.existsSync(operatorReceiptPath), "expected operator_receipt.json");
 
   const snapshotLatestPath = path.join(outRoot, "SnapshotTrust", "buckets", targetKey, "snapshot_ref_latest.json");
   assert(fs.existsSync(snapshotLatestPath), "expected snapshot_ref_latest.json");
+  const snapshotRaw = fs.readFileSync(snapshotLatestPath, "utf8");
+  assert(!containsPathLeak(snapshotRaw), "snapshot_ref_latest.json must not contain absolute path identifiers");
   const snapshot = readJsonUtf8(snapshotLatestPath);
   assert(String(snapshot.schema || "") === "weftend.snapshotReference/0", "unexpected snapshot schema");
   assert(String(snapshot.targetKey || "") === targetKey, "snapshot targetKey mismatch");
