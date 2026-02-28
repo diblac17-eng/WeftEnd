@@ -68,6 +68,8 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - Launchpad Doctor action-button row is now horizontally scrollable (single-row strip) so the rightmost buttons remain reachable at narrow Launchpad widths.
 - Doctor action row height increased to reserve space for the horizontal scrollbar without clipping button text.
 - Added Windows shell asset contract coverage to pin Doctor action-strip scroll behavior.
+- Launchpad Doctor output pane now enables horizontal scrolling and disables word wrap so long status lines remain readable without truncation.
+- Launchpad adapter-doctor summary now treats `strict.status=OFF` as neutral (`[OFF]`/`GRAY`) instead of warning.
 - Launchpad main action-button row now uses the same horizontally scrollable single-row strip pattern, preventing Open Targets / Sync / Refresh clipping at narrow widths or higher DPI scaling.
 - Main action row height increased to reserve space for the horizontal scrollbar without clipping button text.
 - Added Windows shell asset contract coverage to pin main action-strip scroll behavior.
