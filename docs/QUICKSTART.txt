@@ -73,6 +73,9 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   - History details include artifact fingerprint/digest, report-card digest, safe/operator receipt digests, and compare receipt/report digests for quick verification.
   - History details now also include `Privacy Lint Digest` for quick cross-verification without opening files.
   - History details now also include compare semantics (`Compare Verdict`, `Compare Buckets`, `Compare Bucket Count`, `Compare Change Count`) when compare artifacts are available.
+  - History row sync now auto-materializes latest local snapshot refs in target snapshot buckets.
+  - `Import Snapshot` supports local-latest fallback (cancel picker still refreshes selected target latest snapshot ref).
+  - Drag/drop and button import paths both report `latest=UPDATED|UNCHANGED`.
 - Report card text/json (when adapter evidence exists):
   - `report_card.txt` includes `adapterMeta=` and `capabilities=` lines.
   - `report_card_v0.json` includes additive `adapter` object with class/id/mode/source/reasons/capability counts.
@@ -154,7 +157,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   - `Run Adapter Doctor` for adapter/plugin maintenance health (`adapter doctor --text`).
   - `Run Adapter Doctor (Strict)` for fail-closed adapter health (`adapter doctor --text --strict`).
   - `Copy Doctor Output` (or `Ctrl+C` in doctor output pane) for direct support/ticket sharing.
-  - Doctor output now includes deterministic headers for triage (`<doctor> exitCode=` and `<doctor> code=`).
+  - Doctor output now includes concise structured summary sections (`DOCTOR SUMMARY (...)`) with overall state, counts, and top issues before raw output.
 - Behavior:
   - SAME vs baseline: launch allowed.
   - CHANGED/BLOCKED vs baseline: explicit accept/decline flow.
@@ -164,6 +167,9 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   - Bind to WeftEnd
   - Unbind from WeftEnd
 - For .lnk rewrap mode, WeftEnd preserves icon and can restore original shortcut state on unbind.
+- Bound shortcut runs now use changed-only report gating:
+  - SAME: launch proceeds without forced report popup.
+  - CHANGED/BLOCKED: explicit report/gate review path.
 
 6) Open Library and ticket packs
 - Right-click target -> Run with WeftEnd (Open Library)

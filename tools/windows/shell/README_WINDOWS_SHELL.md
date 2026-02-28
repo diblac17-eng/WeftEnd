@@ -30,6 +30,9 @@ WeftEnd-run shortcuts (optional)
 - Create a shortcut that runs WeftEnd before launching an app:
   `tools\windows\shell\weftend_make_shortcut.ps1 -TargetPath "<path-to-app.exe>" -AllowLaunch`
 - This runs analysis first, then launches only if baseline is SAME or accepted.
+- Changed-only gating is enforced for bound/launchpad flows:
+  - SAME: launch proceeds without forced report popup.
+  - CHANGED/BLOCKED: explicit report/gate review path.
 
 Analysis-first contract
 - Right-click "Run with WeftEnd" always performs deterministic analysis first.
@@ -47,6 +50,10 @@ Wrapper behavior
   - `npm run weftend -- safe-run ...`
 - It writes `wrapper_result.txt` in the output folder (PASS/FAIL + exit code + reason).
 - It writes `report_card.txt` and `report_card_v0.json` in the output folder.
+- It writes deterministic snapshot references per run under:
+  `%LOCALAPPDATA%\WeftEnd\Library\SnapshotTrust\buckets\<target>\`
+  - `snapshot_ref_latest.json`
+  - `snapshot_ref_<target>_<runId>.json`
 - It opens the native report viewer by default; if viewer startup fails, it falls back to opening run artifacts in Explorer.
 - Report card highlights:
   - `webLane=ACTIVE|NOT_APPLICABLE`
@@ -62,6 +69,9 @@ Launchpad flow (Windows convenience UI)
 - Click a launchpad tile:
   - SAME vs baseline: launch proceeds for executable targets.
   - CHANGED vs baseline: launch is blocked until baseline is explicitly accepted.
+- History snapshot import supports both picker and local-latest fallback:
+  - `Import Snapshot` with selected row refreshes latest local snapshot refs even if picker import is cancelled.
+  - Drag/drop and button import paths now both report `latest=UPDATED|UNCHANGED` status.
 
 Ticket pack flow
 - On CHANGED runs, the wrapper prompts to create a ticket pack immediately.
