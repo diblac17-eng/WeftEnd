@@ -493,6 +493,13 @@ suite("tools/windows shell assets", () => {
     assert(/adapter\.matrix:/.test(panelText), "expected adapter doctor matrix block");
     assert(/recommended\.actions:/.test(panelText), "expected adapter doctor recommended-actions block");
     assert(/Get-DoctorStateToken/.test(panelText), "expected shared doctor state token helper");
+    assert(/Get-DoctorLightToken/.test(panelText), "expected shared doctor light-token helper");
+    assert(/doctor\.lights:/.test(panelText), "expected doctor traffic-light summary block");
+    assert(/overall=" \+ \(Get-DoctorLightToken -StateValue \$status\)/.test(panelText), "expected shell doctor lights overall mapping");
+    assert(/warnings=" \+ \(Get-DoctorLightToken -StateValue \$warnSignal\)/.test(panelText), "expected shell doctor lights warning mapping");
+    assert(/overall=" \+ \(Get-DoctorLightToken -StateValue \$overall\)/.test(panelText), "expected adapter doctor lights overall mapping");
+    assert(/strict=" \+ \(Get-DoctorLightToken -StateValue \$strictSignal\)/.test(panelText), "expected adapter doctor lights strict mapping");
+    assert(/plugins=" \+ \(Get-DoctorLightToken -StateValue \$pluginSignal\)/.test(panelText), "expected adapter doctor lights plugin mapping");
     assert(panelText.includes("(?m)^ShellDoctorStatus:\\s*FAIL\\s+code=([A-Z0-9_]+)\\s*$"), "expected shell doctor explicit fail-status code parsing");
     assert(panelText.includes("code=([A-Z0-9_]+)"), "expected shell doctor output code parsing");
     assert(/"adapter", "doctor", "--text"/.test(panelText), "expected launchpad adapter doctor text-mode command");

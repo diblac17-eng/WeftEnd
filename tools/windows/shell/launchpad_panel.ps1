@@ -813,6 +813,17 @@ function Get-DoctorStateToken {
   }
 }
 
+function Get-DoctorLightToken {
+  param([string]$StateValue)
+  $state = Get-DoctorStateToken -StateValue $StateValue
+  switch ($state) {
+    "PASS" { return "GREEN" }
+    "WARN" { return "YELLOW" }
+    "FAIL" { return "RED" }
+    default { return "GRAY" }
+  }
+}
+
 function Build-ShellDoctorPanelText {
   param(
     [hashtable]$Result,
@@ -885,6 +896,10 @@ function Build-ShellDoctorPanelText {
   $header += ("  [" + (Get-DoctorStateToken -StateValue $status) + "] overall")
   $warnSignal = if (($warnCount + $missingCount + $failCount) -gt 0) { "WARN" } else { "PASS" }
   $header += ("  [" + $warnSignal + "] warnings=" + [string]($warnCount + $missingCount + $failCount))
+  $header += ""
+  $header += "doctor.lights:"
+  $header += ("  overall=" + (Get-DoctorLightToken -StateValue $status))
+  $header += ("  warnings=" + (Get-DoctorLightToken -StateValue $warnSignal))
 
   if ($checkRows.Count -gt 0) {
     $header += ""
@@ -1018,6 +1033,12 @@ function Build-AdapterDoctorPanelText {
     $strictReasonsSignal = if ($strictStatus -eq "FAIL") { "FAIL" } else { "WARN" }
     $header += ("  [" + $strictReasonsSignal + "] strict.reasons=" + $strictReasons)
   }
+  $header += ""
+  $header += "doctor.lights:"
+  $header += ("  overall=" + (Get-DoctorLightToken -StateValue $overall))
+  $header += ("  strict=" + (Get-DoctorLightToken -StateValue $strictSignal))
+  $pluginSignal = if ($missingAdapters.Count -gt 0) { "WARN" } else { "PASS" }
+  $header += ("  plugins=" + (Get-DoctorLightToken -StateValue $pluginSignal))
 
   if ($adapterRows.Count -gt 0) {
     $header += ""
