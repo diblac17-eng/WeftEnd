@@ -61,7 +61,7 @@ Included
 - Unsupported inputs now still emit deterministic runtime artifacts with explicit reason codes (`WEB_RUNTIME_CAPTURE_UNSUPPORTED`) before fail-closed exit.
 - Launchpad History latest-run resync hardening:
 - History actions now re-sync the selected row from library view-state before opening report viewer, run folder, or adapter evidence.
-- This prevents stale report opens when Launchpad stays open while a newer run is created externally (for example via right-click `Run with WeftEnd`).
+- This prevents stale report opens when Launchpad stays open while a newer run is created externally (for example via right-click `Scan with WeftEnd`).
 - History details pane and action-button enablement now use the same re-sync path so row metadata stays aligned with current on-disk latest run.
 - Launchpad History includes an additive `Kind` column derived from latest report-card metadata (`targetKind`/`artifactKind`) so operators can identify target class quickly.
 - Launchpad History no-selection hint now includes `Auto Refresh: ON|OFF`, and the hint refreshes immediately when the auto-refresh checkbox is toggled.
@@ -79,6 +79,8 @@ Included
 - Windows shell contract tests now pin adapter-evidence show/hide toggle transitions (panel visibility and row-style collapse/expand wiring) to prevent UI regressions in the evidence panel.
 - Launchpad Doctor tab action buttons now sit in a horizontally scrollable single-row strip, so the far-right buttons remain reachable at narrow Launchpad widths.
 - Doctor action row height was increased to avoid clipping when the horizontal scrollbar is shown.
+- Launchpad Doctor action strip now explicitly suppresses vertical scrolling (`VerticalScroll=disabled`) so only left/right scrolling is presented.
+- Launchpad Doctor status-lamp row now also uses a horizontally scrollable single-row strip (with increased reserved height), preventing PASS/WARN/FAIL lamp text clipping at the bottom edge.
 - Launchpad main action row (`Open Targets`, `Sync`, `Refresh`) now also uses a horizontally scrollable single-row strip to prevent clipping at narrow widths or higher DPI scaling.
 - Main action row height was increased to avoid clipping when the horizontal scrollbar is shown.
 - Launchpad History action buttons now also use a horizontally scrollable single-row strip to prevent right-side button clipping at narrow Launchpad widths.
@@ -573,6 +575,9 @@ Included
 - `capabilities=requested:<n> granted:<n> denied:<n>`
 - New bind/unbind right-click flow:
 - Bind to WeftEnd and Unbind from WeftEnd verbs for files, shortcuts, and folders.
+- Windows right-click analysis verbs are now scan-first in operator language:
+- `Scan with WeftEnd`
+- `Scan with WeftEnd (Open Library)`
 - .lnk rewrap mode preserves icon and stores an original shortcut backup for safe restoration.
 - Legacy metadata compatibility fixes prevent stale-state and strict-mode unbind failures.
 - Shell integration simplification: only WeftEnd Launchpad and WeftEnd Download shortcuts are installed by default.

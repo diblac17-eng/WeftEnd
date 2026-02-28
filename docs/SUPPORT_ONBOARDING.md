@@ -10,7 +10,7 @@ Operator onboarding checklist (5-10 minutes).
 - Run shell doctor (must show OK for all bindings).
 
 2) First run
-- Right-click a folder or zip and choose "Run with WeftEnd."
+- Right-click a folder or zip and choose "Scan with WeftEnd."
 - Confirm `report_card.txt` opens.
 - Confirm receipts exist in the library run folder.
 - For non-web artifacts, `webLane=NOT_APPLICABLE` is normal.

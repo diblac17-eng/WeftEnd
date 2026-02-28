@@ -1,4 +1,4 @@
-﻿# tools/windows/shell/launchpad_panel.ps1
+# tools/windows/shell/launchpad_panel.ps1
 # Small Launchpad panel for clicking WeftEnd shortcuts.
 
 param(
@@ -3013,7 +3013,7 @@ $launchHint.Dock = "Fill"
 $launchHint.ForeColor = $colorMuted
 $launchHint.Font = $fontSmall
 $launchHint.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
-$launchHint.Text = "Drop apps/files into Targets, click Sync, then launch here. Right-click Run with WeftEnd works immediately after install."
+$launchHint.Text = "Drop apps/files into Targets, click Sync, then launch here. Right-click Scan with WeftEnd works immediately after install."
 
 $listPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $listPanel.Dock = "Fill"
@@ -3252,7 +3252,7 @@ $doctorLayout.Dock = "Fill"
 $doctorLayout.ColumnCount = 1
 $doctorLayout.RowCount = 2
 $doctorLayout.Padding = New-Object System.Windows.Forms.Padding(6, 8, 6, 8)
-$doctorLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 56)))
+$doctorLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 64)))
 $doctorLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
 $tabDoctor.Controls.Add($doctorLayout)
 
@@ -3261,6 +3261,10 @@ $doctorActions.Dock = "Fill"
 $doctorActions.FlowDirection = "LeftToRight"
 $doctorActions.WrapContents = $false
 $doctorActions.AutoScroll = $true
+$doctorActions.HorizontalScroll.Enabled = $true
+$doctorActions.HorizontalScroll.Visible = $true
+$doctorActions.VerticalScroll.Enabled = $false
+$doctorActions.VerticalScroll.Visible = $false
 $doctorActions.BackColor = $colorBg
 $doctorActions.Padding = New-Object System.Windows.Forms.Padding(0, 0, 6, 0)
 
@@ -3310,14 +3314,18 @@ $doctorBody = New-Object System.Windows.Forms.TableLayoutPanel
 $doctorBody.Dock = "Fill"
 $doctorBody.ColumnCount = 1
 $doctorBody.RowCount = 2
-$doctorBody.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 54)))
+$doctorBody.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 64)))
 $doctorBody.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
 
 $doctorSummary = New-Object System.Windows.Forms.FlowLayoutPanel
 $doctorSummary.Dock = "Fill"
 $doctorSummary.FlowDirection = "LeftToRight"
-$doctorSummary.WrapContents = $true
-$doctorSummary.AutoScroll = $false
+$doctorSummary.WrapContents = $false
+$doctorSummary.AutoScroll = $true
+$doctorSummary.HorizontalScroll.Enabled = $true
+$doctorSummary.HorizontalScroll.Visible = $true
+$doctorSummary.VerticalScroll.Enabled = $false
+$doctorSummary.VerticalScroll.Visible = $false
 $doctorSummary.BackColor = $colorPanel
 $doctorSummary.Padding = New-Object System.Windows.Forms.Padding(4, 2, 4, 2)
 

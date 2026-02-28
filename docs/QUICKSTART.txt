@@ -17,7 +17,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - Windows shell integration is Windows-only.
 
 2) First run (right-click)
-- Right-click any file or folder -> Run with WeftEnd
+- Right-click any file or folder -> Scan with WeftEnd
 - Report card opens in the WeftEnd viewer by default.
 - Native binaries are WITHHELD by design (analysis-first).
 - webLane=NOT_APPLICABLE is normal for non-web artifacts.
@@ -172,7 +172,7 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   - CHANGED/BLOCKED: explicit report/gate review path.
 
 6) Open Library and ticket packs
-- Right-click target -> Run with WeftEnd (Open Library)
+- Right-click target -> Scan with WeftEnd (Open Library)
 - On CHANGED runs, WeftEnd can prompt to create a ticket pack.
 - CLI alternative:
   npm run weftend -- library

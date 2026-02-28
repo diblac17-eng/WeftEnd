@@ -51,7 +51,7 @@ Any correction, hardening pass, or follow-up change is recorded in a newer chang
 - `tools/windows/INSTALL_WINDOWS.cmd` now runs `weftend_shell_doctor.ps1 -RepairShortcuts` before strict shell doctor validation, so clean installs self-heal stale Launchpad/Download shortcut wiring before fail-closed checks.
 
 ### Launchpad History latest-run resync
-- Launchpad History actions now re-sync the selected row from library view-state before opening reports/run folders/adapter evidence, so an already-open Launchpad window does not open stale runs after an external right-click `Run with WeftEnd` scan updates the library.
+- Launchpad History actions now re-sync the selected row from library view-state before opening reports/run folders/adapter evidence, so an already-open Launchpad window does not open stale runs after an external right-click `Scan with WeftEnd` scan updates the library.
 - Launchpad History details preview and action-button enablement now use the same row re-sync path, keeping the visible status/baseline/latest/buckets fields aligned with the current latest run on disk.
 - Launchpad History now includes an additive `Kind` column (derived from latest report-card `targetKind`/`artifactKind`) so operators can classify targets at a glance without opening details.
 - Launchpad History details now show `Auto Refresh: ON|OFF` in both selected-row and no-selection views, and the details pane updates immediately when the auto-refresh checkbox is toggled.

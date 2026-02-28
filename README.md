@@ -73,7 +73,7 @@ Quickstart
 - npm run weftend -- safe-run <input> --out out/run
 
 Operator workflow (Windows)
-1) Right-click file/folder/shortcut -> Run with WeftEnd
+1) Right-click file/folder/shortcut -> Scan with WeftEnd
 2) Review report card
 3) Re-run after change
 4) Compare baseline status and signals

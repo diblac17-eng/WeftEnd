@@ -143,28 +143,28 @@ function Set-ContextMenu {
   }
 }
 
-Set-ContextMenu -BaseSubKey "Software\Classes\*" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
-Set-ContextMenu -BaseSubKey "Software\Classes\*" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\*" -KeyName "WeftEndSafeRun" -Verb "Scan with WeftEnd" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\*" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Scan with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\*" -KeyName "WeftEndBind" -Verb "Bind to WeftEnd" -ExtraArgs "-Action bind" -ScriptPath $bindPath -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\*" -KeyName "WeftEndUnbind" -Verb "Unbind from WeftEnd" -ExtraArgs "-Action unbind" -ScriptPath $bindPath -IconPath $weftendIcon
-Set-ContextMenu -BaseSubKey "Software\Classes\lnkfile" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
-Set-ContextMenu -BaseSubKey "Software\Classes\lnkfile" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\lnkfile" -KeyName "WeftEndSafeRun" -Verb "Scan with WeftEnd" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\lnkfile" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Scan with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\lnkfile" -KeyName "WeftEndBind" -Verb "Bind to WeftEnd" -ExtraArgs "-Action bind" -ScriptPath $bindPath -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\lnkfile" -KeyName "WeftEndUnbind" -Verb "Unbind from WeftEnd" -ExtraArgs "-Action unbind" -ScriptPath $bindPath -IconPath $weftendIcon
-Set-ContextMenu -BaseSubKey "Software\Classes\Directory" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
-Set-ContextMenu -BaseSubKey "Software\Classes\Directory" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\Directory" -KeyName "WeftEndSafeRun" -Verb "Scan with WeftEnd" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\Directory" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Scan with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\Directory" -KeyName "WeftEndBind" -Verb "Bind to WeftEnd" -ExtraArgs "-Action bind" -ScriptPath $bindPath -IconPath $weftendIcon
 Set-ContextMenu -BaseSubKey "Software\Classes\Directory" -KeyName "WeftEndUnbind" -Verb "Unbind from WeftEnd" -ExtraArgs "-Action unbind" -ScriptPath $bindPath -IconPath $weftendIcon
-Set-ContextMenu -BaseSubKey "Software\Classes\Directory\Background" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -TargetToken "%V" -IconPath $weftendIcon
-Set-ContextMenu -BaseSubKey "Software\Classes\Directory\Background" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -TargetToken "%V" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
-Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.zip" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
-Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.zip" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
-Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.eml" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
-Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.eml" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
-Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.mbox" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
-Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.mbox" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
-Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.msg" -KeyName "WeftEndSafeRun" -Verb "Run with WeftEnd" -IconPath $weftendIcon
-Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.msg" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Run with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\Directory\Background" -KeyName "WeftEndSafeRun" -Verb "Scan with WeftEnd" -TargetToken "%V" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\Directory\Background" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Scan with WeftEnd (Open Library)" -TargetToken "%V" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.zip" -KeyName "WeftEndSafeRun" -Verb "Scan with WeftEnd" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.zip" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Scan with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.eml" -KeyName "WeftEndSafeRun" -Verb "Scan with WeftEnd" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.eml" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Scan with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.mbox" -KeyName "WeftEndSafeRun" -Verb "Scan with WeftEnd" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.mbox" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Scan with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.msg" -KeyName "WeftEndSafeRun" -Verb "Scan with WeftEnd" -IconPath $weftendIcon
+Set-ContextMenu -BaseSubKey "Software\Classes\SystemFileAssociations\.msg" -KeyName "WeftEndSafeRunOpenLibrary" -Verb "Scan with WeftEnd (Open Library)" -ExtraArgs "-OpenLibrary" -IconPath $weftendIcon
 
 function Remove-LegacyShortcut {
   param([string]$ShortcutPath)
@@ -241,4 +241,4 @@ if ($DesktopShortcut.IsPresent) {
   }
 }
 
-Write-Output "Installed Run with WeftEnd context menu."
+Write-Output "Installed Scan with WeftEnd context menu."

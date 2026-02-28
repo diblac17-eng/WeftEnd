@@ -58,7 +58,7 @@ WeftEnd then:
 
 No simulation, no guesses - only witnessed attempts.
 Browser builds do not execute. Strict execution requires the Node host command (`weftend host run`).
-In Windows shell flows, "Run with WeftEnd" means analysis-first: native executables are withheld unless they are verified WeftEnd releases and host prerequisites are satisfied.
+In Windows shell flows, "Scan with WeftEnd" means analysis-first: native executables are withheld unless they are verified WeftEnd releases and host prerequisites are satisfied.
 
 ## What you get
 

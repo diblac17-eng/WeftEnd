@@ -1,6 +1,6 @@
 # Windows Shell Integration (v0)
 
-This adds a per-user "Run with WeftEnd" right-click entry for files, folders, folder backgrounds, `.zip`, `.eml`, `.mbox`, and `.msg` artifacts.
+This adds a per-user "Scan with WeftEnd" right-click entry for files, folders, folder backgrounds, `.zip`, `.eml`, `.mbox`, and `.msg` artifacts.
 No admin rights required. No system-wide changes.
 
 Install
@@ -16,11 +16,11 @@ tools\windows\shell\uninstall_weftend_context_menu.ps1
 ```
 
 Usage
-- Right-click a file/folder/.zip -> "Run with WeftEnd"
-- Right-click a file/folder/.zip -> "Run with WeftEnd (Open Library)"
+- Right-click a file/folder/.zip -> "Scan with WeftEnd"
+- Right-click a file/folder/.zip -> "Scan with WeftEnd (Open Library)"
 - Right-click a file/folder/.lnk -> "Bind to WeftEnd" or "Unbind from WeftEnd"
-- Right-click inside a folder background -> "Run with WeftEnd"
-- Right-click `.eml`, `.mbox`, or `.msg` -> "Run with WeftEnd" (routes through `weftend email safe-run`)
+- Right-click inside a folder background -> "Scan with WeftEnd"
+- Right-click `.eml`, `.mbox`, or `.msg` -> "Scan with WeftEnd" (routes through `weftend email safe-run`)
 - Output is stored in the local Report Library:
   `%LOCALAPPDATA%\WeftEnd\Library\<target>\run_<digest>[_NNN]\`
 - Compare two runs with:
@@ -35,7 +35,7 @@ WeftEnd-run shortcuts (optional)
   - CHANGED/BLOCKED: explicit report/gate review path.
 
 Analysis-first contract
-- Right-click "Run with WeftEnd" always performs deterministic analysis first.
+- Right-click "Scan with WeftEnd" always performs deterministic analysis first.
 - Native executables are withheld from execution unless wrapped as a verified WeftEnd release.
 - You still get receipts, decision posture, and privacy lint status on every run.
 - `.lnk` targets are resolved for analysis so shortcut-based workflows can be gated consistently.

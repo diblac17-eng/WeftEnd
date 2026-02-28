@@ -92,6 +92,8 @@ suite("tools/windows shell assets", () => {
     assert(/-Action unbind/.test(text), "expected unbind command action");
     assert(/weftend_bind\.ps1/.test(text), "expected bind script reference");
     assert(/-OpenLibrary/.test(text), "expected -OpenLibrary flag");
+    assert(/Scan with WeftEnd/.test(text), "expected scan-first context menu verb labels");
+    assert(!/Verb "Run with WeftEnd/.test(text), "context menu verbs must avoid run-first wording for analysis actions");
     assert(/WeftEnd Launchpad\.lnk/.test(text), "expected launchpad shortcut");
     assert(!/weftend_menu\.ps1/.test(text), "menu script reference must be removed");
     assert(/WeftEnd Download\.lnk/.test(text), "expected download shortcut");
@@ -323,9 +325,21 @@ suite("tools/windows shell assets", () => {
   register("launchpad doctor actions row is horizontally scrollable", () => {
     const launchpadPath = path.join(shellDir, "launchpad_panel.ps1");
     const text = fs.readFileSync(launchpadPath, "utf8");
-    assert(/\$doctorLayout\.RowStyles\.Add\(\(New-Object System\.Windows\.Forms\.RowStyle\(\[System\.Windows\.Forms\.SizeType\]::Absolute, 56\)\)\)/.test(text), "doctor actions row must reserve height for horizontal scrollbar");
+    assert(/\$doctorLayout\.RowStyles\.Add\(\(New-Object System\.Windows\.Forms\.RowStyle\(\[System\.Windows\.Forms\.SizeType\]::Absolute, 64\)\)\)/.test(text), "doctor actions row must reserve height for horizontal scrollbar");
     assert(/\$doctorActions\.WrapContents = \$false/.test(text), "doctor actions row must stay single-line scroll strip");
     assert(/\$doctorActions\.AutoScroll = \$true/.test(text), "doctor actions row must enable horizontal scrolling");
+    assert(/\$doctorActions\.HorizontalScroll\.Enabled = \$true/.test(text), "doctor actions row must keep horizontal scroll enabled");
+    assert(/\$doctorActions\.VerticalScroll\.Enabled = \$false/.test(text), "doctor actions row must suppress vertical scrolling");
+  });
+
+  register("launchpad doctor summary row is horizontally scrollable", () => {
+    const launchpadPath = path.join(shellDir, "launchpad_panel.ps1");
+    const text = fs.readFileSync(launchpadPath, "utf8");
+    assert(/\$doctorBody\.RowStyles\.Add\(\(New-Object System\.Windows\.Forms\.RowStyle\(\[System\.Windows\.Forms\.SizeType\]::Absolute, 64\)\)\)/.test(text), "doctor summary row must reserve height for status lamps");
+    assert(/\$doctorSummary\.WrapContents = \$false/.test(text), "doctor summary row must stay single-line");
+    assert(/\$doctorSummary\.AutoScroll = \$true/.test(text), "doctor summary row must allow horizontal overflow scrolling");
+    assert(/\$doctorSummary\.HorizontalScroll\.Enabled = \$true/.test(text), "doctor summary row must keep horizontal scroll enabled");
+    assert(/\$doctorSummary\.VerticalScroll\.Enabled = \$false/.test(text), "doctor summary row must suppress vertical scrolling");
   });
 
   register("launchpad history actions row is horizontally scrollable", () => {
