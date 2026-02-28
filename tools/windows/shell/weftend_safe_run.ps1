@@ -892,7 +892,6 @@ function Write-ReportCard {
   )
   try {
     if (-not $Summary) { $Summary = @{} }
-    $stateLines = @()
     if ($ViewState) {
       $baselineId = if ($ViewState.baselineRunId) { [string]$ViewState.baselineRunId } else { "-" }
       $latestId = if ($ViewState.latestRunId) { [string]$ViewState.latestRunId } else { "-" }
@@ -950,18 +949,18 @@ function Write-ReportCard {
         $historyTokens = @("[ ]", "[ ]", "[ ]", "[ ]", "[ ]")
       }
       $historyLine = $historyTokens -join " "
-      $stateLines = @(
-        "STATUS: $status (vs baseline)",
-        "BASELINE: $baselineId",
-        "LATEST: $latestId",
-        "FINGERPRINT: $artifactFingerprint",
-        "BUCKETS: $bucketText",
-        "HISTORY: $historyLine",
-        "LEGEND: [ ]=same [X]=changed letters=C X R P H B D",
-        $evidenceLegendLine
-      )
-      $stateLines += $evidenceClaimLines
     }
+    $stateLines = @(
+      "STATUS: $status (vs baseline)",
+      "BASELINE: $baselineId",
+      "LATEST: $latestId",
+      "FINGERPRINT: $artifactFingerprint",
+      "BUCKETS: $bucketText",
+      "HISTORY: $historyLine",
+      "LEGEND: [ ]=same [X]=changed letters=C X R P H B D",
+      $evidenceLegendLine
+    )
+    $stateLines += $evidenceClaimLines
     $targetKind = if ($Summary.targetKind) { $Summary.targetKind } else { "unknown" }
     $artifactKind = if ($Summary.artifactKind) { $Summary.artifactKind } else { "unknown" }
     $files = if ($null -ne $Summary.totalFiles) { $Summary.totalFiles } else { "UNKNOWN" }
@@ -1174,11 +1173,7 @@ function Write-ReportCard {
         $lines = $lines + @($deltaLine)
       }
     }
-    if ($stateLines.Count -gt 0) {
-      $lines = $stateLines + $explainLines + $lines
-    } else {
-      $lines = @("FINGERPRINT: $artifactFingerprint") + $explainLines + $lines
-    }
+    $lines = $stateLines + $explainLines + $lines
     $path = Join-Path $outDir "report_card.txt"
     $lines -join "`n" | Set-Content -Path $path -Encoding UTF8
     $reportJsonPath = Join-Path $outDir "report_card_v0.json"

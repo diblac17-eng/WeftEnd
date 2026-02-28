@@ -98,7 +98,8 @@ const run = async () => {
   const reportCardPath = path.join(runDir, "report_card.txt");
   assert(fs.existsSync(reportCardPath), "expected report_card.txt");
   const reportCard = fs.readFileSync(reportCardPath, "utf8");
-  assert(reportCard.includes("artifactFingerprint="), "expected artifactFingerprint line in report card");
+  assert(reportCard.includes("STATUS:"), "expected STATUS line in report card");
+  assert(reportCard.includes("FINGERPRINT:"), "expected FINGERPRINT line in report card");
   assert(reportCard.includes("result="), "expected result line in report card");
   assert(reportCard.includes("receipt=safe_run_receipt.json"), "expected receipt reference in report card");
 
