@@ -57,7 +57,7 @@ const defaultSeverityForReason = (code: string, profile: EvidenceProfileV1): Int
   if (code === "EVIDENCE_DIGEST_MISMATCH") return "QUARANTINE";
   if (code === "RELEASE_SIGNATURE_BAD") return "QUARANTINE";
   if (code === "HISTORY_LINK_MISMATCH") return "QUARANTINE";
-  if (code === "STRICT_COMPARTMENT_UNAVAILABLE") return "WARN";
+  if (code === "STRICT_COMPARTMENT_UNAVAILABLE") return "DENY";
   if (code.startsWith("CAPTURE_INPUT_")) return "DENY";
   if (code === "ZIP_EOCD_MISSING" || code === "ZIP_CD_CORRUPT") return "DENY";
   if (code === "CAP_DENY_STORAGE") return "WARN";
