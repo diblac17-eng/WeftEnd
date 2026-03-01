@@ -635,6 +635,7 @@ Included
 - `auto_scan_on_change` smoke tests now run through the standard sequential local harness (instead of parallel promise launch), removing cross-test concurrency races in watch-lane validation.
 - `auto_scan_post_install` and `auto_scan_scheduled` smoke tests now also use the standard sequential local harness (instead of parallel promise launch), removing cross-test concurrency races in watch-lane validation.
 - `auto_scan_scheduled` smoke test now waits for watcher startup signal before delayed mutation and uses bounded longer timeout, aligning poll-lane trigger validation with deterministic startup ordering.
+- Guardrail pre-push upstream comparison now trims upstream ref text before `rev-list` checks, preventing false `ambiguous argument` failures in protected push flow.
 
 Validation
 - npm run compile --silent: pass

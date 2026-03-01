@@ -1,7 +1,7 @@
 // scripts/guard_prepush.js
 // Mandatory pre-push guard: scope check, upstream sync check, stale-aware truth gate.
 
-const { runGit, runNodeScript } = require("./guard_common");
+const { runGit, gitText, runNodeScript } = require("./guard_common");
 
 function main() {
   console.log("[guard:prepush] begin");
@@ -16,12 +16,11 @@ function main() {
     process.exit(scopeCode);
   }
 
-  const upstreamRes = runGit(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"], true);
-  if (upstreamRes.code !== 0 || !upstreamRes.stdout) {
+  const upstreamRef = gitText(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"], true);
+  if (!upstreamRef) {
     console.error("[guard:prepush] FAIL code=GUARD_UPSTREAM_MISSING");
     process.exit(40);
   }
-  const upstreamRef = upstreamRes.stdout;
   const counts = runGit(["rev-list", "--left-right", "--count", `HEAD...${upstreamRef}`]).stdout.split(/\s+/);
   const ahead = Number.parseInt(counts[0] || "0", 10) || 0;
   const behind = Number.parseInt(counts[1] || "0", 10) || 0;
