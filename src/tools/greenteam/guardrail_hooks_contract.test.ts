@@ -152,18 +152,18 @@ suite("greenteam/guardrail-hooks-contract", () => {
     );
 
     assert(
-      preCommitScript.includes("guard_scope_compare.js") && preCommitScript.includes("guard_truth_gate.js"),
-      "precommit script must run scope + truth checks"
+      preCommitScript.includes("guard_scope_compare.js") && !preCommitScript.includes("guard_truth_gate.js"),
+      "precommit script must run scope checks only (no long truth-gate run)"
     );
     assert(
-      preCommitScript.includes("--if-stale"),
-      "precommit truth gate must be stale-aware to avoid redundant full reruns on identical staged trees"
+      prePushScript.includes("--require-fresh"),
+      "prepush truth check must require a fresh cached truth-gate result"
     );
     assert(
       prePushScript.includes("guard_scope_compare.js") &&
         prePushScript.includes("guard_truth_gate.js") &&
         prePushScript.includes("GUARD_UPSTREAM_BEHIND"),
-      "prepush script must run scope + upstream + stale truth checks"
+      "prepush script must run scope + upstream + fast truth freshness check"
     );
 
     assert(

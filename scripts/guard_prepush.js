@@ -1,5 +1,5 @@
 // scripts/guard_prepush.js
-// Mandatory pre-push guard: scope check, upstream sync check, stale-aware truth gate.
+// Mandatory pre-push guard: scope check, upstream sync check, and fast truth-cache freshness check.
 
 const { runGit, gitText, runNodeScript } = require("./guard_common");
 
@@ -31,12 +31,12 @@ function main() {
   }
 
   const truthCode = runNodeScript("scripts/guard_truth_gate.js", [
-    "--if-stale",
+    "--require-fresh",
     "--write",
     "out/guardrails/guard_prepush_truth.json",
   ]);
   if (truthCode !== 0) {
-    console.error("[guard:prepush] blocked by truth gate");
+    console.error("[guard:prepush] blocked by truth gate freshness check");
     process.exit(truthCode);
   }
 

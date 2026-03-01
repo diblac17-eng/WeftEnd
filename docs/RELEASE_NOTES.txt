@@ -7,7 +7,7 @@ Included
 - Branch-comparison drift guardrail (pre-commit/pre-push):
 - Added scope guard tooling for task-bound file allowlists (`.weftend/guard_scope.json`) with hard-block policy on out-of-scope tracked changes.
 - Scope guard compares working changes with `main` + tracked upstream context and emits deterministic audit artifacts under `out/guardrails`.
-- Added truth gate wrapper for commit/push workflows (`compile`, `test`, `proofcheck:release`, `verify:360:release:managed`) with stale-head reuse on pre-push.
+- Added truth gate wrapper for commit/push workflows (`compile`, `test`, `proofcheck:release`, `verify:360:release:managed`) with cached freshness keys for fast guard checks.
 - Added git hook wiring support via `.githooks/` and `npm run guard:hooks:install` (`core.hooksPath=.githooks`).
 - Added npm guard commands: `guard:scope`, `guard:truth`, `guard:precommit`, `guard:prepush`.
 - Added Green Team contract coverage to pin guard script/hook wiring and scope schema presence.
@@ -636,7 +636,8 @@ Included
 - `auto_scan_post_install` and `auto_scan_scheduled` smoke tests now also use the standard sequential local harness (instead of parallel promise launch), removing cross-test concurrency races in watch-lane validation.
 - `auto_scan_scheduled` smoke test now waits for watcher startup signal before delayed mutation and uses bounded longer timeout, aligning poll-lane trigger validation with deterministic startup ordering.
 - Guardrail pre-push upstream comparison now trims upstream ref text before `rev-list` checks, preventing false `ambiguous argument` failures in protected push flow.
-- Guardrail pre-commit now runs truth gate in stale-aware mode (`--if-stale`) and reuses tree-based freshness keys, preventing redundant full gate reruns when retried commits keep the same staged content.
+- Guard truth freshness now uses tree/index keys (not only HEAD identity), preventing false stale detection on commit/push retries with unchanged content.
+- Guardrail hooks now use fail-fast timing: pre-commit runs scope-only checks, and pre-push enforces `--require-fresh` truth-cache checks (explicit `npm run guard:truth` refresh), preventing long auto-reruns inside git hook flows.
 
 Validation
 - npm run compile --silent: pass

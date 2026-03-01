@@ -130,8 +130,9 @@ Branch-comparison drift guardrail (pre-commit/pre-push)
   - `npm run guard:precommit`
   - `npm run guard:prepush`
 - Hook behavior:
-  - pre-commit: scope check (`main` + tracked upstream context) then full truth gate.
-  - pre-push: scope recheck, block if branch is behind upstream, rerun truth gate only when stale.
+  - pre-commit: scope check only (`main` + tracked upstream context), fail-fast (no long truth-gate run).
+  - pre-push: scope recheck, block if branch is behind upstream, require a fresh cached truth gate result.
+  - run `npm run guard:truth` explicitly before push to refresh the truth-gate cache when stale.
 - Local audit artifacts:
   - `out/guardrails/guard_scope_precommit_last.json`
   - `out/guardrails/guard_scope_prepush_last.json`

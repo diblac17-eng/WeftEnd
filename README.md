@@ -140,6 +140,9 @@ Contributor branch drift guardrail
   - `scope.allowed_prefixes`
 - No scope declaration means changed tracked files are blocked by default.
 - Guard compares against both local `main` and tracked `@{upstream}` context before commit/push.
+- Hook timing model:
+  - pre-commit: scope guard only (fast).
+  - pre-push: requires fresh `npm run guard:truth` cache (fails fast when stale).
 
 Adapter maintenance gate
 - Set `WEFTEND_ADAPTER_DISABLE` to temporarily disable adapter lanes without removing code.

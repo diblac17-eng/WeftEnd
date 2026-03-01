@@ -13,12 +13,15 @@ const DEFAULT_WRITE_PATH = path.join(OUT_DIR, "guard_truth_last.json");
 function parseArgs(argv) {
   const out = {
     ifStale: false,
+    requireFresh: false,
     writePath: DEFAULT_WRITE_PATH,
   };
   for (let i = 2; i < argv.length; i += 1) {
     const arg = String(argv[i] || "");
     if (arg === "--if-stale") {
       out.ifStale = true;
+    } else if (arg === "--require-fresh") {
+      out.requireFresh = true;
     } else if (arg === "--write") {
       i += 1;
       out.writePath = path.resolve(ROOT, String(argv[i] || ""));
@@ -80,6 +83,24 @@ function main() {
     writeJsonAtomic(args.writePath, skipPayload);
     console.log(`[guard:truth] status=SKIP code=GUARD_TRUTH_FRESH head=${headSha}`);
     process.exit(0);
+  }
+
+  if (args.requireFresh && !fresh) {
+    const stalePayload = {
+      schema: VERSION,
+      status: "FAIL",
+      code: "GUARD_TRUTH_STALE",
+      headSha,
+      headTree,
+      indexTree,
+      stale: true,
+      commands: [],
+      message: "truth gate cache is stale; run `npm run guard:truth` before push",
+    };
+    writeJsonAtomic(args.writePath, stalePayload);
+    console.error("[guard:truth] status=FAIL code=GUARD_TRUTH_STALE");
+    console.error("[guard:truth] run npm run guard:truth, then retry push");
+    process.exit(40);
   }
 
   const commands = [];

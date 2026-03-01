@@ -213,6 +213,9 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
   npm run guard:truth
   npm run guard:precommit
   npm run guard:prepush
+- Hook timing model:
+  - pre-commit runs scope guard only (fast).
+  - pre-push requires a fresh `guard:truth` cache and fails fast if stale.
 - Before any reusable commit:
   npm run verify:360
 - Strict proofcheck with enforced release smoke fixture:
