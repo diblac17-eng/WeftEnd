@@ -85,7 +85,22 @@ function main() {
     process.exit(0);
   }
 
-  if (args.requireFresh && !fresh) {
+  if (args.requireFresh) {
+    if (fresh) {
+      const freshPayload = {
+        schema: VERSION,
+        status: "PASS",
+        code: "GUARD_TRUTH_FRESH",
+        headSha,
+        headTree,
+        indexTree,
+        stale: false,
+        commands: [],
+      };
+      writeJsonAtomic(args.writePath, freshPayload);
+      console.log(`[guard:truth] status=PASS code=GUARD_TRUTH_FRESH head=${headSha}`);
+      process.exit(0);
+    }
     const stalePayload = {
       schema: VERSION,
       status: "FAIL",
