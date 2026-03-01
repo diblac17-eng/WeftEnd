@@ -197,6 +197,22 @@ const limits = {
 };
 
 const run = (): void => {
+  let tarPluginReadyCache: boolean | null = null;
+  const tarPluginReady = (): boolean => {
+    if (tarPluginReadyCache !== null) return tarPluginReadyCache;
+    if (!runCmd("tar", ["--help"]).ok) {
+      tarPluginReadyCache = false;
+      return tarPluginReadyCache;
+    }
+    const tmp = mkTmp();
+    const probeTgz = path.join(tmp, "tar_plugin_probe.tgz");
+    writeSimpleTgz(probeTgz, [{ name: "probe.txt", text: "ok" }]);
+    const capture = captureTreeV0(probeTgz, limits);
+    const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: ["tar"], inputPath: probeTgz, capture });
+    tarPluginReadyCache = !!(res.ok && res.adapter?.mode === "plugin");
+    return tarPluginReadyCache;
+  };
+
   {
     const tmp = mkTmp();
     const input = path.join(tmp, "good.zip");
@@ -252,8 +268,7 @@ const run = (): void => {
       { name: "a.txt", text: "alpha-b" },
     ]);
     const capture = captureTreeV0(tgz, limits);
-    const tarAvailable = runCmd("tar", ["--help"]).ok;
-    if (tarAvailable) {
+    if (tarPluginReady()) {
       const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: ["tar"], inputPath: tgz, capture });
       assert(!res.ok, "archive adapter should fail closed for strict plugin route with case-colliding entry paths");
       assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for case-colliding plugin archive entries");
@@ -268,8 +283,7 @@ const run = (): void => {
       { name: "ok.txt", text: "ok" },
     ]);
     const capture = captureTreeV0(tgz, limits);
-    const tarAvailable = runCmd("tar", ["--help"]).ok;
-    if (tarAvailable) {
+    if (tarPluginReady()) {
       const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: ["tar"], inputPath: tgz, capture });
       assert(!res.ok, "archive adapter should fail closed for strict plugin route with traversal-style entry paths");
       assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for traversal-style plugin archive entry paths");
@@ -284,8 +298,7 @@ const run = (): void => {
       { name: "ok.txt", text: "ok" },
     ]);
     const capture = captureTreeV0(tgz, limits);
-    const tarAvailable = runCmd("tar", ["--help"]).ok;
-    if (tarAvailable) {
+    if (tarPluginReady()) {
       const res = runArtifactAdapterV1({ selection: "archive", enabledPlugins: ["tar"], inputPath: tgz, capture });
       assert(!res.ok, "archive adapter should fail closed for strict plugin route with drive-style absolute entry paths");
       assertEq(res.failCode, "ARCHIVE_FORMAT_MISMATCH", "expected ARCHIVE_FORMAT_MISMATCH for drive-style plugin archive entry paths");
@@ -1154,8 +1167,7 @@ const run = (): void => {
     const tgz = path.join(tmp, "valid_package.tgz");
     writeSimpleTgz(tgz, [{ name: "pkg/install.sh", text: "echo ok" }]);
     const capture = captureTreeV0(tgz, limits);
-    const tarAvailable = runCmd("tar", ["--help"]).ok;
-    if (tarAvailable) {
+    if (tarPluginReady()) {
       const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: ["tar"], inputPath: tgz, capture });
       assert(res.ok, "package adapter should accept compressed tar package when tar plugin is enabled");
       assertEq(res.summary?.sourceClass, "package", "package tgz sourceClass mismatch");
@@ -1171,8 +1183,7 @@ const run = (): void => {
       { name: "pkg/install.sh", text: "echo b" },
     ]);
     const capture = captureTreeV0(tgz, limits);
-    const tarAvailable = runCmd("tar", ["--help"]).ok;
-    if (tarAvailable) {
+    if (tarPluginReady()) {
       const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: ["tar"], inputPath: tgz, capture });
       assert(!res.ok, "package adapter should fail closed for strict package plugin route with case-colliding entry paths");
       assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for case-colliding package plugin entries");
@@ -1187,8 +1198,7 @@ const run = (): void => {
       { name: "pkg/install.sh", text: "echo ok" },
     ]);
     const capture = captureTreeV0(tgz, limits);
-    const tarAvailable = runCmd("tar", ["--help"]).ok;
-    if (tarAvailable) {
+    if (tarPluginReady()) {
       const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: ["tar"], inputPath: tgz, capture });
       assert(!res.ok, "package adapter should fail closed for strict package plugin route with traversal-style entry paths");
       assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for traversal-style package plugin entry paths");
@@ -1203,8 +1213,7 @@ const run = (): void => {
       { name: "pkg/install.sh", text: "echo ok" },
     ]);
     const capture = captureTreeV0(tgz, limits);
-    const tarAvailable = runCmd("tar", ["--help"]).ok;
-    if (tarAvailable) {
+    if (tarPluginReady()) {
       const res = runArtifactAdapterV1({ selection: "package", enabledPlugins: ["tar"], inputPath: tgz, capture });
       assert(!res.ok, "package adapter should fail closed for strict package plugin route with drive-style absolute entry paths");
       assertEq(res.failCode, "PACKAGE_FORMAT_MISMATCH", "expected PACKAGE_FORMAT_MISMATCH for drive-style package plugin entry paths");

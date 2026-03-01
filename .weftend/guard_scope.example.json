@@ -1,0 +1,12 @@
+{
+  "schema": "weftend.guardScope/0",
+  "v": 0,
+  "scope": {
+    "allowed_files": [
+      "docs/RELEASE_NOTES.txt"
+    ],
+    "allowed_prefixes": [
+      "docs/"
+    ]
+  }
+}

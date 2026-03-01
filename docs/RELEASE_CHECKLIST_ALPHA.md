@@ -5,6 +5,15 @@ Short, strict release checklist (alpha).
 - git status --short
 - Expect no pending changes before build/tag.
 
+1.2) Branch drift guardrail check (recommended before release commits)
+- Ensure branch guard hooks are installed:
+  - npm run guard:hooks:install
+- Confirm task scope file exists and is intentional:
+  - .weftend/guard_scope.json
+- Run guard checks:
+  - npm run guard:scope
+  - npm run guard:prepush
+
 1.1) Immutable-release change record check
 - Confirm `CHANGELOG.md` (`[Unreleased]`) is updated with all release-bound deltas.
 - Confirm `docs/RELEASE_NOTES.txt` matches release scope and validation commands.

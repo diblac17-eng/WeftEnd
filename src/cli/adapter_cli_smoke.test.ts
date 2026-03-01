@@ -1,4 +1,4 @@
-﻿/* src/cli/adapter_cli_smoke.test.ts */
+/* src/cli/adapter_cli_smoke.test.ts */
 
 import { runCliCapture } from "./cli_test_runner";
 
@@ -164,16 +164,33 @@ const writeSimpleTgz = (outPath: string, files: Array<{ name: string; text: stri
   fs.writeFileSync(outPath, gz);
 };
 
-const tarAvailable = (): boolean => {
+let tarAvailableCache: boolean | null = null;
+const tarAvailable = async (): Promise<boolean> => {
+  if (tarAvailableCache !== null) return tarAvailableCache;
   const probe = childProcess.spawnSync("tar", ["--help"], {
     encoding: "utf8",
     windowsHide: true,
     timeout: 3000,
   });
-  if (probe?.error?.code === "ENOENT") return false;
-  if (probe?.error?.code === "ENOTFOUND") return false;
-  if (probe?.error?.code === "UNKNOWN") return false;
-  return true;
+  if (probe?.error?.code === "ENOENT") {
+    tarAvailableCache = false;
+    return tarAvailableCache;
+  }
+  if (probe?.error?.code === "ENOTFOUND") {
+    tarAvailableCache = false;
+    return tarAvailableCache;
+  }
+  if (probe?.error?.code === "UNKNOWN") {
+    tarAvailableCache = false;
+    return tarAvailableCache;
+  }
+  const outDir = mkTmp();
+  const tmp = mkTmp();
+  const input = path.join(tmp, "tar_plugin_probe.tgz");
+  writeSimpleTgz(input, [{ name: "probe.txt", text: "ok" }]);
+  const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive", "--enable-plugin", "tar"]);
+  tarAvailableCache = res.status === 0;
+  return tarAvailableCache;
 };
 
 const run = async (): Promise<void> => {
@@ -574,7 +591,7 @@ const run = async (): Promise<void> => {
       { name: "A.txt", text: "alpha-a" },
       { name: "a.txt", text: "alpha-b" },
     ]);
-    if (tarAvailable()) {
+    if (await tarAvailable()) {
       const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive", "--enable-plugin", "tar"]);
       assertEq(res.status, 40, "safe-run archive should fail closed for strict plugin route with case-colliding entry paths");
       assert(res.stderr.includes("ARCHIVE_FORMAT_MISMATCH"), "expected ARCHIVE_FORMAT_MISMATCH on stderr for case-colliding plugin archive entries");
@@ -589,7 +606,7 @@ const run = async (): Promise<void> => {
       { name: "../spoof.txt", text: "spoof" },
       { name: "ok.txt", text: "ok" },
     ]);
-    if (tarAvailable()) {
+    if (await tarAvailable()) {
       const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive", "--enable-plugin", "tar"]);
       assertEq(res.status, 40, "safe-run archive should fail closed for strict plugin route with traversal-style entry paths");
       assert(res.stderr.includes("ARCHIVE_FORMAT_MISMATCH"), "expected ARCHIVE_FORMAT_MISMATCH on stderr for traversal-style plugin archive entries");
@@ -604,7 +621,7 @@ const run = async (): Promise<void> => {
       { name: "C:/spoof.txt", text: "spoof" },
       { name: "ok.txt", text: "ok" },
     ]);
-    if (tarAvailable()) {
+    if (await tarAvailable()) {
       const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "archive", "--enable-plugin", "tar"]);
       assertEq(res.status, 40, "safe-run archive should fail closed for strict plugin route with drive-style absolute entry paths");
       assert(res.stderr.includes("ARCHIVE_FORMAT_MISMATCH"), "expected ARCHIVE_FORMAT_MISMATCH on stderr for drive-style plugin archive entries");
@@ -1827,7 +1844,7 @@ const run = async (): Promise<void> => {
     const tmp = mkTmp();
     const input = path.join(tmp, "valid_package.tgz");
     writeSimpleTgz(input, [{ name: "pkg/install.sh", text: "echo ok" }]);
-    if (tarAvailable()) {
+    if (await tarAvailable()) {
       const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "package", "--enable-plugin", "tar"]);
       assertEq(res.status, 0, `safe-run should accept compressed tar package when tar plugin is enabled\n${res.stderr}`);
       const safe = JSON.parse(fs.readFileSync(path.join(outDir, "safe_run_receipt.json"), "utf8"));
@@ -1844,7 +1861,7 @@ const run = async (): Promise<void> => {
       { name: "PKG/Install.sh", text: "echo a" },
       { name: "pkg/install.sh", text: "echo b" },
     ]);
-    if (tarAvailable()) {
+    if (await tarAvailable()) {
       const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "package", "--enable-plugin", "tar"]);
       assertEq(res.status, 40, "safe-run should fail closed for strict package plugin route with case-colliding entry paths");
       assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for case-colliding package plugin entries");
@@ -1859,7 +1876,7 @@ const run = async (): Promise<void> => {
       { name: "../spoof.txt", text: "spoof" },
       { name: "pkg/install.sh", text: "echo ok" },
     ]);
-    if (tarAvailable()) {
+    if (await tarAvailable()) {
       const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "package", "--enable-plugin", "tar"]);
       assertEq(res.status, 40, "safe-run should fail closed for strict package plugin route with traversal-style entry paths");
       assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for traversal-style package plugin entries");
@@ -1874,7 +1891,7 @@ const run = async (): Promise<void> => {
       { name: "C:/spoof.txt", text: "spoof" },
       { name: "pkg/install.sh", text: "echo ok" },
     ]);
-    if (tarAvailable()) {
+    if (await tarAvailable()) {
       const res = await runCliCapture(["safe-run", input, "--out", outDir, "--adapter", "package", "--enable-plugin", "tar"]);
       assertEq(res.status, 40, "safe-run should fail closed for strict package plugin route with drive-style absolute entry paths");
       assert(res.stderr.includes("PACKAGE_FORMAT_MISMATCH"), "expected PACKAGE_FORMAT_MISMATCH on stderr for drive-style package plugin entries");
@@ -3684,3 +3701,4 @@ run()
     console.error(error);
     process.exit(1);
   });
+

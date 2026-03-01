@@ -4,6 +4,13 @@ Scope: Deterministic artifact intake, baseline/compare workflows, operator-facin
 Liability scope: WeftEnd is an evidence and change-tracking engine, not a malware oracle or compliance guarantee.
 
 Included
+- Branch-comparison drift guardrail (pre-commit/pre-push):
+- Added scope guard tooling for task-bound file allowlists (`.weftend/guard_scope.json`) with hard-block policy on out-of-scope tracked changes.
+- Scope guard compares working changes with `main` + tracked upstream context and emits deterministic audit artifacts under `out/guardrails`.
+- Added truth gate wrapper for commit/push workflows (`compile`, `test`, `proofcheck:release`, `verify:360:release:managed`) with stale-head reuse on pre-push.
+- Added git hook wiring support via `.githooks/` and `npm run guard:hooks:install` (`core.hooksPath=.githooks`).
+- Added npm guard commands: `guard:scope`, `guard:truth`, `guard:precommit`, `guard:prepush`.
+- Added Green Team contract coverage to pin guard script/hook wiring and scope schema presence.
 - Bound shortcut launch-flow reliability fixes:
 - Bound WeftEnd shortcuts now use changed-only report gating (`-OpenOnChangedOnly`) so SAME runs launch without forced report popups; CHANGED/BLOCKED still gate with explicit review.
 - Bound launch flow now carries explicit launch-target override metadata (`-LaunchTargetPath`) so `.lnk`-bound targets launch correctly after gate checks instead of scanning-only/no-launch outcomes.

@@ -126,7 +126,20 @@ Useful commands
 - npm run weftend -- web-runtime capture <input> --out <dir> [--mode strict_replay|live_observe]
 - npm run proofcheck:release
 - npm run verify:360:release:managed
+- npm run guard:hooks:install
+- npm run guard:scope
+- npm run guard:truth
+- npm run guard:precommit
+- npm run guard:prepush
 - See docs/GITHUB_ACTIONS.md for CI usage with .github/workflows/weftend_artifact_meter.yml
+
+Contributor branch drift guardrail
+- Task scope allowlist file: `.weftend/guard_scope.json` (template: `.weftend/guard_scope.example.json`).
+- Scope fields:
+  - `scope.allowed_files`
+  - `scope.allowed_prefixes`
+- No scope declaration means changed tracked files are blocked by default.
+- Guard compares against both local `main` and tracked `@{upstream}` context before commit/push.
 
 Adapter maintenance gate
 - Set `WEFTEND_ADAPTER_DISABLE` to temporarily disable adapter lanes without removing code.

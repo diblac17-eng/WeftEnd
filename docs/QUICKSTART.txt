@@ -202,6 +202,17 @@ See docs/WHAT_IS_WEFTEND.md and docs/WHY_RECEIPTS.md for details.
 - Runtime is never auto-downloaded: bundled runtime/node/node.exe is preferred; local Node fallback is fail-closed.
 
 9) Commit gate (contributors)
+- Branch-scope allowlist (required when using guard hooks):
+  - Create `.weftend/guard_scope.json` (see `.weftend/guard_scope.example.json`).
+  - Declare exact files in `scope.allowed_files` and directories in `scope.allowed_prefixes`.
+  - No scope file means changed tracked files are blocked by default.
+- Install local git hooks:
+  npm run guard:hooks:install
+- Manual drift guard commands:
+  npm run guard:scope
+  npm run guard:truth
+  npm run guard:precommit
+  npm run guard:prepush
 - Before any reusable commit:
   npm run verify:360
 - Strict proofcheck with enforced release smoke fixture:

@@ -53,6 +53,7 @@ suite("greenteam/docs-release-contract", () => {
     const releaseAnnouncement = readText("docs/RELEASE_ANNOUNCEMENT.txt");
     const packageJson = readText("package.json");
     const truthGateScript = readText("scripts/commit_truth_gate.js");
+    const truthGateSteps = readText("scripts/truth_gate_steps.js");
     const install = readText("docs/INSTALL.md");
     const troubleshooting = readText("docs/TROUBLESHOOTING.md");
     const supportOnboarding = readText("docs/SUPPORT_ONBOARDING.md");
@@ -71,6 +72,17 @@ suite("greenteam/docs-release-contract", () => {
       readme.includes("WeftEnd Launchpad") && readme.includes("WeftEnd Download"),
       "README must reference current Launchpad/Download shortcuts"
     );
+    assert(
+      readme.includes("npm run guard:hooks:install") &&
+        readme.includes("npm run guard:precommit") &&
+        readme.includes("npm run guard:prepush"),
+      "README missing branch drift guard command references"
+    );
+    assert(
+      readme.includes(".weftend/guard_scope.json") &&
+        readme.includes(".weftend/guard_scope.example.json"),
+      "README missing guard scope file references"
+    );
     assert(!readme.includes("WeftEnd Library"), "README must not reference removed WeftEnd Library shortcut");
 
     assert(
@@ -84,6 +96,17 @@ suite("greenteam/docs-release-contract", () => {
     assert(
       quickstart.includes("npm run verify:360:release:managed"),
       "QUICKSTART missing managed verify command reference"
+    );
+    assert(
+      quickstart.includes("npm run guard:hooks:install") &&
+        quickstart.includes("npm run guard:precommit") &&
+        quickstart.includes("npm run guard:prepush"),
+      "QUICKSTART missing branch drift guard command references"
+    );
+    assert(
+      quickstart.includes(".weftend/guard_scope.json") &&
+        quickstart.includes(".weftend/guard_scope.example.json"),
+      "QUICKSTART missing guard scope file references"
     );
     assert(
       quickstart.includes("npm run proofcheck:release"),
@@ -114,6 +137,10 @@ suite("greenteam/docs-release-contract", () => {
     assert(
       releaseNotes.includes(".github/workflows/weftend_verify360.yml"),
       "RELEASE_NOTES missing verify360 workflow reference"
+    );
+    assert(
+      releaseNotes.includes("npm run guard:hooks:install"),
+      "RELEASE_NOTES missing branch drift guard hook-install reference"
     );
 
     assert(
@@ -221,10 +248,27 @@ suite("greenteam/docs-release-contract", () => {
       "package.json missing gate:truth script contract"
     );
     assert(
-      truthGateScript.includes("run([\"test\"]") &&
-        truthGateScript.includes("run([\"run\", \"verify:360:release:managed\"]") &&
-        truthGateScript.includes("run([\"run\", \"proofcheck:release\"]"),
-      "commit truth gate script must run test + managed verify + strict proofcheck"
+      truthGateScript.includes("buildTruthGateSteps()"),
+      "commit truth gate must source commands from shared truth-gate step definitions"
+    );
+    assert(
+      truthGateSteps.includes("label: \"compile\"") &&
+        truthGateSteps.includes("[\"run\", \"compile\", \"--silent\"]"),
+      "truth gate steps missing compile command"
+    );
+    assert(
+      truthGateSteps.includes("label: \"test\"") && truthGateSteps.includes("[\"test\"]"),
+      "truth gate steps missing test command"
+    );
+    assert(
+      truthGateSteps.includes("label: \"proofcheck_release\"") &&
+        truthGateSteps.includes("[\"run\", \"proofcheck:release\"]"),
+      "truth gate steps missing strict proofcheck command"
+    );
+    assert(
+      truthGateSteps.includes("label: \"verify360_release_managed\"") &&
+        truthGateSteps.includes("[\"run\", \"verify:360:release:managed\"]"),
+      "truth gate steps missing managed verify command"
     );
   });
 });

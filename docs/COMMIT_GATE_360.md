@@ -114,6 +114,34 @@ Command
 - Optional deterministic safe-run adapter override inside verify pair:
   - `WEFTEND_360_SAFE_RUN_ADAPTER=auto|none|archive|package|extension|iac|cicd|document|container|image|scm|signature`
 
+Branch-comparison drift guardrail (pre-commit/pre-push)
+- Scope file (explicit task allowlist):
+  - `.weftend/guard_scope.json`
+  - schema: `weftend.guardScope/0`
+  - fields:
+    - `scope.allowed_files` (exact repo-relative files)
+    - `scope.allowed_prefixes` (repo-relative directory prefixes)
+- No scope declared means hard block on changed tracked files.
+- Install hooks:
+  - `npm run guard:hooks:install`
+- Manual checks:
+  - `npm run guard:scope`
+  - `npm run guard:truth`
+  - `npm run guard:precommit`
+  - `npm run guard:prepush`
+- Hook behavior:
+  - pre-commit: scope check (`main` + tracked upstream context) then full truth gate.
+  - pre-push: scope recheck, block if branch is behind upstream, rerun truth gate only when stale.
+- Local audit artifacts:
+  - `out/guardrails/guard_scope_precommit_last.json`
+  - `out/guardrails/guard_scope_prepush_last.json`
+  - `out/guardrails/guard_precommit_scope.json`
+  - `out/guardrails/guard_precommit_truth.json`
+  - `out/guardrails/guard_prepush_scope.json`
+  - `out/guardrails/guard_prepush_truth.json`
+  - `out/guardrails/guard_truth_last.json`
+  - `out/guardrails/guard_truth_state.json`
+
 Output evidence
 - `out/verify_360/history/run_<seq>/verify_360_receipt.json`
 - `out/verify_360/history/run_<seq>/verify_360_report.txt`

@@ -1,0 +1,3 @@
+#!/bin/sh
+# WeftEnd guardrail hook: pre-push scope/upstream/truth checks.
+node scripts/guard_prepush.js

@@ -1,0 +1,3 @@
+#!/bin/sh
+# WeftEnd guardrail hook: hard block on out-of-scope drift and failed truth gate.
+node scripts/guard_precommit.js
