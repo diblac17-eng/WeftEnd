@@ -16,7 +16,11 @@ function main() {
     process.exit(scopeCode);
   }
 
-  const truthCode = runNodeScript("scripts/guard_truth_gate.js", ["--write", "out/guardrails/guard_precommit_truth.json"]);
+  const truthCode = runNodeScript("scripts/guard_truth_gate.js", [
+    "--if-stale",
+    "--write",
+    "out/guardrails/guard_precommit_truth.json",
+  ]);
   if (truthCode !== 0) {
     console.error("[guard:precommit] blocked by truth gate");
     process.exit(truthCode);

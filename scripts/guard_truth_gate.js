@@ -44,12 +44,26 @@ function commandResult(label, args, envExtra) {
 function main() {
   const args = parseArgs(process.argv);
   const headSha = gitText(["rev-parse", "--short", "HEAD"]);
+  const headTree = gitText(["rev-parse", "HEAD^{tree}"], true);
+  const indexTree = gitText(["write-tree"], true);
   const state = readJson(STATE_PATH);
+  const stateHeadTree = String(state?.headTree || "");
+  const stateIndexTree = String(state?.indexTree || "");
+  const hasCurrentTree = headTree.length > 0;
+  const hasCurrentIndexTree = indexTree.length > 0;
+  const treeFresh =
+    hasCurrentTree &&
+    ((stateHeadTree.length > 0 && stateHeadTree === headTree) ||
+      (stateIndexTree.length > 0 && stateIndexTree === headTree));
+  const indexFresh =
+    hasCurrentIndexTree &&
+    ((stateIndexTree.length > 0 && stateIndexTree === indexTree) ||
+      (stateHeadTree.length > 0 && stateHeadTree === indexTree));
   const fresh =
     !!state &&
     state.schema === VERSION &&
     state.status === "PASS" &&
-    String(state.headSha || "") === String(headSha) &&
+    (treeFresh || indexFresh) &&
     Array.isArray(state.commands);
 
   if (args.ifStale && fresh) {
@@ -58,6 +72,8 @@ function main() {
       status: "SKIP",
       code: "GUARD_TRUTH_FRESH",
       headSha,
+      headTree,
+      indexTree,
       stale: false,
       commands: [],
     };
@@ -81,6 +97,8 @@ function main() {
       status,
       code: status === "PASS" ? "GUARD_TRUTH_PASS" : "GUARD_TRUTH_COMMAND_FAILED",
       headSha,
+      headTree,
+      indexTree,
       stale: true,
       failedCommand: failed ? failed.label : "",
       commands,
